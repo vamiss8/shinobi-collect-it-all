@@ -129,13 +129,14 @@ local function pass(player: Player, seconds: number)
 end
 
 -- The most Chakra worth throwing: all of it, unless the enemy out there would catch the
--- player. Then as much as still lands a Perfect throw where they can get away.
+-- player. Then as much as still lands a throw from the top of the bar where they can get
+-- away; a lower press only lands nearer.
 local function aim(player: Player): number
 	local speed = Economy.walkSpeed(player.speedLevel)
 	-- A charged Sage throw carries farther; a careful player allows for it.
 	local sage = if player.streak >= Tuning.Kick.sageStreak then Tuning.Kick.sageMultiplier else 1
 	local function safe(power: number): boolean
-		return Chase.escapesFrom(speed, Kick.distance(power, sage, 0.999))
+		return Chase.escapesFrom(speed, Kick.distance(power * sage))
 	end
 	if safe(player.chakra) then
 		return player.chakra
@@ -188,7 +189,7 @@ local function keep(player: Player, unit: Unit)
 end
 
 local function throw(player: Player, profile: Profile, rng: () -> number)
-	local result = Kick.resolve(aim(player), barPosition(profile, rng()), player.streak, rng())
+	local result = Kick.resolve(aim(player), barPosition(profile, rng()), player.streak)
 	player.streak = result.streak
 	player.spins += 1
 

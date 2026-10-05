@@ -259,7 +259,7 @@ local function press(player: Player, claimed: unknown)
 	if chosen > 0 then
 		chakra = math.min(chakra, chosen)
 	end
-	local result = Kick.resolve(chakra, Kick.barPosition(elapsed), data.streak, roll())
+	local result = Kick.resolve(chakra, Kick.barPosition(elapsed), data.streak)
 	local distance = result.distance
 
 	data.streak = result.streak

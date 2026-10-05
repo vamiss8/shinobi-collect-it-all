@@ -5,7 +5,6 @@ local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
 
 local EPS = 1e-9
-local NO_SPREAD = 0.5 -- a roll of 0.5 lands exactly in the middle of the spread
 
 return {
 	["bar sweeps 0 -> 1 -> 0 every period"] = function()
@@ -64,48 +63,56 @@ return {
 		for _, zone in Catalog.zones do
 			local ceiling = Catalog.zoneCeiling(zone)
 			for _, power in { zone.chakra, math.sqrt(zone.chakra * ceiling), ceiling * 0.999 } do
-				for _, roll in { 0, NO_SPREAD, 0.999999 } do
-					local distance = Kick.distance(power, 1, roll)
-					T.eq(Catalog.zoneAt(distance).id, zone.id, `{zone.id} at {power}`)
-					T.ok(distance < Tuning.Kick.trackLength, "past the end of the lane")
-				end
+				local distance = Kick.distance(power)
+				T.eq(Catalog.zoneAt(distance).id, zone.id, `{zone.id} at {power}`)
+				T.ok(distance < Tuning.Kick.trackLength, "past the end of the lane")
 			end
 		end
-		T.eq(Kick.distance(-5, 1, NO_SPREAD), 0, "negative chakra")
+		T.eq(Kick.distance(Catalog.zones[2].chakra), Catalog.zones[2].startsAt, "on the line")
+		T.eq(Kick.distance(-5), 0, "negative power")
+		T.ok(Kick.distance(1e30) < Tuning.Kick.trackLength, "nothing flies past the lane's end")
 	end,
 
 	["more power never lands nearer"] = function()
 		local last = Catalog.zones[#Catalog.zones]
 		local power, previous = 1, -1
 		while power < last.chakra * Tuning.Kick.lastZoneSpan * 2 do
-			local distance = Kick.distance(power, 1, NO_SPREAD)
+			local distance = Kick.distance(power)
 			T.ok(distance >= previous, `{power} Chakra lands nearer than less of it`)
 			previous = distance
 			power *= 1.3
 		end
 	end,
 
-	["random spread shifts the landing by a share of the zone"] = function()
-		local zone = Catalog.zones[3]
-		local length = Catalog.zoneEnd(zone) - zone.startsAt
-		local power = math.sqrt(zone.chakra * Catalog.zoneCeiling(zone))
-		local middle = Kick.distance(power, 1, NO_SPREAD)
-		T.near(middle, zone.startsAt + length / 2, EPS)
-		T.near(Kick.distance(power, 1, 0), middle - length * Tuning.Kick.spread, EPS)
-		T.ok(
-			Kick.distance(power, 1, 0.999999) < middle + length * Tuning.Kick.spread,
-			"upper bound"
-		)
-		T.eq(Kick.distance(zone.chakra, 1, 0), zone.startsAt, "never back into the zone before")
+	["the marker's position is the share of the Chakra thrown"] = function()
+		local chakra = Catalog.zones[5].chakra
+		T.near(Kick.resolve(chakra, 1, 0).distance, Kick.distance(chakra), EPS, "the whole of it")
+		T.near(Kick.resolve(chakra, 0.5, 0).distance, Kick.distance(chakra / 2), EPS, "half")
+		T.near(Kick.resolve(chakra, 0.1, 0).distance, Kick.distance(chakra / 10), EPS, "a tenth")
+		T.eq(Kick.resolve(chakra, 0, 0).distance, 0, "a press at the bottom throws nothing")
 	end,
 
-	["a missed throw falls back by less than a whole zone"] = function()
-		local grades = Tuning.Kick.grades
-		local miss = grades[#grades].multiplier
-		for i = 2, #Catalog.zones do
-			local zone = Catalog.zones[i]
-			local landed = Kick.reach(zone.chakra * miss)
-			T.eq(landed.id, Catalog.zones[i - 1].id, `a miss from the edge of {zone.id}`)
+	["a higher press never lands nearer, whatever its grade"] = function()
+		-- Stepping across every grade's edge with the same Chakra.
+		for _, zone in Catalog.zones do
+			local chakra = zone.chakra * 3
+			local previous = -1
+			for step = 0, 200 do
+				local distance = Kick.resolve(chakra, step / 200, 0).distance
+				T.ok(
+					distance >= previous,
+					`a press at {step / 200} lands nearer than a lower one with {chakra} Chakra`
+				)
+				previous = distance
+			end
+		end
+	end,
+
+	["the same press always lands on the same spot"] = function()
+		local chakra = Catalog.zones[3].chakra * 2
+		local first = Kick.resolve(chakra, 0.83, 0).distance
+		for _ = 1, 20 do
+			T.eq(Kick.resolve(chakra, 0.83, 0).distance, first)
 		end
 	end,
 
@@ -124,21 +131,21 @@ return {
 		local chakra = Catalog.zones[2].chakra
 		local streak = 0
 		for i = 1, Tuning.Kick.sageStreak do
-			local r = Kick.resolve(chakra, 1, streak, NO_SPREAD)
+			local r = Kick.resolve(chakra, 1, streak)
 			T.eq(r.sage, false, `kick {i}`)
 			streak = r.streak
 		end
 		T.eq(streak, Tuning.Kick.sageStreak)
 
-		local plain = Kick.resolve(chakra, 1, 0, NO_SPREAD)
-		local sage = Kick.resolve(chakra, 1, streak, NO_SPREAD)
+		local plain = Kick.resolve(chakra, 1, 0)
+		local sage = Kick.resolve(chakra, 1, streak)
 		T.eq(sage.sage, true)
-		T.near(sage.distance, Kick.distance(chakra, Tuning.Kick.sageMultiplier, NO_SPREAD), EPS)
+		T.near(sage.distance, Kick.distance(chakra * Tuning.Kick.sageMultiplier), EPS)
 		T.ok(sage.distance > plain.distance, "a Sage kick must fly farther")
 		T.eq(sage.streak, 1, "the Sage kick's own Perfect starts a new streak")
 	end,
 
 	["anything but Perfect resets the streak"] = function()
-		T.eq(Kick.resolve(1, 0.9, 3, NO_SPREAD).streak, 0)
+		T.eq(Kick.resolve(1, 0.9, 3).streak, 0)
 	end,
 }

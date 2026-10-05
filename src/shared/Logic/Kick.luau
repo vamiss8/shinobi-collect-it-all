@@ -1,5 +1,5 @@
 --!strict
--- Kick math: the power bar, timing grades, distance and the Sage streak.
+-- Kick math: the power bar, what a press is worth, distance and the Sage streak.
 -- No Roblox APIs, so it runs under Lune tests as well as in game.
 
 local Catalog = require("../Config/Catalog")
@@ -7,7 +7,7 @@ local Tuning = require("../Config/Tuning")
 
 local Kick = {}
 
--- The spread never pushes a landing onto the next zone's line: power alone decides the zone.
+-- A landing is kept a hair short of the zone's far end, which is the next zone's line.
 local DEEPEST = 0.999
 
 export type Grade = "Perfect" | "Great" | "Good" | "Miss"
@@ -20,7 +20,7 @@ export type Result = {
 }
 
 -- Tuning stores grade ids as plain strings; this pins them to the Grade type once.
-local GRADES = (Tuning.Kick.grades :: any) :: { { id: Grade, from: number, multiplier: number } }
+local GRADES = (Tuning.Kick.grades :: any) :: { { id: Grade, from: number } }
 
 -- Marker position (0..1) `elapsed` seconds after the bar started.
 -- It sweeps 0 -> 1 -> 0 once per period, with no jump from the top straight back to zero.
@@ -30,18 +30,17 @@ function Kick.barPosition(elapsed: number, period: number?): number
 	return if phase < 0.5 then phase * 2 else (1 - phase) * 2
 end
 
--- Grade and distance multiplier for a marker position.
-function Kick.grade(position: number): (Grade, number)
+-- The name of a press at the given marker position.
+function Kick.grade(position: number): Grade
 	for _, g in GRADES do
 		if position >= g.from then
-			return g.id, g.multiplier
+			return g.id
 		end
 	end
-	local last = GRADES[#GRADES]
-	return last.id, last.multiplier
+	return GRADES[#GRADES].id
 end
 
--- Where a throw of the given power (Chakra times the grade's multiplier) is headed: the
+-- Where a throw of the given power (Chakra times the marker's position) is headed: the
 -- farthest zone whose threshold it reaches, and how deep into that zone, from 0 at its start to
 -- 1 at its far end. Depth grows with the logarithm of the power, so every doubling carries the
 -- kunai the same stretch farther.
@@ -52,12 +51,11 @@ function Kick.reach(power: number): (Catalog.Zone, number)
 	return zone, math.clamp(depth, 0, 1)
 end
 
--- How far the kunai flies, in studs. `roll` is a number in [0, 1) from the caller's RNG and
--- picks a point in the random spread, which moves the landing inside its zone only.
-function Kick.distance(chakra: number, multiplier: number, roll: number): number
-	local zone, depth = Kick.reach(math.max(chakra, 0) * multiplier)
-	depth = math.clamp(depth + (roll * 2 - 1) * Tuning.Kick.spread, 0, DEEPEST)
-	return zone.startsAt + (Catalog.zoneEnd(zone) - zone.startsAt) * depth
+-- How far a throw of the given power flies, in studs. The same power always lands on the same
+-- spot, and more power never lands nearer.
+function Kick.distance(power: number): number
+	local zone, depth = Kick.reach(math.max(power, 0))
+	return zone.startsAt + (Catalog.zoneEnd(zone) - zone.startsAt) * math.min(depth, DEEPEST)
 end
 
 -- Picks the elapsed time to grade a press by.
@@ -76,19 +74,21 @@ function Kick.reconcileElapsed(claimed: number, serverElapsed: number, roundTrip
 	return estimate
 end
 
--- Resolves one kick. A charged streak is spent on this kick; this kick's own Perfect then
--- starts counting towards the next charge.
-function Kick.resolve(chakra: number, position: number, streak: number, roll: number): Result
+-- Resolves one kick. The marker's position is the share of the Chakra that goes into it. A
+-- charged streak is spent on this kick; this kick's own Perfect then starts counting towards
+-- the next charge.
+function Kick.resolve(chakra: number, position: number, streak: number): Result
 	local cfg = Tuning.Kick
-	local grade: Grade, multiplier: number = Kick.grade(position)
+	local grade: Grade = Kick.grade(position)
+	local power = math.max(chakra, 0) * math.clamp(position, 0, 1)
 	local sage = streak >= cfg.sageStreak
 	if sage then
-		multiplier *= cfg.sageMultiplier
+		power *= cfg.sageMultiplier
 		streak = 0
 	end
 	return {
 		grade = grade,
-		distance = Kick.distance(chakra, multiplier, roll),
+		distance = Kick.distance(power),
 		sage = sage,
 		streak = if grade == "Perfect" then streak + 1 else 0,
 	}

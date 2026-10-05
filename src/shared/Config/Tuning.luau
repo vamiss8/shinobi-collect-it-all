@@ -38,17 +38,19 @@ return {
 
 	Kick = {
 		barPeriod = 1.4, -- seconds for one full 0 -> 1 -> 0 sweep of the power bar
-		-- Checked top-down against the bar position (0..1); the first match wins.
+		-- A throw's power is Chakra times the marker's position on the bar (0..1) at the press:
+		-- the higher the press, the farther the kunai, and nothing is left to chance. Power picks
+		-- the zone by the zones' own thresholds (Config/Zones), and how far past a threshold it
+		-- is picks the spot inside the zone, on a log scale: every doubling carries the kunai
+		-- equally far.
+		-- The grades only name a press; Perfects in a row charge the Sage kick. Checked
+		-- top-down against the bar position; the first match wins.
 		grades = {
-			{ id = "Perfect", from = 0.94, multiplier = 1.0 },
-			{ id = "Great", from = 0.8, multiplier = 0.85 },
-			{ id = "Good", from = 0.55, multiplier = 0.7 },
-			{ id = "Miss", from = 0, multiplier = 0.4 },
+			{ id = "Perfect", from = 0.94 },
+			{ id = "Great", from = 0.8 },
+			{ id = "Good", from = 0.55 },
+			{ id = "Miss", from = 0 },
 		},
-		-- A throw's power is Chakra times the grade's multiplier. Power picks the zone by the
-		-- zones' own thresholds (Config/Zones), and how far past a threshold it is picks the
-		-- spot inside the zone, on a log scale: every doubling carries the kunai equally far.
-		spread = 0.05, -- the landing then shifts by up to this share of the zone's length
 		lastZoneSpan = 8, -- the last zone's far end takes this many times its threshold
 		trackLength = 1800, -- studs; throws never land past the end
 		stripDepth = 10, -- depth of the throwing strip at the start of the lane, studs

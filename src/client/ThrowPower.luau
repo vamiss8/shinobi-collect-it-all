@@ -146,14 +146,15 @@ function ThrowPower.attach(pill: Frame)
 			then Strings.get("ThrowAmountFull", total)
 			else Strings.get("ThrowAmount", used)
 
-		-- Where a Perfect throw with this much Chakra lands, and what the next zone takes; in
+		-- Where a throw at the very top of the bar lands with this much Chakra, and what the
+		-- next zone takes; in
 		-- the last zone, the mutation luck its depth earns. A charged Sage throw carries
 		-- farther. If the enemy out there would catch the player, the line says so instead:
 		-- dialing the power down is what the slider is for.
 		local sage = if state.streak >= Tuning.Kick.sageStreak
 			then Tuning.Kick.sageMultiplier
 			else 1
-		local distance = Kick.distance(used, sage, 0.5)
+		local distance = Kick.distance(used * sage)
 		local zone = Catalog.zoneAt(distance)
 		local following = Catalog.zoneAfter(zone)
 		local safe = Chase.escapesFrom(Economy.walkSpeed(state.speedLevel), distance)
