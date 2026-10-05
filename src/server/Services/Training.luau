@@ -1,10 +1,11 @@
 --!strict
 -- Training. Two tools sit at the front of the hotbar:
 --   Meditate (slot 1) sits the player down and earns Chakra on a timer, so it works AFK.
---     Getting up (jumping, walking) puts the tool away.
 --   Chakra Control (slot 2) is the active way: a ring closes in on a target and the player
 --     presses as they meet. The closer the press, the more it pays.
--- While either is equipped, bonus bubbles pop up now and then; popping one multiplies training
+-- Both are done standing still. Equipping a tool only asks to train: the training starts once
+-- the character has come to rest, and walking, running or jumping off puts the tool away.
+-- While a training runs, bonus bubbles pop up now and then; popping one multiplies training
 -- gains for a short while.
 
 local Players = game:GetService("Players")
@@ -30,18 +31,19 @@ local FOCUS = "focus"
 
 -- A character drifting slower than this counts as standing still, studs per second.
 local STILL_SPEED = 1
--- A seated character moving faster than this has got up, studs per second.
+-- A training character moving faster than this has walked off, studs per second.
 local MOVING_SPEED = 3
--- How often players holding the Meditate tool are checked, seconds.
-local SEAT_CHECK = 0.2
--- Still checks in a row before sitting down. One is not enough: at the top of a jump a character
--- is motionless for an instant, and a sit ordered in mid-air does not take.
+-- How often players holding a training tool are checked, seconds.
+local REST_CHECK = 0.2
+-- Still checks in a row before a training starts. One is not enough: at the top of a jump a
+-- character is motionless for an instant, and a sit ordered in mid-air does not take.
 local STILL_CHECKS = 2
--- Right after sitting down the character still settles; it is not checked for getting up yet.
+-- Right after a training starts the character still settles; it is not checked for walking
+-- off yet.
 local SETTLE_SECONDS = 0.6
 
--- Someone holding the Meditate tool: waiting to come to rest, then seated.
-type Sitter = { humanoid: Humanoid, still: number, seatedAt: number? }
+-- Someone holding a training tool: waiting to come to rest, then training with it.
+type Trainee = { humanoid: Humanoid, mode: string, still: number, startedAt: number? }
 
 type Bubble = { id: number, multiplier: number, expires: number }
 -- A chakra-control ring in progress: when the server started it, and its round.
@@ -52,7 +54,7 @@ local bubbles: { [Player]: Bubble } = {}
 local nextBubbleAt: { [Player]: number } = {}
 local bubbleCount = 0
 local rings: { [Player]: Ring } = {}
-local sitters: { [Player]: Sitter } = {}
+local trainees: { [Player]: Trainee } = {}
 
 -- Chakra for one rep. A meditation tick pays a share of a rep, a ring press several at once.
 local function repGain(player: Player, data: Data.Data): number
@@ -100,6 +102,8 @@ end
 
 -- The client reports when the player pressed, as seconds it had watched the ring. The timing
 -- is checked against the server's own clock the same way a throw is (see Kick.reconcileElapsed).
+-- A ring exists only while the player stands still with the tool out (see watchTrainees), so a
+-- press sent on the run finds none.
 local function ringPress(player: Player, claimed: unknown)
 	local data = Data.get(player)
 	local ring = rings[player]
@@ -134,57 +138,72 @@ local function makeTool(name: string, tip: string): Tool
 	return tool
 end
 
+-- The tool for `mode` was put away. When one tool is swapped for the other, the new one may
+-- already have registered, so only this tool's own traces are cleared.
+local function putAway(player: Player, mode: string)
+	local trainee = trainees[player]
+	if trainee and trainee.mode == mode then
+		trainees[player] = nil
+	end
+	if Data.get(player) and Session.of(player).training == mode then
+		setMode(player, nil)
+	end
+end
+
 local function giveTools(player: Player, _character: Model, backpack: Instance, humanoid: Humanoid)
-	-- Equipping only asks to meditate; watchSitters seats the player once they are at rest.
+	-- Equipping a tool only asks to train; watchTrainees starts the training once the player
+	-- is at rest.
+	local function takeOut(mode: string)
+		if Data.get(player) then
+			trainees[player] = { humanoid = humanoid, mode = mode, still = 0 }
+		end
+	end
+
 	local meditate = makeTool("Meditate", "Stand still to gather Chakra")
 	meditate.Equipped:Connect(function()
-		if Data.get(player) then
-			sitters[player] = { humanoid = humanoid, still = 0 }
-		end
+		takeOut(MEDITATE)
 	end)
 	meditate.Unequipped:Connect(function()
-		sitters[player] = nil
 		humanoid.Sit = false
-		if Data.get(player) and Session.of(player).training == MEDITATE then
-			setMode(player, nil)
-		end
+		putAway(player, MEDITATE)
 	end)
 	meditate.Parent = backpack
 
-	local focus = makeTool("Chakra Control", "Press as the rings meet")
+	local focus = makeTool("Chakra Control", "Stand still and press as the rings meet")
 	focus.Equipped:Connect(function()
-		setMode(player, FOCUS)
+		takeOut(FOCUS)
 	end)
 	focus.Unequipped:Connect(function()
-		if Data.get(player) and Session.of(player).training == FOCUS then
-			setMode(player, nil)
-		end
+		putAway(player, FOCUS)
 	end)
 	focus.Parent = backpack
 end
 
--- Seats players who hold the Meditate tool once they have come to rest, and puts the tool
--- away for those who got up again.
-local function watchSitters()
+-- Starts the training of players who hold a tool once they have come to rest, and puts the
+-- tool away for those who moved off again: no gathering Chakra on the run.
+local function watchTrainees()
 	local now = os.clock()
-	for player, sitter in sitters do
+	for player, trainee in trainees do
 		local speed = speedOf(player)
 		if not speed then
 			continue
 		end
-		if not sitter.seatedAt then
-			sitter.still = if speed < STILL_SPEED then sitter.still + 1 else 0
-			if sitter.still >= STILL_CHECKS then
-				sitter.humanoid.Sit = true
-				sitter.seatedAt = now
-				setMode(player, MEDITATE)
+		if not trainee.startedAt then
+			trainee.still = if speed < STILL_SPEED then trainee.still + 1 else 0
+			if trainee.still >= STILL_CHECKS then
+				trainee.startedAt = now
+				if trainee.mode == MEDITATE then
+					trainee.humanoid.Sit = true
+				end
+				setMode(player, trainee.mode)
 			end
-		elseif
-			now - sitter.seatedAt > SETTLE_SECONDS
-			and (not sitter.humanoid.Sit or speed > MOVING_SPEED)
-		then
-			-- Fires the tool's Unequipped, which clears the sitter and ends the meditation.
-			sitter.humanoid:UnequipTools()
+		elseif now - trainee.startedAt > SETTLE_SECONDS then
+			-- A meditating player gets up by jumping, which also ends the sit.
+			local gotUp = trainee.mode == MEDITATE and not trainee.humanoid.Sit
+			if gotUp or speed > MOVING_SPEED then
+				-- Fires the tool's Unequipped, which clears the trainee and ends the training.
+				trainee.humanoid:UnequipTools()
+			end
 		end
 	end
 end
@@ -246,14 +265,14 @@ function Training.start()
 		bubbles[player] = nil
 		nextBubbleAt[player] = nil
 		rings[player] = nil
-		sitters[player] = nil
+		trainees[player] = nil
 		Session.clear(player)
 	end)
 
 	task.spawn(function()
 		while true do
-			task.wait(SEAT_CHECK)
-			watchSitters()
+			task.wait(REST_CHECK)
+			watchTrainees()
 		end
 	end)
 
