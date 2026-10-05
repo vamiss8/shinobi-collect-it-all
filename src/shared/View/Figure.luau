@@ -11,6 +11,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Aura = require("./Aura")
 local Build = require("./Build")
 local Catalog = require("../Config/Catalog")
 local Economy = require("../Logic/Economy")
@@ -157,17 +158,7 @@ function Figure.build(unit: Economy.Unit): Model
 	model.Name = Figure.title(unit)
 
 	if mutation then
-		local glow = Build.part(
-			model,
-			"Glow",
-			Vector3.new(7, 7, 7),
-			Vector3.new(0, UNIT_HEIGHT / 2, 0),
-			Color3.fromHex(mutation.color),
-			Enum.Material.Neon
-		)
-		glow.Shape = Enum.PartType.Ball
-		glow.Transparency = 0.8
-		glow.CastShadow = false
+		Aura.attach(model, mutation, UNIT_HEIGHT)
 	end
 
 	-- The tag grows upwards with its line count; its bottom edge stays just above the head.
