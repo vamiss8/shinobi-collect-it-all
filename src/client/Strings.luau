@@ -38,6 +38,10 @@ local TEXT: { [string]: string } = {
 	LuckNow = "x%s LUCK ON YOUR NEXT THROW!",
 	LuckMilestone = "every %sth: x%s",
 
+	-- The bar of slots at the bottom
+	HotbarTip = "%s: %s",
+	HotbarEmpty = "Empty slot: bring a shinobi home",
+
 	-- Inventory
 	InventoryButton = "Inventory",
 	CarriedName = "Carrying: %s",

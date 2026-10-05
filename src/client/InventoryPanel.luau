@@ -27,11 +27,12 @@ function InventoryPanel.start()
 	opener.LayoutOrder = 1
 	opener.Activated:Connect(window.toggle)
 
-	-- While a shinobi is carried, a strip above the hotbar names it and puts it away in one
-	-- click or key press, without opening the window.
+	-- While a shinobi is carried, a strip above the bar of slots names it and puts it away in
+	-- one click or key press, without opening the window. The bar's own tip covers it while a
+	-- slot is hovered.
 	local carried = Ui.panel(Ui.screen("Carried", 11), {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -78),
+		Position = UDim2.new(0.5, 0, 1, -86),
 		Size = UDim2.fromOffset(380, 36),
 		BackgroundTransparency = 0.1,
 		Visible = false,

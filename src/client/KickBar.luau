@@ -42,7 +42,7 @@ function KickBar.start()
 	local screen = Ui.screen("KickBar", 15)
 	local holder = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -110),
+		Position = UDim2.new(0.5, 0, 1, -132),
 		Size = UDim2.new(0.6, 0, 0, 104),
 		BackgroundTransparency = 1,
 		Visible = false,
