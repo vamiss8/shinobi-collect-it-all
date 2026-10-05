@@ -1,8 +1,14 @@
 --!strict
--- Bonus bubbles that pop up while training. Popping one (click, tap, F or gamepad X) asks the
--- server for its multiplier; ignoring it costs nothing.
+-- Bonus seals that pop up while training. Breaking one with a click or a tap asks the server
+-- for its multiplier; ignoring it costs nothing. A seal is a round medallion: a rim in the
+-- multiplier's color around a parchment face with the multiplier written on it, and under it a
+-- bar that runs out as the seal's time does. The rarer the multiplier, the larger the seal.
+--
+-- There is no keyboard key for it: the seal has to be found on the screen and clicked. A
+-- gamepad has no pointer to click with, so its X button stands in.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Hud = require("./Hud")
@@ -15,13 +21,96 @@ local Ui = require("./Ui")
 
 local Bubbles = {}
 
-local COLORS: { [number]: Color3 } = {
-	[2] = Ui.GREEN,
-	[5] = Ui.BLUE,
-	[10] = Ui.GOLD,
+local INK = Color3.fromRGB(58, 40, 30)
+
+-- How each multiplier looks: the color of its rim and how wide the seal is.
+local LOOKS: { [number]: { color: Color3, size: number } } = {
+	[2] = { color = Ui.GREEN, size = 140 },
+	[5] = { color = Ui.BLUE, size = 154 },
+	[10] = { color = Ui.GOLD, size = 170 },
 }
+local PLAIN = { color = Ui.GREEN, size = 140 }
 
 type Shown = { id: number, multiplier: number, button: TextButton }
+
+local function round(frame: Instance)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
+end
+
+-- Draws the seal as a button under `parent`, centered on a point given in shares of the screen.
+local function draw(parent: Instance, offer: Net.Bubble, x: number, y: number): TextButton
+	local look = LOOKS[offer.multiplier] or PLAIN
+
+	local button: TextButton = Ui.make("TextButton", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(x, y),
+		Size = UDim2.fromOffset(look.size, look.size),
+		BackgroundColor3 = look.color,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = "",
+	}, parent)
+	round(button)
+	Ui.stroke(button, INK, 4)
+
+	-- The face and what is written on it take no clicks of their own: they fall through to
+	-- the button underneath.
+	local face = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.78, 0.78),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, button)
+	round(face)
+	Ui.stroke(face, INK, 2)
+	local amount = Ui.text(face, {
+		Position = UDim2.fromScale(0.08, 0.1),
+		Size = UDim2.fromScale(0.84, 0.56),
+		TextScaled = true,
+		TextColor3 = INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("Bubble", offer.multiplier),
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 70 }, amount)
+	local caption = Ui.text(face, {
+		Position = UDim2.fromScale(0.14, 0.64),
+		Size = UDim2.fromScale(0.72, 0.2),
+		TextScaled = true,
+		TextColor3 = INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("BubbleCaption"),
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 22 }, caption)
+
+	-- The time left, as a bar under the seal that empties.
+	local timer = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 12),
+		Size = UDim2.new(0.9, 0, 0, 10),
+		BackgroundColor3 = Ui.PANEL,
+		BorderSizePixel = 0,
+	}, button)
+	Ui.corner(timer, 5)
+	Ui.stroke(timer, INK, 2)
+	local left = Ui.make("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = look.color,
+		BorderSizePixel = 0,
+	}, timer)
+	Ui.corner(left, 5)
+	TweenService:Create(left, TweenInfo.new(offer.seconds, Enum.EasingStyle.Linear), {
+		Size = UDim2.fromScale(0, 1),
+	}):Play()
+
+	-- The seal snaps open rather than just appearing, so it catches the eye.
+	local pop: UIScale = Ui.make("UIScale", { Scale = 0.5 }, button)
+	TweenService:Create(pop, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Scale = 1,
+	}):Play()
+
+	return button
+end
 
 function Bubbles.start()
 	local screen = Ui.screen("Bubbles", 12)
@@ -58,30 +147,9 @@ function Bubbles.start()
 			remove(shown)
 		end
 
-		local button: TextButton = Ui.make("TextButton", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(rng:NextNumber(0.25, 0.75), rng:NextNumber(0.3, 0.62)),
-			Size = UDim2.fromOffset(92, 92),
-			BackgroundColor3 = COLORS[offer.multiplier] or Ui.GREEN,
-			BorderSizePixel = 0,
-			Font = Ui.BRUSH,
-			TextColor3 = Ui.WHITE,
-			TextSize = 34,
-			TextStrokeTransparency = 0.5,
-			Text = Strings.get("Bubble", offer.multiplier),
-		}, screen)
-		Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, button)
-		if UserInputService.KeyboardEnabled then
-			Ui.text(button, {
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 1, 2),
-				Size = UDim2.fromOffset(60, 20),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextStrokeTransparency = 0.4,
-				Text = Strings.get("BubbleKey"),
-			})
-		end
-
+		-- Somewhere in the middle of the screen: clear of the message scroll above and of the
+		-- ring and the power bar below.
+		local button = draw(screen, offer, rng:NextNumber(0.25, 0.75), rng:NextNumber(0.3, 0.5))
 		local bubble: Shown = { id = offer.id, multiplier = offer.multiplier, button = button }
 		shown = bubble
 		button.Activated:Connect(pop)
@@ -90,20 +158,15 @@ function Bubbles.start()
 		end)
 	end)
 
-	-- A bubble belongs to the training it came up in: putting the tool away takes it down.
+	-- A seal belongs to the training it came up in: putting the tool away takes it down.
 	Store.onChange(function(state)
 		if shown and not state.training then
 			remove(shown)
 		end
 	end)
 
-	-- With the mouse locked (Shift Lock, first person) a bubble cannot be clicked, so it also
-	-- pops from the keyboard and the gamepad.
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then
-			return
-		end
-		if input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonX then
+		if not processed and input.KeyCode == Enum.KeyCode.ButtonX then
 			pop()
 		end
 	end)

@@ -118,7 +118,7 @@ local TEXT: { [string]: string } = {
 
 	-- Training
 	Bubble = "x%s",
-	BubbleKey = "[F]",
+	BubbleCaption = "CHAKRA",
 	BoostStarted = "x%s Chakra for %s seconds!",
 	FocusHint = "Click as the rings meet",
 	FocusHit = "%s  +%s",
