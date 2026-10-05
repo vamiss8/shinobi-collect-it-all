@@ -9,6 +9,12 @@
 --   hold    the result stays on screen
 --   intro   once the server has teleported the player there, the camera turns to the zone's enemy
 -- Then control comes back with the camera behind the player, looking the way home.
+--
+-- A kunai is a real model when one has been supplied, and a plain blade otherwise. To supply
+-- one, put a Model or a MeshPart into ReplicatedStorage.Models (in Studio) named "kunai_" plus
+-- the kunai's id from Config/Kunai, e.g. "kunai_steel". It is cloned, scaled to a standard
+-- length and flown along its longest side, so it has to lie along one of its own axes. If it
+-- flies ring first, give it a boolean attribute "Flip" set to true.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,6 +38,10 @@ local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
 -- If the run has not started this long after it should have, the camera is given back anyway.
 local FAILSAFE_SECONDS = 4
+-- A supplied kunai model is scaled to this length for the first kunai, studs.
+local MODEL_LENGTH = 3.6
+local MODEL_PREFIX = "kunai_"
+local FLIP_ATTRIBUTE = "Flip"
 
 type Stage = {
 	reveal: Net.Reveal,
@@ -238,9 +248,66 @@ local function begin(reveal: Net.Reveal)
 	end)
 end
 
--- Builds the kunai for a flight. Which kunai the thrower owns decides its color, whether it
--- glows, and the trail it leaves; better ones are a little bigger with a longer trail.
-local function buildKunai(index: number, at: Vector3): Part
+-- The supplied model of a kunai, made safe to show and scaled to `length`, or nil if there is
+-- none. Its pivot is put in its middle, looking along its longest side, so that pivoting it to
+-- a CFrame points the blade the way that CFrame looks.
+local function suppliedKunai(id: string, length: number): Model?
+	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
+	local template = if folder then folder:FindFirstChild(MODEL_PREFIX .. id) else nil
+	if not template then
+		return nil
+	end
+
+	local model: Model
+	if template:IsA("Model") then
+		model = template:Clone()
+	elseif template:IsA("BasePart") then
+		model = Instance.new("Model")
+		template:Clone().Parent = model
+	else
+		return nil
+	end
+	for _, item in model:GetDescendants() do
+		if item:IsA("BasePart") then
+			item.Anchored = true
+			item.CanCollide = false
+			item.CanQuery = false
+			item.CanTouch = false
+			item.CastShadow = false
+		elseif item:IsA("LuaSourceContainer") then
+			-- Models from outside may carry scripts; a kunai never needs one.
+			item:Destroy()
+		end
+	end
+
+	-- Without a primary part the bounding box is measured along the world's axes.
+	model.PrimaryPart = nil
+	local _, size = model:GetBoundingBox()
+	local longest = math.max(size.X, size.Y, size.Z)
+	if longest <= 0 then
+		model:Destroy()
+		return nil
+	end
+	model:ScaleTo(model:GetScale() * length / longest)
+
+	local box, scaled = model:GetBoundingBox()
+	local along, up = Vector3.zAxis, Vector3.yAxis
+	if scaled.X >= scaled.Y and scaled.X >= scaled.Z then
+		along = Vector3.xAxis
+	elseif scaled.Y >= scaled.Z then
+		along, up = Vector3.yAxis, Vector3.zAxis
+	end
+	if template:GetAttribute(FLIP_ATTRIBUTE) == true then
+		along = -along
+	end
+	model.WorldPivot = CFrame.lookAt(box.Position, box.Position + along, up)
+	return model
+end
+
+-- Builds the kunai for a flight: the part that is moved, and the supplied model that follows
+-- it if there is one. Which kunai the thrower owns decides its color, whether it glows, and
+-- the trail it leaves; better ones are a little bigger with a longer trail.
+local function buildKunai(index: number, at: Vector3): (Part, Model?)
 	local tier = math.clamp(index, 1, #Catalog.kunai)
 	local look = Catalog.kunai[tier]
 	local scale = 1 + 0.06 * (tier - 1)
@@ -274,13 +341,36 @@ local function buildKunai(index: number, at: Vector3): Part
 	trail.FaceCamera = true
 	trail.Parent = kunai
 
+	-- With a model, the plain blade is only what carries the trail; a glowing kunai lights
+	-- its surroundings instead of being neon itself.
+	local model = suppliedKunai(look.id, MODEL_LENGTH * scale)
+	if model then
+		kunai.Transparency = 1
+		model:PivotTo(kunai.CFrame)
+		model.Parent = kunai
+		if look.glow then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromHex(look.trail)
+			light.Range = 10
+			light.Brightness = 1.5
+			light.Shadows = false
+			light.Parent = kunai
+		end
+	end
+
 	kunai.Parent = Workspace
-	return kunai
+	return kunai, model
 end
 
 -- Draws one kunai along its arc.
 local function fly(flight: Net.Flight)
-	local kunai = buildKunai(flight.kunai, flight.from)
+	local kunai, model = buildKunai(flight.kunai, flight.from)
+	local function place(cframe: CFrame)
+		kunai.CFrame = cframe
+		if model then
+			model:PivotTo(cframe)
+		end
+	end
 
 	if flight.thrower == localPlayer.UserId then
 		myKunai = kunai
@@ -298,9 +388,9 @@ local function fly(flight: Net.Flight)
 		local t = math.min((os.clock() - startedAt) / flight.duration, 1)
 		if t < 1 then
 			-- Point the kunai along its path by looking at where it will be a moment later.
-			kunai.CFrame = CFrame.lookAt(pointAt(t), pointAt(t + 0.01))
+			place(CFrame.lookAt(pointAt(t), pointAt(t + 0.01)))
 		else
-			kunai.CFrame = kunai.CFrame.Rotation + flight.to
+			place(kunai.CFrame.Rotation + flight.to)
 			connection:Disconnect()
 		end
 	end)
