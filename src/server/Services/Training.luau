@@ -35,17 +35,28 @@ local FOCUS = "focus"
 local STILL_SPEED = 1
 -- A training character moving faster than this has walked off, studs per second.
 local MOVING_SPEED = 3
+-- A character on the ring that is this far from where it started has moved, studs along the
+-- ground. Speed alone misses a quick tap on a movement key: the tap is over before the next
+-- check, but the step it took is still there.
+local STEP = 0.5
 -- How often players holding a training tool are checked, seconds.
-local REST_CHECK = 0.2
+local REST_CHECK = 0.1
 -- Still checks in a row before a training starts. One is not enough: at the top of a jump a
 -- character is motionless for an instant, and a sit ordered in mid-air does not take.
-local STILL_CHECKS = 2
--- Right after a training starts the character still settles; it is not checked for walking
--- off yet.
+local STILL_CHECKS = 4
+-- Right after sitting down to meditate the character still settles; it is not checked for
+-- getting up yet.
 local SETTLE_SECONDS = 0.6
 
--- Someone holding a training tool: waiting to come to rest, then training with it.
-type Trainee = { humanoid: Humanoid, mode: string, still: number, startedAt: number? }
+-- Someone holding a training tool: waiting to come to rest, then training with it from the
+-- spot they stopped on.
+type Trainee = {
+	humanoid: Humanoid,
+	mode: string,
+	still: number,
+	startedAt: number?,
+	spot: Vector3?,
+}
 
 type Bubble = { id: number, multiplier: number, expires: number }
 -- A chakra-control ring in progress: when the server started it, and its round.
@@ -63,16 +74,27 @@ local function repGain(player: Player, data: Data.Data): number
 	return Economy.chakraPerRep(data.kunai) * Stats.multipliers(data).chakra * Session.boost(player)
 end
 
--- How fast the player's character is moving, or nil if they have none.
-local function speedOf(player: Player): number?
+local function rootOf(player: Player): BasePart?
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-	return if root and root:IsA("BasePart") then root.AssemblyLinearVelocity.Magnitude else nil
+	return if root and root:IsA("BasePart") then root else nil
+end
+
+-- How fast the player's character is moving, or nil if they have none.
+local function speedOf(player: Player): number?
+	local root = rootOf(player)
+	return if root then root.AssemblyLinearVelocity.Magnitude else nil
 end
 
 local function isStill(player: Player): boolean
 	local speed = speedOf(player)
 	return speed ~= nil and speed < STILL_SPEED
+end
+
+-- How far along the ground the character is from `spot`.
+local function strayed(root: BasePart, spot: Vector3): number
+	local offset = root.Position - spot
+	return Vector3.new(offset.X, 0, offset.Z).Magnitude
 end
 
 -- Starts the first ring for the player: the server notes the time, the client draws it.
@@ -186,10 +208,11 @@ end
 local function watchTrainees()
 	local now = os.clock()
 	for player, trainee in trainees do
-		local speed = speedOf(player)
-		if not speed then
+		local root = rootOf(player)
+		if not root then
 			continue
 		end
+		local speed = root.AssemblyLinearVelocity.Magnitude
 		-- Not in the middle of a throw. At the power bar a click belongs to the throw, and
 		-- through the flight and the reveal the player stands still only because they are
 		-- held in place.
@@ -201,18 +224,23 @@ local function watchTrainees()
 			trainee.still = if speed < STILL_SPEED then trainee.still + 1 else 0
 			if trainee.still >= STILL_CHECKS then
 				trainee.startedAt = now
+				trainee.spot = root.Position
 				if trainee.mode == MEDITATE then
 					trainee.humanoid.Sit = true
 				end
 				setMode(player, trainee.mode)
 			end
-		elseif now - trainee.startedAt > SETTLE_SECONDS then
-			-- A meditating player gets up by jumping, which also ends the sit.
-			local gotUp = trainee.mode == MEDITATE and not trainee.humanoid.Sit
-			if gotUp or speed > MOVING_SPEED then
+		elseif trainee.mode == MEDITATE then
+			-- A meditating player is seated and gets up by jumping, which ends the sit.
+			local settled = now - trainee.startedAt > SETTLE_SECONDS
+			if settled and (not trainee.humanoid.Sit or speed > MOVING_SPEED) then
 				-- Fires the tool's Unequipped, which clears the trainee and ends the training.
 				trainee.humanoid:UnequipTools()
 			end
+		elseif speed > MOVING_SPEED or strayed(root, trainee.spot or root.Position) > STEP then
+			-- On the ring any movement at all ends the training: a step off the spot, however
+			-- short, or a jump.
+			trainee.humanoid:UnequipTools()
 		end
 	end
 end
