@@ -33,6 +33,7 @@ Net.Events = {
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
 	Notify = "Notify", -- server -> client: a key from client/Strings plus format arguments
+	Offline = "Offline", -- server -> client: Offline, once, when a returning player's save loads
 }
 
 -- Attribute on a stall's ProximityPrompt naming the shop window it opens on the client.
@@ -124,6 +125,12 @@ export type RunEnd = {
 	zone: string,
 	isNew: boolean, -- first time this character + mutation pair was found
 	reward: number, -- Ryo: discovery reward on an escape, consolation when caught
+}
+
+-- What the dojo earned while the player was away. The Ryo are already added to the save.
+export type Offline = {
+	earned: number, -- Ryo
+	away: number, -- seconds since the player was last seen
 }
 
 export type Bubble = {

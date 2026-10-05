@@ -33,4 +33,5 @@ return {
 	Upgrade = event(Net.Events.Upgrade),
 	Sell = event(Net.Events.Sell),
 	Notify = event(Net.Events.Notify),
+	Offline = event(Net.Events.Offline),
 }

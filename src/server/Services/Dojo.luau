@@ -18,6 +18,7 @@ local Inventory = require("./Inventory")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Plots = require("../World/Plots")
 local Remotes = require("../Remotes")
+local Session = require("../Session")
 local State = require("./State")
 local Stats = require("./Stats")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -36,6 +37,9 @@ local FADED = Color3.fromRGB(176, 171, 164)
 -- A press is accepted from a little farther than the client lets one through, so a player who
 -- is walking away as they click is not turned down.
 local PRESS_SLACK = 4
+-- A player back after less than this is paid for the time away without a welcome-back
+-- window: someone who rejoins to pick up an update has nothing to read. Seconds.
+local WELCOME_AFTER = 60
 -- Levels the two fixed buttons buy; the third buys what the Ryo allows.
 local LEVELS = { one = 1, ten = 10 }
 
@@ -306,10 +310,15 @@ function Dojo.start()
 		repair(data)
 
 		if data.lastSeen > 0 then
-			local earned = Economy.offlineEarnings(Stats.income(data), os.time() - data.lastSeen)
+			local away = os.time() - data.lastSeen
+			local earned = Economy.offlineEarnings(Stats.income(data), away)
 			if earned >= 1 then
 				data.ryo += earned
-				State.notify(player, "WelcomeBack", earned)
+				Session.of(player).offline = earned
+				if away >= WELCOME_AFTER then
+					local offline: Net.Offline = { earned = earned, away = away }
+					Remotes.Offline:FireClient(player, offline)
+				end
 			end
 		end
 		data.lastSeen = os.time()

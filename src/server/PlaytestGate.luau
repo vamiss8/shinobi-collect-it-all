@@ -17,8 +17,8 @@ local PlaytestGate = {}
 -- Roblox user ids of the testers. An id is the number in the address of a profile page:
 -- roblox.com/users/<id>/profile
 local ALLOWED: { number } = {
-	2893192350,
-	9144243296,
+	2893192350, -- owner
+	9144243296, -- co-author
 }
 
 local function check(player: Player)

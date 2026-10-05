@@ -104,6 +104,14 @@ local TEXT: { [string]: string } = {
 	RunEscapedNew = "NEW!  %s is yours  |  +%s Ryo",
 	RunCaught = "%s caught you.  %s is lost  |  +%s Ryo",
 
+	-- Welcome-back window
+	OfflineTitle = "Welcome back!",
+	OfflineAway = "You were away for %s",
+	OfflineEarnedLabel = "Your dojo earned",
+	OfflineEarned = "+%s Ryo",
+	OfflineNote = "While you are away the dojo earns %s%% of its income, for up to %s.",
+	OfflineCollect = "Collect",
+
 	-- Training
 	Bubble = "x%s",
 	BubbleKey = "[F]",
@@ -119,7 +127,6 @@ local TEXT: { [string]: string } = {
 	Merged = "Merged into %s!",
 	Sold = "Sold %s for %s Ryo.",
 	SoldMany = "Sold %s shinobi for %s Ryo.",
-	WelcomeBack = "Welcome back! Your dojo earned %s Ryo while you were away.",
 }
 
 -- Fills the template named `key`. An unknown key is shown as-is, so a typo is easy to spot.

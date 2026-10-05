@@ -5,6 +5,7 @@
 --     presses as they meet. The closer the press, the more it pays.
 -- Both are done standing still. Equipping a tool only asks to train: the training starts once
 -- the character has come to rest, and walking, running or jumping off puts the tool away.
+-- Neither works in the middle of a throw, from the power bar to the end of the run home.
 -- While a training runs, bonus bubbles pop up now and then; popping one multiplies training
 -- gains for a short while.
 
@@ -15,6 +16,7 @@ local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Focus = require(ReplicatedStorage.Shared.Logic.Focus)
 local Kick = require(ReplicatedStorage.Shared.Logic.Kick)
+local Kicking = require("./Kicking")
 local Loadout = require("./Loadout")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("../Remotes")
@@ -186,6 +188,13 @@ local function watchTrainees()
 	for player, trainee in trainees do
 		local speed = speedOf(player)
 		if not speed then
+			continue
+		end
+		-- Not in the middle of a throw. At the power bar a click belongs to the throw, and
+		-- through the flight and the reveal the player stands still only because they are
+		-- held in place.
+		if Kicking.throwing(player) then
+			trainee.humanoid:UnequipTools()
 			continue
 		end
 		if not trainee.startedAt then

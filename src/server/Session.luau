@@ -9,6 +9,9 @@ export type Session = {
 	throwChakra: number, -- Chakra the player chose to throw with, 0 for all of it
 	boost: number, -- training multiplier from the last popped bubble
 	boostUntil: number, -- os.clock() time the boost runs out
+	-- Ryo the dojo earned while the player was away before this visit. Already paid out;
+	-- kept so that an offer to multiply it can be honored later in the session.
+	offline: number,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -16,7 +19,7 @@ local sessions: { [Player]: Session } = {}
 function Session.of(player: Player): Session
 	local session = sessions[player]
 	if not session then
-		session = { boost = 1, boostUntil = 0, throwChakra = 0 }
+		session = { boost = 1, boostUntil = 0, throwChakra = 0, offline = 0 }
 		sessions[player] = session
 	end
 	return session

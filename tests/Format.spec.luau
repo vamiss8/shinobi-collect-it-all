@@ -37,6 +37,20 @@ return {
 		T.eq(Format.short(1e51), "1000Qid")
 	end,
 
+	["a length of time shows its two largest units"] = function()
+		T.eq(Format.duration(0), "0s")
+		T.eq(Format.duration(42), "42s")
+		T.eq(Format.duration(60), "1m")
+		T.eq(Format.duration(359), "5m", "seconds are dropped once there are minutes")
+		T.eq(Format.duration(3600), "1h", "a zero second unit is left out")
+		T.eq(Format.duration(11520), "3h 12m")
+		T.eq(Format.duration(86400), "1d")
+		T.eq(Format.duration(187200), "2d 4h")
+		T.eq(Format.duration(72 * 3600), "3d")
+		T.eq(Format.duration(-5), "0s", "clock skew")
+		T.eq(Format.duration(90.9), "1m", "fractions of a second do not count")
+	end,
+
 	["negative numbers keep their sign"] = function()
 		T.eq(Format.short(-1500), "-1.5K")
 	end,

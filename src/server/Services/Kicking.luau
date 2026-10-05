@@ -335,6 +335,12 @@ local function setThrowChakra(player: Player, amount: unknown)
 	end
 end
 
+-- Whether the player is in the middle of a throw: at the power bar, watching the kunai and the
+-- reveal, or running home. Training is off for all of it (see Services/Training).
+function Kicking.throwing(player: Player): boolean
+	return aims[player] ~= nil or flights[player] ~= nil or runs[player] ~= nil
+end
+
 function Kicking.start()
 	Remotes.KickPress.OnServerEvent:Connect(press)
 	Remotes.ThrowChakra.OnServerEvent:Connect(setThrowChakra)
