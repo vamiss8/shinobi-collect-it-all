@@ -159,6 +159,11 @@ function Hud.start()
 
 	ThrowPower.attach(chakraPill)
 
+	-- Until the first snapshot arrives the readouts say why they are empty. A save usually
+	-- loads at once, but it can take most of a minute when another server still holds it.
+	ryoAmount.Text = Strings.get("HudLoading")
+	chakraAmount.Text = Strings.get("HudLoading")
+
 	-- Window buttons, on the right edge.
 	local column = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),

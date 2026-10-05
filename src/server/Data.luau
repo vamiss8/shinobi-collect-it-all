@@ -1,10 +1,11 @@
 --!strict
 -- Player saves. ProfileStore keeps one session per player across all servers (session locking),
--- autosaves, and saves on leave. Without DataStore access (an unpublished place in Studio) it
--- falls back to an in-memory store, so progress then lasts only until the test session ends.
+-- autosaves, and saves on leave. Test sessions in Studio never touch the real saves: they get
+-- an in-memory store, so progress there lasts only until the session ends.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Index = require(ReplicatedStorage.Shared.Logic.Index)
@@ -54,7 +55,13 @@ type Callback = (player: Player, data: Data) -> ()
 -- (a removed character, a reordered kunai) leaves old saves meaningless.
 local STORE = "Playtest1"
 
-local store = ProfileStore.New(STORE, TEMPLATE)
+-- A test session in Studio keeps its saves in memory. With the place published Studio can
+-- reach the real DataStore, and a test run would then go for the tester's live save: it waits
+-- out the live server's lock on it (the player stands at the template's spawn with an empty
+-- HUD meanwhile), throws them out of the live game, and writes the test run's progress over
+-- the real one. Typed loosely, like the profiles below.
+local liveStore = ProfileStore.New(STORE, TEMPLATE)
+local store: any = if RunService:IsStudio() then liveStore.Mock else liveStore
 -- Typed loosely: ProfileStore's own Profile<T> type does not survive strict checking against T.
 local profiles: { [Player]: any } = {}
 local loadedCallbacks: { Callback } = {}
@@ -127,6 +134,10 @@ end
 
 -- Call last, after every service has registered its callbacks.
 function Data.start()
+	if RunService:IsStudio() then
+		-- ProfileStore itself reports that data "will be saved" whenever Studio has API access.
+		print("[Data] Studio test session: saves are kept in memory and end with it")
+	end
 	Players.PlayerAdded:Connect(load)
 	Players.PlayerRemoving:Connect(release)
 	for _, player in Players:GetPlayers() do
