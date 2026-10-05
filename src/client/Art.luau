@@ -12,12 +12,12 @@
 local Art = {}
 
 Art.icons = {
-	coin = 0, -- the Ryo readout; assets/icons/coin.png
-	chakra = 0, -- the Chakra readout; assets/icons/chakra.png
-	scroll = 0, -- the Inventory tile; assets/icons/scroll.png
-	book = 0, -- the Bingo Book tile; assets/icons/book.png
-	meditate = 0, -- slot 1; assets/icons/meditate.png
-	focus = 0, -- slot 2, Chakra Control; assets/icons/focus.png
+	coin = 116508526878923, -- the Ryo readout; assets/icons/coin.png
+	chakra = 112681131536613, -- the Chakra readout; assets/icons/chakra.png
+	scroll = 112573281784616, -- the Inventory tile; assets/icons/scroll.png
+	book = 134344077361427, -- the Bingo Book tile; assets/icons/book.png
+	meditate = 123433743975781, -- slot 1; assets/icons/meditate.png
+	focus = 74944362570117, -- slot 2, Chakra Control; assets/icons/focus.png
 }
 
 -- Portraits of shinobi by character id (Config/Characters), for cards and quick slots. A
