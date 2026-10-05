@@ -8,6 +8,7 @@
 -- floor, z is sideways from the center line.
 
 local PhysicsService = game:GetService("PhysicsService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -30,8 +31,12 @@ local WALL_HEIGHT = 80
 local WALL_THICKNESS = 2
 -- The gate across the lane behind the throwing strip stops players from walking into the zones.
 -- Someone running home from a throw is put in the runner group, which passes through it.
+-- Every other character is in the player group. Characters pass through one another whatever
+-- group they are in: a player who bumps into one sitting in meditation would otherwise knock
+-- them out of it, or send them flying.
 local GATE_GROUP = "Gate"
 local RUNNER_GROUP = "Runner"
+local PLAYER_GROUP = "Player"
 
 Hub.LANE_WIDTH = LANE_WIDTH
 Hub.WALL_HEIGHT = WALL_HEIGHT
@@ -66,14 +71,35 @@ function Hub.onStrip(position: Vector3): boolean
 		and p.Y < 12
 end
 
--- Lets a character through the gate behind the strip (while it runs home), or blocks it again.
-function Hub.setRunner(character: Model, isRunner: boolean)
-	local group = if isRunner then RUNNER_GROUP else "Default"
+-- The collision group of each character. Parts that arrive after the body, such as
+-- accessories and the shinobi carried overhead, take the group the character has by then.
+local groups: { [Model]: string } = {}
+
+local function setGroup(character: Model, group: string)
+	groups[character] = group
 	for _, part in character:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.CollisionGroup = group
 		end
 	end
+end
+
+-- Lets a character through the gate behind the strip (while it runs home), or blocks it again.
+function Hub.setRunner(character: Model, isRunner: boolean)
+	setGroup(character, if isRunner then RUNNER_GROUP else PLAYER_GROUP)
+end
+
+-- Puts a freshly spawned character in the player group and keeps its later parts in step.
+local function adopt(character: Model)
+	setGroup(character, PLAYER_GROUP)
+	character.DescendantAdded:Connect(function(part)
+		if part:IsA("BasePart") then
+			part.CollisionGroup = groups[character] or PLAYER_GROUP
+		end
+	end)
+	character.Destroying:Connect(function()
+		groups[character] = nil
+	end)
 end
 
 function Hub.start()
@@ -188,12 +214,33 @@ function Hub.start()
 	)
 
 	-- Registering a group twice is an error, and groups saved with the place persist.
-	for _, group in { GATE_GROUP, RUNNER_GROUP } do
+	for _, group in { GATE_GROUP, RUNNER_GROUP, PLAYER_GROUP } do
 		if not PhysicsService:IsCollisionGroupRegistered(group) then
 			PhysicsService:RegisterCollisionGroup(group)
 		end
 	end
 	PhysicsService:CollisionGroupSetCollidable(GATE_GROUP, RUNNER_GROUP, false)
+	for _, pair in
+		{
+			{ PLAYER_GROUP, PLAYER_GROUP },
+			{ PLAYER_GROUP, RUNNER_GROUP },
+			{ RUNNER_GROUP, RUNNER_GROUP },
+		}
+	do
+		PhysicsService:CollisionGroupSetCollidable(pair[1], pair[2], false)
+	end
+
+	-- The groups exist from here on, so characters can be sorted into them.
+	local function watch(player: Player)
+		player.CharacterAdded:Connect(adopt)
+		if player.Character then
+			adopt(player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
 	local gate = Build.wall(
 		folder,
 		"Gate",
