@@ -1,0 +1,31 @@
+--!strict
+-- Client entry point. The HUD starts before the windows, which add their buttons to it; the
+-- store starts last, once every UI piece is listening.
+
+local Bubbles = require(script.Bubbles)
+local Cinematic = require(script.Cinematic)
+local Consoles = require(script.Consoles)
+local FocusPanel = require(script.FocusPanel)
+local Hud = require(script.Hud)
+local IndexPanel = require(script.IndexPanel)
+local InventoryPanel = require(script.InventoryPanel)
+local KickBar = require(script.KickBar)
+local LuckBoard = require(script.LuckBoard)
+local Mood = require(script.Mood)
+local Prompts = require(script.Prompts)
+local Shops = require(script.Shops)
+local Store = require(script.Store)
+
+Prompts.start()
+Hud.start()
+InventoryPanel.start()
+IndexPanel.start()
+KickBar.start()
+Cinematic.start()
+Bubbles.start()
+FocusPanel.start()
+Shops.start()
+Consoles.start()
+LuckBoard.start()
+Mood.start()
+Store.start()

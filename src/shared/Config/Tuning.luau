@@ -1,0 +1,134 @@
+--!strict
+-- Every balance number in one place. Tweak here, not in the logic.
+
+return {
+	Training = {
+		-- Meditation (AFK): a tick every `meditateInterval` seconds while sitting still, each
+		-- worth `meditateReps` reps. Half a rep a second keeps it well behind active play,
+		-- which averages about one rep a second once throws and errands are counted in.
+		meditateInterval = 1,
+		meditateReps = 0.5,
+		-- Chakra control (active): a ring closes in on a target ring; press as they meet.
+		-- Every round the ring's speed and the target's size are drawn at random, so pressing
+		-- on a fixed beat does not work.
+		ringPeriodMin = 1.0, -- seconds for the ring to close all the way; it then starts over
+		ringPeriodMax = 1.6,
+		ringTargetMin = 0.55, -- the point in the period at which the two rings meet, 0..1
+		ringTargetMax = 0.8,
+		-- How far off a press may be, as a share of the period, and how many reps it pays.
+		-- Checked top-down; a press outside every window is a miss and pays nothing.
+		ringGrades = {
+			{ id = "Perfect", within = 0.04, reps = 4 },
+			{ id = "Great", within = 0.09, reps = 2 },
+			{ id = "Good", within = 0.16, reps = 1 },
+		},
+		-- Bonus bubbles pop up while training; popping one multiplies training gains for a while.
+		-- With every bubble popped a boost runs about 40% of the time, which multiplies
+		-- training by 1.8 on average.
+		bubbleEveryMin = 15,
+		bubbleEveryMax = 30,
+		bubbleSeconds = 3, -- how long a bubble stays on screen
+		boostSeconds = 10, -- how long a popped bubble's multiplier lasts
+		bubbles = {
+			{ multiplier = 2, weight = 70 },
+			{ multiplier = 5, weight = 25 },
+			{ multiplier = 10, weight = 5 },
+		},
+	},
+
+	Kick = {
+		barPeriod = 1.4, -- seconds for one full 0 -> 1 -> 0 sweep of the power bar
+		-- Checked top-down against the bar position (0..1); the first match wins.
+		grades = {
+			{ id = "Perfect", from = 0.94, multiplier = 1.0 },
+			{ id = "Great", from = 0.8, multiplier = 0.85 },
+			{ id = "Good", from = 0.55, multiplier = 0.7 },
+			{ id = "Miss", from = 0, multiplier = 0.4 },
+		},
+		-- A throw's power is Chakra times the grade's multiplier. Power picks the zone by the
+		-- zones' own thresholds (Config/Zones), and how far past a threshold it is picks the
+		-- spot inside the zone, on a log scale: every doubling carries the kunai equally far.
+		spread = 0.05, -- the landing then shifts by up to this share of the zone's length
+		lastZoneSpan = 8, -- the last zone's far end takes this many times its threshold
+		trackLength = 1800, -- studs; throws never land past the end
+		stripDepth = 10, -- depth of the throwing strip at the start of the lane, studs
+		sageStreak = 5, -- Perfects in a row that charge the Sage kick
+		sageMultiplier = 2, -- a Sage kick's power; worth about a third of a zone
+		-- How far the client's claimed timing may drift from the server's estimate, seconds.
+		timingTolerance = 0.15,
+	},
+
+	-- The run home after a throw.
+	Chase = {
+		rollSeconds = 2.6, -- the roulette of shinobi where the kunai landed
+		holdSeconds = 0.9, -- the rolled shinobi stays on screen
+		introSeconds = 1.4, -- the camera shows the enemy; the player cannot move yet
+		enemyGap = 35, -- the enemy appears this many studs farther down the lane
+		enemyDelay = 0.4, -- head start once the player can move, seconds
+		catchRadius = 5, -- studs
+		-- An enemy runs at its zone's speed for a kunai on the zone's near edge and speeds up
+		-- to the next zone's speed by the far end, so reaching deep into a zone is not yet a
+		-- way out. The last zone has no next one: its enemy gains this share instead.
+		farSpeedBonus = 0.15,
+		consolationSeconds = 3, -- getting caught still pays this many seconds of the unit's income
+	},
+
+	-- A zone drops its own rank; the next rank up has this chance at the zone's start, rising
+	-- in a straight line to the chance at its far end. Luck multiplies it.
+	-- The last zone has no next rank, so depth there pays in mutation luck instead: x1 on its
+	-- near edge, rising in a straight line to `deepMutationLuck` at the end of the lane.
+	Zones = {
+		nextRankAtStart = 0.02,
+		nextRankAtEnd = 0.12,
+		deepMutationLuck = 2,
+	},
+
+	-- Leveling up a unit that stands on a pad. The numbers are Kick an Uma's: each level
+	-- multiplies income by 1.25 and the next upgrade's price by 1.5.
+	Upgrade = {
+		incomeGrowth = 1.25, -- income is multiplied by this with every upgrade
+		costSeconds = 5, -- the first upgrade costs this many seconds of the unit's income
+		costGrowth = 1.5, -- and each next one this many times more
+		maxUpgrades = 199, -- so the highest level shown is 200
+	},
+
+	Luck = {
+		-- Every Nth kick rolls with extra luck. Checked top-down; the first match wins.
+		milestones = {
+			{ every = 100, luck = 10 },
+			{ every = 20, luck = 5 },
+			{ every = 10, luck = 2 },
+		},
+	},
+
+	Dojo = {
+		startPads = 6,
+		buyablePads = 14,
+		gamePassPads = 4,
+		padBasePrice = 500,
+		padPriceGrowth = 2.5,
+		mergeMultiplier = 2.5, -- a merged unit earns this many times one of its parts
+		-- Away from the game the dojo earns at `offlineRate` of its income, for at most
+		-- `offlineCapHours`: three days off pay like a day and a half of standing in the dojo.
+		offlineRate = 0.5,
+		offlineCapHours = 72,
+		sellSeconds = 30, -- selling a unit pays this many seconds of its income
+	},
+
+	-- Run speed is what gets a catch home (Logic/Chase). Every zone from the third on asks
+	-- for two more levels at its near edge, and the far end of the lane for all twenty. Two
+	-- levels cost about a quarter of that zone's kunai, hence a growth of six a level against
+	-- the kunai's thirty-five a zone.
+	Speed = {
+		base = 16, -- Roblox default WalkSpeed
+		perLevel = 2,
+		maxLevel = 20,
+		basePrice = 300,
+		priceGrowth = 6,
+	},
+
+	Index = {
+		discoveryRewardSeconds = 10, -- first find pays this many seconds of the unit's income
+		pageCompleteBonus = 0.1, -- +10% income per fully collected page (one per mutation)
+	},
+}

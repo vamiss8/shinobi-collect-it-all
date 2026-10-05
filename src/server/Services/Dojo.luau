@@ -1,0 +1,346 @@
+--!strict
+-- The dojo: placing, taking, swapping, merging and upgrading units on pads, unlocking new pads,
+-- and the income that placed units earn.
+--
+-- A unit is either on a pad (data.pads) or in the inventory (see Inventory). The unit a pad acts
+-- on is the one the player is carrying. Upgrades are bought on the console at the foot of the
+-- pad: three buttons for one level, ten levels, and as many as the Ryo pays for. A button is
+-- yellow when pressing it would buy something and gray when it would not.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Data = require("../Data")
+local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Figure = require(ReplicatedStorage.Shared.View.Figure)
+local Format = require(ReplicatedStorage.Shared.Logic.Format)
+local Inventory = require("./Inventory")
+local Net = require(ReplicatedStorage.Shared.Net)
+local Plots = require("../World/Plots")
+local Remotes = require("../Remotes")
+local State = require("./State")
+local Stats = require("./Stats")
+local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
+
+local Dojo = {}
+
+local PAD_LOCKED = Color3.fromRGB(70, 70, 70)
+local PAD_FOR_SALE = Color3.fromRGB(66, 165, 245)
+local PAD_EMPTY = Color3.fromRGB(102, 187, 106)
+local PAD_TAKEN = Color3.fromRGB(255, 213, 79)
+
+local BUTTON_ON = Color3.fromRGB(255, 200, 48)
+local BUTTON_OFF = Color3.fromRGB(105, 102, 98)
+local INK = Color3.fromRGB(40, 30, 24)
+local FADED = Color3.fromRGB(176, 171, 164)
+-- A press is accepted from a little farther than the client lets one through, so a player who
+-- is walking away as they click is not turned down.
+local PRESS_SLACK = 4
+-- Levels the two fixed buttons buy; the third buys what the Ryo allows.
+local LEVELS = { one = 1, ten = 10 }
+
+-- What a console button stands for, by its part: the client reports a press by naming the part.
+type Press = { plot: Plots.Plot, pad: Plots.Pad, part: Part, levels: number? }
+local presses: { [Instance]: Press } = {}
+
+-- Shows one console button with its text, yellow and pressable or gray and dead.
+local function drawButton(button: Plots.Button, text: string, enabled: boolean)
+	button.part.Transparency = 0
+	button.part.Color = if enabled then BUTTON_ON else BUTTON_OFF
+	button.part:SetAttribute(Net.ACTIVE_ATTRIBUTE, enabled)
+	button.gui.Enabled = true
+	button.label.Text = text
+	button.label.TextColor3 = if enabled then INK else FADED
+end
+
+-- Redraws a pad's upgrade console. It is there for every unlocked pad of an owned dojo, gray
+-- while the pad is empty, and gone otherwise. Setting a property to the value it already has
+-- costs nothing, so this is also run for every pad whenever the owner's Ryo changes.
+local function drawConsole(pad: Plots.Pad, data: Data.Data?, isOpen: boolean)
+	local buttons = pad.buttons
+	if not data or not isOpen then
+		pad.console.Transparency = 1
+		for _, button in { buttons.one, buttons.ten, buttons.max } do
+			button.part.Transparency = 1
+			button.part:SetAttribute(Net.ACTIVE_ATTRIBUTE, false)
+			button.gui.Enabled = false
+		end
+		return
+	end
+	pad.console.Transparency = 0
+
+	local unitId = data.pads[tostring(pad.index)]
+	local unit = if unitId then data.units[unitId] else nil
+	if not unit then
+		drawButton(buttons.one, "+1 Lvl", false)
+		drawButton(buttons.ten, "+10 Lvl", false)
+		drawButton(buttons.max, "MAX", false)
+		return
+	end
+
+	local onePrice, oneLevels = Economy.upgradesPrice(unit, LEVELS.one)
+	local tenPrice, tenLevels = Economy.upgradesPrice(unit, LEVELS.ten)
+	if oneLevels == 0 or onePrice <= 0 then
+		drawButton(buttons.one, "TOP LEVEL", false)
+		drawButton(buttons.ten, "+10 Lvl", false)
+		drawButton(buttons.max, "MAX", false)
+		return
+	end
+	local affordable = Economy.affordableUpgrades(unit, data.ryo)
+	drawButton(buttons.one, `+1 Lvl\n{Format.short(onePrice)} Ryo`, data.ryo >= onePrice)
+	drawButton(buttons.ten, `+{tenLevels} Lvl\n{Format.short(tenPrice)}`, data.ryo >= tenPrice)
+	drawButton(
+		buttons.max,
+		if affordable > 0 then `MAX\n+{affordable} Lvl` else "MAX",
+		affordable > 0
+	)
+end
+
+-- Redraws one pad from the save; without a save the pad goes back to its locked look.
+local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
+	if pad.figure then
+		pad.figure:Destroy()
+		pad.figure = nil
+	end
+
+	local unlocked = if data then Stats.unlockedPads(data) else 0
+	local isOpen = pad.index <= unlocked
+	-- The first locked pad can be bought by walking up to it.
+	local forSale = data ~= nil
+		and pad.index == unlocked + 1
+		and data.padsBought < Tuning.Dojo.buyablePads
+	local unitId = if data then data.pads[tostring(pad.index)] else nil
+	local unit = if data and unitId then data.units[unitId] else nil
+
+	pad.prompt.Enabled = isOpen or forSale
+	pad.part.Transparency = if isOpen then 0 elseif forSale then 0.3 else 0.7
+	pad.part.Color = if forSale
+		then PAD_FOR_SALE
+		elseif not isOpen then PAD_LOCKED
+		elseif unit then PAD_TAKEN
+		else PAD_EMPTY
+
+	drawConsole(pad, data, isOpen)
+
+	if data and forSale then
+		pad.prompt.ActionText = "Unlock"
+		pad.prompt.ObjectText = `{Format.short(Economy.padPrice(data.padsBought))} Ryo`
+	elseif unit then
+		local figure = Figure.build(unit)
+		figure:PivotTo(CFrame.new(pad.part.Position + Vector3.new(0, pad.part.Size.Y / 2, 0)))
+		figure.Parent = plot.folder
+		pad.figure = figure
+		pad.prompt.ActionText = "Take / Swap"
+		pad.prompt.ObjectText = Figure.title(unit)
+	else
+		pad.prompt.ActionText = "Place"
+		pad.prompt.ObjectText = "Empty pad"
+	end
+end
+
+local function drawPads(player: Player)
+	local plot = Plots.of(player)
+	if plot then
+		local data = Data.get(player)
+		for _, pad in plot.pads do
+			drawPad(plot, pad, data)
+		end
+	end
+end
+
+local function unlockPad(player: Player, data: Data.Data)
+	local price = Economy.padPrice(data.padsBought)
+	if data.ryo < price then
+		State.notify(player, "NotEnoughRyo")
+		return
+	end
+	data.ryo -= price
+	data.padsBought += 1
+	drawPads(player)
+	State.push(player)
+end
+
+local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
+	local data = Data.get(player)
+	if not data then
+		return
+	end
+	if plot.owner ~= player then
+		State.notify(player, "NotYourDojo")
+		return
+	end
+
+	local unlocked = Stats.unlockedPads(data)
+	if pad.index == unlocked + 1 and data.padsBought < Tuning.Dojo.buyablePads then
+		unlockPad(player, data)
+		return
+	elseif pad.index > unlocked then
+		return
+	end
+
+	local key = tostring(pad.index)
+	local onPad = data.pads[key]
+	local held = Inventory.held(player)
+
+	if not onPad and not held then
+		State.notify(player, "NothingHeld")
+		return
+	elseif not onPad and held then
+		-- Place the held unit.
+		data.pads[key] = held
+		Inventory.hold(player, nil)
+	elseif onPad and not held then
+		-- Take the unit off the pad. It goes into the inventory, not into the player's hands,
+		-- so clearing several pads is one press each.
+		data.pads[key] = nil
+	elseif onPad and held then
+		local heldUnit, padUnit = data.units[held], data.units[onPad]
+		if Economy.canMerge(heldUnit, padUnit) then
+			local merged = Economy.merged(padUnit, heldUnit)
+			data.units[onPad] = merged
+			data.units[held] = nil
+			Inventory.hold(player, nil)
+			State.notify(player, "Merged", Figure.title(merged))
+		else
+			-- Swap: the held unit goes on the pad, the pad's unit into the inventory.
+			data.pads[key] = held
+			Inventory.hold(player, nil)
+		end
+	end
+
+	drawPad(plot, pad, data)
+	Inventory.sync(player)
+	State.push(player)
+end
+
+-- Redraws every console of the player's dojo: what they can afford has changed.
+local function drawConsoles(player: Player, data: Data.Data)
+	local plot = Plots.of(player)
+	if plot then
+		local unlocked = Stats.unlockedPads(data)
+		for _, pad in plot.pads do
+			drawConsole(pad, data, pad.index <= unlocked)
+		end
+	end
+end
+
+-- Levels up the unit standing on a pad for Ryo: by `levels`, or with none given by as many
+-- levels as the player's Ryo pays for.
+local function upgradePad(player: Player, plot: Plots.Plot, pad: Plots.Pad, levels: number?)
+	local data = Data.get(player)
+	if not data then
+		return
+	end
+	if plot.owner ~= player then
+		State.notify(player, "NotYourDojo")
+		return
+	end
+	local unitId = data.pads[tostring(pad.index)]
+	local unit = if unitId then data.units[unitId] else nil
+	if not unitId or not unit then
+		return
+	end
+
+	local price, bought
+	if levels then
+		price, bought = Economy.upgradesPrice(unit, levels)
+	else
+		bought, price = Economy.affordableUpgrades(unit, data.ryo)
+	end
+	if bought <= 0 or price <= 0 then
+		return
+	end
+	if data.ryo < price then
+		State.notify(player, "NotEnoughRyo")
+		return
+	end
+
+	data.ryo -= price
+	data.units[unitId] = Economy.upgraded(unit, bought)
+	drawPad(plot, pad, data)
+	drawConsoles(player, data)
+	State.push(player)
+end
+
+-- A client says its player pressed a console button and names the part. The press counts only
+-- from someone standing at that console; whose dojo it is, is checked by upgradePad.
+local function pressButton(player: Player, part: unknown)
+	local press = if typeof(part) == "Instance" then presses[part] else nil
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if not press or not root or not root:IsA("BasePart") then
+		return
+	end
+	local away = (root.Position - press.part.Position).Magnitude
+	if away <= Net.PRESS_DISTANCE + PRESS_SLACK then
+		upgradePad(player, press.plot, press.pad, press.levels)
+	end
+end
+
+-- Drops pad references to units that no longer exist, so one bad save cannot break the dojo.
+local function repair(data: Data.Data)
+	for key, unitId in data.pads do
+		if not data.units[unitId] then
+			data.pads[key] = nil
+		end
+	end
+end
+
+function Dojo.start()
+	Plots.forEach(function(plot)
+		for _, pad in plot.pads do
+			pad.prompt.Triggered:Connect(function(player)
+				usePad(player, plot, pad)
+			end)
+			local buttons = pad.buttons
+			presses[buttons.one.part] =
+				{ plot = plot, pad = pad, part = buttons.one.part, levels = LEVELS.one }
+			presses[buttons.ten.part] =
+				{ plot = plot, pad = pad, part = buttons.ten.part, levels = LEVELS.ten }
+			presses[buttons.max.part] = { plot = plot, pad = pad, part = buttons.max.part }
+		end
+	end)
+	Remotes.Upgrade.OnServerEvent:Connect(pressButton)
+
+	Data.onLoaded(function(player, data)
+		repair(data)
+
+		if data.lastSeen > 0 then
+			local earned = Economy.offlineEarnings(Stats.income(data), os.time() - data.lastSeen)
+			if earned >= 1 then
+				data.ryo += earned
+				State.notify(player, "WelcomeBack", earned)
+			end
+		end
+		data.lastSeen = os.time()
+
+		drawPads(player)
+	end)
+
+	Data.onLeaving(function(player)
+		local plot = Plots.of(player)
+		if plot then
+			for _, pad in plot.pads do
+				drawPad(plot, pad, nil)
+			end
+		end
+	end)
+
+	-- Income tick, once a second for everyone.
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, player in Players:GetPlayers() do
+				local data = Data.get(player)
+				if data then
+					data.ryo += Stats.income(data)
+					data.lastSeen = os.time()
+					drawConsoles(player, data)
+					State.push(player)
+				end
+			end
+		end
+	end)
+end
+
+return Dojo
