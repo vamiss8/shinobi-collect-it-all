@@ -35,13 +35,82 @@ function Ui.make(className: string, properties: { [string]: any }, parent: Insta
 	return instance
 end
 
--- A ScreenGui that survives respawns.
-function Ui.screen(name: string, order: number): ScreenGui
-	return Ui.make("ScreenGui", {
+-- The interface is laid out for a screen this many pixels tall and at least this wide, and
+-- drawn larger on a bigger one, so that on a 1440p or 4K monitor it keeps its share of the
+-- screen instead of shrinking into the corners. It is never drawn smaller than laid out: a
+-- phone is short, and its layout is already as tight as it gets.
+local DESIGN_HEIGHT = 900
+local DESIGN_WIDTH = 1500
+local MAX_SCALE = 2.6
+
+local function viewport(): Vector2
+	local camera = Workspace.CurrentCamera
+	return if camera then camera.ViewportSize else Vector2.new(DESIGN_WIDTH, DESIGN_HEIGHT)
+end
+
+-- How many times larger than laid out the interface is drawn on this screen.
+function Ui.scale(): number
+	local view = viewport()
+	return math.clamp(math.min(view.Y / DESIGN_HEIGHT, view.X / DESIGN_WIDTH), 1, MAX_SCALE)
+end
+
+-- The size of the screen as the layers see it: in layout units, before they are scaled up.
+function Ui.room(): Vector2
+	return viewport() / Ui.scale()
+end
+
+local resizeListeners: { () -> () } = {}
+
+-- Calls `fn` now, and again whenever the screen changes size.
+function Ui.onResize(fn: () -> ())
+	table.insert(resizeListeners, fn)
+	fn()
+end
+
+do
+	local function resized()
+		for _, fn in resizeListeners do
+			fn()
+		end
+	end
+	local watching: RBXScriptConnection? = nil
+	local function watch()
+		if watching then
+			watching:Disconnect()
+		end
+		local camera = Workspace.CurrentCamera
+		watching = if camera
+			then camera:GetPropertyChangedSignal("ViewportSize"):Connect(resized)
+			else nil
+		resized()
+	end
+	Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watch)
+	watch()
+end
+
+-- A layer of the interface that survives respawns. What comes back is the frame everything on
+-- the layer goes into, and it is what scales the layer (see Ui.scale): it is made that many
+-- times smaller than the screen and then drawn that many times larger. Its children lay
+-- themselves out on a design-size screen and come out scaled as a whole, offsets from the
+-- screen's edges included.
+function Ui.screen(name: string, order: number): Frame
+	local gui = Ui.make("ScreenGui", {
 		Name = name,
 		ResetOnSpawn = false,
 		DisplayOrder = order,
 	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
+	local root: Frame = Ui.make("Frame", {
+		Name = "Layer",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	}, gui)
+	local scale: UIScale = Ui.make("UIScale", {}, root)
+	Ui.onResize(function()
+		local factor = Ui.scale()
+		scale.Scale = factor
+		root.Size = UDim2.fromScale(1 / factor, 1 / factor)
+	end)
+	return root
 end
 
 function Ui.corner(parent: Instance, radius: number)
@@ -156,7 +225,8 @@ export type Window = {
 local windows: { Window } = {}
 
 -- A centered window with a title bar and a close button, hidden until opened. Opening one
--- closes the others. It shrinks to fit small screens.
+-- closes the others. It grows with its layer (see Ui.screen) and shrinks again if it would not
+-- fit the screen.
 function Ui.window(name: string, size: Vector2): Window
 	local screen = Ui.screen(name, 30)
 	local frame = Ui.panel(screen, {
@@ -169,18 +239,10 @@ function Ui.window(name: string, size: Vector2): Window
 	Ui.stroke(frame, Ui.EDGE, 2)
 
 	local scale: UIScale = Ui.make("UIScale", {}, frame)
-	local function fit()
-		local camera = Workspace.CurrentCamera
-		if camera then
-			local view = camera.ViewportSize
-			scale.Scale = math.min(1, (view.X - 24) / size.X, (view.Y - 24) / size.Y)
-		end
-	end
-	fit()
-	local camera = Workspace.CurrentCamera
-	if camera then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
-	end
+	Ui.onResize(function()
+		local room = Ui.room()
+		scale.Scale = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
+	end)
 
 	local title = Ui.text(frame, {
 		Position = UDim2.fromOffset(16, 8),
