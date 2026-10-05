@@ -341,7 +341,14 @@ function Kicking.throwing(player: Player): boolean
 	return aims[player] ~= nil or flights[player] ~= nil or runs[player] ~= nil
 end
 
+-- Whether the player is away on a throw: watching the kunai and the reveal, or running home
+-- with the catch. Their hands are not free for another shinobi until they are back.
+function Kicking.away(player: Player): boolean
+	return flights[player] ~= nil or runs[player] ~= nil
+end
+
 function Kicking.start()
+	Inventory.tieHandsWhile(Kicking.away)
 	Remotes.KickPress.OnServerEvent:Connect(press)
 	Remotes.ThrowChakra.OnServerEvent:Connect(setThrowChakra)
 

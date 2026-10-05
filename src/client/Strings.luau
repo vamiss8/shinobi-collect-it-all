@@ -126,6 +126,7 @@ local TEXT: { [string]: string } = {
 
 	-- Notifications sent by the server
 	NothingHeld = "Pick a shinobi in your Inventory first.",
+	HandsFull = "Your hands are full until you are back home.",
 	NotEnoughRyo = "Not enough Ryo.",
 	NotYourDojo = "This is not your dojo.",
 	Merged = "Merged into %s!",

@@ -17,6 +17,9 @@ local State = require("./State")
 local Inventory = {}
 
 local heldFigures: { [Player]: Model } = {}
+-- Says when a player's hands are not free to pick a unit up. Set by the service that knows
+-- (see tieHandsWhile); asked before a client's request to carry a unit is honored.
+local handsTied: ((player: Player) -> boolean)? = nil
 
 -- Which units stand on a pad, as a set of ids.
 local function placed(data: Data.Data): { [string]: boolean }
@@ -57,6 +60,13 @@ function Inventory.hold(player: Player, unitId: string?)
 	drawHeld(player)
 end
 
+-- Has `check` asked whenever a client wants to carry a unit; while it says true the request
+-- is turned down. Kicking uses it for the throw: on the run home the catch already rides over
+-- the player's head, and a second figure would sit right inside it.
+function Inventory.tieHandsWhile(check: (player: Player) -> boolean)
+	handsTied = check
+end
+
 -- Sends the client the current inventory. Call after units are added, placed, taken or sold.
 function Inventory.sync(player: Player)
 	local data = Data.get(player)
@@ -84,6 +94,10 @@ end
 local function onHold(player: Player, unitId: unknown)
 	local data = Data.get(player)
 	if not data then
+		return
+	end
+	if typeof(unitId) == "string" and handsTied and handsTied(player) then
+		State.notify(player, "HandsFull")
 		return
 	end
 	if typeof(unitId) == "string" and data.units[unitId] and not placed(data)[unitId] then
