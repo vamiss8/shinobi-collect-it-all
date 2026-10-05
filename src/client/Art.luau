@@ -24,4 +24,9 @@ Art.icons = {
 -- character without one gets the drawn stand-in in its rank's color.
 Art.portraits = {} :: { [string]: number }
 
+-- Pictures of kunai by kunai id (Config/Kunai), for the Chakra Store and the marker of the
+-- power bar. A picture shows the kunai standing upright, tip up, and is turned as needed when
+-- shown. A kunai without one is drawn from frames in its own colors.
+Art.kunai = {} :: { [string]: number }
+
 return Art

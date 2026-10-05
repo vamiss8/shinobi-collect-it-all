@@ -70,6 +70,11 @@ local TEXT: { [string]: string } = {
 	ShopChakraHint = "A better kunai gives more Chakra from every kind of training and changes "
 		.. "how your throw looks. They are bought in order.",
 	ShopKunaiChakra = "+%s Chakra per rep",
+	ShopKunaiGain = "x%s training",
+	ShopYourKunai = "YOUR KUNAI",
+	ShopNextKunai = "NEXT: %s",
+	ShopNextProgress = "%s / %s Ryo",
+	ShopAllKunai = "You own every kunai!",
 	ShopInUse = "In use",
 	ShopOwned = "Owned",
 	ShopSpeedTitle = "Speed Store",

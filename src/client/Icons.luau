@@ -5,7 +5,10 @@
 -- So the game works with no images at all, takes them one at a time, and never shows an empty
 -- square for one that is still in moderation.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Art = require("./Art")
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Ui = require("./Ui")
 
 local Icons = {}
@@ -26,6 +29,9 @@ local PALE_BLUE = Color3.fromRGB(190, 232, 255)
 local DEEP_BLUE = Color3.fromRGB(30, 120, 190)
 local SKIN = Color3.fromRGB(255, 219, 172)
 local STEEL = Color3.fromRGB(176, 190, 197)
+local HANDLE = Color3.fromRGB(58, 44, 36)
+local OUTLINE = Color3.fromRGB(30, 22, 18)
+local WHITE = Color3.new(1, 1, 1)
 -- The color of the panels icons sit on; a shape in it reads as a hole.
 local NIGHT = Ui.PANEL
 
@@ -52,14 +58,42 @@ local function shape(
 	return frame
 end
 
+-- A filled bar centered on a point of the holder and turned about it, in degrees clockwise.
+-- Sizes are fractions of the holder, corners a fraction of the bar's shorter side. A square
+-- one turned 45 degrees is a diamond.
+local function bar(
+	parent: Instance,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	turn: number,
+	color: Color3,
+	rounding: number
+): Frame
+	local frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(x, y),
+		Size = UDim2.fromScale(width, height),
+		Rotation = turn,
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+	}, parent)
+	if rounding > 0 then
+		Ui.make("UICorner", { CornerRadius = UDim.new(rounding, 0) }, frame)
+	end
+	return frame
+end
+
 -- How long a picture is waited for before the drawing is left in place for good, seconds.
 local PATIENCE = 60
 
 -- Lays the uploaded picture of that asset id over what has been drawn in the holder, and takes
 -- the drawing away once the picture has really loaded. An image that is still in moderation,
 -- or was turned down, loads as nothing; the drawing then simply stays. Call it last, after the
--- icon is drawn. Does nothing when there is no picture (the id is 0 or missing).
-local function overlay(holder: Instance, assetId: number?)
+-- icon is drawn. Does nothing when there is no picture (the id is 0 or missing). `turn` turns
+-- the picture, in degrees clockwise.
+local function overlay(holder: Instance, assetId: number?, turn: number?)
 	if not assetId or assetId == 0 then
 		return
 	end
@@ -69,6 +103,7 @@ local function overlay(holder: Instance, assetId: number?)
 		BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Fit,
 		Image = `rbxassetid://{assetId}`,
+		Rotation = turn or 0,
 		ZIndex = 5,
 	}, holder)
 	task.spawn(function()
@@ -167,6 +202,71 @@ function Icons.shinobi(holder: Instance, characterId: string, color: Color3)
 	shape(holder, 0.31, 0.18, 0.38, 0.08, NIGHT, 0)
 	shape(holder, 0.43, 0.17, 0.14, 0.10, STEEL, 0.2)
 	overlay(holder, Art.portraits[characterId])
+end
+
+local kunaiById: { [string]: Catalog.Kunai } = {}
+for _, kunai in Catalog.kunai do
+	kunaiById[kunai.id] = kunai
+end
+
+-- Which way a kunai's tip points when nothing else is asked for, in degrees clockwise from
+-- straight up: to the upper right.
+local KUNAI_TILT = 45
+-- The blade of a drawn kunai, in fractions of the holder: how far under the top edge its two
+-- sides meet, how long and wide each side is, how many degrees it leans away from the middle,
+-- and how much larger the inked copy under it is.
+local BLADE_TOP = 0.09
+local BLADE_LENGTH = 0.42
+local BLADE_WIDTH = 0.12
+local BLADE_LEAN = 13
+local BLADE_INK = 0.05
+
+-- A kunai in its own colors (Config/Kunai): a leaf of a blade inked around the edge, a wrapped
+-- handle and a ring. `backing` is the color the icon sits on, which fills the ring's hole.
+-- `turn` is where the tip points, in degrees clockwise from straight up. A picture from Art
+-- shows the kunai standing upright, tip up, and is turned the same way.
+function Icons.kunai(holder: Instance, kunaiId: string, backing: Color3, turn: number?)
+	local look = kunaiById[kunaiId]
+	local blade = if look then Color3.fromHex(look.color) else STEEL
+	local wrap = if look then Color3.fromHex(look.trail) else PARCHMENT
+	local angle = turn or KUNAI_TILT
+
+	-- Drawn standing upright, tip up, in a square that is then turned as a whole. Everything
+	-- stays inside the circle that fits the holder, so no turn pushes a part out of it.
+	local canvas = Ui.make("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Rotation = angle,
+	}, holder)
+	bar(canvas, 0.5, 0.865, 0.22, 0.22, 0, OUTLINE, 0.5)
+	bar(canvas, 0.5, 0.865, 0.18, 0.18, 0, blade:Lerp(WHITE, 0.3), 0.5)
+	bar(canvas, 0.5, 0.865, 0.09, 0.09, 0, backing, 0.5)
+	bar(canvas, 0.5, 0.70, 0.14, 0.24, 0, OUTLINE, 0.2)
+	bar(canvas, 0.5, 0.70, 0.10, 0.22, 0, HANDLE, 0.2)
+	bar(canvas, 0.5, 0.68, 0.10, 0.03, 0, wrap, 0)
+	bar(canvas, 0.5, 0.74, 0.10, 0.03, 0, wrap, 0)
+
+	-- The blade is a leaf: two bars leaning apart from the tip, a diamond that closes the wide
+	-- end and a small one that sharpens the tip. Inked first, a little larger, then filled.
+	local sin, cos = math.sin(math.rad(BLADE_LEAN)), math.cos(math.rad(BLADE_LEAN))
+	for _, pass in { { grow = BLADE_INK, color = OUTLINE }, { grow = 0, color = blade } } do
+		for _, side in { -1, 1 } do
+			bar(
+				canvas,
+				0.5 + side * BLADE_LENGTH / 2 * sin,
+				BLADE_TOP + BLADE_LENGTH / 2 * cos,
+				BLADE_WIDTH + pass.grow,
+				BLADE_LENGTH + pass.grow,
+				-side * BLADE_LEAN,
+				pass.color,
+				0
+			)
+		end
+		bar(canvas, 0.5, BLADE_TOP + 0.40, 0.24 + pass.grow, 0.24 + pass.grow, 45, pass.color, 0.08)
+		bar(canvas, 0.5, BLADE_TOP + 0.02, 0.10 + pass.grow, 0.10 + pass.grow, 45, pass.color, 0.08)
+	end
+	bar(canvas, 0.5, BLADE_TOP + 0.25, 0.035, 0.50, 0, blade:Lerp(WHITE, 0.45), 0.5)
+	overlay(holder, Art.kunai[kunaiId], angle)
 end
 
 return Icons
