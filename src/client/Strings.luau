@@ -100,8 +100,15 @@ local TEXT: { [string]: string } = {
 
 	-- Throw
 	KickHint = "Click, tap or press Space to throw!",
-	KickStreak = "Perfect streak %s/%s  |  a full streak gives the next throw x%s power",
-	KickSageReady = "SAGE THROW READY: this one has x%s power!",
+	KickGrade = "%s!  %s%% power",
+	GradePerfect = "PERFECT",
+	GradeGreat = "GREAT",
+	GradeGood = "GOOD",
+	GradeMiss = "MISS",
+	KickStreakLabel = "PERFECT STREAK",
+	KickStreakGoal = "%s in a row: next throw x%s",
+	KickSageLabel = "SAGE THROW READY",
+	KickSageGoal = "this throw: x%s power!",
 	KickResult = "%s!  %s studs  |  %s",
 	KickSage = "SAGE THROW!  ",
 	KickLucky = "x%s LUCK!  ",

@@ -309,6 +309,7 @@ local function press(player: Player, claimed: unknown)
 
 	local payload: Net.KickResult = {
 		grade = result.grade,
+		power = result.share,
 		distance = distance,
 		sage = result.sage,
 		zone = drop.zone,

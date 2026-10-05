@@ -81,6 +81,7 @@ export type Found = Index.Found
 
 export type KickResult = {
 	grade: string,
+	power: number, -- the share of the Chakra the press put into the throw, 0..1
 	distance: number,
 	sage: boolean,
 	zone: string,
