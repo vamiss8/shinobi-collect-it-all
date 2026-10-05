@@ -1,7 +1,7 @@
 --!strict
--- The always-visible UI, split by purpose: Ryo on the left edge, Chakra and the throw power in
--- the bottom-left corner, window buttons on the right edge, and short messages written on a
--- scroll at the top.
+-- The always-visible UI, split by purpose: Chakra and the throw power in the bottom-left
+-- corner with Ryo stacked right above them, window buttons on the right edge, and short
+-- messages written on a scroll at the top.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -21,6 +21,12 @@ local Ui = require("./Ui")
 local Hud = {}
 
 local MESSAGE_SECONDS = 4
+
+-- The two readouts in the bottom-left corner: one width, Ryo on top of Chakra.
+local READOUT_WIDTH = 400
+local RYO_HEIGHT = 80
+local CHAKRA_HEIGHT = 144
+local READOUT_GAP = 10
 
 local INK = Color3.fromRGB(58, 40, 30)
 local ROLLER = Color3.fromRGB(93, 64, 55)
@@ -128,26 +134,26 @@ local function readout(
 	Ui.stroke(plaque, color, 3)
 	local holder = Ui.make("Frame", {
 		Position = UDim2.fromOffset(10, 8),
-		Size = UDim2.fromOffset(52, 52),
+		Size = UDim2.fromOffset(62, 62),
 		BackgroundTransparency = 1,
 	}, plaque)
 	drawIcon(holder)
 
 	-- Both lines shrink to fit the plaque instead of running past its edge.
 	local amount = Ui.text(plaque, {
-		Position = UDim2.fromOffset(72, 4),
-		Size = UDim2.new(1, -82, 0, 34),
+		Position = UDim2.fromOffset(84, 4),
+		Size = UDim2.new(1, -94, 0, 42),
 		TextScaled = true,
 		TextColor3 = color,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, amount)
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 40 }, amount)
 	local detail = Ui.text(plaque, {
-		Position = UDim2.fromOffset(72, 38),
-		Size = UDim2.new(1, -82, 0, 22),
+		Position = UDim2.fromOffset(84, 46),
+		Size = UDim2.new(1, -94, 0, 28),
 		TextScaled = true,
 		TextColor3 = Ui.MUTED,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 19 }, detail)
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 24 }, detail)
 	return plaque, amount, detail
 end
 
@@ -156,15 +162,15 @@ end
 local function buildScroll(parent: Instance): Scroll
 	local frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 18),
-		Size = UDim2.new(0.5, 0, 0, 66),
+		Position = UDim2.new(0.5, 0, 0, 20),
+		Size = UDim2.new(0.55, 0, 0, 86),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
 		Visible = false,
 	}, parent)
 	Ui.make("UISizeConstraint", {
-		MinSize = Vector2.new(440, 66),
-		MaxSize = Vector2.new(1000, 66),
+		MinSize = Vector2.new(560, 86),
+		MaxSize = Vector2.new(1150, 86),
 	}, frame)
 	Ui.corner(frame, 4)
 	local edge = Ui.stroke(frame, Ui.EDGE, 3)
@@ -174,17 +180,17 @@ local function buildScroll(parent: Instance): Scroll
 		local roller = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(side, 0.5),
-			Size = UDim2.new(0, 20, 1, 18),
+			Size = UDim2.new(0, 24, 1, 22),
 			BackgroundColor3 = ROLLER,
 			BorderSizePixel = 0,
 			ZIndex = 2,
 		}, frame)
-		Ui.corner(roller, 10)
+		Ui.corner(roller, 12)
 		for _, tip in { 0, 1 } do
 			local knob = Ui.make("Frame", {
 				AnchorPoint = Vector2.new(0.5, tip),
 				Position = UDim2.fromScale(0.5, tip),
-				Size = UDim2.fromOffset(12, 8),
+				Size = UDim2.fromOffset(14, 9),
 				BackgroundColor3 = ROLLER_END,
 				BorderSizePixel = 0,
 				ZIndex = 3,
@@ -195,8 +201,8 @@ local function buildScroll(parent: Instance): Scroll
 
 	local seal = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 24, 0.5, 0),
-		Size = UDim2.fromOffset(30, 30),
+		Position = UDim2.new(0, 28, 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
 	}, frame)
@@ -204,13 +210,13 @@ local function buildScroll(parent: Instance): Scroll
 	Ui.stroke(seal, INK, 2)
 
 	local words = Ui.text(frame, {
-		Position = UDim2.fromOffset(66, 8),
-		Size = UDim2.new(1, -90, 1, -16),
+		Position = UDim2.fromOffset(82, 8),
+		Size = UDim2.new(1, -110, 1, -16),
 		TextScaled = true,
 		TextColor3 = INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, words)
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 44 }, words)
 
 	return { frame = frame, words = words, edge = edge, seal = seal }
 end
@@ -218,24 +224,36 @@ end
 function Hud.start()
 	local screen = Ui.screen("Hud", 10)
 
-	-- Ryo, on the left edge.
-	local _, ryoAmount, ryoDetail = readout(screen, Icons.coin, Ui.GOLD, {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, -70),
-		Size = UDim2.fromOffset(280, 68),
+	-- Chakra and the throw power, bottom-left. Touch screens have the movement stick there, so
+	-- on those the stack sits halfway up the left edge instead. `chakraBottom` is where the
+	-- Chakra readout's lower edge is, as a share of the screen's height plus an offset.
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local chakraBottom = if touch then UDim.new(0.5, CHAKRA_HEIGHT - 10) else UDim.new(1, -12)
+	local chakraPlaque, chakraAmount, chakraDetail = readout(screen, Icons.chakra, Ui.BLUE, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(UDim.new(0, 12), chakraBottom),
+		Size = UDim2.fromOffset(READOUT_WIDTH, CHAKRA_HEIGHT),
+	})
+	local slider = ThrowPower.attach(chakraPlaque)
+
+	-- Ryo, right above Chakra. When the throw power slider opens over the Chakra readout, Ryo
+	-- moves up to sit above the slider.
+	local ryoPlaque, ryoAmount, ryoDetail = readout(screen, Icons.coin, Ui.GOLD, {
+		AnchorPoint = Vector2.new(0, 1),
+		Size = UDim2.fromOffset(READOUT_WIDTH, RYO_HEIGHT),
 	})
 	ryoDetail.TextColor3 = Ui.GREEN
-
-	-- Chakra and the throw power, bottom-left. Touch screens have the movement stick there, so
-	-- on those it sits under the Ryo readout instead.
-	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-	local chakraPlaque, chakraAmount, chakraDetail = readout(screen, Icons.chakra, Ui.BLUE, {
-		AnchorPoint = if touch then Vector2.new(0, 0.5) else Vector2.new(0, 1),
-		Position = if touch then UDim2.new(0, 12, 0.5, 30) else UDim2.new(0, 12, 1, -12),
-		Size = UDim2.fromOffset(340, 116),
-	})
-
-	ThrowPower.attach(chakraPlaque)
+	local function stack()
+		local lift = CHAKRA_HEIGHT + READOUT_GAP
+		if slider.Visible then
+			-- The slider's own gap above the readout is the offset it is placed with.
+			lift += slider.Size.Y.Offset - slider.Position.Y.Offset
+		end
+		ryoPlaque.Position =
+			UDim2.new(UDim.new(0, 12), UDim.new(chakraBottom.Scale, chakraBottom.Offset - lift))
+	end
+	slider:GetPropertyChangedSignal("Visible"):Connect(stack)
+	stack()
 
 	-- Until the first snapshot arrives the readouts say why they are empty. A save usually
 	-- loads at once, but it can take most of a minute when another server still holds it.

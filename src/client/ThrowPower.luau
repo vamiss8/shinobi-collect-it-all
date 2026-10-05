@@ -38,41 +38,42 @@ local function positionOf(amount: number, total: number): number
 	return math.clamp(math.log(amount) / math.log(total), 0, 1)
 end
 
--- Adds the throw power row to the Chakra readout, and the slider that opens above it.
-function ThrowPower.attach(pill: Frame)
+-- Adds the throw power row to the Chakra readout, and the slider that opens above it. Returns
+-- the slider's panel, so whatever sits above the readout can make way while it is open.
+function ThrowPower.attach(pill: Frame): Frame
 	local row = Ui.button(pill, {
-		Position = UDim2.new(0, 10, 1, -40),
-		Size = UDim2.new(1, -20, 0, 30),
+		Position = UDim2.new(0, 10, 1, -52),
+		Size = UDim2.new(1, -20, 0, 42),
 		BackgroundColor3 = Ui.CARD,
-		TextSize = 17,
+		TextSize = 23,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 
 	local popup = Ui.panel(pill, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromOffset(0, -8),
-		Size = UDim2.new(1, 0, 0, 200),
+		Size = UDim2.new(1, 0, 0, 250),
 		BackgroundTransparency = 0.05,
 		Visible = false,
 	})
 	Ui.stroke(popup, Ui.BLUE, 2)
 	Ui.padding(popup, 12)
 	Ui.text(popup, {
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 19,
+		Size = UDim2.new(1, 0, 0, 28),
+		TextSize = 24,
 		Text = Strings.get("ThrowTitle"),
 	})
 	local amountLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 26),
-		Size = UDim2.new(1, 0, 0, 28),
-		TextSize = 25,
+		Position = UDim2.fromOffset(0, 32),
+		Size = UDim2.new(1, 0, 0, 38),
+		TextSize = 34,
 		TextColor3 = Ui.BLUE,
 	})
 	-- Two lines: the zone and what the next one takes do not fit in one.
 	local reachLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 58),
-		Size = UDim2.new(1, 0, 0, 38),
-		TextSize = 16,
+		Position = UDim2.fromOffset(0, 74),
+		Size = UDim2.new(1, 0, 0, 52),
+		TextSize = 21,
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -80,8 +81,8 @@ function ThrowPower.attach(pill: Frame)
 
 	-- The track is taller than it looks, so it is easy to grab; the bar and knob are drawn in it.
 	local track = Ui.make("TextButton", {
-		Position = UDim2.fromOffset(8, 100),
-		Size = UDim2.new(1, -16, 0, 28),
+		Position = UDim2.fromOffset(10, 132),
+		Size = UDim2.new(1, -20, 0, 34),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
 		Text = "",
@@ -89,11 +90,11 @@ function ThrowPower.attach(pill: Frame)
 	local bar = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
-		Size = UDim2.new(1, 0, 0, 8),
+		Size = UDim2.new(1, 0, 0, 10),
 		BackgroundColor3 = Ui.CARD,
 		BorderSizePixel = 0,
 	}, track)
-	Ui.corner(bar, 4)
+	Ui.corner(bar, 5)
 	local fill = Ui.make("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Ui.BLUE,
@@ -103,7 +104,7 @@ function ThrowPower.attach(pill: Frame)
 	local knob = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromOffset(18, 18),
+		Size = UDim2.fromOffset(24, 24),
 		BackgroundColor3 = Ui.WHITE,
 		BorderSizePixel = 0,
 	}, track)
@@ -112,16 +113,16 @@ function ThrowPower.attach(pill: Frame)
 	local useAll = Ui.button(popup, {
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.fromScale(1, 1),
-		Size = UDim2.fromOffset(104, 32),
+		Size = UDim2.fromOffset(124, 44),
 		BackgroundColor3 = Ui.GRAY,
-		TextSize = 17,
+		TextSize = 22,
 		Text = Strings.get("ThrowMax"),
 	})
 	Ui.text(popup, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, -114, 0, 32),
-		TextSize = 14,
+		Size = UDim2.new(1, -136, 0, 44),
+		TextSize = 18,
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 		Text = Strings.get("ThrowHint"),
@@ -226,6 +227,7 @@ function ThrowPower.attach(pill: Frame)
 	end)
 
 	Store.onChange(redraw)
+	return popup
 end
 
 return ThrowPower
