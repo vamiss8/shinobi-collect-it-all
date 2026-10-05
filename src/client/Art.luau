@@ -29,6 +29,26 @@ Art.portraits = {} :: { [string]: number }
 -- shown. A kunai without one is drawn from frames in its own colors. The pictures are kept in
 -- assets/kunai, cut out of their backgrounds and stood upright; assets/kunai/reference has the
 -- same on white, larger, for making the 3D models from.
-Art.kunai = {} :: { [string]: number }
+Art.kunai = {
+	training = 0, -- assets/kunai/training.png
+	iron = 0,
+	steel = 0,
+	wire = 0,
+	explosive_tag = 0,
+	poison = 0,
+	chakra_blade = 0,
+	earth = 0,
+	water = 0,
+	wind = 0,
+	fire = 0,
+	lightning = 0,
+	wood = 0,
+	magnet = 0,
+	scorch = 0,
+	dust = 0,
+	black_flame = 0,
+	thunder_god = 0,
+	truth_seeking = 0,
+} :: { [string]: number }
 
 return Art
