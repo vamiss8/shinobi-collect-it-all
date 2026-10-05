@@ -78,7 +78,7 @@ local function makeSlot(parent: Instance, number: number, x: number): Slot
 	local content = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(SLOT - 20, SLOT - 20),
+		Size = UDim2.fromOffset(SLOT - 12, SLOT - 12),
 		BackgroundTransparency = 1,
 	}, button)
 	Ui.text(button, {
