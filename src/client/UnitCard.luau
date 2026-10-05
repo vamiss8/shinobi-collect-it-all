@@ -38,7 +38,8 @@ function UnitCard.build(
 	})
 	Ui.stroke(card, if known then rankColor else Ui.EDGE, 3)
 
-	-- A portrait stand-in: a little shinobi in the rank's color, an empty square while unknown.
+	-- The character's portrait (a drawn stand-in until it has a picture), an empty square
+	-- while unknown.
 	local portrait = Ui.make("Frame", {
 		Position = UDim2.fromOffset(10, 10),
 		Size = UDim2.fromOffset(56, 56),
@@ -47,7 +48,7 @@ function UnitCard.build(
 	}, card)
 	Ui.corner(portrait, 6)
 	if known then
-		Icons.shinobi(portrait, rankColor)
+		Icons.shinobi(portrait, unit.character, rankColor)
 	end
 
 	-- The name takes two lines when it has to: "Rock Lee (Drunken Fist)" does not fit in one.

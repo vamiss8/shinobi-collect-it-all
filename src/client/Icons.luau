@@ -1,8 +1,10 @@
 --!strict
--- Icons drawn from plain frames, so the game needs no uploaded images. Each function fills the
--- given square holder; everything inside is sized in fractions of it, so an icon scales with
--- whatever it is put in.
+-- The game's icons. Each function fills the given square holder. An icon is an uploaded picture
+-- when one is listed in Art, and otherwise drawn from plain frames, so the game works with no
+-- images at all and takes them one at a time. A drawn icon is sized in fractions of its
+-- holder, so it scales with whatever it is put in.
 
+local Art = require("./Art")
 local Ui = require("./Ui")
 
 local Icons = {}
@@ -49,9 +51,27 @@ local function shape(
 	return frame
 end
 
+-- Fills the holder with the uploaded picture of that asset id. Returns false, having done
+-- nothing, when there is none (the id is 0 or missing) and the icon has to be drawn.
+local function picture(holder: Instance, assetId: number?): boolean
+	if not assetId or assetId == 0 then
+		return false
+	end
+	Ui.make("ImageLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ScaleType = Enum.ScaleType.Fit,
+		Image = `rbxassetid://{assetId}`,
+	}, holder)
+	return true
+end
+
 -- A storage scroll: written parchment between two wooden rollers, closed with a red seal. In
 -- the world of shinobi this is what things are kept in, which makes it the inventory.
 function Icons.scroll(holder: Instance)
+	if picture(holder, Art.icons.scroll) then
+		return
+	end
 	shape(holder, 0.14, 0.26, 0.72, 0.48, PARCHMENT, 0.06)
 	for _, x in { 0.25, 0.65 } do
 		shape(holder, x, 0.36, 0.10, 0.04, INK, 0.5)
@@ -67,6 +87,9 @@ end
 
 -- A book with a name plate, a wanted mark on its cover and a red ribbon: the Bingo Book.
 function Icons.book(holder: Instance)
+	if picture(holder, Art.icons.book) then
+		return
+	end
 	shape(holder, 0.20, 0.14, 0.68, 0.76, PARCHMENT, 0.06) -- the pages, showing past the cover
 	shape(holder, 0.14, 0.10, 0.68, 0.76, COVER, 0.08)
 	shape(holder, 0.14, 0.10, 0.13, 0.76, SPINE, 0.2)
@@ -79,6 +102,9 @@ end
 
 -- A Ryo coin: gold, with a rim and a square hole to string it by.
 function Icons.coin(holder: Instance)
+	if picture(holder, Art.icons.coin) then
+		return
+	end
 	shape(holder, 0.08, 0.08, 0.84, 0.84, DARK_GOLD, 0.5)
 	shape(holder, 0.13, 0.13, 0.74, 0.74, GOLD, 0.5)
 	shape(holder, 0.24, 0.24, 0.52, 0.52, DARK_GOLD, 0.5)
@@ -88,6 +114,9 @@ end
 
 -- Chakra: a blue flame, a round body under a pointed tip, with a paler heart.
 function Icons.chakra(holder: Instance)
+	if picture(holder, Art.icons.chakra) then
+		return
+	end
 	shape(holder, 0.36, 0.10, 0.28, 0.28, BLUE, 0.1).Rotation = 45
 	shape(holder, 0.18, 0.28, 0.64, 0.64, BLUE, 0.5)
 	shape(holder, 0.43, 0.36, 0.14, 0.14, PALE_BLUE, 0.1).Rotation = 45
@@ -96,6 +125,9 @@ end
 
 -- Meditation: a figure sitting cross-legged, hands on its knees, inside a glow.
 function Icons.meditate(holder: Instance)
+	if picture(holder, Art.icons.meditate) then
+		return
+	end
 	shape(holder, 0.10, 0.12, 0.80, 0.80, DEEP_BLUE, 0.5).BackgroundTransparency = 0.55
 	shape(holder, 0.16, 0.66, 0.68, 0.20, BLUE, 0.5)
 	shape(holder, 0.36, 0.38, 0.28, 0.36, BLUE, 0.3)
@@ -106,6 +138,9 @@ end
 
 -- Chakra control: the closing ring around its golden target, as in the exercise itself.
 function Icons.focus(holder: Instance)
+	if picture(holder, Art.icons.focus) then
+		return
+	end
 	shape(holder, 0.08, 0.08, 0.84, 0.84, PARCHMENT, 0.5)
 	shape(holder, 0.15, 0.15, 0.70, 0.70, NIGHT, 0.5)
 	shape(holder, 0.26, 0.26, 0.48, 0.48, GOLD, 0.5)
@@ -113,9 +148,12 @@ function Icons.focus(holder: Instance)
 	shape(holder, 0.43, 0.43, 0.14, 0.14, BLUE, 0.5)
 end
 
--- A shinobi in the given color, with a forehead protector: the stand-in for a portrait until
--- the characters have pictures of their own.
-function Icons.shinobi(holder: Instance, color: Color3)
+-- The portrait of a character: its picture if Art has one, and otherwise a small shinobi in
+-- the given color with a forehead protector.
+function Icons.shinobi(holder: Instance, characterId: string, color: Color3)
+	if picture(holder, Art.portraits[characterId]) then
+		return
+	end
 	shape(holder, 0.26, 0.46, 0.48, 0.48, color, 0.18)
 	shape(holder, 0.31, 0.08, 0.38, 0.38, SKIN, 0.5)
 	shape(holder, 0.31, 0.18, 0.38, 0.08, NIGHT, 0)

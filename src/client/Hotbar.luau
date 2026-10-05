@@ -302,7 +302,7 @@ function Hotbar.start()
 			slot.content:ClearAllChildren()
 			local unit = inventory[quickUnits[index]]
 			if unit then
-				Icons.shinobi(slot.content, Hud.rankColor(unit.character))
+				Icons.shinobi(slot.content, unit.character, Hud.rankColor(unit.character))
 				slot.stars.Text = Catalog.stars(unit.level)
 				slot.button.BackgroundTransparency = 0.12
 			else
