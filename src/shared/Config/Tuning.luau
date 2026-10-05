@@ -38,13 +38,19 @@ return {
 
 	Kick = {
 		barPeriod = 1.4, -- seconds for one full 0 -> 1 -> 0 sweep of the power bar
-		-- A throw's power is Chakra times the marker's position on the bar (0..1) at the press:
-		-- the higher the press, the farther the kunai, and nothing is left to chance. Power picks
-		-- the zone by the zones' own thresholds (Config/Zones), and how far past a threshold it
-		-- is picks the spot inside the zone, on a log scale: every doubling carries the kunai
-		-- equally far.
-		-- The grades only name a press; Perfects in a row charge the Sage kick. Checked
-		-- top-down against the bar position; the first match wins.
+		-- A throw's power is Chakra times the share of it the press earns: the marker's position
+		-- on the bar (0..1) raised to `powerCurve`. The higher the press, the farther the kunai,
+		-- and nothing is left to chance. Power picks the zone by the zones' own thresholds
+		-- (Config/Zones), and how far past a threshold it is picks the spot inside the zone, on a
+		-- log scale: every doubling carries the kunai equally far.
+		-- The curve is what makes a sloppy press cost something. Zones are about 7.5 times apart
+		-- in Chakra, so with the plain position a press from the middle of the bar still landed
+		-- in the zone a perfect one reached. Cubed, a press keeps 83% of the power at the edge
+		-- of Perfect, 51% at the edge of Great and 17% at the edge of Good: at most a tenth of a
+		-- zone lost, a third, nine tenths, and below that a zone or more.
+		powerCurve = 3,
+		-- The grades name a press; Perfects in a row charge the Sage kick. Checked top-down
+		-- against the bar position; the first match wins.
 		grades = {
 			{ id = "Perfect", from = 0.94 },
 			{ id = "Great", from = 0.8 },

@@ -84,12 +84,49 @@ return {
 		end
 	end,
 
-	["the marker's position is the share of the Chakra thrown"] = function()
+	["a press puts a share of the Chakra into the throw"] = function()
+		local curve = Tuning.Kick.powerCurve
+		T.near(Kick.share(1), 1, EPS, "the top of the bar is all of it")
+		T.near(Kick.share(0.5), 0.5 ^ curve, EPS)
+		T.eq(Kick.share(0), 0)
+		T.eq(Kick.share(-1), 0, "below the bar")
+		T.eq(Kick.share(2), 1, "above the bar")
+
 		local chakra = Catalog.zones[5].chakra
 		T.near(Kick.resolve(chakra, 1, 0).distance, Kick.distance(chakra), EPS, "the whole of it")
-		T.near(Kick.resolve(chakra, 0.5, 0).distance, Kick.distance(chakra / 2), EPS, "half")
-		T.near(Kick.resolve(chakra, 0.1, 0).distance, Kick.distance(chakra / 10), EPS, "a tenth")
+		for _, position in { 0.9, 0.5, 0.1 } do
+			local result = Kick.resolve(chakra, position, 0)
+			T.near(result.share, Kick.share(position), EPS)
+			T.near(result.distance, Kick.distance(chakra * Kick.share(position)), EPS)
+		end
 		T.eq(Kick.resolve(chakra, 0, 0).distance, 0, "a press at the bottom throws nothing")
+	end,
+
+	["a sloppy press costs distance"] = function()
+		local grades = Tuning.Kick.grades
+		local perfectFrom, greatFrom, goodFrom = grades[1].from, grades[2].from, grades[3].from
+		-- Past the first zone, with just enough Chakra for a press from the top of the bar to
+		-- reach the far end of a zone.
+		for i = 2, #Catalog.zones do
+			local zone = Catalog.zones[i]
+			local span = Catalog.zoneEnd(zone) - zone.startsAt
+			local chakra = Catalog.zoneCeiling(zone) * 0.999
+			local best = Kick.resolve(chakra, 1, 0).distance
+			local function lost(position: number): number
+				return (best - Kick.resolve(chakra, position, 0).distance) / span
+			end
+			T.ok(lost(perfectFrom) < 0.12, `{zone.id}: a Perfect is next to nothing short`)
+			T.ok(lost(greatFrom) > 0.25, `{zone.id}: the worst Great is a good way short`)
+			T.ok(lost(greatFrom) < 0.5, `{zone.id}: a Great is still in the far half`)
+			T.ok(lost(goodFrom) > 0.8, `{zone.id}: the worst Good is back at the zone's start`)
+			-- The best press that is still a Miss, and one from the middle of the bar.
+			T.ok(
+				lost(goodFrom - 0.001) > 0.8,
+				`{zone.id}: a Miss does not reach where a Perfect lands`
+			)
+			local sloppy = Kick.resolve(chakra, 0.4, 0).distance
+			T.ok(sloppy < zone.startsAt, `{zone.id}: a press from the middle falls a zone short`)
+		end
 	end,
 
 	["a higher press never lands nearer, whatever its grade"] = function()

@@ -14,6 +14,7 @@ export type Grade = "Perfect" | "Great" | "Good" | "Miss"
 
 export type Result = {
 	grade: Grade,
+	share: number, -- how much of the Chakra went into the throw, 0..1
 	distance: number,
 	sage: boolean, -- this kick spent a charged Sage streak
 	streak: number, -- Perfects in a row after this kick
@@ -40,7 +41,13 @@ function Kick.grade(position: number): Grade
 	return GRADES[#GRADES].id
 end
 
--- Where a throw of the given power (Chakra times the marker's position) is headed: the
+-- The share of the Chakra a press at the given marker position puts into the throw: all of it
+-- at the top of the bar, falling off steeply below (Tuning.Kick.powerCurve).
+function Kick.share(position: number): number
+	return math.clamp(position, 0, 1) ^ Tuning.Kick.powerCurve
+end
+
+-- Where a throw of the given power (Chakra times the share the press earned) is headed: the
 -- farthest zone whose threshold it reaches, and how deep into that zone, from 0 at its start to
 -- 1 at its far end. Depth grows with the logarithm of the power, so every doubling carries the
 -- kunai the same stretch farther.
@@ -74,13 +81,14 @@ function Kick.reconcileElapsed(claimed: number, serverElapsed: number, roundTrip
 	return estimate
 end
 
--- Resolves one kick. The marker's position is the share of the Chakra that goes into it. A
+-- Resolves one kick. The marker's position sets the share of the Chakra that goes into it. A
 -- charged streak is spent on this kick; this kick's own Perfect then starts counting towards
 -- the next charge.
 function Kick.resolve(chakra: number, position: number, streak: number): Result
 	local cfg = Tuning.Kick
 	local grade: Grade = Kick.grade(position)
-	local power = math.max(chakra, 0) * math.clamp(position, 0, 1)
+	local share = Kick.share(position)
+	local power = math.max(chakra, 0) * share
 	local sage = streak >= cfg.sageStreak
 	if sage then
 		power *= cfg.sageMultiplier
@@ -88,6 +96,7 @@ function Kick.resolve(chakra: number, position: number, streak: number): Result
 	end
 	return {
 		grade = grade,
+		share = share,
 		distance = Kick.distance(power),
 		sage = sage,
 		streak = if grade == "Perfect" then streak + 1 else 0,
