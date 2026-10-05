@@ -50,6 +50,14 @@ local FAR_END_MARGIN = 200
 local WOOD = Color3.fromRGB(121, 85, 61)
 local STONE = Color3.fromRGB(99, 95, 98)
 local GRASS = Color3.fromRGB(104, 159, 56)
+-- The throwing strip.
+local PLANKS = Color3.fromRGB(96, 68, 52)
+local DARK_WOOD = Color3.fromRGB(62, 44, 36)
+local CHAKRA = Color3.fromRGB(79, 195, 247)
+local PAPER = Color3.fromRGB(236, 220, 188)
+local ROPE = Color3.fromRGB(196, 172, 128)
+local LANTERN = Color3.fromRGB(255, 196, 120)
+local POST_HEIGHT = 10
 
 -- Hub-local coordinates to a world position.
 function Hub.at(x: number, y: number, z: number): Vector3
@@ -102,6 +110,148 @@ local function adopt(character: Model)
 	end)
 end
 
+-- The throwing strip: a deck of dark planks across the start of the lane. A thin line of
+-- Chakra runs along the edge the kunai are thrown over, motes of it drift up from the boards,
+-- the strip's name is painted on them, and a rope hung with paper tags spans the lane between
+-- two lantern posts. Only the line and the lanterns glow.
+local function buildStrip(folder: Folder): Part
+	local depth = Tuning.Kick.stripDepth
+	local strip = Build.part(
+		folder,
+		"ThrowStrip",
+		Vector3.new(depth, 0.2, LANE_WIDTH),
+		Hub.at(depth / 2, 0.1, 0),
+		PLANKS,
+		Enum.Material.WoodPlanks
+	)
+
+	-- A piece that is only there to be looked at.
+	local function piece(
+		name: string,
+		size: Vector3,
+		at: Vector3,
+		color: Color3,
+		material: Enum.Material?
+	): Part
+		local part = Build.part(folder, name, size, at, color, material)
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CastShadow = false
+		return part
+	end
+
+	local beam = Vector3.new(0.5, 0.3, LANE_WIDTH)
+	piece("StripBack", beam, Hub.at(0.25, 0.15, 0), DARK_WOOD, Enum.Material.Wood)
+	piece("StripFront", beam, Hub.at(depth - 0.25, 0.15, 0), DARK_WOOD, Enum.Material.Wood)
+	local line = piece(
+		"StripLine",
+		Vector3.new(0.2, 0.06, LANE_WIDTH),
+		Hub.at(depth - 0.25, 0.33, 0),
+		CHAKRA,
+		Enum.Material.Neon
+	)
+	line.Transparency = 0.2
+
+	-- The name, painted on the boards so that it reads the right way up for someone facing
+	-- down the lane: the unseen slab lies flat, its front face up and its top towards the lane.
+	local paint = piece("StripName", Vector3.new(34, 6, 0.05), Hub.at(depth / 2, 0.24, 0), PAPER)
+	paint.Transparency = 1
+	paint.CFrame = CFrame.lookAt(paint.Position, paint.Position + Vector3.yAxis, Vector3.xAxis)
+	local name = Build.faceLabel(paint, Enum.NormalId.Front, "THROW")
+	name.TextColor3 = PAPER
+	name.TextTransparency = 0.15
+
+	-- Motes of Chakra rising from all over the deck.
+	local motes = Instance.new("ParticleEmitter")
+	motes.Name = "Motes"
+	motes.Rate = 16
+	motes.Lifetime = NumberRange.new(2, 3.5)
+	motes.Speed = NumberRange.new(1.2, 2.6)
+	motes.EmissionDirection = Enum.NormalId.Top
+	motes.SpreadAngle = Vector2.new(12, 12)
+	motes.Acceleration = Vector3.new(0, 0.4, 0)
+	motes.Rotation = NumberRange.new(0, 360)
+	motes.RotSpeed = NumberRange.new(-40, 40)
+	motes.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.2),
+		NumberSequenceKeypoint.new(0.3, 0.5),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	motes.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.15, 0.2),
+		NumberSequenceKeypoint.new(0.7, 0.45),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	motes.Color = ColorSequence.new(CHAKRA, Color3.fromRGB(225, 245, 254))
+	motes.LightEmission = 0.7
+	motes.LightInfluence = 0
+	motes.Parent = strip
+
+	-- A post at each end of the far edge, a lantern hanging on its inner side.
+	local postX = depth - 1
+	for _, side in { -1, 1 } do
+		local z = side * (LANE_WIDTH / 2 - 1.5)
+		Build.part(
+			folder,
+			"StripPost",
+			Vector3.new(1, POST_HEIGHT, 1),
+			Hub.at(postX, POST_HEIGHT / 2, z),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+		piece(
+			"StripPostCap",
+			Vector3.new(1.6, 0.4, 1.6),
+			Hub.at(postX, POST_HEIGHT + 0.2, z),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+		piece(
+			"LanternArm",
+			Vector3.new(0.3, 0.3, 2.2),
+			Hub.at(postX, POST_HEIGHT - 1, z - side * 1.1),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+		local lanternAt = Hub.at(postX, POST_HEIGHT - 2.3, z - side * 1.7)
+		local lantern =
+			piece("Lantern", Vector3.new(1.3, 1.8, 1.3), lanternAt, LANTERN, Enum.Material.Neon)
+		for _, lift in { -1, 1 } do
+			piece(
+				"LanternCap",
+				Vector3.new(1.5, 0.25, 1.5),
+				lanternAt + Vector3.new(0, lift, 0),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
+		local light = Instance.new("PointLight")
+		light.Color = LANTERN
+		light.Range = 18
+		light.Brightness = 1.2
+		light.Parent = lantern
+	end
+
+	piece(
+		"StripRope",
+		Vector3.new(0.25, 0.25, LANE_WIDTH - 3),
+		Hub.at(postX, POST_HEIGHT - 0.4, 0),
+		ROPE,
+		Enum.Material.Fabric
+	)
+	for i = -3, 3 do
+		piece(
+			"StripTag",
+			Vector3.new(0.08, 1.3, 0.8),
+			Hub.at(postX, POST_HEIGHT - 1.2, i * 7),
+			PAPER
+		)
+	end
+
+	return strip
+end
+
 function Hub.start()
 	local folder = Instance.new("Folder")
 	folder.Name = Net.HUB_FOLDER
@@ -140,15 +290,8 @@ function Hub.start()
 		-- The first zone begins at the throwing strip; the others get a plain line.
 		local marker: Part
 		if i == 1 then
-			marker = Build.part(
-				folder,
-				"ThrowStrip",
-				Vector3.new(Tuning.Kick.stripDepth, 0.2, LANE_WIDTH),
-				Hub.at(Tuning.Kick.stripDepth / 2, 0.1, 0),
-				Color3.fromRGB(255, 152, 0),
-				Enum.Material.Neon
-			)
-			Build.label(marker, "THROW", 5, Vector2.new(14, 4))
+			marker = buildStrip(folder)
+			Build.label(marker, "THROW", 5, Vector2.new(14, 4)).TextColor3 = PAPER
 		else
 			marker = Build.part(
 				folder,
