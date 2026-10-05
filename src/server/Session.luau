@@ -9,8 +9,8 @@ export type Session = {
 	throwChakra: number, -- Chakra the player chose to throw with, 0 for all of it
 	boost: number, -- training multiplier from the last popped bubble
 	boostUntil: number, -- os.clock() time the boost runs out
-	-- Ryo the dojo earned while the player was away before this visit. Already paid out;
-	-- kept so that an offer to multiply it can be honored later in the session.
+	-- Ryo the dojo earned while the player was away, waiting to be collected in the
+	-- welcome-back window; 0 once collected. An offer to multiply it acts on this number.
 	offline: number,
 }
 

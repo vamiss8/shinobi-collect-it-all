@@ -38,6 +38,7 @@ local Remotes = {
 	Sell = event(Net.Events.Sell),
 	Notify = event(Net.Events.Notify),
 	Offline = event(Net.Events.Offline),
+	Collect = event(Net.Events.Collect),
 }
 
 folder.Parent = ReplicatedStorage

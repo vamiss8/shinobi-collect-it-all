@@ -3,9 +3,10 @@
 -- in that time. It opens in the middle of the screen once the save has loaded and stays until
 -- it is dismissed; as a toast the same news was gone before it could be read.
 --
--- The Ryo are already the player's when the window opens, so closing it any way loses nothing.
--- An offer to multiply them for Robux is planned next to the Collect button; the server keeps
--- the amount for it (Session.offline).
+-- The Ryo are paid out when the window closes, whichever way it is closed, so the player sees
+-- their purse grow; the server also pays them out by itself if the player leaves first. An
+-- offer to multiply them for Robux is planned next to the Collect button: it will act on the
+-- amount while it still waits on the server (Session.offline).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -20,37 +21,37 @@ local Ui = require("./Ui")
 local WelcomeBack = {}
 
 function WelcomeBack.start()
-	local window = Ui.window("WelcomeBack", Vector2.new(440, 290))
+	local window = Ui.window("WelcomeBack", Vector2.new(540, 380))
 	window.title.Text = Strings.get("OfflineTitle")
 	local body = window.body
 
 	local away = Ui.text(body, {
-		Size = UDim2.new(1, 0, 0, 24),
-		TextSize = 17,
-		TextColor3 = Ui.MUTED,
+		Size = UDim2.new(1, 0, 0, 32),
+		TextSize = 24,
+		TextColor3 = Ui.PARCHMENT,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	Ui.text(body, {
-		Position = UDim2.fromOffset(0, 34),
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 16,
+		Position = UDim2.fromOffset(0, 42),
+		Size = UDim2.new(1, 0, 0, 30),
+		TextSize = 24,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = Strings.get("OfflineEarnedLabel"),
 	})
 	local earned = Ui.text(body, {
-		Position = UDim2.fromOffset(0, 58),
-		Size = UDim2.new(1, 0, 0, 56),
+		Position = UDim2.fromOffset(0, 74),
+		Size = UDim2.new(1, 0, 0, 72),
 		TextScaled = true,
 		TextColor3 = Ui.GOLD,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 46 }, earned)
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 62 }, earned)
 	-- The rule behind the number, so the amount does not look arbitrary.
 	Ui.text(body, {
-		Position = UDim2.fromOffset(0, 120),
-		Size = UDim2.new(1, 0, 0, 36),
-		TextSize = 13,
-		TextColor3 = Ui.MUTED,
+		Position = UDim2.fromOffset(0, 154),
+		Size = UDim2.new(1, 0, 0, 60),
+		TextSize = 20,
+		TextColor3 = Ui.PARCHMENT,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = Strings.get(
@@ -62,16 +63,26 @@ function WelcomeBack.start()
 	local collect = Ui.button(body, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromOffset(200, 46),
-		TextSize = 22,
+		Size = UDim2.fromOffset(260, 60),
+		TextSize = 30,
 		Text = Strings.get("OfflineCollect"),
 	})
 	collect.Activated:Connect(window.close)
 
+	-- True from the offer until the window closes. Closing it is what collects, be it by the
+	-- button, the X, Enter, or another window opening over it.
+	local waiting = false
 	Remotes.Offline.OnClientEvent:Connect(function(offline: Net.Offline)
 		away.Text = Strings.get("OfflineAway", Format.duration(offline.away))
 		earned.Text = Strings.get("OfflineEarned", offline.earned)
+		waiting = true
 		window.open()
+	end)
+	window.frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if waiting and not window.frame.Visible then
+			waiting = false
+			Remotes.Collect:FireServer()
+		end
 	end)
 
 	-- Enter collects as well: under Shift Lock the mouse is not free to reach the button.

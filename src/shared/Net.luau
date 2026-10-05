@@ -34,6 +34,7 @@ Net.Events = {
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
 	Notify = "Notify", -- server -> client: a key from client/Strings plus format arguments
 	Offline = "Offline", -- server -> client: Offline, once, when a returning player's save loads
+	Collect = "Collect", -- client -> server: take the offline income the Offline message offered
 }
 
 -- Attribute on a stall's ProximityPrompt naming the shop window it opens on the client.
@@ -127,7 +128,8 @@ export type RunEnd = {
 	reward: number, -- Ryo: discovery reward on an escape, consolation when caught
 }
 
--- What the dojo earned while the player was away. The Ryo are already added to the save.
+-- What the dojo earned while the player was away. The Ryo wait to be collected: the server
+-- pays them out on Collect, or by itself when the player leaves without collecting.
 export type Offline = {
 	earned: number, -- Ryo
 	away: number, -- seconds since the player was last seen

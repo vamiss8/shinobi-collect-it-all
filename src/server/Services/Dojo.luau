@@ -37,8 +37,8 @@ local FADED = Color3.fromRGB(176, 171, 164)
 -- A press is accepted from a little farther than the client lets one through, so a player who
 -- is walking away as they click is not turned down.
 local PRESS_SLACK = 4
--- A player back after less than this is paid for the time away without a welcome-back
--- window: someone who rejoins to pick up an update has nothing to read. Seconds.
+-- A player back after less than this is paid for the time away at once, without a
+-- welcome-back window: someone who rejoins to pick up an update has nothing to read. Seconds.
 local WELCOME_AFTER = 60
 -- Levels the two fixed buttons buy; the third buys what the Ryo allows.
 local LEVELS = { one = 1, ten = 10 }
@@ -281,6 +281,15 @@ local function pressButton(player: Player, part: unknown)
 	end
 end
 
+-- Pays out the offline income that waits in the welcome-back window, if any is left.
+local function collectOffline(player: Player, data: Data.Data)
+	local session = Session.of(player)
+	if session.offline > 0 then
+		data.ryo += session.offline
+		session.offline = 0
+	end
+end
+
 -- Drops pad references to units that no longer exist, so one bad save cannot break the dojo.
 local function repair(data: Data.Data)
 	for key, unitId in data.pads do
@@ -305,6 +314,14 @@ function Dojo.start()
 		end
 	end)
 	Remotes.Upgrade.OnServerEvent:Connect(pressButton)
+	Remotes.Collect.OnServerEvent:Connect(function(player)
+		local data = Data.get(player)
+		if data then
+			collectOffline(player, data)
+			drawConsoles(player, data)
+			State.push(player)
+		end
+	end)
 
 	Data.onLoaded(function(player, data)
 		repair(data)
@@ -312,13 +329,14 @@ function Dojo.start()
 		if data.lastSeen > 0 then
 			local away = os.time() - data.lastSeen
 			local earned = Economy.offlineEarnings(Stats.income(data), away)
-			if earned >= 1 then
-				data.ryo += earned
+			if earned >= 1 and away >= WELCOME_AFTER then
+				-- The Ryo wait for the player to collect them in the welcome-back window,
+				-- so that the purse visibly grows when they do.
 				Session.of(player).offline = earned
-				if away >= WELCOME_AFTER then
-					local offline: Net.Offline = { earned = earned, away = away }
-					Remotes.Offline:FireClient(player, offline)
-				end
+				local offline: Net.Offline = { earned = earned, away = away }
+				Remotes.Offline:FireClient(player, offline)
+			else
+				data.ryo += earned
 			end
 		end
 		data.lastSeen = os.time()
@@ -326,7 +344,10 @@ function Dojo.start()
 		drawPads(player)
 	end)
 
-	Data.onLeaving(function(player)
+	Data.onLeaving(function(player, data)
+		-- Income nobody collected is not lost. The session is still there: Training, which
+		-- clears it, registered its leave hook earlier and so runs after this one.
+		collectOffline(player, data)
 		local plot = Plots.of(player)
 		if plot then
 			for _, pad in plot.pads do
