@@ -1,7 +1,7 @@
 --!strict
--- The always-visible UI, kept small and split by purpose: Ryo on the left edge, Chakra and the
--- throw power in the bottom-left corner, window buttons on the right edge, and short messages
--- ("toasts") at the top.
+-- The always-visible UI, split by purpose: Ryo on the left edge, Chakra and the throw power in
+-- the bottom-left corner, window buttons on the right edge, and short messages written on a
+-- scroll at the top.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Focus = require(ReplicatedStorage.Shared.Logic.Focus)
+local Icons = require("./Icons")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local Store = require("./Store")
@@ -19,26 +20,36 @@ local Ui = require("./Ui")
 
 local Hud = {}
 
-local TOAST_SECONDS = 3.5
+local MESSAGE_SECONDS = 4
 
-local toastLabel: TextLabel? = nil
-local toastToken = 0
+local INK = Color3.fromRGB(58, 40, 30)
+local ROLLER = Color3.fromRGB(93, 64, 55)
+local ROLLER_END = Color3.fromRGB(141, 98, 72)
+
+-- The scroll messages are written on: the parchment, its words, and the two things that take
+-- a message's color, the outline and the seal.
+type Scroll = { frame: Frame, words: TextLabel, edge: UIStroke, seal: Frame }
+
+local scroll: Scroll? = nil
+local messageToken = 0
 local sideColumn: Frame? = nil
 
--- Shows a message at the top of the screen for a few seconds. A newer one replaces it.
+-- Shows a message on the scroll at the top of the screen for a few seconds. A newer one
+-- replaces it. The words are always ink on parchment; `color` goes to the seal and the outline.
 function Hud.toast(text: string, color: Color3?)
-	local label = toastLabel
-	if not label then
+	local shown = scroll
+	if not shown then
 		return
 	end
-	toastToken += 1
-	local token = toastToken
-	label.Text = text
-	label.TextColor3 = color or Ui.WHITE
-	label.Visible = true
-	task.delay(TOAST_SECONDS, function()
-		if toastToken == token then
-			label.Visible = false
+	messageToken += 1
+	local token = messageToken
+	shown.words.Text = text
+	shown.edge.Color = color or Ui.EDGE
+	shown.seal.BackgroundColor3 = color or Ui.SEAL
+	shown.frame.Visible = true
+	task.delay(MESSAGE_SECONDS, function()
+		if messageToken == token then
+			shown.frame.Visible = false
 		end
 	end)
 end
@@ -61,16 +72,16 @@ function Hud.sideButton(
 ): (TextButton, TextLabel)
 	assert(sideColumn, "Hud.start() has not run yet")
 	local tile = Ui.button(sideColumn, {
-		Size = UDim2.fromOffset(96, 98),
+		Size = UDim2.fromOffset(112, 116),
 		BackgroundColor3 = Ui.PANEL,
-		BackgroundTransparency = 0.1,
+		BackgroundTransparency = 0.08,
 	})
-	Ui.stroke(tile, color, 2)
+	Ui.stroke(tile, color, 3)
 
 	local holder = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(56, 56),
+		Size = UDim2.fromOffset(68, 68),
 		BackgroundTransparency = 1,
 	}, tile)
 	drawIcon(holder)
@@ -78,8 +89,7 @@ function Hud.sideButton(
 	Ui.text(tile, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -6),
-		Size = UDim2.new(1, -8, 0, 24),
-		Font = Ui.BRUSH,
+		Size = UDim2.new(1, -8, 0, 28),
 		TextColor3 = color,
 		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -89,14 +99,14 @@ function Hud.sideButton(
 	local counter = Ui.text(tile, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -5, 0, 5),
-		Size = UDim2.fromOffset(30, 20),
+		Size = UDim2.fromOffset(36, 24),
 		BackgroundColor3 = Ui.SEAL,
 		BackgroundTransparency = 0,
-		TextSize = 13,
+		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Visible = false,
 	})
-	Ui.corner(counter, 10)
+	Ui.corner(counter, 12)
 	return tile, counter
 end
 
@@ -105,59 +115,127 @@ local function enemyName(zoneId: string): string
 	return if zone then zone.enemy.name else zoneId
 end
 
--- A pill-shaped readout: a round badge, a big number and a smaller line under it.
+-- A readout: an icon, a big number and a smaller line under it, on a dark plaque outlined in
+-- the readout's color.
 local function readout(
 	parent: Instance,
-	letter: string,
+	drawIcon: (holder: Instance) -> (),
 	color: Color3,
 	properties: { [string]: any }
 ): (Frame, TextLabel, TextLabel)
-	local pill = Ui.panel(parent, properties)
-	pill.BackgroundTransparency = 0.1
-	Ui.stroke(pill, color, 2)
-	local badge = Ui.badge(pill, letter, color, 40)
-	badge.Position = UDim2.fromOffset(10, 8)
+	local plaque = Ui.panel(parent, properties)
+	plaque.BackgroundTransparency = 0.08
+	Ui.stroke(plaque, color, 3)
+	local holder = Ui.make("Frame", {
+		Position = UDim2.fromOffset(10, 8),
+		Size = UDim2.fromOffset(52, 52),
+		BackgroundTransparency = 1,
+	}, plaque)
+	drawIcon(holder)
 
-	-- Both lines shrink to fit the pill instead of running past its edge.
-	local amount = Ui.text(pill, {
-		Position = UDim2.fromOffset(60, 4),
-		Size = UDim2.new(1, -70, 0, 28),
-		Font = Ui.BRUSH,
+	-- Both lines shrink to fit the plaque instead of running past its edge.
+	local amount = Ui.text(plaque, {
+		Position = UDim2.fromOffset(72, 4),
+		Size = UDim2.new(1, -82, 0, 34),
 		TextScaled = true,
 		TextColor3 = color,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 24 }, amount)
-	local detail = Ui.text(pill, {
-		Position = UDim2.fromOffset(60, 32),
-		Size = UDim2.new(1, -70, 0, 18),
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, amount)
+	local detail = Ui.text(plaque, {
+		Position = UDim2.fromOffset(72, 38),
+		Size = UDim2.new(1, -82, 0, 22),
 		TextScaled = true,
 		TextColor3 = Ui.MUTED,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 14 }, detail)
-	return pill, amount, detail
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 19 }, detail)
+	return plaque, amount, detail
+end
+
+-- Builds the message scroll: parchment between two wooden rollers, with a seal on the left
+-- that takes the message's color.
+local function buildScroll(parent: Instance): Scroll
+	local frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 18),
+		Size = UDim2.new(0.5, 0, 0, 66),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+		Visible = false,
+	}, parent)
+	Ui.make("UISizeConstraint", {
+		MinSize = Vector2.new(440, 66),
+		MaxSize = Vector2.new(1000, 66),
+	}, frame)
+	Ui.corner(frame, 4)
+	local edge = Ui.stroke(frame, Ui.EDGE, 3)
+
+	-- The rollers stand a little taller than the parchment, with a lighter knob on each end.
+	for _, side in { 0, 1 } do
+		local roller = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(side, 0.5),
+			Size = UDim2.new(0, 20, 1, 18),
+			BackgroundColor3 = ROLLER,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		}, frame)
+		Ui.corner(roller, 10)
+		for _, tip in { 0, 1 } do
+			local knob = Ui.make("Frame", {
+				AnchorPoint = Vector2.new(0.5, tip),
+				Position = UDim2.fromScale(0.5, tip),
+				Size = UDim2.fromOffset(12, 8),
+				BackgroundColor3 = ROLLER_END,
+				BorderSizePixel = 0,
+				ZIndex = 3,
+			}, roller)
+			Ui.corner(knob, 4)
+		end
+	end
+
+	local seal = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 24, 0.5, 0),
+		Size = UDim2.fromOffset(30, 30),
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, frame)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
+	Ui.stroke(seal, INK, 2)
+
+	local words = Ui.text(frame, {
+		Position = UDim2.fromOffset(66, 8),
+		Size = UDim2.new(1, -90, 1, -16),
+		TextScaled = true,
+		TextColor3 = INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, words)
+
+	return { frame = frame, words = words, edge = edge, seal = seal }
 end
 
 function Hud.start()
 	local screen = Ui.screen("Hud", 10)
 
 	-- Ryo, on the left edge.
-	local _, ryoAmount, ryoDetail = readout(screen, "R", Ui.GOLD, {
+	local _, ryoAmount, ryoDetail = readout(screen, Icons.coin, Ui.GOLD, {
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, -60),
-		Size = UDim2.fromOffset(230, 56),
+		Position = UDim2.new(0, 12, 0.5, -70),
+		Size = UDim2.fromOffset(280, 68),
 	})
 	ryoDetail.TextColor3 = Ui.GREEN
 
 	-- Chakra and the throw power, bottom-left. Touch screens have the movement stick there, so
 	-- on those it sits under the Ryo readout instead.
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-	local chakraPill, chakraAmount, chakraDetail = readout(screen, "C", Ui.BLUE, {
+	local chakraPlaque, chakraAmount, chakraDetail = readout(screen, Icons.chakra, Ui.BLUE, {
 		AnchorPoint = if touch then Vector2.new(0, 0.5) else Vector2.new(0, 1),
 		Position = if touch then UDim2.new(0, 12, 0.5, 30) else UDim2.new(0, 12, 1, -12),
-		Size = UDim2.fromOffset(300, 98),
+		Size = UDim2.fromOffset(340, 116),
 	})
 
-	ThrowPower.attach(chakraPill)
+	ThrowPower.attach(chakraPlaque)
 
 	-- Until the first snapshot arrives the readouts say why they are empty. A save usually
 	-- loads at once, but it can take most of a minute when another server still holds it.
@@ -168,31 +246,17 @@ function Hud.start()
 	local column = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
-		Size = UDim2.fromOffset(96, 0),
+		Size = UDim2.fromOffset(112, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 	}, screen)
 	Ui.make("UIListLayout", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 10),
+		Padding = UDim.new(0, 12),
 	}, column)
 	sideColumn = column
 
-	local toast = Ui.text(screen, {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 12),
-		Size = UDim2.new(0.5, 0, 0, 46),
-		BackgroundColor3 = Ui.PANEL,
-		BackgroundTransparency = 0.2,
-		Font = Ui.BRUSH,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextScaled = true,
-		Visible = false,
-	})
-	Ui.corner(toast, 10)
-	Ui.padding(toast, 8)
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 24 }, toast)
-	toastLabel = toast
+	scroll = buildScroll(screen)
 
 	Store.onChange(function(state)
 		ryoAmount.Text = Strings.get("HudRyo", state.ryo)

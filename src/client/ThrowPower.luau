@@ -44,41 +44,43 @@ function ThrowPower.attach(pill: Frame)
 		Position = UDim2.new(0, 10, 1, -40),
 		Size = UDim2.new(1, -20, 0, 30),
 		BackgroundColor3 = Ui.CARD,
-		TextSize = 14,
+		TextSize = 17,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 
 	local popup = Ui.panel(pill, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromOffset(0, -8),
-		Size = UDim2.new(1, 0, 0, 168),
+		Size = UDim2.new(1, 0, 0, 200),
 		BackgroundTransparency = 0.05,
 		Visible = false,
 	})
 	Ui.stroke(popup, Ui.BLUE, 2)
 	Ui.padding(popup, 12)
 	Ui.text(popup, {
-		Size = UDim2.new(1, 0, 0, 20),
-		TextSize = 16,
+		Size = UDim2.new(1, 0, 0, 22),
+		TextSize = 19,
 		Text = Strings.get("ThrowTitle"),
 	})
 	local amountLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 24),
-		Size = UDim2.new(1, 0, 0, 26),
-		TextSize = 22,
+		Position = UDim2.fromOffset(0, 26),
+		Size = UDim2.new(1, 0, 0, 28),
+		TextSize = 25,
 		TextColor3 = Ui.BLUE,
 	})
+	-- Two lines: the zone and what the next one takes do not fit in one.
 	local reachLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 52),
-		Size = UDim2.new(1, 0, 0, 18),
-		TextSize = 13,
+		Position = UDim2.fromOffset(0, 58),
+		Size = UDim2.new(1, 0, 0, 38),
+		TextSize = 16,
 		TextColor3 = Ui.MUTED,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextWrapped = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
 	})
 
 	-- The track is taller than it looks, so it is easy to grab; the bar and knob are drawn in it.
 	local track = Ui.make("TextButton", {
-		Position = UDim2.fromOffset(8, 78),
+		Position = UDim2.fromOffset(8, 100),
 		Size = UDim2.new(1, -16, 0, 28),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
@@ -110,16 +112,16 @@ function ThrowPower.attach(pill: Frame)
 	local useAll = Ui.button(popup, {
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.fromScale(1, 1),
-		Size = UDim2.fromOffset(96, 28),
+		Size = UDim2.fromOffset(104, 32),
 		BackgroundColor3 = Ui.GRAY,
-		TextSize = 14,
+		TextSize = 17,
 		Text = Strings.get("ThrowMax"),
 	})
 	Ui.text(popup, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.new(1, -106, 0, 28),
-		TextSize = 12,
+		Size = UDim2.new(1, -114, 0, 32),
+		TextSize = 14,
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 		Text = Strings.get("ThrowHint"),

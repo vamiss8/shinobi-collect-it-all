@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Icons = require("./Icons")
 local Strings = require("./Strings")
 local Ui = require("./Ui")
 
@@ -37,14 +38,17 @@ function UnitCard.build(
 	})
 	Ui.stroke(card, if known then rankColor else Ui.EDGE, 2)
 
-	-- A portrait stand-in: a square in the rank's color, black while unknown.
+	-- A portrait stand-in: a little shinobi in the rank's color, an empty square while unknown.
 	local portrait = Ui.make("Frame", {
 		Position = UDim2.fromOffset(8, 8),
 		Size = UDim2.fromOffset(40, 40),
-		BackgroundColor3 = if known then rankColor else Color3.fromRGB(24, 24, 24),
+		BackgroundColor3 = if known then Ui.PANEL else Color3.fromRGB(24, 24, 24),
 		BorderSizePixel = 0,
 	}, card)
 	Ui.corner(portrait, 6)
+	if known then
+		Icons.shinobi(portrait, rankColor)
+	end
 
 	Ui.text(card, {
 		Position = UDim2.fromOffset(56, 6),
