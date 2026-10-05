@@ -92,14 +92,18 @@ local PATIENCE = 60
 -- the drawing away once the picture has really loaded. An image that is still in moderation,
 -- or was turned down, loads as nothing; the drawing then simply stays. Call it last, after the
 -- icon is drawn. Does nothing when there is no picture (the id is 0 or missing). `turn` turns
--- the picture, in degrees clockwise.
-local function overlay(holder: Instance, assetId: number?, turn: number?)
+-- the picture, in degrees clockwise, and `zoom` draws it that many times larger about the
+-- holder's middle.
+local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: number?)
 	if not assetId or assetId == 0 then
 		return
 	end
 	local drawn = holder:GetChildren()
+	local size = zoom or 1
 	local image: ImageLabel = Ui.make("ImageLabel", {
-		Size = UDim2.fromScale(1, 1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(size, size),
 		BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Fit,
 		Image = `rbxassetid://{assetId}`,
@@ -212,6 +216,9 @@ end
 -- Which way a kunai's tip points when nothing else is asked for, in degrees clockwise from
 -- straight up: to the upper right.
 local KUNAI_TILT = 45
+-- A kunai lying across the holder has the diagonal to itself, which is longer than a side, so
+-- it is shown this much larger than one standing upright; in between, in proportion.
+local KUNAI_DIAGONAL_ZOOM = 0.3
 -- The blade of a drawn kunai, in fractions of the holder: how far under the top edge its two
 -- sides meet, how long and wide each side is, how many degrees it leans away from the middle,
 -- and how much larger the inked copy under it is.
@@ -231,10 +238,14 @@ function Icons.kunai(holder: Instance, kunaiId: string, backing: Color3, turn: n
 	local wrap = if look then Color3.fromHex(look.trail) else PARCHMENT
 	local angle = turn or KUNAI_TILT
 
+	local zoom = 1 + KUNAI_DIAGONAL_ZOOM * math.abs(math.sin(math.rad(2 * angle)))
+
 	-- Drawn standing upright, tip up, in a square that is then turned as a whole. Everything
-	-- stays inside the circle that fits the holder, so no turn pushes a part out of it.
+	-- stays inside the circle that fits the square, so no turn pushes a part out of the holder.
 	local canvas = Ui.make("Frame", {
-		Size = UDim2.fromScale(1, 1),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(zoom, zoom),
 		BackgroundTransparency = 1,
 		Rotation = angle,
 	}, holder)
@@ -266,7 +277,7 @@ function Icons.kunai(holder: Instance, kunaiId: string, backing: Color3, turn: n
 		bar(canvas, 0.5, BLADE_TOP + 0.02, 0.10 + pass.grow, 0.10 + pass.grow, 45, pass.color, 0.08)
 	end
 	bar(canvas, 0.5, BLADE_TOP + 0.25, 0.035, 0.50, 0, blade:Lerp(WHITE, 0.45), 0.5)
-	overlay(holder, Art.kunai[kunaiId], angle)
+	overlay(holder, Art.kunai[kunaiId], angle, zoom)
 end
 
 return Icons
