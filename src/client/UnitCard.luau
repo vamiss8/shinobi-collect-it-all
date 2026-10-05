@@ -14,7 +14,7 @@ local Ui = require("./Ui")
 
 local UnitCard = {}
 
-UnitCard.SIZE = Vector2.new(164, 108)
+UnitCard.SIZE = Vector2.new(224, 148)
 
 local BLACK = Color3.new(0, 0, 0)
 
@@ -36,12 +36,12 @@ function UnitCard.build(
 		BackgroundColor3 = if known then Ui.CARD else BLACK,
 		AutoButtonColor = known,
 	})
-	Ui.stroke(card, if known then rankColor else Ui.EDGE, 2)
+	Ui.stroke(card, if known then rankColor else Ui.EDGE, 3)
 
 	-- A portrait stand-in: a little shinobi in the rank's color, an empty square while unknown.
 	local portrait = Ui.make("Frame", {
-		Position = UDim2.fromOffset(8, 8),
-		Size = UDim2.fromOffset(40, 40),
+		Position = UDim2.fromOffset(10, 10),
+		Size = UDim2.fromOffset(56, 56),
 		BackgroundColor3 = if known then Ui.PANEL else Color3.fromRGB(24, 24, 24),
 		BorderSizePixel = 0,
 	}, card)
@@ -50,30 +50,39 @@ function UnitCard.build(
 		Icons.shinobi(portrait, rankColor)
 	end
 
-	Ui.text(card, {
-		Position = UDim2.fromOffset(56, 6),
-		Size = UDim2.new(1, -62, 0, 24),
-		Font = Ui.BRUSH,
-		TextSize = 16,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+	-- The name takes two lines when it has to: "Rock Lee (Drunken Fist)" does not fit in one.
+	local name = Ui.text(card, {
+		Position = UDim2.fromOffset(76, 6),
+		Size = UDim2.new(1, -84, 0, 36),
+		TextScaled = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
 		Text = if not known
 			then Strings.get("CardUnknown")
 			elseif character then character.name
 			else unit.character,
 	})
-	Ui.text(card, {
-		Position = UDim2.fromOffset(56, 28),
-		Size = UDim2.new(1, -62, 0, 18),
-		TextSize = 13,
-		TextColor3 = if known then rankColor else Ui.GRAY,
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 22, MinTextSize = 14 }, name)
+	-- The rank on a plate of its own color: the first thing to read on a card.
+	local plate = Ui.text(card, {
+		Position = UDim2.fromOffset(76, 44),
+		Size = UDim2.fromOffset(0, 24),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = if known then rankColor else Ui.GRAY,
+		BackgroundTransparency = 0,
+		TextSize = 19,
+		TextColor3 = Ui.PANEL,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = if rank then rank.name else "",
+		Visible = rank ~= nil,
 	})
+	Ui.corner(plate, 6)
+	Ui.make("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }, plate)
 
 	if mutation then
 		Ui.text(card, {
-			Position = UDim2.fromOffset(8, 50),
-			Size = UDim2.new(1, -16, 0, 16),
-			TextSize = 13,
+			Position = UDim2.fromOffset(10, 72),
+			Size = UDim2.new(1, -20, 0, 22),
+			TextSize = 18,
 			TextColor3 = if known then Color3.fromHex(mutation.color) else Ui.GRAY,
 			Text = string.upper(mutation.name),
 		})
@@ -82,9 +91,9 @@ function UnitCard.build(
 	local upgrades = unit.upgrade or 0
 	if known and upgrades > 0 then
 		Ui.text(card, {
-			Position = UDim2.new(0, 8, 1, -42),
-			Size = UDim2.new(1, -16, 0, 16),
-			TextSize = 13,
+			Position = UDim2.new(0, 10, 1, -56),
+			Size = UDim2.new(1, -20, 0, 22),
+			TextSize = 17,
 			TextColor3 = Ui.MUTED,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Text = Strings.get("CardBase", Economy.baseIncome(unit)),
@@ -96,22 +105,25 @@ function UnitCard.build(
 	if unit.level > 1 then
 		level ..= " " .. Catalog.stars(unit.level)
 	end
-	Ui.text(card, {
-		Position = UDim2.new(0, 8, 1, -24),
-		Size = UDim2.new(0.5, -8, 0, 18),
-		TextSize = 14,
+	-- Both shrink to fit: a long price or a row of stars must not run under the other.
+	local levelLabel = Ui.text(card, {
+		Position = UDim2.new(0, 10, 1, -32),
+		Size = UDim2.new(0.44, -10, 0, 26),
+		TextScaled = true,
 		TextColor3 = if known then Ui.WHITE else Ui.GRAY,
 		Text = if known then level else "",
 	})
-	Ui.text(card, {
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 20 }, levelLabel)
+	local incomeLabel = Ui.text(card, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 1, -24),
-		Size = UDim2.new(0.5, -8, 0, 18),
-		TextSize = 14,
+		Position = UDim2.new(1, -10, 1, -32),
+		Size = UDim2.new(0.56, -10, 0, 26),
+		TextScaled = true,
 		TextColor3 = if known then Ui.GOLD else Ui.GRAY,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		Text = footer or Strings.get("CardIncome", Economy.unitIncome(unit)),
 	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 20 }, incomeLabel)
 
 	return card
 end

@@ -20,7 +20,7 @@ local UnitCard = require("./UnitCard")
 local InventoryPanel = {}
 
 function InventoryPanel.start()
-	local window = Ui.window("Inventory", Vector2.new(580, 420))
+	local window = Ui.window("Inventory", Vector2.new(770, 600))
 	window.title.Text = Strings.get("InventoryTitle")
 
 	local opener, counter = Hud.sideButton(Strings.get("InventoryButton"), Ui.GOLD, Icons.scroll)
@@ -33,24 +33,24 @@ function InventoryPanel.start()
 	local carried = Ui.panel(Ui.screen("Carried", 11), {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -86),
-		Size = UDim2.fromOffset(380, 36),
+		Size = UDim2.fromOffset(520, 44),
 		BackgroundTransparency = 0.1,
 		Visible = false,
 	})
 	Ui.stroke(carried, Ui.GOLD, 2)
 	local carriedName = Ui.text(carried, {
-		Position = UDim2.fromOffset(12, 0),
-		Size = UDim2.new(1, -160, 1, 0),
+		Position = UDim2.fromOffset(14, 0),
+		Size = UDim2.new(1, -206, 1, 0),
 		Font = Ui.BRUSH,
-		TextSize = 17,
+		TextSize = 22,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 	local stow = Ui.button(carried, {
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -5, 0.5, 0),
-		Size = UDim2.fromOffset(140, 26),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.fromOffset(180, 32),
 		BackgroundColor3 = Ui.GRAY,
-		TextSize = 14,
+		TextSize = 19,
 		Text = if UserInputService.KeyboardEnabled
 			then Strings.get("CarriedPutAwayKey")
 			else Strings.get("InventoryPutAway"),
@@ -66,8 +66,8 @@ function InventoryPanel.start()
 	end)
 
 	local hint = Ui.text(window.body, {
-		Size = UDim2.new(1, -150, 0, 30),
-		TextSize = 14,
+		Size = UDim2.new(1, -200, 0, 42),
+		TextSize = 19,
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 		Text = Strings.get("InventoryHint"),
@@ -75,9 +75,9 @@ function InventoryPanel.start()
 	local putAway = Ui.button(window.body, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(136, 30),
+		Size = UDim2.fromOffset(180, 40),
 		BackgroundColor3 = Ui.GRAY,
-		TextSize = 15,
+		TextSize = 20,
 		Text = Strings.get("InventoryPutAway"),
 		Visible = false,
 	})
@@ -86,8 +86,8 @@ function InventoryPanel.start()
 	end)
 
 	local list = Ui.scroll(window.body, {
-		Position = UDim2.fromOffset(0, 40),
-		Size = UDim2.new(1, 0, 1, -40),
+		Position = UDim2.fromOffset(0, 52),
+		Size = UDim2.new(1, 0, 1, -52),
 	})
 	Ui.make("UIGridLayout", {
 		CellSize = UDim2.fromOffset(UnitCard.SIZE.X, UnitCard.SIZE.Y),

@@ -18,7 +18,7 @@ local UnitCard = require("./UnitCard")
 
 local IndexPanel = {}
 
-local TAB_WIDTH = 176
+local TAB_WIDTH = 230
 
 -- Display name and color of a page.
 local function pageLook(page: string): (string, Color3)
@@ -30,7 +30,7 @@ local function pageLook(page: string): (string, Color3)
 end
 
 function IndexPanel.start()
-	local window = Ui.window("Index", Vector2.new(760, 470))
+	local window = Ui.window("Index", Vector2.new(1010, 640))
 	window.title.Text = Strings.get("IndexTitle")
 
 	local opener = Hud.sideButton(Strings.get("IndexButton"), Ui.BLUE, Icons.book)
@@ -48,13 +48,13 @@ function IndexPanel.start()
 
 	local header = Ui.text(window.body, {
 		Position = UDim2.fromOffset(TAB_WIDTH + 12, 0),
-		Size = UDim2.new(1, -TAB_WIDTH - 12, 0, 30),
-		TextSize = 15,
+		Size = UDim2.new(1, -TAB_WIDTH - 12, 0, 38),
+		TextSize = 21,
 		TextWrapped = true,
 	})
 	local grid = Ui.scroll(window.body, {
-		Position = UDim2.fromOffset(TAB_WIDTH + 12, 38),
-		Size = UDim2.new(1, -TAB_WIDTH - 12, 1, -38),
+		Position = UDim2.fromOffset(TAB_WIDTH + 12, 46),
+		Size = UDim2.new(1, -TAB_WIDTH - 12, 1, -46),
 	})
 	Ui.make("UIGridLayout", {
 		CellSize = UDim2.fromOffset(UnitCard.SIZE.X, UnitCard.SIZE.Y),
@@ -104,10 +104,10 @@ function IndexPanel.start()
 		local _, color = pageLook(page)
 		local button = Ui.button(tabs, {
 			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 38),
+			Size = UDim2.new(1, -8, 0, 50),
 			BackgroundColor3 = Ui.CARD,
 			TextColor3 = color,
-			TextSize = 15,
+			TextSize = 21,
 		})
 		button.Activated:Connect(function()
 			selected = page

@@ -19,25 +19,25 @@ local SellStall = {}
 local CONFIRM_SECONDS = 3
 
 function SellStall.build(): Ui.Window
-	local window = Ui.window("SellStall", Vector2.new(580, 440))
+	local window = Ui.window("SellStall", Vector2.new(770, 620))
 	window.title.Text = Strings.get("SellTitle")
 
 	local hint = Ui.text(window.body, {
-		Size = UDim2.new(1, -230, 0, 34),
-		TextSize = 14,
+		Size = UDim2.new(1, -300, 0, 44),
+		TextSize = 19,
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 	})
 	local sellAll = Ui.button(window.body, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(220, 34),
+		Size = UDim2.fromOffset(290, 42),
 		BackgroundColor3 = Ui.RED,
-		TextSize = 15,
+		TextSize = 19,
 	})
 	local list = Ui.scroll(window.body, {
-		Position = UDim2.fromOffset(0, 44),
-		Size = UDim2.new(1, 0, 1, -44),
+		Position = UDim2.fromOffset(0, 54),
+		Size = UDim2.new(1, 0, 1, -54),
 	})
 	Ui.make("UIGridLayout", {
 		CellSize = UDim2.fromOffset(UnitCard.SIZE.X, UnitCard.SIZE.Y),
