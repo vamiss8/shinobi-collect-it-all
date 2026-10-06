@@ -311,10 +311,14 @@ return function(scene: Kit.Scene)
 	-- The village's wall closes the back, capped in green, and in it the great gate: two red
 	-- posts, a beam and a roof over them, and the two green doors standing open along the
 	-- avenue, each with its red mark.
+	--
+	-- A post is thicker than the wall it stands in, and the beam thicker than the posts. The
+	-- posts were as thick as the wall at first and ran a stud into it: a strip of red and a
+	-- strip of wall in one plane, which flickered from the plaza as the camera moved.
 	for _, side in { -1, 1 } do
 		Kit.box(scene, Vector3.new(12, 40, 330), at(-BACK, 0, side * 205), c.rampart, concrete)
 		Kit.box(scene, Vector3.new(15, 3, 332), at(-BACK, 40, side * 205), c.rampartCap, slate)
-		Kit.box(scene, Vector3.new(12, 50, 10), at(-BACK, 0, side * 36), c.gateRed, wood)
+		Kit.box(scene, Vector3.new(13, 50, 10), at(-BACK, 0, side * 36), c.gateRed, wood)
 		Kit.box(scene, Vector3.new(28, 36, 2), at(-BACK + 20, 0, side * 31), c.gateGreen, wood)
 		Kit.rod(
 			scene,

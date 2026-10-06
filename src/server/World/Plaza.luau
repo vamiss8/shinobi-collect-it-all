@@ -240,9 +240,10 @@ local function buildPaving(folder: Folder)
 		part.CastShadow = false
 	end
 	inlay("PathAlong", Vector3.new(depth, 0.06, PATH_WIDTH), Hub.at(middle, 0.03, 0), PATH)
+	-- The path across stops at the bands along the plaza's edges.
 	inlay(
 		"PathAcross",
-		Vector3.new(PATH_WIDTH, 0.07, 2 * half),
+		Vector3.new(PATH_WIDTH, 0.07, 2 * half - 6),
 		Hub.at(fountain.along, 0.035, 0),
 		PATH
 	)

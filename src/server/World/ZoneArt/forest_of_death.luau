@@ -45,12 +45,7 @@ return function(scene: Kit.Scene)
 			end
 			if i % 3 == 1 then
 				Kit.box(scene, Vector3.new(0.3, 3, 4), at(-0.3, 6, z - side * 4), c.sign, wood)
-				Kit.box(
-					scene,
-					Vector3.new(0.35, 0.8, 2.6),
-					at(-0.32, 7.1, z - side * 4),
-					c.signMark
-				)
+				Kit.box(scene, Vector3.new(0.5, 0.8, 2.6), at(-0.3, 7.1, z - side * 4), c.signMark)
 			end
 		end
 		Kit.box(scene, Vector3.new(0.5, 0.5, 64), at(0, 11.6, side * 66), c.fence, metal)

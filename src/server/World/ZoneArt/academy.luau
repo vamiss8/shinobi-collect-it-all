@@ -25,9 +25,11 @@ return function(scene: Kit.Scene)
 	Kit.box(scene, Vector3.new(56, 20, 24), at(58, 0, front - 12), c.wall)
 	Kit.box(scene, Vector3.new(57, 1, 1), at(58, 10, front + 0.3), c.trim, Enum.Material.Wood)
 	Kit.roof(scene, at(58, 27.9, front - 12), 60, 15, 28, c.roof, Enum.Material.Slate)
+	-- The ridge beam runs a little past the roof's ends, so that its ends and the gables' do
+	-- not lie in one plane.
 	Kit.box(
 		scene,
-		Vector3.new(60, 1.2, 1.6),
+		Vector3.new(60.4, 1.2, 1.6),
 		at(58, 27.6, front - 12),
 		c.roofDark,
 		Enum.Material.Wood
@@ -169,7 +171,7 @@ return function(scene: Kit.Scene)
 	local lantern = Kit.ball(scene, 1.8, at(79.2, 6.4, 40.4), c.lantern, Enum.Material.Neon)
 	Kit.light(scene, lantern, c.lantern, 14, 1)
 	Kit.box(scene, Vector3.new(7, 2, 0.4), at(86, 11.6, 41.4), c.cloth, Enum.Material.Wood)
-	Kit.box(scene, Vector3.new(5, 0.5, 0.45), at(86, 12.3, 41.38), c.band)
+	Kit.box(scene, Vector3.new(5, 0.5, 0.6), at(86, 12.3, 41.4), c.band)
 	Kit.pillar(scene, 1.4, 1.6, at(89, 3.4, 42), c.stone, Enum.Material.Metal)
 
 	-- Far off on the left, the cliff over the village with four great faces cut into it, tall
@@ -349,7 +351,7 @@ return function(scene: Kit.Scene)
 			)
 			Kit.box(
 				scene,
-				Vector3.new(0.35, 1.4, 3.2),
+				Vector3.new(0.5, 1.4, 3.4),
 				at(1, 17.6, side * 37.8),
 				c.band,
 				Enum.Material.Fabric

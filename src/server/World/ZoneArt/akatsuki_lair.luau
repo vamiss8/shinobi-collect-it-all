@@ -79,6 +79,8 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- The walls: slabs of rock standing shoulder to shoulder, boulders heaped at their feet.
+	-- A slab laps over the next, and the two are of different rock, so every other one stands
+	-- a little taller: two sides of unlike rock in one plane would flicker.
 	local slabs = 11
 	local span = length / slabs
 	for _, side in { -1, 1 } do
@@ -86,7 +88,7 @@ return function(scene: Kit.Scene)
 			local x = span / 2 + i * span
 			Kit.box(
 				scene,
-				Vector3.new(span + 3, 98, 26),
+				Vector3.new(span + 3, 98 + i % 2, 26),
 				at(x, -2, side * pick(50, 55)),
 				if i % 2 == 0 then c.rock else c.rockRed,
 				slate,
@@ -100,12 +102,13 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
-	-- The vault overhead.
+	-- The vault overhead, every other slab of it hung half a stud higher and cut a stud wider
+	-- for the same reason.
 	for i = 0, slabs - 1 do
 		Kit.box(
 			scene,
-			Vector3.new(span + 2, pick(12, 18), 126),
-			at(span / 2 + i * span, VAULT, 0),
+			Vector3.new(span + 2, pick(12, 18), 126 + i % 2),
+			at(span / 2 + i * span, VAULT + (i % 2) * 0.5, 0),
 			if i % 2 == 0 then c.rockDark else c.rock,
 			slate
 		)

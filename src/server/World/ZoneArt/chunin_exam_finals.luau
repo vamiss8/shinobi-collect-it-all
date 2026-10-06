@@ -86,7 +86,7 @@ return function(scene: Kit.Scene)
 		Kit.box(scene, Vector3.new(run, 36, 2), at(middle, 0, side * back), c.wallShade, stone)
 		Kit.block(
 			scene,
-			Vector3.new(run, 0.8, 11),
+			Vector3.new(run + 0.6, 0.8, 11),
 			CFrame.new(at(middle, 35, side * (back - 5))) * CFrame.Angles(math.rad(side * 10), 0, 0),
 			c.roof,
 			Enum.Material.Slate
@@ -110,7 +110,7 @@ return function(scene: Kit.Scene)
 			Kit.box(scene, Vector3.new(5, 8, 0.3), at(x, 4, face), c.banner, cloth)
 			Kit.box(
 				scene,
-				Vector3.new(5, 1.2, 0.35),
+				Vector3.new(5.2, 1.2, 0.5),
 				at(x, 9, face),
 				if i % 2 == 0 then c.flag else c.flagAlt,
 				cloth

@@ -420,6 +420,25 @@ return {
 		end
 	end,
 
+	-- Two flat sides in one plane, one over the other, flicker as the camera moves unless they
+	-- look alike. (The red posts of the village's gate did, a stud of each inside the wall.)
+	["no two sides that look unlike lie in one plane where both are seen"] = function()
+		for _, scenery in scenes() do
+			for _, fight in Zones.fights(scenery.parts) do
+				T.ok(
+					false,
+					string.format(
+						"%s: %s and %s share a plane over %.2f square studs",
+						scenery.id,
+						where(fight.first),
+						where(fight.second),
+						fight.area
+					)
+				)
+			end
+		end
+	end,
+
 	["building a zone twice gives the same zone"] = function()
 		local first = sceneBuilt("hidden_sand").parts
 		local second = Zones.build("hidden_sand").parts

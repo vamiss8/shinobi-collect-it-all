@@ -30,7 +30,7 @@ return function(scene: Kit.Scene)
 		end
 		Kit.rod(scene, at(0, 25, -38), at(0, 25, 38), 0.8, c.wood, wood, true)
 		Kit.box(scene, Vector3.new(0.3, 4.6, 22), at(0, 19.6, 0), c.cloth, cloth)
-		Kit.box(scene, Vector3.new(0.35, 1, 22), at(0, 21.4, 0), c.plate, cloth)
+		Kit.box(scene, Vector3.new(0.5, 1, 22.3), at(0, 21.4, 0), c.plate, cloth)
 	end)
 
 	-- A round house: a drum of sandstone under a dome, a door and a window looking at the lane,

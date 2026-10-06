@@ -288,6 +288,21 @@ return {
 		T.ok(lanterns >= 12, `only {lanterns} lanterns`)
 	end,
 
+	-- Two flat sides in one plane, one over the other, flicker as the camera moves.
+	["no two sides that look unlike lie in one plane where both are seen"] = function()
+		for _, fight in Zones.fights(parts()) do
+			T.ok(
+				false,
+				string.format(
+					"%s and %s share a plane over %.2f square studs",
+					where(fight.first),
+					where(fight.second),
+					fight.area
+				)
+			)
+		end
+	end,
+
 	["a pair of stone lanterns stands before every dojo"] = function()
 		for index = 1, PlazaPlan.DOJOS do
 			local dojo = PlazaPlan.dojo(index)

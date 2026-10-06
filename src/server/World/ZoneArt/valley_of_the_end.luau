@@ -245,7 +245,7 @@ return function(scene: Kit.Scene)
 		piece(Vector3.new(19, 8, 11), 40, 0, 0, c.statueDark)
 		piece(Vector3.new(21, 24, 12), 48, 0, 0, c.statue)
 		for _, shoulder in { -13, 13 } do
-			piece(Vector3.new(7, 8, 10), 64, 0, shoulder, c.statueDark)
+			piece(Vector3.new(7, 7.6, 10), 64, 0, shoulder, c.statueDark)
 			-- An arm: down to the elbow, then forward and in to the hands.
 			local top = at(x + shoulder, 66, z)
 			local elbow = at(x + shoulder * 0.95, 52, z + face * 7)
@@ -291,7 +291,7 @@ return function(scene: Kit.Scene)
 		sheet.CastShadow = false
 		local core = Kit.box(
 			scene,
-			Vector3.new(1, 100, 9),
+			Vector3.new(1, 99.6, 9),
 			at(x - 11.2, 0, side * 52),
 			c.foam,
 			Enum.Material.Neon

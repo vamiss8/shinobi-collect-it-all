@@ -303,6 +303,202 @@ function Zones.shape(part: any): string
 	return if part.ClassName == "Part" then part.Shape.Name else part.ClassName
 end
 
+-- A flat side of a part: where it lies, which way it looks and what shape it is.
+type Face = {
+	part: any,
+	normal: any,
+	offset: number, -- how far along its normal its plane lies from the world's origin
+	middle: any,
+	u: any,
+	v: any,
+	halfU: number,
+	halfV: number,
+	kind: "rect" | "disc" | "wedge",
+}
+
+-- The flat sides of a part. A ball has none; of a wedge its slope is left out.
+local function faces(part: any): { Face }
+	local frame = part.CFrame
+	local axes = { frame.RightVector, frame.UpVector, -frame.LookVector }
+	local half = { part.Size.X / 2, part.Size.Y / 2, part.Size.Z / 2 }
+	local shape = Zones.shape(part)
+	local list: { Face } = {}
+	local function face(axis: number, sign: number, kind: "rect" | "disc" | "wedge")
+		local normal = axes[axis] * sign
+		local middle = frame.Position + normal * half[axis]
+		local a, b = axis % 3 + 1, (axis + 1) % 3 + 1
+		table.insert(list, {
+			part = part,
+			normal = normal,
+			offset = middle:Dot(normal),
+			middle = middle,
+			u = axes[a],
+			v = axes[b],
+			halfU = half[a],
+			halfV = half[b],
+			kind = kind,
+		})
+	end
+	if shape == "Block" then
+		for axis = 1, 3 do
+			face(axis, 1, "rect")
+			face(axis, -1, "rect")
+		end
+	elseif shape == "Cylinder" then
+		face(1, 1, "disc")
+		face(1, -1, "disc")
+	elseif shape == "WedgePart" then
+		face(2, -1, "rect")
+		face(3, 1, "rect")
+		face(1, 1, "wedge")
+		face(1, -1, "wedge")
+	end
+	return list
+end
+
+-- Whether a point of a face's plane lies on the face.
+local function onFace(face: Face, point: any): boolean
+	local from = point - face.middle
+	local a, b = from:Dot(face.u), from:Dot(face.v)
+	if face.kind == "disc" then
+		local radius = math.min(face.halfU, face.halfV)
+		return a * a + b * b <= radius * radius
+	elseif math.abs(a) > face.halfU or math.abs(b) > face.halfV then
+		return false
+	elseif face.kind == "wedge" then
+		-- A wedge's side: `u` is its upright and `v` runs to its back, where it is tallest.
+		return (a + face.halfU) / (2 * face.halfU) <= (b + face.halfV) / (2 * face.halfV)
+	end
+	return true
+end
+
+-- Whether a point lies inside a part.
+local function inside(part: any, point: any): boolean
+	local frame = part.CFrame
+	local from = point - frame.Position
+	local x, y, z =
+		from:Dot(frame.RightVector), from:Dot(frame.UpVector), -from:Dot(frame.LookVector)
+	local half = part.Size / 2
+	local shape = Zones.shape(part)
+	if shape == "Ball" then
+		return from.Magnitude <= half.X
+	elseif math.abs(x) > half.X or math.abs(y) > half.Y or math.abs(z) > half.Z then
+		return false
+	elseif shape == "Cylinder" then
+		local radius = math.min(half.Y, half.Z)
+		return y * y + z * z <= radius * radius
+	elseif shape == "WedgePart" then
+		return (y + half.Y) / (2 * half.Y) <= (z + half.Z) / (2 * half.Z)
+	end
+	return true
+end
+
+export type Fight = {
+	first: any,
+	second: any,
+	area: number, -- how much of one lies over the other where it shows, square studs
+	normal: any, -- which way the two sides look
+}
+
+-- Pairs of parts that would flicker: each has a flat side in the same plane as the other's,
+-- looking the same way, one over the other, and the two do not look alike. Which of two such
+-- sides is drawn changes from pixel to pixel and from frame to frame as the camera moves
+-- (z-fighting). Only what can be seen counts: not what lies at or under the ground, and not
+-- what a third part covers. Areas are measured by sampling.
+function Zones.fights(parts: { any }): { Fight }
+	local SAME_PLANE = 0.015
+	local GRID = 12
+	local solid: { any } = {}
+	local buckets: { [string]: { Face } } = {}
+	for _, part in parts do
+		if part.Transparency == 0 then
+			table.insert(solid, part)
+		end
+		if part.Transparency < 1 then
+			for _, face in faces(part) do
+				local n = face.normal
+				local key = string.format("%.3f %.3f %.3f", n.X, n.Y, n.Z)
+				-- (A zero may print with a minus sign: both are the same direction.)
+				key = string.gsub(key, "%-0%.000", "0.000")
+				buckets[key] = buckets[key] or {}
+				table.insert(buckets[key], face)
+			end
+		end
+	end
+	-- Whether the spot at `point` on a side of `a` and `b` looking along `normal` is hidden.
+	local function hidden(point: any, normal: any, a: any, b: any): boolean
+		if point.Y <= 0.01 then
+			return true
+		end
+		local before = point + normal * 0.02
+		for _, part in solid do
+			if part ~= a and part ~= b and inside(part, before) then
+				return true
+			end
+		end
+		return false
+	end
+	local found: { Fight } = {}
+	local known: { [any]: { [any]: Fight } } = {}
+	for _, bucket in buckets do
+		table.sort(bucket, function(a: Face, b: Face): boolean
+			return a.offset < b.offset
+		end)
+		for i, face in bucket do
+			for j = i + 1, #bucket do
+				local other = bucket[j]
+				if other.offset - face.offset > SAME_PLANE then
+					break
+				end
+				local a, b = face.part, other.part
+				local alike = a.Color == b.Color
+					and a.Material == b.Material
+					and a.Transparency == b.Transparency
+				if a ~= b and not alike then
+					-- Sample the smaller of the two and count what lies on the other.
+					local small, large = face, other
+					if small.halfU * small.halfV > large.halfU * large.halfV then
+						small, large = large, small
+					end
+					local hits = 0
+					for s = 1, GRID do
+						for t = 1, GRID do
+							local point = small.middle
+								+ small.u * (small.halfU * ((2 * s - 1) / GRID - 1))
+								+ small.v * (small.halfV * ((2 * t - 1) / GRID - 1))
+							if
+								onFace(small, point)
+								and onFace(large, point)
+								and not hidden(point, face.normal, a, b)
+							then
+								hits += 1
+							end
+						end
+					end
+					local area = hits / (GRID * GRID) * 4 * small.halfU * small.halfV
+					if hits > 0 then
+						-- Two parts may share more than one plane: the widest overlap counts.
+						local fight = known[a] and known[a][b]
+						if fight then
+							if area > fight.area then
+								fight.area, fight.normal = area, face.normal
+							end
+						else
+							fight = { first = a, second = b, area = area, normal = face.normal }
+							known[a] = known[a] or {}
+							known[a][b] = fight
+							known[b] = known[b] or {}
+							known[b][a] = fight
+							table.insert(found, fight)
+						end
+					end
+				end
+			end
+		end
+	end
+	return found
+end
+
 -- One part as plain numbers and names, for comparing two builds piece by piece.
 function Zones.describe(part: any): { any }
 	local size = part.Size
