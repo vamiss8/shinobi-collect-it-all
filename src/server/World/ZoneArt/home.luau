@@ -1,15 +1,19 @@
 --!strict
--- The village round the yard, behind the start of the lane: streets of houses on both sides of
--- the yard and along the road behind it, poles strung with wires, water tanks on stilts, the
--- round red hall under the cliff on the left, the village's wall at the back with its great
--- gate standing open, and wooded hills all round. None of it can be walked to: the yard, with
--- the plaza and the dojos in it, is fenced (World/Plots), and this is what is seen over the
--- fence.
+-- The village round the yard, behind the start of the lane. Along both sides of the yard, two
+-- streets of houses and poles strung with wires; behind it, where the eye goes from the plaza,
+-- an avenue lined with stone lanterns and banners that runs to the great gate in the village's
+-- wall, with the round red hall on its left and a pagoda on its right, cherry trees, water
+-- tanks on stilts and more houses out to the sides; and wooded mountains all round. None of
+-- it can be walked to: the yard, with the plaza and the dojos in it, is fenced (World/Plots),
+-- and this is what is seen over the fence.
 --
 -- It is here so that the world is not seen to end behind the dojos. It is not a zone: it has
 -- no lane, gate or sign, and positions are the Hub's own, with the lane's start at 0 and
 -- everything here at a negative `along`. Everything is placed from the yard's own size
 -- (Logic/PlazaPlan), so that it moves out of the way when the yard grows.
+--
+-- What is worth looking at stands behind the yard, not beside it: the dojos are three floors
+-- tall and hide whatever stands at their backs, which is where the hall first stood.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -21,6 +25,8 @@ local YARD = PlazaPlan.YARD_HALF
 local DEPTH = PlazaPlan.DEPTH
 -- Where the village's wall stands, studs behind the lane's start.
 local BACK = DEPTH + 140
+-- How far behind the lane's start the hall and the pagoda stand, either side of the avenue.
+local SIGHTS = DEPTH + 78
 -- The pitch of every house's roof, degrees.
 local PITCH = 26
 
@@ -36,6 +42,7 @@ return function(scene: Kit.Scene)
 	local slate = Enum.Material.Slate
 	local wood = Enum.Material.Wood
 	local concrete = Enum.Material.Concrete
+	local cloth = Enum.Material.Fabric
 
 	-- Grass from the lane's start back to the horizon, a hair under the Hub's own, which lies
 	-- under the yard.
@@ -90,38 +97,6 @@ return function(scene: Kit.Scene)
 			house(-34 - i * 40 + pick(-5, 5), side * (YARD + pick(56, 74)), -side, i % 2 == 0)
 		end
 	end
-	-- The road from the great gate to the yard, with houses along it. They stop short of the
-	-- gate's doors, which stand open along the road.
-	local road = BACK - DEPTH - 12
-	Kit.backdrop(
-		Kit.box(scene, Vector3.new(road, 0.2, 18), at(-(BACK + DEPTH) / 2, -0.25, 0), c.path, slate)
-	)
-	for _, side in { -1, 1 } do
-		for i = 0, 2 do
-			house(-(DEPTH + 26) - i * 27 + pick(-2, 2), side * pick(21, 24), -side, i % 2 == 1)
-		end
-	end
-
-	-- Trees between the houses and beyond them, and behind the yard. On the left they keep off
-	-- the hall.
-	for i = 1, 30 do
-		local side = if i % 2 == 0 then -1 else 1
-		local x = -pick(4, BACK - 22)
-		local out = if x < -(DEPTH + 12) then pick(40, 230) else YARD + pick(84, 126)
-		if side == -1 and x > -128 and x < -56 then
-			out = YARD + pick(38, 44)
-		end
-		Kit.tree(
-			scene,
-			at(x, 0, side * out),
-			pick(7, 11),
-			1.8,
-			pick(9, 13),
-			c.bark,
-			if i % 3 == 0 then c.leafLight else c.leaf,
-			2
-		)
-	end
 
 	-- Poles along the yard's fence, a pair of wires from each to the next.
 	for _, side in { -1, 1 } do
@@ -141,28 +116,63 @@ return function(scene: Kit.Scene)
 		end
 	end
 
-	-- Water tanks on stilts: one between the streets on each side, one behind the yard.
-	for _, tank in { { -70, YARD + 41 }, { -176, -(YARD + 41) }, { -(DEPTH + 28), 70 } } do
-		local base = at(tank[1], 0, tank[2])
-		for _, dx in { -2, 2 } do
-			for _, dz in { -2, 2 } do
+	-- Behind the yard: the avenue from the great gate, a stone lantern either side of it every
+	-- few steps and a red banner on a pole between one pair and the next.
+	local avenue = BACK - DEPTH - 12
+	Kit.backdrop(
+		Kit.box(
+			scene,
+			Vector3.new(avenue, 0.2, 18),
+			at(-(BACK + DEPTH) / 2, -0.25, 0),
+			c.path,
+			slate
+		)
+	)
+	for i = 0, 3 do
+		local x = -(DEPTH + 20) - i * 28
+		for _, side in { -1, 1 } do
+			local base = at(x, 0, side * 13)
+			Kit.box(scene, Vector3.new(3, 0.8, 3), base, c.cliffShade, slate)
+			Kit.pillar(scene, 3.4, 1.3, base + Vector3.new(0, 0.8, 0), c.stone, slate)
+			Kit.box(
+				scene,
+				Vector3.new(1.6, 1.6, 1.6),
+				base + Vector3.new(0, 4.7, 0),
+				c.lantern,
+				Enum.Material.Neon
+			)
+			Kit.box(
+				scene,
+				Vector3.new(3.4, 0.6, 3.4),
+				base + Vector3.new(0, 6.3, 0),
+				c.cliffShade,
+				slate
+			)
+			if i < 3 then
+				local pole = at(x - 14, 0, side * 14.5)
+				Kit.pillar(scene, 17, 0.5, pole, c.trim, wood)
 				Kit.box(
 					scene,
-					Vector3.new(0.5, 13, 0.5),
-					base + Vector3.new(dx, 0, dz),
-					c.trim,
-					wood
+					Vector3.new(0.2, 9.4, 3),
+					pole + Vector3.new(0, 7, side * 1.8),
+					c.band,
+					cloth
+				)
+				Kit.box(
+					scene,
+					Vector3.new(0.25, 2, 2),
+					pole + Vector3.new(0, 12.6, side * 1.8),
+					c.cloth,
+					cloth
 				)
 			end
 		end
-		Kit.pillar(scene, 7, 7, base + Vector3.new(0, 13, 0), c.tank)
-		Kit.pillar(scene, 0.6, 7.8, base + Vector3.new(0, 20, 0), c.roofDark)
 	end
 
-	-- The round red hall under the cliff, on the left: three drums, each under a dark eave, a
-	-- dome on the last, a pale plate with a red mark on the side that looks at the yard, and a
-	-- low wing either side.
-	local hall = at(-92, 0, -(YARD + 122))
+	-- The round red hall, left of the avenue with its face to the yard: three drums, each
+	-- under a dark eave, a dome on the last, a pale plate with a red mark, and a low wing to
+	-- either side.
+	local hall = at(-SIGHTS, 0, -86)
 	Kit.pillar(scene, 24, 46, hall, c.hall)
 	Kit.pillar(scene, 1.6, 50, hall + Vector3.new(0, 24, 0), c.roofDark, slate)
 	Kit.pillar(scene, 12, 32, hall + Vector3.new(0, 25.6, 0), c.hall)
@@ -171,8 +181,8 @@ return function(scene: Kit.Scene)
 	Kit.ball(scene, 18, hall + Vector3.new(0, 46, 0), c.roofDark, slate)
 	Kit.rod(
 		scene,
-		hall + Vector3.new(0, 14, 22.6),
-		hall + Vector3.new(0, 14, 23.6),
+		hall + Vector3.new(22.6, 14, 0),
+		hall + Vector3.new(23.6, 14, 0),
 		12,
 		c.cloth,
 		nil,
@@ -180,65 +190,127 @@ return function(scene: Kit.Scene)
 	)
 	Kit.rod(
 		scene,
-		hall + Vector3.new(0, 14, 23.4),
-		hall + Vector3.new(0, 14, 23.9),
+		hall + Vector3.new(23.4, 14, 0),
+		hall + Vector3.new(23.9, 14, 0),
 		6,
 		c.band,
 		nil,
 		true
 	)
 	for _, wing in { -34, 34 } do
-		Kit.box(scene, Vector3.new(22, 13, 16), hall + Vector3.new(wing, 0, 6), c.wallShade)
+		Kit.box(scene, Vector3.new(16, 13, 22), hall + Vector3.new(6, 0, wing), c.wallShade)
 		Kit.roof(
 			scene,
-			hall + Vector3.new(wing, 13 + 10 * math.tan(math.rad(PITCH)) - 0.1, 6),
+			hall + Vector3.new(6, 13 + 10 * math.tan(math.rad(PITCH)) - 0.1, wing),
 			24,
 			10,
 			PITCH,
 			c.roof,
-			slate
+			slate,
+			true
 		)
 	end
 
-	-- The cliff the faces are cut in runs on behind the hall: each rock stands under a cap of
-	-- turf, and trees grow on top, set back from its edge. (The trees were bare balls of
-	-- leaves sitting on the rock at first, which the owner did not like the look of.)
-	for i = 0, 8 do
-		local x = -18 - i * 42
-		local height = pick(84, 120)
-		local z = -(YARD + 178) + pick(-6, 6)
-		local turn = pick(-6, 6)
-		Kit.backdrop(
-			Kit.box(
-				scene,
-				Vector3.new(46, height, 40),
-				at(x, -2, z),
-				if i % 2 == 0 then c.cliff else c.cliffShade,
-				slate,
-				turn
-			)
+	-- The pagoda, right of the avenue: five storeys, each narrower than the one below and
+	-- each under a dark roof that steps out wide, on a plinth of stone, a gilded spire on top.
+	local pagoda = at(-SIGHTS, 0, 86)
+	Kit.box(scene, Vector3.new(34, 2, 34), pagoda, c.stone, slate)
+	local level = 2
+	for storey = 0, 4 do
+		local width = 26 - storey * 4
+		Kit.box(
+			scene,
+			Vector3.new(width, 9, width),
+			pagoda + Vector3.new(0, level, 0),
+			if storey % 2 == 0 then c.hall else c.wall
 		)
-		local top = height - 2
-		Kit.backdrop(
-			Kit.box(scene, Vector3.new(48, 2.2, 42), at(x, top - 0.4, z), c.hill, grass, turn)
+		Kit.box(
+			scene,
+			Vector3.new(width + 9, 1.2, width + 9),
+			pagoda + Vector3.new(0, level + 9, 0),
+			c.roofDark,
+			slate
 		)
-		for _ = 1, 2 do
-			Kit.tree(
-				scene,
-				at(x + pick(-15, 15), top + 1.6, z + pick(-12, 4)),
-				pick(7, 10),
-				1.6,
-				pick(10, 14),
-				c.bark,
-				if i % 2 == 0 then c.leaf else c.leafLight,
-				2
+		Kit.box(
+			scene,
+			Vector3.new(width + 4, 0.8, width + 4),
+			pagoda + Vector3.new(0, level + 10.2, 0),
+			c.roofDark,
+			slate
+		)
+		level += 11
+	end
+	Kit.pillar(scene, 12, 1.2, pagoda + Vector3.new(0, level, 0), c.trim, wood)
+	for ring = 1, 3 do
+		Kit.pillar(
+			scene,
+			0.5,
+			3.6 - ring * 0.7,
+			pagoda + Vector3.new(0, level + ring * 2.8, 0),
+			c.flower
+		)
+	end
+	Kit.ball(scene, 2.6, pagoda + Vector3.new(0, level + 12.8, 0), c.flower)
+
+	-- More houses out to the sides of the avenue, behind the hall and the pagoda, their doors
+	-- to it; cherry trees round both and along the avenue; a water tank on stilts on each side.
+	for _, side in { -1, 1 } do
+		for _, spot in { { 26, 160 }, { 62, 196 }, { 100, 160 }, { 100, 236 }, { 44, 250 } } do
+			house(
+				-(DEPTH + spot[1]) + pick(-3, 3),
+				side * (spot[2] + pick(-4, 4)),
+				-side,
+				spot[2] > 200
 			)
 		end
+		for _, spot in { { 26, 44 }, { 112, 44 }, { 30, 118 }, { 106, 126 } } do
+			Kit.tree(
+				scene,
+				at(-(DEPTH + spot[1]), 0, side * spot[2]),
+				8,
+				1.6,
+				11,
+				c.bark,
+				c.blossom,
+				3
+			)
+		end
+		local tank = at(-(DEPTH + 72), 0, side * 150)
+		for _, dx in { -2, 2 } do
+			for _, dz in { -2, 2 } do
+				Kit.box(
+					scene,
+					Vector3.new(0.5, 13, 0.5),
+					tank + Vector3.new(dx, 0, dz),
+					c.trim,
+					wood
+				)
+			end
+		end
+		Kit.pillar(scene, 7, 7, tank + Vector3.new(0, 13, 0), c.tank)
+		Kit.pillar(scene, 0.6, 7.8, tank + Vector3.new(0, 20, 0), c.roofDark)
+	end
+
+	-- Trees between the houses and beyond them, and out behind the yard.
+	for i = 1, 26 do
+		local side = if i % 2 == 0 then -1 else 1
+		local x = -pick(4, BACK - 22)
+		local out = if x < -(DEPTH + 12) then pick(270, 330) else YARD + pick(84, 126)
+		Kit.tree(
+			scene,
+			at(x, 0, side * out),
+			pick(7, 11),
+			1.8,
+			pick(9, 13),
+			c.bark,
+			if i % 3 == 0 then c.leafLight else c.leaf,
+			2
+		)
 	end
 
 	-- The village's wall closes the back, capped in green, and in it the great gate: two red
-	-- posts, a beam and a roof over them, and the two green doors standing open along the road,
-	-- each with its red mark.
+	-- posts, a beam and a roof over them, and the two green doors standing open along the
+	-- avenue, each with its red mark.
 	for _, side in { -1, 1 } do
 		Kit.box(scene, Vector3.new(12, 40, 330), at(-BACK, 0, side * 205), c.rampart, concrete)
 		Kit.box(scene, Vector3.new(15, 3, 332), at(-BACK, 40, side * 205), c.rampartCap, slate)
@@ -253,7 +325,7 @@ return function(scene: Kit.Scene)
 			nil,
 			true
 		)
-		-- A wing of the wall turning forward at each end, until the hills take it.
+		-- A wing of the wall turning forward at each end, until the mountains take it.
 		Kit.box(
 			scene,
 			Vector3.new(152, 40, 12),
@@ -275,38 +347,30 @@ return function(scene: Kit.Scene)
 		true
 	)
 
-	-- Wooded hills all round: a nearer row with trees standing on it and a higher one behind,
-	-- on the right, behind the cliff on the left, and behind the wall.
-	local function hill(x: number, z: number, far: boolean)
+	-- Wooded mountains all round, a nearer row and a higher one behind it: on both sides and
+	-- behind the wall. They are plain rounded heights and nothing stands on them. (On the left
+	-- there was a row of square rocks under trees at first, a cliff carried on from the one
+	-- with the faces: the rocks ran into one another and the trees on them read as nothing in
+	-- particular, and the owner asked for mountains instead.)
+	local function mountain(x: number, z: number, far: boolean)
 		if far then
 			Kit.mound(scene, at(x, 0, z), pick(205, 240), pick(135, 175), c.hillFar, grass)
-			return
-		end
-		local height = pick(62, 88)
-		Kit.mound(scene, at(x, 0, z), pick(112, 134), height, c.hill, grass)
-		for _ = 1, 2 do
-			Kit.backdrop(
-				Kit.ball(
-					scene,
-					pick(22, 34),
-					at(x + pick(-40, 40), height * pick(0.6, 0.95), z + pick(-30, 30)),
-					c.leaf,
-					grass
-				)
-			)
+		else
+			Kit.mound(scene, at(x, 0, z), pick(118, 142), pick(70, 110), c.hill, grass)
 		end
 	end
 	for i = 0, 3 do
-		hill(-44 - i * 92 + pick(-10, 10), YARD + pick(235, 260), false)
+		mountain(-44 - i * 92 + pick(-10, 10), YARD + pick(235, 260), false)
+		mountain(-34 - i * 100 + pick(-10, 10), -(YARD + pick(225, 250)), false)
 	end
 	for i = 0, 2 do
-		hill(-90 - i * 160, YARD + pick(440, 490), true)
-		hill(-70 - i * 160, -(YARD + pick(420, 480)), true)
+		mountain(-90 - i * 160, YARD + pick(440, 490), true)
+		mountain(-70 - i * 160, -(YARD + pick(420, 480)), true)
 	end
 	for i = -2, 2 do
-		hill(-BACK - pick(160, 190), i * 150 + pick(-20, 20), false)
-		hill(-BACK - pick(400, 460), i * 240, true)
+		mountain(-BACK - pick(160, 190), i * 150 + pick(-20, 20), false)
+		mountain(-BACK - pick(400, 460), i * 240, true)
 	end
-	hill(-BACK - 110, 470, true)
-	hill(-BACK - 110, -480, true)
+	mountain(-BACK - 110, 470, true)
+	mountain(-BACK - 110, -480, true)
 end
