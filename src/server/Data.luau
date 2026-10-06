@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Index = require(ReplicatedStorage.Shared.Logic.Index)
 local ProfileStore = require("./Vendor/ProfileStore")
+local Roster = require(ReplicatedStorage.Shared.Logic.Roster)
 
 local Data = {}
 
@@ -104,6 +105,8 @@ local function load(player: Player)
 
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
+	-- Shinobi that have left the roster since this save was written become their replacements.
+	Roster.migrate(profile.Data.units, profile.Data.found)
 	profile.OnSessionEnd:Connect(function()
 		profiles[player] = nil
 		player:Kick("Your save was opened on another server. Please rejoin.")

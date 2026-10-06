@@ -6,6 +6,7 @@ local KunaiList = require("./Kunai")
 local Mutations = require("./Mutations")
 local Potions = require("./Potions")
 local Ranks = require("./Ranks")
+local Replaced = require("./Replaced")
 local Tuning = require("./Tuning")
 local Zones = require("./Zones")
 
@@ -27,6 +28,8 @@ Catalog.mutations = Mutations
 Catalog.zones = Zones
 Catalog.kunai = KunaiList
 Catalog.potions = Potions
+-- Characters that left the roster -> who took their place (see Logic/Roster).
+Catalog.replaced = Replaced
 
 Catalog.rankOrder = {} :: { [string]: number }
 Catalog.characterById = {} :: { [string]: Character }
@@ -167,6 +170,10 @@ function Catalog.validate(): { string }
 		seen[c.id] = true
 		check(Catalog.rankOrder[c.rank] ~= nil, `character {c.id} has unknown rank {c.rank}`)
 		check(c.income > 0, `character {c.id} has no income`)
+	end
+	for old, new in Replaced do
+		check(not seen[old], `character {old} is listed as replaced but is still on the roster`)
+		check(seen[new] or Replaced[new] ~= nil, `{old} is replaced by unknown character {new}`)
 	end
 
 	for _, m in Mutations do

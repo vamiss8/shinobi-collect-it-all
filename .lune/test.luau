@@ -15,6 +15,7 @@ local specs: { [string]: Spec } = {
 	Index = require("../tests/Index.spec"),
 	Kick = require("../tests/Kick.spec"),
 	Roll = require("../tests/Roll.spec"),
+	Roster = require("../tests/Roster.spec"),
 }
 
 local function sortedKeys<V>(t: { [string]: V }): { string }

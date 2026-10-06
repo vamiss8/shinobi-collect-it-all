@@ -41,7 +41,7 @@ local Zones: { Zone } = {
 		startsAt = 100,
 		color = "#4FC3F7",
 		rank = "C",
-		enemy = { name = "Demon of the Mist", speed = 18, color = "#455A64" },
+		enemy = { name = "Zabuza", speed = 18, color = "#455A64" },
 	},
 	{
 		id = "forest_of_death",
@@ -68,7 +68,7 @@ local Zones: { Zone } = {
 		startsAt = 520,
 		color = "#A1887F",
 		rank = "A+",
-		enemy = { name = "Cursed Sasuke", speed = 29, color = "#4527A0" },
+		enemy = { name = "Sasuke (Curse Mark)", speed = 29, color = "#4527A0" },
 	},
 	{
 		id = "hidden_sand",
@@ -77,7 +77,7 @@ local Zones: { Zone } = {
 		startsAt = 700,
 		color = "#F2B33D",
 		rank = "S",
-		enemy = { name = "Sasori's Puppet", speed = 33, color = "#3E2723" },
+		enemy = { name = "Hiruko (Sasori's Puppet)", speed = 33, color = "#3E2723" },
 	},
 	{
 		id = "akatsuki_lair",
@@ -86,7 +86,7 @@ local Zones: { Zone } = {
 		startsAt = 900,
 		color = "#B71C1C",
 		rank = "S+",
-		enemy = { name = "Amaterasu", speed = 37, color = "#1C1C1C" },
+		enemy = { name = "Itachi (Amaterasu)", speed = 37, color = "#1C1C1C" },
 	},
 	{
 		id = "hidden_rain",
@@ -104,7 +104,7 @@ local Zones: { Zone } = {
 		startsAt = 1340,
 		color = "#4A4E8C",
 		rank = "SSS",
-		enemy = { name = "Obito (Masked Man)", speed = 45, color = "#283593" },
+		enemy = { name = "Obito (Unmasked)", speed = 45, color = "#283593" },
 	},
 	{
 		id = "great_ninja_war",
