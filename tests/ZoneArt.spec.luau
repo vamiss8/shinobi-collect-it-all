@@ -5,6 +5,7 @@ local ZoneArt = require("../src/shared/Config/ZoneArt")
 
 -- The names of Enum.Material the looks may use.
 local MATERIALS = {
+	Cobblestone = true,
 	Concrete = true,
 	DiamondPlate = true,
 	Glass = true,
@@ -21,6 +22,14 @@ local LIGHT_COLORS = { "ambient", "outdoor", "air", "decay", "tint" }
 
 local function isHex(text: string): boolean
 	return string.match(text, "^#%x%x%x%x%x%x$") ~= nil
+end
+
+-- How bright a hex color is, 0 for black to 1 for white.
+local function brightness(hex: string): number
+	local red = tonumber(string.sub(hex, 2, 3), 16) :: number
+	local green = tonumber(string.sub(hex, 4, 5), 16) :: number
+	local blue = tonumber(string.sub(hex, 6, 7), 16) :: number
+	return (0.299 * red + 0.587 * green + 0.114 * blue) / 255
 end
 
 local function within(value: number, low: number, high: number, what: string)
@@ -94,6 +103,19 @@ return {
 					T.ok(weather.flash[1] >= 3, `{id} flashes too often`)
 					T.ok(weather.flash[2] >= weather.flash[1], `{id} flash gap is backwards`)
 				end
+			end
+		end
+	end,
+
+	-- A zone that is too dark to see is a broken zone, as Hidden Rain was at first. Whatever
+	-- the hour, enough ambient light has to reach what stands outdoors. The cave is lit by its
+	-- fires and is meant to be dark.
+	["no zone is left in the dark"] = function()
+		local DARK = { akatsuki_lair = true }
+		for id, art in ZoneArt.zones do
+			if not DARK[id] then
+				local bright = brightness(art.light.outdoor)
+				T.ok(bright >= 0.26, `{id}: outdoor ambient is only {bright} of white`)
 			end
 		end
 	end,

@@ -3,6 +3,10 @@
 -- sides, each with pipes up its corners, lit windows and a spire; pipes run along the lane on
 -- trestles, lamps throw a cold light on wet ground and puddles, and at the far end, on the
 -- left, rises the tallest tower of them all.
+--
+-- The towers are painted concrete and plastic, not Metal or DiamondPlate: those show what they
+-- reflect, and under a dull sky that was black (see the note in Config/ZoneArt). Only small
+-- fittings are metal.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -32,8 +36,8 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
-	local metal = Enum.Material.Metal
-	local plate = Enum.Material.DiamondPlate
+	local concrete = Enum.Material.Concrete
+	local paint = Enum.Material.SmoothPlastic
 	local neon = Enum.Material.Neon
 
 	for _, ground in Kit.ground(scene) do
@@ -45,20 +49,27 @@ return function(scene: Kit.Scene)
 	Kit.gateway(scene, function()
 		for _, side in { -1, 1 } do
 			for _, z in { 35, 41 } do
-				Kit.box(scene, Vector3.new(2, 28, 2), at(0, 0, side * z), c.steelDark, metal)
+				Kit.box(scene, Vector3.new(2, 28, 2), at(0, 0, side * z), c.steelDark, concrete)
 			end
 			for brace = 0, 2 do
 				local low, high = 2 + brace * 8, 10 + brace * 8
 				local from, to =
 					if brace % 2 == 0 then 35 else 41, if brace % 2 == 0 then 41 else 35
-				Kit.rod(scene, at(0, low, side * from), at(0, high, side * to), 0.7, c.steel, metal)
+				Kit.rod(
+					scene,
+					at(0, low, side * from),
+					at(0, high, side * to),
+					0.7,
+					c.steel,
+					concrete
+				)
 			end
 			local lamp = Kit.ball(scene, 1.6, at(-1.4, 20, side * 34), c.lamp, neon)
 			Kit.light(scene, lamp, c.lamp, 22, 1)
 		end
-		Kit.box(scene, Vector3.new(3, 3, 90), at(0, 23.5, 0), c.steel, plate)
-		Kit.rod(scene, at(1.2, 27.2, -44), at(1.2, 27.2, 44), 1.2, c.pipe, metal, true)
-		Kit.rod(scene, at(-1.2, 22.8, -44), at(-1.2, 22.8, 44), 0.8, c.rust, metal, true)
+		Kit.box(scene, Vector3.new(3, 3, 90), at(0, 23.5, 0), c.steel, paint)
+		Kit.rod(scene, at(1.2, 27.2, -44), at(1.2, 27.2, 44), 1.2, c.pipe, concrete, true)
+		Kit.rod(scene, at(-1.2, 22.8, -44), at(-1.2, 22.8, 44), 0.8, c.rust, concrete, true)
 		Kit.box(scene, Vector3.new(0.3, 2, 14), at(-1.6, 19.4, 0), c.window, neon)
 	end)
 
@@ -69,14 +80,14 @@ return function(scene: Kit.Scene)
 		local height = pick(60, 150)
 		local base = at(along, 0, side * out)
 		local face = -side * (width / 2 + 0.2)
-		Kit.box(scene, Vector3.new(width, height, width), base, c.steel, metal)
+		Kit.box(scene, Vector3.new(width, height, width), base, c.steel, concrete)
 		local crown = pick(12, 26)
 		Kit.box(
 			scene,
 			Vector3.new(width * 0.68, crown, width * 0.68),
 			base + Vector3.new(0, height, 0),
 			c.steelDark,
-			metal
+			concrete
 		)
 		Kit.rod(
 			scene,
@@ -84,7 +95,7 @@ return function(scene: Kit.Scene)
 			base + Vector3.new(0, height + crown + pick(14, 26), 0),
 			0.8,
 			c.pipe,
-			metal,
+			concrete,
 			true
 		)
 		Kit.box(
@@ -92,7 +103,7 @@ return function(scene: Kit.Scene)
 			Vector3.new(width + 1, 3, width + 1),
 			base + Vector3.new(0, height * pick(0.4, 0.6), 0),
 			c.steelDark,
-			plate
+			paint
 		)
 		Kit.rod(
 			scene,
@@ -100,7 +111,7 @@ return function(scene: Kit.Scene)
 			base + Vector3.new(width / 2 + 0.6, height * 0.92, face),
 			1.5,
 			c.pipe,
-			metal,
+			concrete,
 			true
 		)
 		for _, dx in { -width * 0.22, width * 0.22 } do
@@ -128,7 +139,7 @@ return function(scene: Kit.Scene)
 					base + Vector3.new(0, level, 0),
 					2,
 					c.pipe,
-					metal,
+					concrete,
 					true
 				)
 			end
@@ -147,7 +158,7 @@ return function(scene: Kit.Scene)
 			drum[2],
 			great + Vector3.new(0, level, 0),
 			if level % 80 == 0 then c.steel else c.steelDark,
-			metal
+			concrete
 		)
 		level += drum[1]
 	end
@@ -157,19 +168,19 @@ return function(scene: Kit.Scene)
 		great + Vector3.new(0, level + 40, 0),
 		1.6,
 		c.pipe,
-		metal,
+		concrete,
 		true
 	)
 	for pipe = 0, 5 do
 		local angle = pipe * math.pi / 3
 		local foot = great + Vector3.new(math.cos(angle) * 25, 0, math.sin(angle) * 25)
 		local head = great + Vector3.new(math.cos(angle) * 12, 150, math.sin(angle) * 12)
-		Kit.rod(scene, foot, head, 4, if pipe % 2 == 0 then c.pipe else c.rust, metal, true)
+		Kit.rod(scene, foot, head, 4, if pipe % 2 == 0 then c.pipe else c.rust, concrete, true)
 	end
 	for buttress = 0, 3 do
 		local angle = math.pi / 4 + buttress * math.pi / 2
 		local out = Vector3.new(math.cos(angle) * 26, 0, math.sin(angle) * 26)
-		Kit.box(scene, Vector3.new(9, 54, 9), great + out, c.face, metal, math.deg(-angle))
+		Kit.box(scene, Vector3.new(9, 54, 9), great + out, c.face, concrete, math.deg(-angle))
 		Kit.box(
 			scene,
 			Vector3.new(1.2, 16, 1.2),
@@ -178,7 +189,7 @@ return function(scene: Kit.Scene)
 			neon
 		)
 	end
-	Kit.box(scene, Vector3.new(10, 3, 20), great + Vector3.new(0, 62, 26), c.steelLight, plate)
+	Kit.box(scene, Vector3.new(10, 3, 20), great + Vector3.new(0, 62, 26), c.steelLight, paint)
 
 	-- Pipes along both sides of the lane, on trestles, with a valve wheel here and there.
 	for _, side in { -1, 1 } do
@@ -188,7 +199,7 @@ return function(scene: Kit.Scene)
 			at(length - 4, 4.2, side * 35.4),
 			2.4,
 			c.pipe,
-			metal,
+			concrete,
 			true
 		)
 		Kit.rod(
@@ -197,7 +208,7 @@ return function(scene: Kit.Scene)
 			at(length - 4, 6.6, side * 36),
 			1.3,
 			c.rust,
-			metal,
+			concrete,
 			true
 		)
 		for i = 0, 9 do
@@ -206,13 +217,29 @@ return function(scene: Kit.Scene)
 				Vector3.new(1, 7.4, 3),
 				at(12 + i * 21.5, 0, side * 35.8),
 				c.steelDark,
-				metal
+				concrete
 			)
 		end
 		for i = 0, 2 do
 			local x = 34 + i * 70
-			Kit.rod(scene, at(x, 5.6, side * 35.4), at(x, 8.4, side * 35.4), 1, c.rust, metal, true)
-			Kit.rod(scene, at(x, 8.4, side * 35.4), at(x, 8.8, side * 35.4), 3, c.rust, metal, true)
+			Kit.rod(
+				scene,
+				at(x, 5.6, side * 35.4),
+				at(x, 8.4, side * 35.4),
+				1,
+				c.rust,
+				concrete,
+				true
+			)
+			Kit.rod(
+				scene,
+				at(x, 8.4, side * 35.4),
+				at(x, 8.8, side * 35.4),
+				3,
+				c.rust,
+				concrete,
+				true
+			)
 		end
 	end
 
@@ -220,14 +247,14 @@ return function(scene: Kit.Scene)
 	for i = 0, 7 do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(22 + i * 25, 0, side * 39)
-		Kit.pillar(scene, 13, 0.6, base, c.steelDark, metal)
+		Kit.pillar(scene, 13, 0.6, base, c.steelDark, concrete)
 		Kit.rod(
 			scene,
 			base + Vector3.new(0, 12.6, 0),
 			base + Vector3.new(0, 13.4, -side * 3),
 			0.4,
 			c.steelDark,
-			metal
+			concrete
 		)
 		local lamp = Kit.ball(scene, 1.4, base + Vector3.new(0, 13, -side * 3.2), c.lamp, neon)
 		Kit.light(scene, lamp, c.lamp, 24, 1.1)
@@ -238,18 +265,18 @@ return function(scene: Kit.Scene)
 		local side = if i % 2 == 0 then 1 else -1
 		local base = at(14 + i * 21, 0, side * pick(40, 46))
 		local width = pick(6, 10)
-		Kit.box(scene, Vector3.new(width, pick(5, 9), 6), base, c.steelLight, plate)
+		Kit.box(scene, Vector3.new(width, pick(5, 9), 6), base, c.steelLight, paint)
 		Kit.rod(
 			scene,
 			base + Vector3.new(width / 2, 3, 0),
 			base + Vector3.new(width / 2 + 4, 8, side * 3),
 			1.2,
 			c.pipe,
-			metal,
+			concrete,
 			true
 		)
 		local vent =
-			Kit.pillar(scene, 2.4, 1.6, base + Vector3.new(-width / 4, 6, 0), c.rust, metal)
+			Kit.pillar(scene, 2.4, 1.6, base + Vector3.new(-width / 4, 6, 0), c.rust, concrete)
 		if i % 3 == 0 then
 			Kit.emit(vent, STEAM, c.lamp)
 		end
@@ -258,7 +285,13 @@ return function(scene: Kit.Scene)
 	-- Gratings beside the lane, and puddles: on the ground, and a few thin ones on the lane.
 	for i = 0, 7 do
 		local side = if i % 2 == 0 then -1 else 1
-		Kit.box(scene, Vector3.new(8, 0.2, 4), at(18 + i * 26, 0, side * 38), c.grate, plate)
+		Kit.box(
+			scene,
+			Vector3.new(8, 0.2, 4),
+			at(18 + i * 26, 0, side * 38),
+			c.grate,
+			Enum.Material.DiamondPlate
+		)
 	end
 	for i = 1, 18 do
 		local side = if i % 2 == 0 then -1 else 1

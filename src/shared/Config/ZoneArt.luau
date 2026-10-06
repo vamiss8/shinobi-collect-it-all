@@ -474,34 +474,44 @@ ZoneArt.zones = {
 	},
 
 	-- The village where it never stops raining: steel towers, pipes and puddles.
+	--
+	-- It was all but black when the owner first saw it (2026-10-06). Three things were dark at
+	-- once and each is undone here: the hour was sunset, with the sun on the horizon behind the
+	-- towers and thick fog taking the color of dusk; the ambient light was a quarter of white on
+	-- surfaces a third of white; and nearly everything was of Metal or DiamondPlate, which show
+	-- what they reflect and little else. Now it is an overcast afternoon, the ambient light is
+	-- twice as strong, the steel is paler and only small fittings are metal.
 	hidden_rain = {
 		palette = {
-			steel = "#46545D",
-			steelDark = "#2F3A41",
-			steelLight = "#62727C",
-			pipe = "#252E33",
-			rust = "#6B4A3A",
+			steel = "#64747F",
+			steelDark = "#44525C",
+			steelLight = "#8494A0",
+			pipe = "#39454D",
+			rust = "#7A5544",
 			window = "#FFD54F",
 			lamp = "#BFE1FF",
-			puddle = "#2A3A47",
-			grate = "#1F272B",
-			face = "#55636B",
+			puddle = "#33475A",
+			grate = "#2B353B",
+			face = "#6A7983",
+			far = "#55636E",
+			farDark = "#414E58",
 		},
-		ground = { color = "#3F4C55", material = "Concrete" },
-		lane = { color = "#4A5964", material = "DiamondPlate" },
+		ground = { color = "#4E5C66", material = "Concrete" },
+		lane = { color = "#60707B", material = "Cobblestone" },
 		light = light({
-			clock = 17.9,
-			brightness = 1,
-			ambient = "#3C4450",
-			outdoor = "#555F6E",
-			air = "#6E7A8A",
-			decay = "#505A69",
-			density = 0.62,
-			haze = 5,
-			tint = "#CDDCF0",
-			saturation = -0.4,
-			contrast = 0.1,
-			bloom = 1.3,
+			clock = 15.6,
+			brightness = 1.5,
+			ambient = "#5F6975",
+			outdoor = "#8E9AAA",
+			air = "#8794A3",
+			decay = "#6B7786",
+			density = 0.46,
+			haze = 2.6,
+			tint = "#D6E2F2",
+			saturation = -0.3,
+			contrast = 0.06,
+			lift = 0.02,
+			bloom = 1.2,
 			rays = 0,
 		}),
 		weather = raining({
