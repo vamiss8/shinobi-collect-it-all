@@ -4,8 +4,8 @@
 -- the right, a ramen stand at the far corner, village houses behind, and far off a cliff with
 -- four great faces cut into it. Wooded hills close the view on both sides.
 --
--- The zone has no gate of its own: it begins at the throwing strip, which is the Hub's. Its
--- sign hangs between two poles a little way past the strip.
+-- The zone begins at the throwing strip, which is the Hub's. Its gate stands over the strip's
+-- back edge, where the yard's fence meets the lane, with the zone's sign on it.
 
 local Kit = require("./Kit")
 
@@ -299,60 +299,78 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- The zone's sign hangs between two poles just past the strip, in a frame of laths with a
-	-- red band over it and paper tags under it. Nothing stands behind the writing.
-	Kit.signage(scene, function(sign)
-		local a, half = sign.along, sign.width / 2
-		local wood = Enum.Material.Wood
+	-- The gate: two posts on the line of the yard's fence, a beam between them under a strip of
+	-- red roof, a second beam below it and a white banner with a red band on each post.
+	local wood = Enum.Material.Wood
+	Kit.gateway(scene, function()
 		for _, side in { -1, 1 } do
-			Kit.box(scene, Vector3.new(1.4, sign.top + 5, 1.4), at(a, 0, side * 35), c.trim, wood)
+			Kit.box(scene, Vector3.new(2.2, 25.4, 2.2), at(1, 0, side * 34.6), c.trim, wood)
 			Kit.box(
 				scene,
-				Vector3.new(2.4, 0.6, 2.4),
-				at(a, sign.top + 5, side * 35),
-				c.roofDark,
-				wood
+				Vector3.new(3.4, 1.2, 3.4),
+				at(1, 0, side * 34.6),
+				c.stone,
+				Enum.Material.Slate
 			)
 			Kit.box(
 				scene,
-				Vector3.new(0.4, sign.height, 0.4),
-				at(a, sign.foot, side * (half + 0.8)),
-				c.trim,
-				wood
+				Vector3.new(0.3, 9, 3.2),
+				at(1, 11, side * 37.8),
+				c.cloth,
+				Enum.Material.Fabric
 			)
-			-- Cords from the pole to the corners of the frame.
-			Kit.rod(
+			Kit.box(
 				scene,
-				at(a, sign.top + 2.6, side * 34.4),
-				at(a, sign.top + 0.4, side * (half + 0.8)),
-				0.25,
-				c.cloth
-			)
-			Kit.rod(
-				scene,
-				at(a, sign.foot + 2, side * 34.4),
-				at(a, sign.foot - 0.2, side * (half + 0.8)),
-				0.25,
-				c.cloth
+				Vector3.new(0.35, 1.4, 3.2),
+				at(1, 17.6, side * 37.8),
+				c.band,
+				Enum.Material.Fabric
 			)
 		end
-		Kit.rod(scene, at(a, sign.top + 3.4, -35), at(a, sign.top + 3.4, 35), 0.7, c.trim, wood)
+		Kit.box(scene, Vector3.new(2.6, 1.8, 74), at(1, 23.4, 0), c.trim, wood)
+		Kit.roof(scene, at(1, 26.7, 0), 80, 2.6, 30, c.roof, Enum.Material.Slate, true)
+		Kit.box(scene, Vector3.new(1.4, 1.2, 70), at(1, 19.4, 0), c.trim, wood)
+	end)
+
+	-- The zone's sign: a dark board framed in wood on the gate's roof, a red band along its top
+	-- and at each end the Academy's round red mark.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 0.8, c.trim, wood)
 		Kit.box(
 			scene,
-			Vector3.new(0.5, 0.9, sign.width + 2.4),
-			at(a, sign.top, 0),
+			Vector3.new(1.3, 0.9, sign.width + 3),
+			at(a, sign.top + 0.8, 0),
 			c.band,
 			Enum.Material.Fabric
 		)
-		Kit.box(
-			scene,
-			Vector3.new(0.4, 0.4, sign.width + 2.4),
-			at(a, sign.foot - 0.4, 0),
-			c.trim,
-			wood
-		)
-		for i = -2, 2 do
-			Kit.box(scene, Vector3.new(0.1, 1.5, 0.9), at(a, sign.foot - 1.9, i * 8), c.cloth)
+		for _, side in { -1, 1 } do
+			local middle = at(a, (sign.foot + sign.top) / 2, side * (half + 3))
+			Kit.rod(
+				scene,
+				middle - Vector3.new(0.5, 0, 0),
+				middle + Vector3.new(0.5, 0, 0),
+				4.2,
+				c.band,
+				nil,
+				true
+			)
+			Kit.rod(
+				scene,
+				middle - Vector3.new(0.7, 0, 0),
+				middle + Vector3.new(0.7, 0, 0),
+				1.8,
+				c.door,
+				nil,
+				true
+			)
+			Kit.box(
+				scene,
+				Vector3.new(0.5, 0.5, 2.6),
+				at(a, (sign.foot + sign.top) / 2 - 0.25, side * (half + 1.6)),
+				c.trim,
+				wood
+			)
 		end
 	end)
 

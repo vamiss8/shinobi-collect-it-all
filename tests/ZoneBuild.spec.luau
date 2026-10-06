@@ -137,7 +137,7 @@ return {
 	end,
 
 	["a gate stands where its zone begins and crosses the lane under the zone's sign"] = function()
-		for index, zone in Catalog.zones do
+		for _, zone in Catalog.zones do
 			local scenery = sceneBuilt(zone.id)
 			local crossing = 0
 			for _, part in scenery.parts do
@@ -156,12 +156,7 @@ return {
 					end
 				end
 			end
-			-- The first zone begins at the throwing strip and has no gate of its own.
-			if index == 1 then
-				T.eq(crossing, 0, "the first zone has no gate")
-			else
-				T.ok(crossing > 0, `{zone.id} has no gate over the lane`)
-			end
+			T.ok(crossing > 0, `{zone.id} has no gate over the lane`)
 		end
 	end,
 
@@ -201,7 +196,7 @@ return {
 	end,
 
 	["a sign is tall enough for what is written on it"] = function()
-		for index, zone in Catalog.zones do
+		for _, zone in Catalog.zones do
 			local box = Signs.box(zone)
 			local lines = #Signs.details(zone)
 			T.near(
@@ -211,12 +206,8 @@ return {
 				`{zone.id} height`
 			)
 			T.near(box.top - box.foot, box.height, 1e-9, `{zone.id} top`)
-			if index == 1 then
-				T.ok(box.along > Tuning.Kick.stripDepth, "the first sign is past the strip")
-			else
-				T.near(box.along, zone.startsAt + 0.5, 1e-9, `{zone.id} stands at its start`)
-				T.eq(box.foot, Signs.FOOT)
-			end
+			T.near(box.along, zone.startsAt + 0.5, 1e-9, `{zone.id} stands at its start`)
+			T.eq(box.foot, Signs.FOOT)
 		end
 	end,
 

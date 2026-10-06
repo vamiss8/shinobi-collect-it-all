@@ -254,7 +254,7 @@ end
 -- of a thrower written on both faces, so that it reads from the strip and on the run home. Where
 -- it hangs and what it says is in Logic/Signs; the zone's scenery (World/ZoneArt) paints the
 -- board and builds a frame round it in the zone's own style.
-local function buildSign(folder: Folder, zone: Catalog.Zone, boarded: boolean)
+local function buildSign(folder: Folder, zone: Catalog.Zone)
 	local box = Signs.box(zone)
 	local board = Build.part(
 		folder,
@@ -267,7 +267,6 @@ local function buildSign(folder: Folder, zone: Catalog.Zone, boarded: boolean)
 	board.CanCollide = false
 	board.CanQuery = false
 	board.CastShadow = false
-	board.Transparency = if boarded then 0 else 1
 
 	-- The faces that look up the lane and down it. Writing on a part's side reads the right way
 	-- round from outside whichever side it is.
@@ -354,9 +353,7 @@ function Hub.start()
 		end
 		marker.CanCollide = false
 
-		-- The first sign hangs in front of whoever stands on the strip, so it is writing with
-		-- nothing behind it: a board there would stand in the thrower's view.
-		buildSign(folder, zone, i > 1)
+		buildSign(folder, zone)
 	end
 
 	Build.part(

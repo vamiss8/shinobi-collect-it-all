@@ -7,7 +7,6 @@ local Catalog = require("../Config/Catalog")
 local Chase = require("./Chase")
 local Format = require("./Format")
 local Roll = require("./Roll")
-local Tuning = require("../Config/Tuning")
 
 local Signs = {}
 
@@ -20,12 +19,11 @@ Signs.LINE = 2.3
 Signs.MARGIN = 0.7
 
 -- The underside of a sign, studs above the lane. A sign stands on the gate its zone raises
--- where it begins, and the gate's beams stay below this.
+-- where it begins, and the gate's beams stay below this. The first zone's is no different: it
+-- stands over the back edge of the throwing strip, where the lane starts. (It first hung low
+-- and without a board a little way past the strip, so as not to stand in a thrower's view;
+-- the owner wanted it a board like the rest, where its zone begins.)
 Signs.FOOT = 27
--- The first zone begins at the throwing strip and has no gate: its sign hangs low, a little
--- way past the strip.
-Signs.FIRST_FOOT = 9
-Signs.FIRST_PAST_STRIP = 14
 
 export type Box = {
 	along: number, -- where the board stands on the lane, studs from its start
@@ -57,15 +55,11 @@ function Signs.details(zone: Catalog.Zone): { string }
 end
 
 function Signs.box(zone: Catalog.Zone): Box
-	local first = Catalog.zoneOrder[zone.id] == 1
 	local height = 2 * Signs.MARGIN + Signs.NAME + #Signs.details(zone) * Signs.LINE
-	local foot = if first then Signs.FIRST_FOOT else Signs.FOOT
 	return {
-		along = if first
-			then Tuning.Kick.stripDepth + Signs.FIRST_PAST_STRIP
-			else zone.startsAt + 0.5,
-		foot = foot,
-		top = foot + height,
+		along = zone.startsAt + 0.5,
+		foot = Signs.FOOT,
+		top = Signs.FOOT + height,
 		width = Signs.WIDTH,
 		height = height,
 	}
