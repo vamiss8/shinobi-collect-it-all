@@ -25,15 +25,19 @@ local BUDGET = { 300, 600 }
 local LIGHTS = 12
 local SHADOW_FROM = 10
 -- How far past its own stretch of the lane a zone's scenery may reach, and how far its
--- backdrop may: hills do not stop at a border. Backdrop is what stands at least this far from
--- the lane's middle.
-local OVERHANG = 80
+-- backdrop may: hills do not stop at a border. Backdrop is what stands farther from the lane's
+-- middle than any zone's own scenery does, so that a hill spills over only into the next zone's
+-- backdrop and never in among its houses. (The cave's mountain did, as great dark domes.)
+local OVERHANG = 40
 local BACKDROP_OVERHANG = 220
-local BACKDROP_FROM = 120
+local BACKDROP_FROM = Zones.REACH
+-- What hangs this high is canopy, not ground: the forest's crowns may lean out over a border.
+local CANOPY_FROM = 60
 -- A backdrop closes the view when something this tall stands between these distances from the
--- lane's middle, all along the zone.
+-- lane's middle, all along the zone: anywhere from just outside the lane's walls, as the
+-- cave's own walls do, out to where the haze takes over.
 local HORIZON_HEIGHT = 45
-local HORIZON_FROM, HORIZON_TO = 60, 700
+local HORIZON_FROM, HORIZON_TO = 33, 700
 -- The sea has no far shore: there the water runs out into the fog, and that is its horizon.
 local OPEN = { land_of_waves = true }
 -- The yard the players walk in (World/Plots), with room to spare: how far back it goes from
@@ -232,7 +236,7 @@ return {
 			local last = index == #Catalog.zones
 			for _, part in scenery.parts do
 				local low, high = Zones.bounds(part)
-				local backdrop = nearest(low, high) >= BACKDROP_FROM
+				local backdrop = nearest(low, high) >= BACKDROP_FROM or low.Y >= CANOPY_FROM
 				local reach = if backdrop then BACKDROP_OVERHANG else OVERHANG
 				T.ok(
 					low.X >= scenery.from - reach,

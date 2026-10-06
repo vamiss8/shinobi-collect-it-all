@@ -6,8 +6,11 @@
 --
 -- The vault is kept above Kit.CLEAR: a kunai flies high, and the camera with it.
 --
--- From outside the cave is a mountain: rock is heaped against its walls and piled over its
--- roof, so that neither neighbor sees a box standing on the plain.
+-- From outside the cave is a mountain: crags stand across its mouth and its far end, peaks
+-- rise behind them and rock is piled over its roof, so that neither neighbor sees a box
+-- standing on the plain. The crags are blocks and keep to the zone's own ground. (They were
+-- half-buried balls at first, and those bulged out into the desert village as great dark
+-- domes.)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -243,30 +246,60 @@ return function(scene: Kit.Scene)
 		end
 	end)
 
-	-- From outside the cave is a mountain. Rock is heaped against its walls, each heap half a
-	-- ball that ends inside the wall's thickness, and piled over its roof; higher ground rises
-	-- behind.
+	-- From outside the cave is a mountain. A row of crags stands across at its mouth and
+	-- another at its far end, stepping down away from the lane, boulders heaped at their feet;
+	-- peaks rise behind them, a brow of rock hangs over the mouth and rock is piled on the roof.
+	for _, along in { 24, length - 24 } do
+		for _, side in { -1, 1 } do
+			for i = 0, 3 do
+				local z = side * (90 + i * 50)
+				Kit.backdrop(
+					Kit.box(
+						scene,
+						Vector3.new(pick(40, 52), 150 - i * 26 + pick(-12, 12), 58),
+						at(along + pick(-4, 4), -2, z),
+						if i % 2 == 0 then c.crag else c.cragDark,
+						slate,
+						pick(-7, 7)
+					)
+				)
+				if i < 3 then
+					local out = if along < 100 then -pick(22, 30) else pick(22, 30)
+					Kit.rock(
+						scene,
+						at(along + out, 0, z + side * pick(-14, 14)),
+						Vector3.new(pick(10, 18), pick(8, 14), pick(10, 18)),
+						c.cragDark
+					)
+				end
+			end
+		end
+	end
 	for _, side in { -1, 1 } do
 		for i = 0, 2 do
-			Kit.mound(
-				scene,
-				at(58 + i * 52 + pick(-3, 3), 0, side * pick(200, 212)),
-				pick(126, 134),
-				pick(120, 134),
-				if i % 2 == 0 then c.rockDark else c.rock,
-				slate
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(pick(70, 96), pick(190, 250), pick(80, 110)),
+					at(44 + i * 66 + pick(-6, 6), -2, side * pick(320, 390)),
+					c.cragDark,
+					slate,
+					pick(-10, 10)
+				)
 			)
 		end
-		for i = 0, 1 do
-			Kit.mound(
+	end
+	for _, z in { -30, 0, 30 } do
+		Kit.backdrop(
+			Kit.box(
 				scene,
-				at(50 + i * 120 + pick(-10, 10), 0, side * pick(470, 540)),
-				pick(190, 220),
-				pick(200, 250),
-				c.rockDark,
-				slate
+				Vector3.new(pick(18, 26), pick(30, 46), pick(28, 36)),
+				at(pick(3, 8), 84 + pick(0, 6), z + pick(-4, 4)),
+				if z == 0 then c.cragDark else c.crag,
+				slate,
+				pick(-10, 10)
 			)
-		end
+		)
 	end
 	for i = 0, 5 do
 		Kit.backdrop(

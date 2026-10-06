@@ -268,7 +268,7 @@ return function(scene: Kit.Scene)
 		end
 	end
 	for i = 0, 3 do
-		hill(-44 - i * 92 + pick(-10, 10), pick(305, 340), false)
+		hill(-44 - i * 92 + pick(-10, 10), pick(325, 350), false)
 	end
 	for i = 0, 2 do
 		hill(-90 - i * 160, pick(530, 580), true)

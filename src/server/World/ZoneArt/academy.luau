@@ -375,12 +375,13 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- The wooded hills the village lies among close the view: a nearer row with trees standing
-	-- on it and a higher one behind. On the left they rise behind the cliff.
+	-- on it and a higher one behind. On the left they rise behind the cliff. They stand far
+	-- enough out to spill over the zone's ends only where the next zone has backdrop too.
 	local grass = Enum.Material.Grass
 	for _, side in { -1, 1 } do
 		for i = 0, 1 do
 			local x = 22 + i * 56 + pick(-6, 6)
-			local out = if side == -1 then pick(318, 340) else pick(275, 305)
+			local out = pick(320, 345)
 			local height = pick(60, 82)
 			Kit.mound(scene, at(x, 0, side * out), pick(110, 128), height, c.hill, grass)
 			for _ = 1, 3 do

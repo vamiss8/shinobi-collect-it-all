@@ -457,6 +457,10 @@ ZoneArt.zones = {
 			rock = "#2C2426",
 			rockDark = "#1C1718",
 			rockRed = "#3A2224",
+			-- The mountain the cave is in, seen from outside: paler than the rock within, so
+			-- that it is not a black shape against the sand.
+			crag = "#514547",
+			cragDark = "#3F3537",
 			bowl = "#3B3436",
 			ember = "#E53935",
 			flame = "#0D0D0D",

@@ -234,7 +234,7 @@ return function(scene: Kit.Scene)
 	for _, side in { -1, 1 } do
 		for i = 0, 2 do
 			local x = 24 + i * 56 + pick(-8, 8)
-			local out = pick(262, 300)
+			local out = pick(320, 345)
 			local height = pick(55, 80)
 			Kit.mound(scene, at(x, 0, side * out), pick(105, 128), height, c.hill, grass)
 			for _ = 1, 2 do
