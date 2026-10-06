@@ -79,7 +79,7 @@ function Weather.start()
 	-- Lightning brightens the screen through an effect of its own, so it never fights the
 	-- zone's light (client Mood) over the same number.
 	local lightning = Instance.new("ColorCorrectionEffect")
-	lightning.Name = "Lightning"
+	lightning.Name = Mood.LIGHTNING
 	lightning.Parent = Lighting
 
 	local shift = Vector3.zero

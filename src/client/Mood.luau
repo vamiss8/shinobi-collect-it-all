@@ -20,6 +20,9 @@ local Mood = {}
 
 -- Where the camera is when it is behind the lane's start: the dojos, the market, the strip.
 Mood.HOME = "home"
+-- The name of the effect the weather flashes its lightning through (client Weather). It is of
+-- the class the zones' colors are graded with, and the two must not be taken for each other.
+Mood.LIGHTNING = "Lightning"
 
 local CHECK_SECONDS = 0.3
 local SHIFT_SECONDS = 1.5
@@ -38,15 +41,19 @@ function Mood.onPlace(fn: Listener)
 	end
 end
 
--- The effect of that class in Lighting, made if the place has none.
+-- The effect of that class in Lighting, made if the place has none. The weather's own effect
+-- is passed over: found here, the zone's colors and the lightning would be written to one
+-- effect and undo each other.
 local function effect(className: string): any
-	local found = Lighting:FindFirstChildOfClass(className)
-	if not found then
-		found = Instance.new(className)
-		found.Name = "Mood" .. className
-		found.Parent = Lighting
+	for _, child in Lighting:GetChildren() do
+		if child.ClassName == className and child.Name ~= Mood.LIGHTNING then
+			return child
+		end
 	end
-	return found
+	local made = Instance.new(className)
+	made.Name = "Mood" .. className
+	made.Parent = Lighting
+	return made
 end
 
 function Mood.start()
