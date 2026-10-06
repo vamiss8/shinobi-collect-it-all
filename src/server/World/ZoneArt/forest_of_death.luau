@@ -266,4 +266,42 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
+
+	-- The forest's edge. Where the zone begins trunks stand in a row either side of the fence
+	-- with a thicket as tall as a house at their feet, so that from under the trees nothing of
+	-- the shore is seen, and from the shore the forest is a wall.
+	for _, side in { -1, 1 } do
+		for i = 0, 8 do
+			Kit.ball(
+				scene,
+				pick(46, 54),
+				at(pick(17, 21), pick(9, 13), side * (64 + i * 24 + pick(-3, 3))),
+				if i % 2 == 0 then c.leafDark else c.fern,
+				leaves
+			)
+		end
+		for i = 0, 5 do
+			local height = pick(110, 150)
+			local base = at(pick(5, 11), 0, side * (106 + i * 31 + pick(-5, 5)))
+			Kit.pillar(
+				scene,
+				height,
+				pick(14, 20),
+				base,
+				if i % 2 == 0 then c.bark else c.barkDark,
+				wood
+			)
+			if i % 2 == 0 then
+				Kit.backdrop(
+					Kit.ball(
+						scene,
+						pick(60, 80),
+						base + Vector3.new(pick(-4, 8), height + 10, side * pick(0, 12)),
+						c.leafDark,
+						leaves
+					)
+				)
+			end
+		end
+	end
 end

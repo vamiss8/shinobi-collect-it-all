@@ -264,4 +264,25 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
+
+	-- The arena's outer wall. Where the zone begins it runs out from the corner towers to both
+	-- sides, capped, buttressed and hung with banners, a flag on every buttress: from the forest
+	-- the arena is a wall with its gate in the middle.
+	for _, side in { -1, 1 } do
+		Kit.box(scene, Vector3.new(4, 34, 216), at(3, 0, side * 158), c.wallShade, stone)
+		Kit.box(scene, Vector3.new(5.4, 1.2, 216), at(3, 34, side * 158), c.cap, stone)
+		for i = 0, 4 do
+			local z = side * (72 + i * 43)
+			Kit.box(scene, Vector3.new(6, 38, 6), at(3, 0, z), c.wall, stone)
+			Kit.pillar(scene, 9, 0.5, at(3, 38, z), c.pole, wood)
+			Kit.box(
+				scene,
+				Vector3.new(0.2, 3, 5),
+				at(3, 43.6, z + 2.7),
+				if i % 2 == 0 then c.flag else c.flagAlt,
+				cloth
+			)
+			Kit.box(scene, Vector3.new(0.3, 12, 5), at(0.85, 14, z + side * 21), c.banner, cloth)
+		end
+	end
 end

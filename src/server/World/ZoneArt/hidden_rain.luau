@@ -374,4 +374,32 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
+
+	-- The village's wall. Where the zone begins it runs out to both sides of the gantry, steel
+	-- as tall as a house with towers standing along it, a strip of lit windows on each: the
+	-- mountain behind is only seen over it.
+	for _, side in { -1, 1 } do
+		Kit.box(scene, Vector3.new(6, 44, 226), at(5, 0, side * 157), c.steelDark, concrete)
+		Kit.box(scene, Vector3.new(7, 2, 226), at(5, 44, side * 157), c.pipe, paint)
+		for i = 0, 4 do
+			local width = pick(20, 28)
+			local height = pick(80, 160)
+			local base = at(pick(12, 17), 0, side * (68 + i * 46 + pick(-6, 6)))
+			Kit.box(scene, Vector3.new(width, height, width), base, c.steel, concrete)
+			Kit.box(
+				scene,
+				Vector3.new(width * 0.68, pick(12, 24), width * 0.68),
+				base + Vector3.new(0, height, 0),
+				c.steelDark,
+				concrete
+			)
+			Kit.box(
+				scene,
+				Vector3.new(0.4, height * pick(0.3, 0.5), 1.6),
+				base + Vector3.new(width / 2 + 0.2, height * pick(0.15, 0.3), 0),
+				c.window,
+				neon
+			)
+		end
+	end
 end

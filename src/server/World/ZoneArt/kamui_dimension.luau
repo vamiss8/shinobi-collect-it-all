@@ -163,4 +163,17 @@ return function(scene: Kit.Scene)
 			)
 		)
 	end
+
+	-- Where the zone begins a wall of great blocks stands across on both sides of the gate,
+	-- taller the farther out: the dimension has no way out but the lane.
+	for _, side in { -1, 1 } do
+		for i = 0, 6 do
+			Kit.box(
+				scene,
+				Vector3.new(pick(26, 40), 80 + i * 22 + pick(-14, 14), pick(35, 42)),
+				at(pick(16, 21), 0, side * (62 + i * 33)),
+				Kit.oneOf(scene, shades)
+			)
+		end
+	end
 end

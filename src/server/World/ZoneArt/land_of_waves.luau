@@ -334,4 +334,37 @@ return function(scene: Kit.Scene)
 			)
 		)
 	end
+
+	-- Where the village's grass ends the sea begins at a quay: a low wall of stone along the
+	-- shore either side of the bridge, planked on top, bollards on it, and rocks with a pine
+	-- where the houses thin out.
+	for _, side in { -1, 1 } do
+		Kit.backdrop(
+			Kit.box(
+				scene,
+				Vector3.new(5, 2.8, 250),
+				at(2.5, -0.5, side * 167),
+				c.rock,
+				Enum.Material.Slate
+			)
+		)
+		Kit.backdrop(
+			Kit.box(scene, Vector3.new(6, 0.4, 250), at(2.5, 2.3, side * 167), c.plankDark, planks)
+		)
+		for i = 0, 5 do
+			Kit.pillar(scene, 1.6, 1.3, at(2.5, 2.7, side * (52 + i * 40)), c.pile, wood)
+		end
+		for i = 0, 1 do
+			local x, z = pick(8, 13), side * (156 + i * 72 + pick(-10, 10))
+			Kit.rock(
+				scene,
+				at(x, 0, z),
+				Vector3.new(pick(12, 18), pick(6, 10), pick(12, 18)),
+				c.rock
+			)
+			Kit.rod(scene, at(x, 4, z), at(x + 2, 15, z - 1), 1.1, c.bark, wood, true)
+			Kit.ball(scene, 8, at(x + 2.5, 16.5, z - 1), c.leaf, Enum.Material.Grass)
+			Kit.ball(scene, 5.5, at(x - 0.5, 13, z + 1.5), c.leaf, Enum.Material.Grass)
+		end
+	end
 end

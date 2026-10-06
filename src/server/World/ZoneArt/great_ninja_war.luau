@@ -316,7 +316,7 @@ return function(scene: Kit.Scene)
 
 	-- What is left of the allied camp, on the left by the gate: tents, a weapon rack by each.
 	for i = 0, 4 do
-		local x, z = 12 + i * 15 + pick(-2, 2), -pick(46, 74)
+		local x, z = 22 + i * 14 + pick(-2, 2), -pick(46, 74)
 		-- Every other tent stands across the lane; the door flap is in the gable end either way.
 		local across = i % 2 == 0
 		Kit.roof(scene, at(x, 5.6, z), 10, 5, 48, c.tent, cloth, across)
@@ -492,5 +492,21 @@ return function(scene: Kit.Scene)
 			c.ridge,
 			slate
 		)
+	end
+
+	-- Where the zone begins the earth itself was stood on end across the field, to both sides
+	-- of the gate: great slabs, leaning now, the last of what held the beast in.
+	for _, side in { -1, 1 } do
+		for i = 0, 6 do
+			local tall = pick(56, 104)
+			Kit.block(
+				scene,
+				Vector3.new(10, tall, 36),
+				CFrame.new(at(pick(3, 6), tall / 2 - 4, side * (62 + i * 32)))
+					* CFrame.Angles(0, math.rad(pick(-6, 6)), math.rad(pick(-9, 9))),
+				if i % 2 == 0 then c.ridge else c.rockWarm,
+				slate
+			)
+		end
 	end
 end

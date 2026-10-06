@@ -397,4 +397,43 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
+
+	-- The canyon's mouth. Where the zone begins rock closes in on the gate from both sides, a
+	-- fall coming down its inner face into the river, and crags stand on beyond the cliffs: from
+	-- inside the canyon nothing of the arena behind is seen.
+	for _, side in { -1, 1 } do
+		local height = pick(58, 72)
+		Kit.box(
+			scene,
+			Vector3.new(16, height, 30),
+			at(6, -2, side * 54),
+			c.rockDark,
+			slate,
+			side * 5
+		)
+		Kit.rock(scene, at(6, height - 5, side * 54), Vector3.new(13, 9, 22), c.rock)
+		local sheet = Kit.box(
+			scene,
+			Vector3.new(0.8, height - 6, 9),
+			at(14.6, 0, side * 52),
+			c.fall,
+			Enum.Material.Glass
+		)
+		sheet.Transparency = 0.3
+		sheet.CastShadow = false
+		local foam = Kit.ball(scene, 6, at(16, 0.5, side * 52), c.foam)
+		foam.Transparency = 0.3
+		for i, out in { 84, 118, 152, 186, 220, 254 } do
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(pick(30, 40), pick(84, 120) + i * 8, 38),
+					at(pick(8, 14), -2, side * out),
+					if i % 2 == 0 then c.rock else c.rockDark,
+					slate,
+					pick(-10, 10)
+				)
+			)
+		end
+	end
 end

@@ -292,4 +292,28 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
+
+	-- The cliffs that ring the village close across its front too, lower the farther out, and
+	-- the gate stands in the cleft they leave: the way into the village is through the rock.
+	for _, side in { -1, 1 } do
+		for i = 0, 7 do
+			local height = pick(64, 98) - i * 3
+			local z = side * (57 + i * 27)
+			Kit.box(
+				scene,
+				Vector3.new(22, height, 29),
+				at(10, -2, z),
+				c.cliff,
+				sandstone,
+				pick(-6, 6)
+			)
+			Kit.box(
+				scene,
+				Vector3.new(23, 5, 30),
+				at(10, height * pick(0.3, 0.7), z),
+				c.strata,
+				sandstone
+			)
+		end
+	end
 end

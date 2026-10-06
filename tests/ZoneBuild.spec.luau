@@ -33,6 +33,16 @@ local BACKDROP_OVERHANG = 220
 local BACKDROP_FROM = Zones.REACH
 -- What hangs this high is canopy, not ground: the forest's crowns may lean out over a border.
 local CANOPY_FROM = 60
+-- Where a zone begins, its own scenery closes the view on both sides of its gate, so that from
+-- inside the zone the outside of the one before is not seen through the corners: something at
+-- least this tall stands on the ground, no farther than this into the zone, all the way from
+-- the gate out to the backdrop.
+local WING_HEIGHT = 30
+local WING_WITHIN = 45
+local WING_FROM, WING_TO = 46, 250
+-- The first zone begins at the dojos' yard, which is the same village. The sea begins at a
+-- quay: a shore is open.
+local UNWALLED = { academy = true, land_of_waves = true }
 -- A backdrop closes the view when something this tall stands between these distances from the
 -- lane's middle, all along the zone: anywhere from just outside the lane's walls, as the
 -- cave's own walls do, out to where the haze takes over.
@@ -246,6 +256,34 @@ return {
 					high.X <= scenery.to + (if last then Zones.FAR else reach),
 					`{zone.id}: {where(part)} reaches {high.X - scenery.to} past the zone`
 				)
+			end
+		end
+	end,
+
+	["a zone's own scenery closes the view to both sides of its gate"] = function()
+		for _, zone in Catalog.zones do
+			if not UNWALLED[zone.id] then
+				local scenery = sceneBuilt(zone.id)
+				for z = WING_FROM, WING_TO, 6 do
+					for _, side in { -1, 1 } do
+						local shut = false
+						for _, part in scenery.parts do
+							local low, high = Zones.bounds(part)
+							if
+								low.Y <= 8
+								and high.Y >= WING_HEIGHT
+								and low.X <= scenery.from + WING_WITHIN
+								and high.X >= scenery.from - 6
+								and low.Z <= side * z
+								and high.Z >= side * z
+							then
+								shut = true
+								break
+							end
+						end
+						T.ok(shut, `{zone.id}: its start is open {side * z} studs from the lane`)
+					end
+				end
 			end
 		end
 	end,
