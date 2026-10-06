@@ -176,6 +176,7 @@ local function environment(siblings: (path: string) -> any): ({ [string]: any },
 		Vector3 = roblox.Vector3,
 		CFrame = frames,
 		Vector2 = roblox.Vector2,
+		UDim = roblox.UDim,
 		UDim2 = roblox.UDim2,
 		Color3 = roblox.Color3,
 		ColorSequence = roblox.ColorSequence,
@@ -523,9 +524,13 @@ end
 -- Builds the plaza behind the lane's start (src/server/World/Plaza) and returns the folder it
 -- put into the world: unlike scenery, some of what is in it is solid.
 function Zones.plaza(): any
-	local world, workspace = environment(function(path: string): any
+	local world: { [string]: any }
+	local workspace: any
+	world, workspace = environment(function(path: string): any
 		if path == "./Hub" then
 			return hub
+		elseif path == "./Notices" then
+			return run(fs.readFile("src/server/World/Notices.luau"), "Notices", world)
 		end
 		error(`the zone harness does not know {path}`)
 	end)

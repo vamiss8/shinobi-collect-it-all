@@ -314,6 +314,79 @@ return {
 		T.ok(pieces >= 6 * 2 * PlazaPlan.DOJOS, `only {pieces} pieces of stone lantern`)
 	end,
 
+	["the notice board carries notices on both of its sides"] = function()
+		local board: any = nil
+		for _, part in parts() do
+			if part.Name == "NoticeBoard" then
+				board = part
+			end
+		end
+		T.ok(board ~= nil, "there is no notice board")
+		local middle = board.CFrame.Position
+		local sides = { [1] = 0, [-1] = 0 }
+		local said: { [string]: boolean } = {}
+		for _, paper in parts() do
+			if paper.Name == "Notice" then
+				local at = paper.CFrame.Position
+				local side = if at.Z > middle.Z then 1 else -1
+				sides[side] += 1
+				-- It lies on the board, inside its edges.
+				local low, high = Zones.bounds(paper)
+				local boardLow, boardHigh = Zones.bounds(board)
+				T.ok(
+					low.X >= boardLow.X and high.X <= boardHigh.X,
+					`{where(paper)} hangs past the board's end`
+				)
+				T.ok(
+					low.Y >= boardLow.Y and high.Y <= boardHigh.Y,
+					`{where(paper)} hangs past the board's edge`
+				)
+				T.near(math.abs(at.Z - middle.Z), board.Size.Z / 2 + paper.Size.Z / 2, 0.02)
+				-- Its writing is on the face that looks away from the board, and says something
+				-- no other paper says.
+				local gui = paper:FindFirstChildOfClass("SurfaceGui")
+				T.ok(gui ~= nil, `{where(paper)} is blank`)
+				T.eq(gui.Face.Name, if side == 1 then "Back" else "Front", "the face written on")
+				local words = {}
+				for _, item in gui:GetDescendants() do
+					if item:IsA("TextLabel") and item.Text ~= "" then
+						table.insert(words, item.Text)
+						T.eq(item.Font.Name, "PermanentMarker", "the game's brush")
+					end
+				end
+				T.ok(#words >= 2, `{where(paper)} says next to nothing`)
+				local all = table.concat(words, " / ")
+				T.ok(not said[all], `two notices say the same: {all}`)
+				said[all] = true
+			end
+		end
+		T.ok(sides[1] >= 6, `only {sides[1]} notices on the side that looks at the path`)
+		T.ok(sides[-1] >= 6, `only {sides[-1]} notices on the side that looks at the dojos`)
+	end,
+
+	["no two notices overlap"] = function()
+		local papers = {}
+		for _, paper in parts() do
+			if paper.Name == "Notice" then
+				table.insert(papers, paper)
+			end
+		end
+		for i, a in papers do
+			local lowA, highA = Zones.bounds(a)
+			for j = i + 1, #papers do
+				local b = papers[j]
+				local lowB, highB = Zones.bounds(b)
+				local apart = highA.X <= lowB.X
+					or highB.X <= lowA.X
+					or highA.Y <= lowB.Y
+					or highB.Y <= lowA.Y
+					or highA.Z <= lowB.Z
+					or highB.Z <= lowA.Z
+				T.ok(apart, `{where(a)} lies over {where(b)}`)
+			end
+		end
+	end,
+
 	-- Two flat sides in one plane, one over the other, flicker as the camera moves.
 	["no two sides that look unlike lie in one plane where both are seen"] = function()
 		for _, fight in Zones.fights(parts()) do

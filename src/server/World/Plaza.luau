@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Hub = require("./Hub")
+local Notices = require("./Notices")
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
 
@@ -52,6 +53,8 @@ local PALE_WOOD = Color3.fromRGB(188, 158, 130)
 local LACQUER = Color3.fromRGB(183, 40, 32)
 local LANTERN = Color3.fromRGB(255, 190, 110)
 local PAPER = Color3.fromRGB(236, 220, 188)
+-- The papers on the notice board are not all of one sheet.
+local PAPERS = { PAPER, Color3.fromRGB(244, 236, 214), Color3.fromRGB(226, 206, 168) }
 local STRAW = Color3.fromRGB(214, 186, 120)
 local BARK = Color3.fromRGB(109, 76, 65)
 local LEAF = Color3.fromRGB(104, 159, 56)
@@ -754,16 +757,19 @@ local function buildGate(folder: Folder)
 	)
 end
 
--- The notice board: a board of jobs between two posts under a little roof, papers pinned to
--- the side that looks at the middle path, which is the way `face` points across the plaza.
-local function noticeBoard(folder: Folder, base: Vector3, face: number)
+-- The notice board: a board between two posts under a little roof, with papers pinned all
+-- over both of its sides. Where each paper hangs, what it says and how it is drawn is
+-- World/Notices; here they are sheets of paper, each a little askew, a pin in both upper corners.
+local function noticeBoard(folder: Folder, base: Vector3)
 	local wood = Enum.Material.Wood
-	for _, x in { -4.4, 4.4 } do
+	local wide, tall = Notices.BOARD.X, Notices.BOARD.Y
+	local middle = base + UP * (2.3 + tall / 2)
+	for _, side in { -1, 1 } do
 		Build.part(
 			folder,
 			"NoticePost",
-			Vector3.new(0.7, 7.4, 0.7),
-			base + Vector3.new(x, 3.7, 0),
+			Vector3.new(0.7, tall + 3.2, 0.7),
+			base + Vector3.new(side * (wide / 2 + 0.35), (tall + 3.2) / 2, 0),
 			TIMBER,
 			wood
 		)
@@ -771,33 +777,56 @@ local function noticeBoard(folder: Folder, base: Vector3, face: number)
 	Build.part(
 		folder,
 		"NoticeBoard",
-		Vector3.new(8.2, 4.2, 0.5),
-		base + UP * 4.6,
+		Vector3.new(wide, tall, 0.5),
+		middle,
 		WOOD,
 		Enum.Material.WoodPlanks
 	)
-	roof(folder, base + UP * 8.6, 10.6, 1.8, 1.2, false, LACQUER)
-	local papers = {
-		{ -2.9, 5.3, 1.5, 1.9 },
-		{ -1, 4.9, 1.6, 2.1 },
-		{ 0.9, 5.5, 1.4, 1.7 },
-		{ 2.8, 5, 1.7, 2.2 },
-		{ -2, 3.4, 1.4, 1.2 },
-		{ 1.8, 3.3, 1.9, 1.3 },
+	roof(folder, base + UP * (tall + 4.4), wide + 2.4, 1.8, 1.2, false, LACQUER)
+
+	-- The board is read from both sides. A paper's place is given as whoever reads it sees
+	-- it, so on the far side right and left change places; and its writing goes on whichever
+	-- of its faces looks away from the board.
+	local sides = {
+		{ out = 1, sheets = Notices.front, face = Enum.NormalId.Back },
+		{ out = -1, sheets = Notices.back, face = Enum.NormalId.Front },
 	}
-	for index, paper in papers do
-		local at = base + Vector3.new(paper[1], paper[2], face * 0.3)
-		show(Build.part(folder, "Notice", Vector3.new(paper[3], paper[4], 0.1), at, PAPER))
-		if index % 2 == 0 then
-			show(
+	for _, side in sides do
+		for index, sheet in side.sheets do
+			local at = middle + Vector3.new(side.out * sheet.x, sheet.y, side.out * 0.29)
+			local roll = math.rad(sheet.roll)
+			local paper = show(
 				Build.part(
 					folder,
-					"NoticeSeal",
-					Vector3.new(0.5, 0.5, 0.12),
-					at + Vector3.new(paper[3] / 2 - 0.5, -paper[4] / 2 + 0.5, face * 0.02),
-					LACQUER
+					"Notice",
+					Vector3.new(sheet.width, sheet.height, 0.08),
+					at,
+					PAPERS[index % #PAPERS + 1]
 				)
 			)
+			paper.CFrame = CFrame.new(at) * CFrame.Angles(0, 0, roll)
+			paper.CastShadow = false
+			Notices.write(paper, side.face, sheet.notice)
+
+			-- The paper's own right and up, turned as it is.
+			local right = Vector3.new(math.cos(roll), math.sin(roll), 0)
+			local up = Vector3.new(-math.sin(roll), math.cos(roll), 0)
+			for _, corner in { -1, 1 } do
+				local pin = show(
+					Build.part(
+						folder,
+						"NoticePin",
+						Vector3.new(0.16, 0.16, 0.16),
+						at
+							+ right * corner * (sheet.width / 2 - 0.1)
+							+ up * (sheet.height / 2 - 0.1)
+							+ Vector3.new(0, 0, side.out * 0.06),
+						LACQUER
+					)
+				)
+				pin.Shape = Enum.PartType.Ball
+				pin.CastShadow = false
+			end
 		end
 	end
 end
@@ -1018,7 +1047,7 @@ function Plaza.start()
 	-- The plaza's four quarters, between the paths: the notice board and the training corner
 	-- on the lane's side, the well and the shrine at the back.
 	local near, far = -40, -PlazaPlan.DEPTH + 42
-	noticeBoard(folder, Hub.at(near, 0, -36), 1)
+	noticeBoard(folder, Hub.at(near, 0, -36))
 	trainingCorner(folder, Hub.at(near - 2, 0, 30), 1)
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
