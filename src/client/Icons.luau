@@ -5,6 +5,7 @@
 -- So the game works with no images at all, takes them one at a time, and never shows an empty
 -- square for one that is still in moderation.
 
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require("./Art")
@@ -85,15 +86,21 @@ local function bar(
 	return frame
 end
 
--- How long a picture is waited for before the drawing is left in place for good, seconds.
-local PATIENCE = 60
+-- A picture that would not load is asked for again this often, this many times: one that is
+-- still in moderation usually comes through within the hour.
+local RETRY_SECONDS = 30
+local RETRIES = 120
 
--- Lays the uploaded picture of that asset id over what has been drawn in the holder, and takes
--- the drawing away once the picture has really loaded. An image that is still in moderation,
--- or was turned down, loads as nothing; the drawing then simply stays. Call it last, after the
--- icon is drawn. Does nothing when there is no picture (the id is 0 or missing). `turn` turns
--- the picture, in degrees clockwise, and `zoom` draws it that many times larger about the
--- holder's middle.
+-- Lays the uploaded picture of that asset id over what has been drawn in the holder: the
+-- picture is fetched in the background and, once it is there, shown in place of the drawing.
+-- An image that is still in moderation, or was turned down, cannot be fetched; the drawing
+-- then simply stays. Call it last, after the icon is drawn. Does nothing when there is no
+-- picture (the id is 0 or missing). `turn` turns the picture, in degrees clockwise, and `zoom`
+-- draws it that many times larger about the holder's middle.
+--
+-- The picture is fetched through ContentProvider and not left to the label, because a label
+-- inside a hidden window does not load its image: the power bar and the store are hidden when
+-- they are built, and their drawings would stay under the pictures for good.
 local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: number?)
 	if not assetId or assetId == 0 then
 		return
@@ -109,13 +116,21 @@ local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: 
 		Image = `rbxassetid://{assetId}`,
 		Rotation = turn or 0,
 		ZIndex = 5,
+		Visible = false,
 	}, holder)
 	task.spawn(function()
-		for _ = 1, PATIENCE * 2 do
+		for _ = 1, RETRIES do
+			local fetched = false
+			pcall(function()
+				ContentProvider:PreloadAsync({ image }, function(_, status)
+					fetched = status == Enum.AssetFetchStatus.Success
+				end)
+			end)
 			if not image.Parent then
 				return
 			end
-			if image.IsLoaded then
+			if fetched then
+				image.Visible = true
 				for _, piece in drawn do
 					if piece:IsA("GuiObject") then
 						piece.Visible = false
@@ -123,7 +138,7 @@ local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: 
 				end
 				return
 			end
-			task.wait(0.5)
+			task.wait(RETRY_SECONDS)
 		end
 	end)
 end
