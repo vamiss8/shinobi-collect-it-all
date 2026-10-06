@@ -191,6 +191,17 @@ local function build(folder: Folder, stall: Stall)
 			)
 			lantern.Shape = Enum.PartType.Ball
 			lantern.CanCollide = false
+			-- It hangs from the roof on a cord, not in the air.
+			local cord = Build.part(
+				folder,
+				"LanternCord",
+				Vector3.new(0.14, 0.4, 0.14),
+				at(x * 1.25, 9.9, z * 1.25),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+			cord.CanCollide = false
+			cord.CanQuery = false
 		end
 	end
 	Build.part(

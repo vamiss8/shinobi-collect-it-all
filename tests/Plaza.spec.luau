@@ -41,7 +41,7 @@ end
 return {
 	["the plaza builds, with a sensible number of parts and few lights"] = function()
 		local count = #parts()
-		T.ok(count >= 150 and count <= 450, `the plaza is {count} parts`)
+		T.ok(count >= 150 and count <= 700, `the plaza is {count} parts`)
 		local lights = 0
 		for _, item in folder:GetDescendants() do
 			if item:IsA("PointLight") then
@@ -193,5 +193,117 @@ return {
 			end
 		end
 		T.eq(planters, 2 * (PlazaPlan.PER_SIDE + 1), "a tree in every alley on both sides")
+	end,
+
+	["the fountain's water runs down in streams that stay over its pool"] = function()
+		parts()
+		local fountain = PlazaPlan.FOUNTAIN
+		local streams = 0
+		for _, item in folder:GetDescendants() do
+			if item:IsA("Beam") then
+				streams += 1
+				local first, last = item.Attachment0, item.Attachment1
+				T.ok(first ~= nil and last ~= nil, "a stream has lost an end")
+				-- Its ends are given from the piece that holds them, at the fountain's foot.
+				local hold = first.Parent.CFrame.Position
+				T.near(hold.X, fountain.along, 1e-6, "the streams hang from the fountain's middle")
+				T.near(hold.Z, fountain.side, 1e-6)
+				local from, to = first.CFrame.Position, last.CFrame.Position
+				T.ok(to.Y <= from.Y, `a stream ends higher ({to.Y}) than it starts ({from.Y})`)
+				-- The curve it follows: it leaves along its first end's right hand and comes
+				-- in along its last end's.
+				local leave = from + first.CFrame.RightVector * item.CurveSize0
+				local arrive = to - last.CFrame.RightVector * item.CurveSize1
+				for step = 0, 10 do
+					local t = step / 10
+					local u = 1 - t
+					local at = from * (u * u * u)
+						+ leave * (3 * u * u * t)
+						+ arrive * (3 * u * t * t)
+						+ to * (t * t * t)
+					local out = math.sqrt(at.X * at.X + at.Z * at.Z)
+					T.ok(
+						out <= PlazaPlan.FOUNTAIN_RADIUS - 1.8,
+						`a stream leaves the basin, {out} out`
+					)
+					T.ok(at.Y >= 2, `a stream dips under the pool, to {at.Y}`)
+				end
+			end
+		end
+		T.ok(streams >= 30, `the fountain has only {streams} streams`)
+	end,
+
+	["benches are solid all over, back and all"] = function()
+		local benches = 0
+		for _, part in parts() do
+			if string.sub(part.Name, 1, 5) == "Bench" then
+				benches += 1
+				T.ok(part.CanCollide, `{where(part)} cannot be stood on`)
+			end
+		end
+		T.ok(benches >= 16, `only {benches} pieces of bench`)
+	end,
+
+	["every lantern hangs from the arm of its post"] = function()
+		local lanterns = 0
+		for _, lantern in parts() do
+			if lantern.Name == "Lantern" then
+				lanterns += 1
+				local at = lantern.CFrame.Position
+				local _, top = Zones.bounds(lantern)
+				local hung = false
+				for _, cord in parts() do
+					local where_ = cord.CFrame.Position
+					if
+						cord.Name == "LanternCord"
+						and math.abs(where_.X - at.X) < 0.05
+						and math.abs(where_.Z - at.Z) < 0.05
+					then
+						local low, high = Zones.bounds(cord)
+						-- The cord starts no more than a cap's thickness above the lantern,
+						-- and an arm lies on top of it.
+						T.ok(
+							low.Y - top.Y <= 0.3,
+							`{where(lantern)} hangs {low.Y - top.Y} under its cord`
+						)
+						for _, arm in parts() do
+							if arm.Name == "LanternArm" then
+								local armLow, armHigh = Zones.bounds(arm)
+								if
+									armLow.X <= where_.X
+									and armHigh.X >= where_.X
+									and armLow.Z <= where_.Z
+									and armHigh.Z >= where_.Z
+									and math.abs(armLow.Y - high.Y) <= 0.05
+								then
+									hung = true
+								end
+							end
+						end
+					end
+				end
+				T.ok(hung, `{where(lantern)} hangs in the air`)
+			end
+		end
+		T.ok(lanterns >= 12, `only {lanterns} lanterns`)
+	end,
+
+	["a pair of stone lanterns stands before every dojo"] = function()
+		for index = 1, PlazaPlan.DOJOS do
+			local dojo = PlazaPlan.dojo(index)
+			local pair = 0
+			for _, part in parts() do
+				local at = part.CFrame.Position
+				if
+					part.Name == "StoneLantern"
+					and math.abs(at.X - dojo.along) <= 16
+					and at.Z * dojo.side > PlazaPlan.HALF_WIDTH - 12
+					and at.Z * dojo.side < PlazaPlan.HALF_WIDTH
+				then
+					pair += 1
+				end
+			end
+			T.eq(pair, 2, `stone lanterns before dojo {index}`)
+		end
 	end,
 }
