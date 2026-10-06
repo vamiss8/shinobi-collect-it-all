@@ -81,6 +81,40 @@ return function(scene: Kit.Scene)
 		end
 	end)
 
+	-- The zone's sign: a scorched board in a frame of the beast's own wood, splinters standing
+	-- up from its top and torn banners hanging at its ends.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 1, c.spike, wood)
+		for i = 0, 5 do
+			local base = at(a, sign.top + 0.8, -half + 3 + i * (sign.width - 6) / 5)
+			Kit.rod(
+				scene,
+				base,
+				base + Vector3.new(0, pick(2.4, 5), pick(-1.6, 1.6)),
+				pick(0.6, 1),
+				c.spike,
+				wood
+			)
+		end
+		for _, side in { -1, 1 } do
+			Kit.box(
+				scene,
+				Vector3.new(0.15, pick(3.5, 5), 2.6),
+				at(a - 2.8, sign.foot - 5.4, side * (half - 2)),
+				c.banner,
+				cloth
+			)
+			Kit.box(
+				scene,
+				Vector3.new(1.8, 1.2, 2.4),
+				at(a, sign.foot - 2.2, side * 13),
+				c.gateDark,
+				wood
+			)
+		end
+	end)
+
 	-- What the lane leads to: the God Tree, past its far end. A trunk of four drums, roots
 	-- thrown out over the ground, boughs spread under a bud that has begun to open, and in the
 	-- bud, on the side that looks down the lane, a pale light.

@@ -1,8 +1,8 @@
 --!strict
--- How every zone looks: its colors, the ground beside the lane and the lane's own surface, its
--- light and its weather. The scenery itself is built by the server (World/ZoneArt, one module
--- per zone id) out of these colors; the light and the weather are put on by each client as its
--- camera enters the zone (client Mood and Weather).
+-- How every zone looks: its colors, the ground beside the lane and the lane's own surface, the
+-- board of its sign, its light and its weather. The scenery itself is built by the server
+-- (World/ZoneArt, one module per zone id) out of these colors; the light and the weather are
+-- put on by each client as its camera enters the zone (client Mood and Weather).
 --
 -- Plain data, so that it can be checked without Roblox: colors are hex strings and materials
 -- are named as in Enum.Material.
@@ -68,6 +68,7 @@ export type Art = {
 	palette: { [string]: string },
 	ground: Surface, -- the ground either side of the lane, all the way to the horizon
 	lane: Surface?, -- the lane's own surface; nil leaves it as the Hub built it
+	sign: Surface?, -- the board of the zone's sign; dark, for the writing on it is light
 	light: Light,
 	weather: Weather?,
 }
@@ -223,6 +224,7 @@ ZoneArt.zones = {
 		palette = VILLAGE,
 		ground = { color = "#7CB342", material = "Grass" },
 		lane = { color = "#9CCC65", material = "Grass" },
+		sign = { color = "#4E342E", material = "WoodPlanks" },
 		light = MORNING,
 		weather = drifting({ rate = 2, color = "#A5C95A", shift = { 0, 22, 0 } }),
 	},
@@ -248,6 +250,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#3E6F8E", material = "Glass" },
 		lane = { color = "#9A7B5B", material = "WoodPlanks" },
+		sign = { color = "#3B2F26", material = "WoodPlanks" },
 		light = light({
 			clock = 6.6,
 			brightness = 1.6,
@@ -285,6 +288,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#2F4A1E", material = "LeafyGrass" },
 		lane = { color = "#3F5226", material = "LeafyGrass" },
+		sign = { color = "#23292B", material = "SmoothPlastic" },
 		light = light({
 			clock = 9.6,
 			brightness = 1.4,
@@ -334,6 +338,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#C4B28A", material = "Sand" },
 		lane = { color = "#E3CFA0", material = "Sand" },
+		sign = { color = "#3A2A22", material = "WoodPlanks" },
 		light = light({
 			clock = 12.2,
 			brightness = 3.6,
@@ -369,6 +374,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#5C6468", material = "Slate" },
 		lane = { color = "#6E7479", material = "Slate" },
+		sign = { color = "#33383B", material = "Slate" },
 		light = light({
 			clock = 17.6,
 			brightness = 1.8,
@@ -410,6 +416,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#DEB873", material = "Sand" },
 		lane = { color = "#EBC47E", material = "Sand" },
+		sign = { color = "#5B3F26", material = "Sandstone" },
 		light = light({
 			clock = 14,
 			brightness = 4,
@@ -461,6 +468,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#2E2426", material = "Slate" },
 		lane = { color = "#3A2B2D", material = "Slate" },
+		sign = { color = "#141214", material = "Fabric" },
 		light = light({
 			clock = 20.5,
 			brightness = 0.6,
@@ -522,6 +530,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#4E5C66", material = "Concrete" },
 		lane = { color = "#60707B", material = "Cobblestone" },
+		sign = { color = "#2B363E", material = "Concrete" },
 		light = light({
 			clock = 15.6,
 			brightness = 1.5,
@@ -559,6 +568,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#7D7F8E", material = "SmoothPlastic" },
 		lane = { color = "#9B9DAC", material = "SmoothPlastic" },
+		sign = { color = "#4B4E60", material = "SmoothPlastic" },
 		light = light({
 			clock = 18.9,
 			brightness = 0.4,
@@ -607,6 +617,7 @@ ZoneArt.zones = {
 		},
 		ground = { color = "#3E322E", material = "Ground" },
 		lane = { color = "#4A3B37", material = "Ground" },
+		sign = { color = "#2E2320", material = "WoodPlanks" },
 		light = light({
 			clock = 19.3,
 			outdoor = "#6E3C5A",

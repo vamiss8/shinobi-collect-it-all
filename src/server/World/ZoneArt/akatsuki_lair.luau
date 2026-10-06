@@ -70,9 +70,9 @@ return function(scene: Kit.Scene)
 				side * -14
 			)
 		end
-		Kit.box(scene, Vector3.new(13, 6, 96), at(0, 21.4, 0), c.rockDark, slate)
-		Kit.box(scene, Vector3.new(0.3, 3.4, 2.6), at(-6.7, 19.4, 0), c.bone, cloth)
-		Kit.box(scene, Vector3.new(0.35, 1.6, 0.5), at(-6.75, 20.3, 0), c.cloud, cloth)
+		Kit.box(scene, Vector3.new(13, 6, 96), at(0, 20.6, 0), c.rockDark, slate)
+		Kit.box(scene, Vector3.new(0.3, 3.4, 2.6), at(-6.7, 18.6, 0), c.bone, cloth)
+		Kit.box(scene, Vector3.new(0.35, 1.6, 0.5), at(-6.75, 19.5, 0), c.cloud, cloth)
 	end)
 
 	-- The walls: slabs of rock standing shoulder to shoulder, boulders heaped at their feet.
@@ -211,6 +211,37 @@ return function(scene: Kit.Scene)
 			c.rockDark
 		)
 	end
+
+	-- The zone's sign: a black banner edged in red on the slab over the cave's mouth, red
+	-- clouds at its ends and crystal growing from its top.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 0.9, c.cloud, cloth)
+		for _, side in { -1, 1 } do
+			local middle = (sign.foot + sign.top) / 2
+			Kit.ball(scene, 3.4, at(a, middle, side * (half + 2.2)), c.cloud)
+			Kit.ball(scene, 2.6, at(a, middle + 1.6, side * (half + 3.6)), c.cloud)
+			Kit.ball(scene, 2.4, at(a, middle - 1.2, side * (half + 4)), c.cloud)
+			Kit.box(
+				scene,
+				Vector3.new(2.4, 1.2, 3),
+				at(a, sign.foot - 1.8, side * 13),
+				c.rockDark,
+				slate
+			)
+		end
+		for i = -1, 1 do
+			local base = at(a, sign.top + 0.6, i * 12 + pick(-2, 2))
+			Kit.rod(
+				scene,
+				base,
+				base + Vector3.new(0, pick(2.4, 4.2), pick(-1.2, 1.2)),
+				0.9,
+				c.crystal,
+				Enum.Material.Neon
+			)
+		end
+	end)
 
 	-- From outside the cave is a mountain. Rock is heaped against its walls, each heap half a
 	-- ball that ends inside the wall's thickness, and piled over its roof; higher ground rises

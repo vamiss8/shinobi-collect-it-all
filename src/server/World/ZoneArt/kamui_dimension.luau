@@ -32,8 +32,8 @@ return function(scene: Kit.Scene)
 			Kit.box(scene, Vector3.new(6, 6, 6), at(-0.4, 15, side * 36.8), c.cubeLight)
 		end
 		Kit.box(scene, Vector3.new(6, 5, 84), at(0, 21, 0), c.cube)
-		Kit.box(scene, Vector3.new(4, 3, 40), at(1.6, 24.4, -18), c.cubeLight)
-		Kit.box(scene, Vector3.new(4, 3, 34), at(-1.4, 24.6, 22), c.cubeDark)
+		Kit.box(scene, Vector3.new(4, 3, 40), at(1.6, 23.6, -18), c.cubeLight)
+		Kit.box(scene, Vector3.new(4, 3, 34), at(-1.4, 23.8, 22), c.cubeDark)
 	end)
 
 	-- The ranks of cuboids: low by the lane, higher the farther out they stand.
@@ -112,6 +112,44 @@ return function(scene: Kit.Scene)
 			neon
 		)
 	end
+
+	-- The zone's sign: a dark slab held in a loose frame of cubes, a line of violet light under
+	-- it.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		for i = 0, 6 do
+			local size = pick(2.2, 4)
+			Kit.box(
+				scene,
+				Vector3.new(size, size, size),
+				at(a + pick(-0.4, 0.4), sign.top - 0.3, -half + i * (sign.width / 6)),
+				Kit.oneOf(scene, shades)
+			)
+		end
+		for _, side in { -1, 1 } do
+			for i = 0, 2 do
+				local size = pick(2.2, 3.4)
+				Kit.box(
+					scene,
+					Vector3.new(size, size, size),
+					at(
+						a + pick(-0.4, 0.4),
+						sign.foot + i * (sign.height - 3) / 2,
+						side * (half + size / 2 - 0.2)
+					),
+					Kit.oneOf(scene, shades)
+				)
+			end
+			Kit.box(scene, Vector3.new(3, 2.6, 3), at(a, sign.foot - 2.8, side * 12), c.cubeDark)
+		end
+		Kit.box(
+			scene,
+			Vector3.new(0.5, 0.3, sign.width + 2),
+			at(a, sign.foot - 0.4, 0),
+			c.edge,
+			neon
+		)
+	end)
 
 	-- And past the great blocks stand greater ones, lost in the gray.
 	for i = 1, 10 do

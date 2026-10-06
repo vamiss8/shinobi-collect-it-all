@@ -8,11 +8,13 @@ local MATERIALS = {
 	Cobblestone = true,
 	Concrete = true,
 	DiamondPlate = true,
+	Fabric = true,
 	Glass = true,
 	Grass = true,
 	Ground = true,
 	LeafyGrass = true,
 	Sand = true,
+	Sandstone = true,
 	Slate = true,
 	SmoothPlastic = true,
 	WoodPlanks = true,
@@ -56,6 +58,10 @@ return {
 			if art.lane then
 				T.ok(isHex(art.lane.color), `{id}: lane color`)
 				T.ok(MATERIALS[art.lane.material] == true, `{id}: lane of {art.lane.material}`)
+			end
+			if art.sign then
+				T.ok(isHex(art.sign.color), `{id}: sign color`)
+				T.ok(MATERIALS[art.sign.material] == true, `{id}: sign of {art.sign.material}`)
 			end
 			for _, field in LIGHT_COLORS do
 				local color = (art.light :: any)[field]
@@ -103,6 +109,17 @@ return {
 					T.ok(weather.flash[1] >= 3, `{id} flashes too often`)
 					T.ok(weather.flash[2] >= weather.flash[1], `{id} flash gap is backwards`)
 				end
+			end
+		end
+	end,
+
+	-- The writing on a sign is light, so its board must be dark enough to read it against.
+	["every zone's sign has a dark board"] = function()
+		for id, art in ZoneArt.zones do
+			local sign = art.sign
+			T.ok(sign ~= nil, `{id} has no board for its sign`)
+			if sign then
+				T.ok(brightness(sign.color) <= 0.36, `{id}: the sign's board is too pale`)
 			end
 		end
 	end,

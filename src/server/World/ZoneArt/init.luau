@@ -2,7 +2,7 @@
 -- The scenery of the world. Every zone has a module of its own here, named by the zone's id,
 -- that builds what stands around its stretch of the lane out of plain parts, and a folder of
 -- its own in Workspace.Zones; `home` does the same for the village round the dojos. What a zone
--- is colored in and the surface of its lane come from Config/ZoneArt;
+-- is colored in, the surface of its lane and the board of its sign come from Config/ZoneArt;
 -- its light and its weather are each client's business (client Mood, Weather).
 --
 -- The world is never seen to end: every scene lays its ground out to Kit.FAR and stands a
@@ -45,8 +45,8 @@ local function surface(part: Instance?, look: Looks.Surface?)
 	end
 end
 
--- Call after Hub.start(): positions are in the Hub's coordinates, and the lane it built gets
--- each zone's surface here.
+-- Call after Hub.start(): positions are in the Hub's coordinates, and the lane and the signs
+-- it built get each zone's surfaces here.
 function ZoneArt.start()
 	local root = Instance.new("Folder")
 	root.Name = "Zones"
@@ -74,6 +74,7 @@ function ZoneArt.start()
 		end
 		if hub then
 			surface(hub:FindFirstChild(`Lane_{zone.id}`), art.lane)
+			surface(hub:FindFirstChild(`Sign_{zone.id}`), art.sign)
 		end
 		local build = BUILDERS[zone.id]
 		if build then

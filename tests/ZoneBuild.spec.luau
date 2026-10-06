@@ -4,6 +4,7 @@
 -- built the same way and held to the rules that apply to it.
 
 local Catalog = require("../src/shared/Config/Catalog")
+local Signs = require("../src/shared/Logic/Signs")
 local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
 local Zones = require("./zones")
@@ -14,8 +15,12 @@ local LANE_EDGE = Zones.LANE_WIDTH / 2 + 1.5
 -- Unless it lies flat on the lane, like a puddle, or hangs above the kunai's path.
 local FLAT = 0.15
 local CLEAR = 80
--- A gate's beams cross the lane between these heights: over the tallest enemy, under the sign.
-local GATE_FROM, GATE_TO = 18, 28.5
+-- A gate's beams cross the lane between these heights: over the tallest enemy, and no higher
+-- than the foot of the zone's sign, which stands on the gate.
+local GATE_FROM, GATE_TO = 18, Signs.FOOT
+-- The frame of a sign stays this close to its board: no lower than this under its foot, no
+-- higher than this over its top, and no farther than this up or down the lane.
+local FRAME_UNDER, FRAME_OVER, FRAME_NEAR = 6, 10, 4
 local BUDGET = { 300, 600 }
 local LIGHTS = 12
 local SHADOW_FROM = 10
@@ -121,7 +126,7 @@ return {
 		for _, scenery in scenes() do
 			for _, part in scenery.parts do
 				local low, high = Zones.bounds(part)
-				if not scenery.gate[part] and overLane(low, high) then
+				if not scenery.gate[part] and not scenery.frame[part] and overLane(low, high) then
 					T.ok(
 						high.Y <= FLAT or low.Y >= CLEAR,
 						`{scenery.id}: {where(part)} is in the way, from {low.Y} to {high.Y} up`
@@ -131,7 +136,7 @@ return {
 		end
 	end,
 
-	["a gate stands where its zone begins and crosses the lane at the right height"] = function()
+	["a gate stands where its zone begins and crosses the lane under the zone's sign"] = function()
 		for index, zone in Catalog.zones do
 			local scenery = sceneBuilt(zone.id)
 			local crossing = 0
@@ -156,6 +161,61 @@ return {
 				T.eq(crossing, 0, "the first zone has no gate")
 			else
 				T.ok(crossing > 0, `{zone.id} has no gate over the lane`)
+			end
+		end
+	end,
+
+	["every sign has a frame that stays by its board and off its writing"] = function()
+		for _, zone in Catalog.zones do
+			local scenery = sceneBuilt(zone.id)
+			local sign = scenery.sign :: Signs.Box
+			local along = scenery.from + sign.along
+			local count = 0
+			for _, part in scenery.parts do
+				if scenery.frame[part] then
+					count += 1
+					local low, high = Zones.bounds(part)
+					T.ok(
+						low.X >= along - FRAME_NEAR and high.X <= along + FRAME_NEAR,
+						`{zone.id}: {where(part)} of the sign's frame is not by the board`
+					)
+					-- Its posts may stand on the ground beside the lane; over the lane it stays up.
+					T.ok(
+						not overLane(low, high) or low.Y >= sign.foot - FRAME_UNDER,
+						`{zone.id}: {where(part)} of the sign's frame hangs to {low.Y}`
+					)
+					T.ok(
+						high.Y <= sign.top + FRAME_OVER,
+						`{zone.id}: {where(part)} of the sign's frame rises to {high.Y}`
+					)
+					-- Nothing of the frame in front of what is written, on either face.
+					local onWriting = low.Z < sign.width * 0.46
+						and high.Z > -sign.width * 0.46
+						and low.Y < sign.top - Signs.MARGIN
+						and high.Y > sign.foot + Signs.MARGIN
+					T.ok(not onWriting, `{zone.id}: {where(part)} of the frame covers the writing`)
+				end
+			end
+			T.ok(count >= 6, `{zone.id}: the sign's frame is {count} parts`)
+		end
+	end,
+
+	["a sign is tall enough for what is written on it"] = function()
+		for index, zone in Catalog.zones do
+			local box = Signs.box(zone)
+			local lines = #Signs.details(zone)
+			T.near(
+				box.height,
+				2 * Signs.MARGIN + Signs.NAME + lines * Signs.LINE,
+				1e-9,
+				`{zone.id} height`
+			)
+			T.near(box.top - box.foot, box.height, 1e-9, `{zone.id} top`)
+			if index == 1 then
+				T.ok(box.along > Tuning.Kick.stripDepth, "the first sign is past the strip")
+			else
+				T.near(box.along, zone.startsAt + 0.5, 1e-9, `{zone.id} stands at its start`)
+				T.eq(box.foot, Signs.FOOT)
 			end
 		end
 	end,

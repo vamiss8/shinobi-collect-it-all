@@ -192,6 +192,49 @@ return function(scene: Kit.Scene)
 		Kit.rod(scene, top, top - Vector3.new(pick(-2, 2), pick(18, 32), 0), 0.5, c.vine, leaves)
 	end
 
+	-- The zone's sign: a sheet of dark metal in the fence's steel, hazard marks down its sides,
+	-- moss on its top and a creeper hanging off one end.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 0.8, c.fence, metal)
+		for _, side in { -1, 1 } do
+			for mark = 0, 2 do
+				Kit.box(
+					scene,
+					Vector3.new(1.3, 1.1, 0.9),
+					at(a, sign.foot + 1 + mark * (sign.height - 3.1) / 2, side * (half + 0.4)),
+					c.signMark
+				)
+			end
+			Kit.box(scene, Vector3.new(1, 1.2, 1), at(a, sign.foot - 2, side * 12), c.fence, metal)
+		end
+		for i = 0, 3 do
+			Kit.ball(
+				scene,
+				pick(1.8, 2.8),
+				at(a, sign.top + 0.9, -15 + i * 9 + pick(-2, 2)),
+				c.moss,
+				leaves
+			)
+		end
+		Kit.rod(
+			scene,
+			at(a, sign.top + 0.6, half - 1),
+			at(a + 0.2, sign.foot + 2, half + 1.8),
+			0.5,
+			c.vine,
+			leaves
+		)
+		Kit.rod(
+			scene,
+			at(a, sign.top + 0.6, half - 0.6),
+			at(a - 0.2, sign.top - 3.4, half + 2.6),
+			0.4,
+			c.vine,
+			leaves
+		)
+	end)
+
 	-- Behind the giants the forest goes on: a wall of trunks whose crowns have grown into one
 	-- roof, and dark wooded heights beyond.
 	for _, side in { -1, 1 } do

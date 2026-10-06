@@ -68,10 +68,10 @@ return function(scene: Kit.Scene)
 			local lamp = Kit.ball(scene, 1.6, at(-1.4, 20, side * 34), c.lamp, neon)
 			Kit.light(scene, lamp, c.lamp, 22, 1)
 		end
-		Kit.box(scene, Vector3.new(3, 3, 90), at(0, 23.5, 0), c.steel, paint)
-		Kit.rod(scene, at(1.2, 27.2, -44), at(1.2, 27.2, 44), 1.2, c.pipe, concrete, true)
-		Kit.rod(scene, at(-1.2, 22.8, -44), at(-1.2, 22.8, 44), 0.8, c.rust, concrete, true)
-		Kit.box(scene, Vector3.new(0.3, 2, 14), at(-1.6, 19.4, 0), c.window, neon)
+		Kit.box(scene, Vector3.new(3, 3, 90), at(0, 22.6, 0), c.steel, paint)
+		Kit.rod(scene, at(1.2, 26.2, -44), at(1.2, 26.2, 44), 1.2, c.pipe, concrete, true)
+		Kit.rod(scene, at(-1.2, 21.9, -44), at(-1.2, 21.9, 44), 0.8, c.rust, concrete, true)
+		Kit.box(scene, Vector3.new(0.3, 2, 14), at(-1.6, 18.6, 0), c.window, neon)
 	end)
 
 	-- A tower: a shaft, a narrower block set on top of it, a spire, a dark band round its
@@ -310,6 +310,51 @@ return function(scene: Kit.Scene)
 			Kit.pillar(scene, 0.06, pick(5, 9), at(20 + i * 36, 0.02, pick(-22, 22)), c.puddle)
 		puddle.Reflectance = 0.4
 	end
+
+	-- The zone's sign: a dark plate bolted into a steel frame on the gantry, a pipe run over its
+	-- top and a strip of cold light down each side.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 0.8, c.steelDark, paint)
+		for _, side in { -1, 1 } do
+			for _, y in { sign.foot - 0.4, sign.top + 0.4 } do
+				Kit.rod(
+					scene,
+					at(a - 0.8, y, side * (half + 0.4)),
+					at(a + 0.8, y, side * (half + 0.4)),
+					0.9,
+					c.steelLight,
+					Enum.Material.Metal,
+					true
+				)
+			end
+			Kit.box(
+				scene,
+				Vector3.new(0.5, sign.height - 1.6, 0.4),
+				at(a, sign.foot + 0.8, side * (half + 1.3)),
+				c.lamp,
+				neon
+			)
+			Kit.box(
+				scene,
+				Vector3.new(1.4, 1.2, 1.4),
+				at(a, sign.foot - 2, side * 13),
+				c.steelDark,
+				paint
+			)
+		end
+		Kit.rod(
+			scene,
+			at(a, sign.top + 1.5, -half - 2.4),
+			at(a, sign.top + 1.5, half + 2.4),
+			1.2,
+			c.pipe,
+			paint,
+			true
+		)
+		Kit.rod(scene, at(a, sign.top + 2, 9), at(a, sign.top + 3.4, 9), 0.6, c.rust, paint, true)
+		Kit.rod(scene, at(a, sign.top + 3.4, 9), at(a, sign.top + 3.7, 9), 2.2, c.rust, paint, true)
+	end)
 
 	-- Farther off the village goes on: towers too far away to be anything but their shapes.
 	for _, side in { -1, 1 } do

@@ -267,6 +267,50 @@ return function(scene: Kit.Scene)
 		bank.CastShadow = false
 	end
 
+	-- The zone's sign: a board of wet planks lashed to the gate's beam, a lantern at each end.
+	Kit.signage(scene, function(sign)
+		local a = sign.along
+		Kit.border(scene, sign, 0.9, c.pile, wood)
+		for _, z in { -14, 0, 14 } do
+			Kit.box(scene, Vector3.new(1.2, 1.3, 1.2), at(a, sign.foot - 2.2, z), c.plankDark, wood)
+		end
+		for _, side in { -1, 1 } do
+			for _, y in { sign.top + 0.45, sign.foot - 0.45 } do
+				Kit.rod(
+					scene,
+					at(a, y, side * (sign.width / 2 - 1.2)),
+					at(a, y, side * (sign.width / 2 + 1.4)),
+					1.5,
+					c.rope,
+					Enum.Material.Fabric,
+					true
+				)
+			end
+			Kit.rod(
+				scene,
+				at(a, sign.top + 0.6, side * (sign.width / 2 + 2.6)),
+				at(a, sign.top - 2.2, side * (sign.width / 2 + 2.6)),
+				0.2,
+				c.rope
+			)
+			Kit.ball(
+				scene,
+				1.5,
+				at(a, sign.top - 2.9, side * (sign.width / 2 + 2.6)),
+				c.foam,
+				Enum.Material.Neon
+			)
+			Kit.rod(
+				scene,
+				at(a, sign.top + 0.6, side * (sign.width / 2 + 0.6)),
+				at(a, sign.top + 0.6, side * (sign.width / 2 + 3)),
+				0.4,
+				c.pile,
+				wood
+			)
+		end
+	end)
+
 	-- Far out, larger islands show through the fog as shapes and no more.
 	for i = 1, 6 do
 		local side = if i % 2 == 0 then -1 else 1

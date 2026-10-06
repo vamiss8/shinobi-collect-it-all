@@ -4,7 +4,8 @@
 -- the right, a ramen stand at the far corner, village houses behind, and far off a cliff with
 -- four great faces cut into it. Wooded hills close the view on both sides.
 --
--- The zone has no gate of its own: it begins at the throwing strip, which is the Hub's.
+-- The zone has no gate of its own: it begins at the throwing strip, which is the Hub's. Its
+-- sign hangs between two poles a little way past the strip.
 
 local Kit = require("./Kit")
 
@@ -297,6 +298,63 @@ return function(scene: Kit.Scene)
 			if i % 2 == 0 then c.flower else c.blossom
 		)
 	end
+
+	-- The zone's sign hangs between two poles just past the strip, in a frame of laths with a
+	-- red band over it and paper tags under it. Nothing stands behind the writing.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		local wood = Enum.Material.Wood
+		for _, side in { -1, 1 } do
+			Kit.box(scene, Vector3.new(1.4, sign.top + 5, 1.4), at(a, 0, side * 35), c.trim, wood)
+			Kit.box(
+				scene,
+				Vector3.new(2.4, 0.6, 2.4),
+				at(a, sign.top + 5, side * 35),
+				c.roofDark,
+				wood
+			)
+			Kit.box(
+				scene,
+				Vector3.new(0.4, sign.height, 0.4),
+				at(a, sign.foot, side * (half + 0.8)),
+				c.trim,
+				wood
+			)
+			-- Cords from the pole to the corners of the frame.
+			Kit.rod(
+				scene,
+				at(a, sign.top + 2.6, side * 34.4),
+				at(a, sign.top + 0.4, side * (half + 0.8)),
+				0.25,
+				c.cloth
+			)
+			Kit.rod(
+				scene,
+				at(a, sign.foot + 2, side * 34.4),
+				at(a, sign.foot - 0.2, side * (half + 0.8)),
+				0.25,
+				c.cloth
+			)
+		end
+		Kit.rod(scene, at(a, sign.top + 3.4, -35), at(a, sign.top + 3.4, 35), 0.7, c.trim, wood)
+		Kit.box(
+			scene,
+			Vector3.new(0.5, 0.9, sign.width + 2.4),
+			at(a, sign.top, 0),
+			c.band,
+			Enum.Material.Fabric
+		)
+		Kit.box(
+			scene,
+			Vector3.new(0.4, 0.4, sign.width + 2.4),
+			at(a, sign.foot - 0.4, 0),
+			c.trim,
+			wood
+		)
+		for i = -2, 2 do
+			Kit.box(scene, Vector3.new(0.1, 1.5, 0.9), at(a, sign.foot - 1.9, i * 8), c.cloth)
+		end
+	end)
 
 	-- The wooded hills the village lies among close the view: a nearer row with trees standing
 	-- on it and a higher one behind. On the left they rise behind the cliff.

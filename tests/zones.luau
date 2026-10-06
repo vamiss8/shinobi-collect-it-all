@@ -13,6 +13,7 @@ local roblox = require("@lune/roblox")
 
 local Catalog = require("../src/shared/Config/Catalog")
 local Looks = require("../src/shared/Config/ZoneArt")
+local Signs = require("../src/shared/Logic/Signs")
 local Tuning = require("../src/shared/Config/Tuning")
 
 local Zones = {}
@@ -88,6 +89,7 @@ end
 local replicated = {
 	Shared = {
 		Config = { Catalog = marker(Catalog), ZoneArt = marker(Looks), Tuning = marker(Tuning) },
+		Logic = { Signs = marker(Signs) },
 		View = { Particles = marker(particles) },
 	},
 }
@@ -155,6 +157,8 @@ export type Built = {
 	id: string,
 	parts: { any }, -- the scene's parts, in the order they were made
 	gate: { [any]: boolean }, -- which of them are its gate
+	frame: { [any]: boolean }, -- and which the frame of its sign
+	sign: Signs.Box?, -- the sign itself, in the scene's own coordinates
 	lights: number,
 	from: number,
 	to: number,
@@ -165,10 +169,16 @@ local function built(scene: any, from: number, to: number): Built
 	for _, part in scene.arch do
 		gate[part] = true
 	end
+	local frame: { [any]: boolean } = {}
+	for _, part in scene.signage do
+		frame[part] = true
+	end
 	return {
 		id = scene.id,
 		parts = scene.folder:GetChildren(),
 		gate = gate,
+		frame = frame,
+		sign = scene.sign,
 		lights = scene.lights,
 		from = from,
 		to = to,

@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hub = require("../Hub")
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
+local Signs = require(ReplicatedStorage.Shared.Logic.Signs)
 local ZoneArt = require(ReplicatedStorage.Shared.Config.ZoneArt)
 
 local Kit = {}
@@ -47,6 +48,10 @@ export type Scene = {
 	-- The pieces of the zone's gate. They are the only scenery allowed to cross the lane low.
 	arch: { BasePart },
 	inGateway: boolean,
+	-- The zone's sign, in the scene's own coordinates, and the pieces of its frame.
+	sign: Signs.Box?,
+	signage: { BasePart },
+	inSign: boolean,
 }
 
 -- A scene called `id` that begins `from` studs down the lane. Its random numbers come from
@@ -79,27 +84,46 @@ function Kit.place(id: string, seed: number, art: ZoneArt.Art, from: number, len
 		lights = 0,
 		arch = {},
 		inGateway = false,
+		sign = nil,
+		signage = {},
+		inSign = false,
 	}
 end
 
 -- A scene for the zone that is `index`-th on the lane.
 function Kit.scene(zone: Catalog.Zone, index: number, art: ZoneArt.Art): Scene
-	return Kit.place(
-		zone.id,
-		index * 7919,
-		art,
-		zone.startsAt,
-		Catalog.zoneEnd(zone) - zone.startsAt
-	)
+	local scene =
+		Kit.place(zone.id, index * 7919, art, zone.startsAt, Catalog.zoneEnd(zone) - zone.startsAt)
+	local box = Signs.box(zone)
+	scene.sign = {
+		along = box.along - zone.startsAt,
+		foot = box.foot,
+		top = box.top,
+		width = box.width,
+		height = box.height,
+	}
+	return scene
 end
 
 -- Builds the zone's gate: whatever `build` makes is marked as part of it. A gate stands where
 -- the zone begins, its posts outside the walls and its beams over the lane, high enough for
--- the tallest enemy to run under and below the zone's sign, which the Hub hangs above it.
+-- the tallest enemy to run under and no higher than the foot of the zone's sign, which stands
+-- on it.
 function Kit.gateway(scene: Scene, build: () -> ())
 	scene.inGateway = true
 	build()
 	scene.inGateway = false
+end
+
+-- Builds the frame of the zone's sign: whatever `build` makes is marked as part of it. The
+-- board and its writing are the Hub's; a frame goes round the board, never across its faces.
+function Kit.signage(scene: Scene, build: (sign: Signs.Box) -> ())
+	local sign = scene.sign
+	if sign then
+		scene.inSign = true
+		build(sign)
+		scene.inSign = false
+	end
 end
 
 -- A point of the zone in the world.
@@ -126,6 +150,9 @@ local function dress(scene: Scene, part: BasePart, color: Color3, material: Enum
 	scene.parts += 1
 	if scene.inGateway then
 		table.insert(scene.arch, part)
+	end
+	if scene.inSign then
+		table.insert(scene.signage, part)
 	end
 end
 
@@ -373,6 +400,30 @@ function Kit.beyond(scene: Scene): { Part }
 		table.insert(parts, part)
 	end
 	return parts
+end
+
+-- A plain border round the sign's board: four bars `thick` wide that stand a little proud of
+-- it on both faces.
+function Kit.border(
+	scene: Scene,
+	sign: Signs.Box,
+	thick: number,
+	color: Color3,
+	material: Enum.Material?
+)
+	local deep = Signs.THICKNESS + 0.6
+	local bar = Vector3.new(deep, thick, sign.width + 2 * thick)
+	Kit.box(scene, bar, Kit.at(scene, sign.along, sign.top, 0), color, material)
+	Kit.box(scene, bar, Kit.at(scene, sign.along, sign.foot - thick, 0), color, material)
+	for _, side in { -1, 1 } do
+		Kit.box(
+			scene,
+			Vector3.new(deep, sign.height, thick),
+			Kit.at(scene, sign.along, sign.foot, side * (sign.width + thick) / 2),
+			color,
+			material
+		)
+	end
 end
 
 -- A light on a piece of scenery. Kept few, and none of them casts shadows.

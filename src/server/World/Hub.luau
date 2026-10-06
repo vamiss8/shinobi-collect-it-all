@@ -14,10 +14,8 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
-local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
-local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Net = require(ReplicatedStorage.Shared.Net)
-local Roll = require(ReplicatedStorage.Shared.Logic.Roll)
+local Signs = require(ReplicatedStorage.Shared.Logic.Signs)
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 
 local Hub = {}
@@ -252,6 +250,58 @@ local function buildStrip(folder: Folder): Part
 	return strip
 end
 
+-- A zone's sign: a board across the lane where the zone begins, with its name and what it asks
+-- of a thrower written on both faces, so that it reads from the strip and on the run home. Where
+-- it hangs and what it says is in Logic/Signs; the zone's scenery (World/ZoneArt) paints the
+-- board and builds a frame round it in the zone's own style.
+local function buildSign(folder: Folder, zone: Catalog.Zone, boarded: boolean)
+	local box = Signs.box(zone)
+	local board = Build.part(
+		folder,
+		`Sign_{zone.id}`,
+		Vector3.new(Signs.THICKNESS, box.height, box.width),
+		Hub.at(box.along, (box.foot + box.top) / 2, 0),
+		DARK_WOOD,
+		Enum.Material.WoodPlanks
+	)
+	board.CanCollide = false
+	board.CanQuery = false
+	board.CastShadow = false
+	board.Transparency = if boarded then 0 else 1
+
+	-- The faces that look up the lane and down it. Writing on a part's side reads the right way
+	-- round from outside whichever side it is.
+	for _, face in { Enum.NormalId.Left, Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		-- The name's row comes out 100 pixels tall, the largest that scaled text is drawn at.
+		gui.PixelsPerStud = 24
+		-- Lit by itself, as the floating labels were: it has to be read at night too.
+		gui.LightInfluence = 0
+		gui.Parent = board
+
+		-- A row of writing, `top` studs below the board's top edge and `tall` studs high.
+		local function row(text: string, top: number, tall: number)
+			local label = Instance.new("TextLabel")
+			label.Position = UDim2.fromScale(0.03, top / box.height)
+			label.Size = UDim2.fromScale(0.94, tall / box.height)
+			label.BackgroundTransparency = 1
+			label.Font = Enum.Font.PermanentMarker
+			label.TextScaled = true
+			label.RichText = true
+			label.TextColor3 = Color3.new(1, 1, 1)
+			label.TextStrokeTransparency = 0.4
+			label.Text = text
+			label.Parent = gui
+		end
+		row(`<font color="#{PAPER:ToHex()}">{zone.name}</font>`, Signs.MARGIN, Signs.NAME)
+		for line, text in Signs.details(zone) do
+			row(text, Signs.MARGIN + Signs.NAME + (line - 1) * Signs.LINE, Signs.LINE)
+		end
+	end
+end
+
 function Hub.start()
 	local folder = Instance.new("Folder")
 	folder.Name = Net.HUB_FOLDER
@@ -304,30 +354,9 @@ function Hub.start()
 		end
 		marker.CanCollide = false
 
-		-- Past the first zone the sign hangs above the gate the zone's scenery raises at its start.
-		local signAt = if i == 1 then Tuning.Kick.stripDepth + 14 else zone.startsAt + 0.5
-		local signHeight = if i == 1 then 14 else 32
-		local post =
-			Build.part(folder, `Sign_{zone.id}`, Vector3.one, Hub.at(signAt, signHeight, 0), WOOD)
-		post.Transparency = 1
-		post.CanCollide = false
-		local rank = Catalog.ranks[Catalog.rankOrder[zone.rank]]
-		local slowest = Format.short(zone.enemy.speed)
-		local fastest = Format.short(Chase.farSpeed(zone))
-		local lines = {
-			zone.name,
-			`<font color="{rank.color}">{rank.name}</font>  |  {Format.short(zone.chakra)}+ Chakra`,
-			`<font color="#FF8A80">{zone.enemy.name} - speed {slowest} to {fastest}</font>`,
-		}
-		-- The last zone rewards depth with mutation luck (see Roll.depthMutationLuck).
-		local deepLuck = Roll.depthMutationLuck(zone, finish)
-		if deepLuck > 1 then
-			table.insert(
-				lines,
-				`<font color="#B39DDB">the deeper, the luckier: up to x{Format.short(deepLuck)} mutations</font>`
-			)
-		end
-		Build.label(post, table.concat(lines, "\n"), 0, Vector2.new(40, 4 * #lines))
+		-- The first sign hangs in front of whoever stands on the strip, so it is writing with
+		-- nothing behind it: a board there would stand in the thrower's view.
+		buildSign(folder, zone, i > 1)
 	end
 
 	Build.part(

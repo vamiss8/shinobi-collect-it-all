@@ -194,6 +194,40 @@ return function(scene: Kit.Scene)
 		)
 	end
 
+	-- The zone's sign: a dark board framed in wood under a red valance, gold studs at its
+	-- corners and a pennant at each end.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 0.9, c.wood, wood)
+		Kit.box(
+			scene,
+			Vector3.new(0.7, 1.3, sign.width + 3),
+			at(a, sign.top + 0.9, 0),
+			c.flag,
+			cloth
+		)
+		for _, side in { -1, 1 } do
+			for _, y in { sign.foot - 0.45, sign.top + 0.45 } do
+				Kit.ball(scene, 1.4, at(a, y, side * (half + 0.45)), c.crowdGold)
+			end
+			Kit.pillar(scene, 5, 0.35, at(a, sign.top + 2.2, side * (half + 0.4)), c.pole, wood)
+			Kit.box(
+				scene,
+				Vector3.new(0.15, 1.8, 3),
+				at(a, sign.top + 5.2, side * (half + 2)),
+				if side == 1 then c.flag else c.flagAlt,
+				cloth
+			)
+			Kit.box(
+				scene,
+				Vector3.new(1.4, 1.4, 1.4),
+				at(a, sign.foot - 2.3, side * 13),
+				c.cap,
+				stone
+			)
+		end
+	end)
+
 	-- The village's wooded hills beyond the stands: a nearer row with trees on it, a higher one
 	-- behind.
 	local grass = Enum.Material.Grass

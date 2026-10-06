@@ -1,7 +1,7 @@
 --!strict
 -- Builds every zone's scenery and the village's outside Roblox and prints what each is made
 -- of: how many parts, how many of them cast a shadow, how many lights, and how many parts its
--- gate is.
+-- gate and the frame of its sign are.
 --   lune run zones
 -- The rules the scenery must keep (the corridor over the lane, the budget of parts, a horizon
 -- that is closed) are tests: `lune run test`.
@@ -18,17 +18,27 @@ for _, zone in Catalog.zones do
 	table.insert(ids, zone.id)
 end
 
-print(pad("scene", 22) .. pad("parts", 8) .. pad("shadows", 9) .. pad("lights", 8) .. "gate")
+print(
+	pad("scene", 22)
+		.. pad("parts", 8)
+		.. pad("shadows", 9)
+		.. pad("lights", 8)
+		.. pad("gate", 6)
+		.. "sign"
+)
 local total = 0
 for _, id in ids do
 	local built = Zones.build(id)
-	local shadows, gate = 0, 0
+	local shadows, gate, frame = 0, 0, 0
 	for _, part in built.parts do
 		if part.CastShadow then
 			shadows += 1
 		end
 		if built.gate[part] then
 			gate += 1
+		end
+		if built.frame[part] then
+			frame += 1
 		end
 	end
 	total += #built.parts
@@ -37,7 +47,8 @@ for _, id in ids do
 			.. pad(tostring(#built.parts), 8)
 			.. pad(tostring(shadows), 9)
 			.. pad(tostring(built.lights), 8)
-			.. tostring(gate)
+			.. pad(tostring(gate), 6)
+			.. tostring(frame)
 	)
 end
 print(`{total} parts in all`)

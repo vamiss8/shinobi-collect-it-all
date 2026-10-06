@@ -336,6 +336,41 @@ return function(scene: Kit.Scene)
 		bank.CastShadow = false
 	end
 
+	-- The zone's sign: a slab of dark slate set in rough stone, moss on its top and a rope of
+	-- paper tags under it.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 1.2, c.rockDark, slate)
+		for _, side in { -1, 1 } do
+			Kit.rock(
+				scene,
+				at(a, sign.top + 0.6, side * (half - 1)),
+				Vector3.new(2.6, 2.2, 5),
+				c.rock
+			)
+			Kit.ball(scene, 2.2, at(a, sign.top + 1.6, side * 7), c.moss, Enum.Material.Grass)
+			Kit.box(scene, Vector3.new(2, 1.6, 3), at(a, sign.foot - 2.8, side * 14), c.rock, slate)
+		end
+		Kit.rod(
+			scene,
+			at(a - 0.7, sign.foot - 1.7, -half),
+			at(a - 0.7, sign.foot - 1.7, half),
+			0.5,
+			c.mist,
+			Enum.Material.Fabric,
+			true
+		)
+		for i = -1, 1 do
+			Kit.box(
+				scene,
+				Vector3.new(0.15, 1.4, 1),
+				at(a - 0.7, sign.foot - 3.3, i * 9 + 4.5),
+				c.foam,
+				Enum.Material.Fabric
+			)
+		end
+	end)
+
 	-- Past the canyon's rim the mountains go on: great crags near at hand, and behind them
 	-- heights that are only shapes in the rain.
 	for _, side in { -1, 1 } do

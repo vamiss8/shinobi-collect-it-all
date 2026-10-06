@@ -229,6 +229,33 @@ return function(scene: Kit.Scene)
 		)
 	end
 
+	-- The zone's sign: a tablet of dark clay banded like the cliffs, three small domes on its
+	-- top and strips of cloth hanging under it.
+	Kit.signage(scene, function(sign)
+		local a, half = sign.along, sign.width / 2
+		Kit.border(scene, sign, 1, c.strata, sandstone)
+		Kit.ball(scene, 4.6, at(a, sign.top + 1.9, 0), c.clay, sandstone)
+		for _, side in { -1, 1 } do
+			Kit.ball(scene, 3.2, at(a, sign.top + 1, side * (half - 1)), c.clay, sandstone)
+			Kit.box(
+				scene,
+				Vector3.new(1.6, 1.8, 2.4),
+				at(a, sign.foot - 2.8, side * 14),
+				c.cliff,
+				sandstone
+			)
+		end
+		for i = -2, 2 do
+			Kit.box(
+				scene,
+				Vector3.new(0.15, 1.6 + (i % 2) * 0.6, 1.4),
+				at(a - 0.6, sign.foot - 3 - (i % 2) * 0.6, i * 7.5),
+				if i % 2 == 0 then c.cloth else c.clothAlt,
+				cloth
+			)
+		end
+	end)
+
 	-- Past the cliffs the desert rolls on: long dunes, and table rocks standing out of the haze.
 	-- On the left the dunes keep clear of where the place's own spawn pad lies (80 studs along,
 	-- 300 out): a player is there for a moment before being sent to a dojo.
