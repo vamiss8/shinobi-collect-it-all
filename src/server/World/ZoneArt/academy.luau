@@ -47,7 +47,15 @@ return function(scene: Kit.Scene)
 			Enum.Material.Wood
 		)
 	end
-	Kit.roof(scene, at(58, 9.3, front + 2.5), 11, 3.4, 22, c.roof, Enum.Material.Slate)
+	-- The porch's roof leans on the wall: one slope, falling away from it. (A wedge's tall side
+	-- is its back; turned about, it stands against the wall.)
+	Kit.wedge(
+		scene,
+		Vector3.new(11, 2.2, 5.6),
+		CFrame.new(at(58, 9.1, front + 2.8)) * CFrame.Angles(0, math.pi, 0),
+		c.roof,
+		Enum.Material.Slate
+	)
 	-- The round sign over the door: a red disc with a dark mark, facing the lane.
 	Kit.rod(scene, at(58, 15, front + 0.2), at(58, 15, front + 0.8), 5, c.band, nil, true)
 	Kit.rod(scene, at(58, 15, front + 0.7), at(58, 15, front + 1), 2.2, c.door, nil, true)
@@ -62,7 +70,8 @@ return function(scene: Kit.Scene)
 	end
 	-- Its lower wing.
 	Kit.box(scene, Vector3.new(22, 13, 18), at(19, 0, front - 9), c.wallShade)
-	Kit.roof(scene, at(19, 18.3, front - 9), 24, 11, 26, c.roofDark, Enum.Material.Slate)
+	-- Its roof stops at the main building's wall: a stud longer, it cut into the wall.
+	Kit.roof(scene, at(18.5, 18.3, front - 9), 23.1, 11, 26, c.roofDark, Enum.Material.Slate)
 	for _, x in { 13, 25 } do
 		Kit.box(scene, Vector3.new(3, 4, 0.5), at(x, 5, front + 0.2), c.window)
 	end
@@ -166,52 +175,55 @@ return function(scene: Kit.Scene)
 	-- Far off on the left, the cliff over the village with four great faces cut into it, tall
 	-- enough to be seen over the Academy's roof from the lane. The faces are only blocks: a
 	-- brow, a nose, eyes, a mouth, each under a different crown of hair.
-	-- Each rock of the cliff stands under a cap of turf.
-	local tops: { number } = {}
-	for i = 0, 4 do
-		local height = pick(118, 140)
-		local z = -178 + pick(-4, 4)
+	--
+	-- The wall they are cut in is one rock standing square under a cap of turf, with room
+	-- between one face and the next. It was five rocks at first, each turned its own way, and
+	-- then one rock stood out over a face and the faces ran into one another. Rougher rock
+	-- flanks the wall, set back from its front, and steps down outside its ends.
+	local wall = -161 -- the wall's front, studs from the lane's middle
+	local slate = Enum.Material.Slate
+	local turf = Enum.Material.Grass
+	Kit.box(scene, Vector3.new(96, 132, 36), at(54, -2, wall - 18), c.cliff, slate)
+	Kit.box(scene, Vector3.new(98, 2.2, 38), at(54, 129.6, wall - 18), c.hill, turf)
+	for _, flank in { -1, 1 } do
+		local height = pick(98, 116)
+		local z = wall - 26 + pick(-4, 4)
 		local turn = pick(-6, 6)
 		Kit.box(
 			scene,
-			Vector3.new(30, height, 34),
-			at(10 + i * 20, -2, z),
-			c.cliff,
-			Enum.Material.Slate,
+			Vector3.new(30, height, 32),
+			at(54 + flank * 60, -2, z),
+			c.cliffShade,
+			slate,
 			turn
 		)
 		Kit.box(
 			scene,
-			Vector3.new(32, 2.2, 36),
-			at(10 + i * 20, height - 2.4, z),
+			Vector3.new(32, 2.2, 34),
+			at(54 + flank * 60, height - 2.4, z),
 			c.hill,
-			Enum.Material.Grass,
+			turf,
 			turn
 		)
-		tops[i + 1] = height - 2
+	end
+	for _, x in { -6, 114, 126 } do
+		local height = pick(46, 78)
+		local z = wall - 12 + pick(-3, 3)
+		Kit.box(scene, Vector3.new(22, height, 26), at(x, -2, z), c.cliff, slate, pick(-8, 8))
 	end
 	for i = 0, 3 do
 		Kit.rock(scene, at(18 + i * 22, 0, -152), Vector3.new(24, pick(30, 44), 22), c.cliffShade)
 	end
 	for i = 0, 3 do
-		local x = 20 + i * 20
-		Kit.box(scene, Vector3.new(16, 24, 5), at(x, 72, -160.5), c.cliffShade, Enum.Material.Slate)
-		Kit.box(
-			scene,
-			Vector3.new(17, 5 + i * 1.5, 6),
-			at(x, 96, -160.5),
-			c.cliff,
-			Enum.Material.Slate
-		)
-		Kit.box(scene, Vector3.new(15, 2.4, 1.6), at(x, 89, -157.4), c.cliff, Enum.Material.Slate)
-		Kit.box(scene, Vector3.new(2.8, 8, 2.8), at(x, 80, -157.2), c.cliff, Enum.Material.Slate)
-		Kit.box(scene, Vector3.new(6, 1, 0.6), at(x, 76, -157.7), c.trim)
+		local x = 18 + i * 24
+		Kit.box(scene, Vector3.new(16, 24, 5), at(x, 72, wall + 0.5), c.cliffShade, slate)
+		Kit.box(scene, Vector3.new(17, 5 + i * 1.5, 6), at(x, 96, wall + 0.5), c.cliff, slate)
+		Kit.box(scene, Vector3.new(15, 2.4, 1.6), at(x, 89, wall + 3.6), c.cliff, slate)
+		Kit.box(scene, Vector3.new(2.8, 8, 2.8), at(x, 80, wall + 3.8), c.cliff, slate)
+		Kit.box(scene, Vector3.new(6, 1, 0.6), at(x, 76, wall + 3.3), c.trim)
 		for _, eye in { -3.8, 3.8 } do
-			Kit.box(scene, Vector3.new(3.4, 1.6, 0.7), at(x + eye, 86, -157.7), c.trim)
+			Kit.box(scene, Vector3.new(3.4, 1.6, 0.7), at(x + eye, 86, wall + 3.3), c.trim)
 		end
-		-- A tree on the rock behind each face, set back from the edge. (They were bare balls
-		-- of leaves sitting on the rock at first, which the owner did not like the look of.)
-		Kit.tree(scene, at(x + 10, tops[i + 2] + 1.6, -186), 8, 1.6, 12, c.bark, c.leaf, 2)
 	end
 
 	-- Village houses behind the field and beside the Academy.
