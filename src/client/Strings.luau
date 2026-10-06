@@ -29,7 +29,9 @@ local TEXT: { [string]: string } = {
 	ThrowReachDeep = "Perfect lands in %s  |  mutation luck x%s",
 	ThrowReachDanger = "%s: the enemy there outruns you!",
 	ThrowMax = "Use all",
-	ThrowHint = "Use less Chakra to land in a nearer zone.",
+	ThrowHint = "Use less Chakra to land in a nearer zone. Click the number to type one.",
+	ThrowType = "3000, 3K, 1.5M...",
+	ThrowTypeHint = "click to type",
 
 	-- The luck board on the map
 	LuckTitle = "LUCKY THROWS",

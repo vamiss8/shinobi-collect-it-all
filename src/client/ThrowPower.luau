@@ -1,7 +1,8 @@
 --!strict
 -- Throw power: how much Chakra the next throw uses. By default it is all of it; a slider lets
--- the player dial it down to land in a nearer zone on purpose. The row with the current setting
--- sits in the Chakra readout and opens the slider above it.
+-- the player dial it down to land in a nearer zone on purpose, and the amount can be typed in
+-- for a number the slider is too coarse for. The row with the current setting sits in the
+-- Chakra readout and opens the slider above it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -9,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Kick = require(ReplicatedStorage.Shared.Logic.Kick)
 local Remotes = require("./Remotes")
 local Roll = require(ReplicatedStorage.Shared.Logic.Roll)
@@ -22,20 +24,26 @@ local ThrowPower = {}
 -- A slider this close to its right end snaps to "all of it", which also keeps up as Chakra grows.
 local FULL_AT = 0.985
 
--- The slider is logarithmic: Chakra spans many orders of magnitude and distance grows with its
--- logarithm, so equal steps along the track should multiply the amount rather than add to it.
+-- How long a choice is shown before the server has confirmed it, seconds.
+local UNCONFIRMED_SECONDS = 1.5
+-- How long the amount's outline stays red after something that is not a number was typed.
+local REFUSAL_SECONDS = 0.8
+
+-- The slider is linear: its middle is half the Chakra. It used to be logarithmic, which suits
+-- how distance grows but not what a slider is taken to mean: with millions of Chakra its
+-- middle stood at a thousand and a half. The small amounts a nearer zone takes are typed in.
 local function amountAt(position: number, total: number): number
 	if position >= FULL_AT or total <= 1 then
 		return 0
 	end
-	return math.max(1, math.floor(total ^ position))
+	return math.max(1, math.floor(total * position))
 end
 
 local function positionOf(amount: number, total: number): number
 	if amount <= 0 or amount >= total or total <= 1 then
 		return 1
 	end
-	return math.clamp(math.log(amount) / math.log(total), 0, 1)
+	return math.clamp(amount / total, 0, 1)
 end
 
 -- Adds the throw power row to the Chakra readout, and the slider that opens above it. Returns
@@ -63,15 +71,38 @@ function ThrowPower.attach(pill: Frame): Frame
 		TextSize = 24,
 		Text = Strings.get("ThrowTitle"),
 	})
-	local amountLabel = Ui.text(popup, {
+	-- The amount is a box to type in: clicking it clears it for a number.
+	local amountBox: TextBox = Ui.make("TextBox", {
 		Position = UDim2.fromOffset(0, 32),
-		Size = UDim2.new(1, 0, 0, 38),
-		TextSize = 34,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = Ui.CARD,
+		BorderSizePixel = 0,
+		Font = Ui.FONT,
+		TextSize = 30,
 		TextColor3 = Ui.BLUE,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		PlaceholderText = Strings.get("ThrowType"),
+		PlaceholderColor3 = Ui.MUTED,
+		ClearTextOnFocus = true,
+		Text = "",
+	}, popup)
+	Ui.corner(amountBox, 8)
+	local amountEdge = Ui.stroke(amountBox, Ui.EDGE, 2)
+	Ui.make(
+		"UIPadding",
+		{ PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) },
+		amountBox
+	)
+	local typeHint = Ui.text(amountBox, {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 17,
+		TextColor3 = Ui.MUTED,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Text = Strings.get("ThrowTypeHint"),
 	})
 	-- Two lines: the zone and what the next one takes do not fit in one.
 	local reachLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 74),
+		Position = UDim2.fromOffset(0, 78),
 		Size = UDim2.new(1, 0, 0, 52),
 		TextSize = 21,
 		TextColor3 = Ui.MUTED,
@@ -81,7 +112,7 @@ function ThrowPower.attach(pill: Frame): Frame
 
 	-- The track is taller than it looks, so it is easy to grab; the bar and knob are drawn in it.
 	local track = Ui.make("TextButton", {
-		Position = UDim2.fromOffset(10, 132),
+		Position = UDim2.fromOffset(10, 134),
 		Size = UDim2.new(1, -20, 0, 34),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
@@ -131,6 +162,10 @@ function ThrowPower.attach(pill: Frame): Frame
 	-- While the knob is being dragged the slider shows the draft; the server is told on release.
 	local dragging = false
 	local draft = 0
+	-- A choice that was sent and not yet confirmed is shown as if it were, so the slider does
+	-- not jump back to the old amount for the moment the answer takes.
+	local unconfirmed: number? = nil
+	local sentAt = 0
 
 	local function redraw()
 		local state = Store.get()
@@ -138,16 +173,22 @@ function ThrowPower.attach(pill: Frame): Frame
 			return
 		end
 		local total = state.chakra
-		local chosen = if dragging then draft else state.throwChakra
+		local chosen = if dragging
+			then draft
+			elseif unconfirmed ~= nil then unconfirmed
+			else state.throwChakra
 		local isFull = chosen <= 0 or chosen >= total
 		local used = if isFull then total else chosen
 
 		row.Text = if isFull
 			then Strings.get("ThrowButtonFull", total)
 			else Strings.get("ThrowButton", used, total)
-		amountLabel.Text = if isFull
-			then Strings.get("ThrowAmountFull", total)
-			else Strings.get("ThrowAmount", used)
+		-- Not while it is being typed in.
+		if not amountBox:IsFocused() then
+			amountBox.Text = if isFull
+				then Strings.get("ThrowAmountFull", total)
+				else Strings.get("ThrowAmount", used)
+		end
 
 		-- Where a throw at the very top of the bar lands with this much Chakra, and what the
 		-- next zone takes; in
@@ -174,6 +215,14 @@ function ThrowPower.attach(pill: Frame): Frame
 		local position = positionOf(if isFull then 0 else chosen, total)
 		fill.Size = UDim2.fromScale(position, 1)
 		knob.Position = UDim2.fromScale(position, 0.5)
+	end
+
+	-- Tells the server how much Chakra to throw with, 0 for all of it.
+	local function choose(amount: number)
+		unconfirmed = amount
+		sentAt = os.clock()
+		Remotes.ThrowChakra:FireServer(amount)
+		redraw()
 	end
 
 	local function dragTo(x: number)
@@ -215,18 +264,47 @@ function ThrowPower.attach(pill: Frame): Frame
 			)
 		then
 			dragging = false
-			Remotes.ThrowChakra:FireServer(draft)
+			choose(draft)
 		end
 	end)
 
+	amountBox.Focused:Connect(function()
+		typeHint.Visible = false
+	end)
+	amountBox.FocusLost:Connect(function()
+		typeHint.Visible = true
+		local state = Store.get()
+		local typed = amountBox.Text
+		-- Left empty, the amount stays as it was.
+		if state and typed ~= "" then
+			local value = Format.parse(typed)
+			if value and value >= 1 then
+				local amount = math.floor(value)
+				choose(if amount >= state.chakra then 0 else amount)
+			else
+				amountEdge.Color = Ui.RED
+				task.delay(REFUSAL_SECONDS, function()
+					amountEdge.Color = Ui.EDGE
+				end)
+			end
+		end
+		redraw()
+	end)
+
 	useAll.Activated:Connect(function()
-		Remotes.ThrowChakra:FireServer(0)
+		choose(0)
 	end)
 	row.Activated:Connect(function()
 		popup.Visible = not popup.Visible
 	end)
 
-	Store.onChange(redraw)
+	Store.onChange(function(state)
+		local confirmed = state.throwChakra == unconfirmed
+		if unconfirmed ~= nil and (confirmed or os.clock() - sentAt > UNCONFIRMED_SECONDS) then
+			unconfirmed = nil
+		end
+		redraw()
+	end)
 	return popup
 end
 
