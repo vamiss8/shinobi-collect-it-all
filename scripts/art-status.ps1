@@ -1,7 +1,9 @@
 # Prints whether the uploaded pictures have passed Roblox moderation: every asset id listed in
 # src/client/Art.luau, and the game's icon. It asks Roblox's public thumbnail service, which
 # needs no login, so the answer is what any player's game gets.
-# Usage: powershell -File scripts/art-status.ps1
+# Usage: powershell -File scripts/art-status.ps1              everything in Art.luau
+#        powershell -File scripts/art-status.ps1 123 456      just these asset ids, such as
+#                                                             the texture of an imported model
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -21,10 +23,14 @@ function Verdict([string]$state) {
 }
 
 # Every `name = 123456,` line of Art.luau that carries a real id (0 means "draw it").
-$art = Get-Content (Join-Path $PSScriptRoot "..\src\client\Art.luau") -Raw
 $names = [ordered]@{}
-foreach ($match in [regex]::Matches($art, '(?m)^\s*\[?"?([A-Za-z_][A-Za-z0-9_]*)"?\]?\s*=\s*(\d{6,})\s*,')) {
-    $names[$match.Groups[2].Value] = $match.Groups[1].Value
+if ($args.Count -gt 0) {
+    foreach ($id in $args) { $names["$id"] = "asset" }
+} else {
+    $art = Get-Content (Join-Path $PSScriptRoot "..\src\client\Art.luau") -Raw
+    foreach ($match in [regex]::Matches($art, '(?m)^\s*\[?"?([A-Za-z_][A-Za-z0-9_]*)"?\]?\s*=\s*(\d{6,})\s*,')) {
+        $names[$match.Groups[2].Value] = $match.Groups[1].Value
+    }
 }
 
 $ids = @($names.Keys)
@@ -38,7 +44,9 @@ for ($from = 0; $from -lt $ids.Count; $from += 50) {
     }
 }
 
-$url = "https://thumbnails.roblox.com/v1/games/icons?universeIds=$universe&size=512x512&format=Png&isCircular=false"
-foreach ($row in (Invoke-RestMethod $url).data) {
-    "{0,-18} {1,-18} {2}" -f "game icon", $universe, (Verdict $row.state)
+if ($args.Count -eq 0) {
+    $url = "https://thumbnails.roblox.com/v1/games/icons?universeIds=$universe&size=512x512&format=Png&isCircular=false"
+    foreach ($row in (Invoke-RestMethod $url).data) {
+        "{0,-18} {1,-18} {2}" -f "game icon", $universe, (Verdict $row.state)
+    }
 }
