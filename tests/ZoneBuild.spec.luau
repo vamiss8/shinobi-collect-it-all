@@ -4,6 +4,7 @@
 -- built the same way and held to the rules that apply to it.
 
 local Catalog = require("../src/shared/Config/Catalog")
+local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local Signs = require("../src/shared/Logic/Signs")
 local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
@@ -50,9 +51,9 @@ local HORIZON_HEIGHT = 45
 local HORIZON_FROM, HORIZON_TO = 33, 700
 -- The sea has no far shore: there the water runs out into the fog, and that is its horizon.
 local OPEN = { land_of_waves = true }
--- The yard the players walk in (World/Plots), with room to spare: how far back it goes from
--- the lane's start and how far out from the middle of the street.
-local YARD_DEPTH, YARD_HALF = 216, 88
+-- The yard the players walk in (Logic/PlazaPlan), with its fence and room to spare: how far
+-- back it goes from the lane's start and how far out from its middle line.
+local YARD_DEPTH, YARD_HALF = PlazaPlan.DEPTH + 4, PlazaPlan.YARD_HALF + 4
 
 local built: { [string]: Zones.Built } = {}
 local function sceneBuilt(id: string): Zones.Built
@@ -363,7 +364,7 @@ return {
 
 		-- Round the dojos: both sides, and behind.
 		local village = sceneBuilt(Zones.HOME)
-		for x = -345, -5, 10 do
+		for x = -(YARD_DEPTH + 125), -5, 10 do
 			for _, side in { -1, 1 } do
 				T.ok(
 					closed(village, x, side, HORIZON_HEIGHT),

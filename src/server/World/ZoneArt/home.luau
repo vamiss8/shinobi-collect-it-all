@@ -1,18 +1,26 @@
 --!strict
--- The village round the dojos, behind the start of the lane: streets of houses on both sides
--- of the yard and along the road behind it, poles strung with wires, water tanks on stilts,
--- the round red hall under the cliff on the left, the village's wall at the back with its great
--- gate standing open, and wooded hills all round. None of it can be walked to: the yard is
--- fenced (World/Plots), and this is what is seen over the fence.
+-- The village round the yard, behind the start of the lane: streets of houses on both sides of
+-- the yard and along the road behind it, poles strung with wires, water tanks on stilts, the
+-- round red hall under the cliff on the left, the village's wall at the back with its great
+-- gate standing open, and wooded hills all round. None of it can be walked to: the yard, with
+-- the plaza and the dojos in it, is fenced (World/Plots), and this is what is seen over the
+-- fence.
 --
 -- It is here so that the world is not seen to end behind the dojos. It is not a zone: it has
 -- no lane, gate or sign, and positions are the Hub's own, with the lane's start at 0 and
--- everything here at a negative `along`.
+-- everything here at a negative `along`. Everything is placed from the yard's own size
+-- (Logic/PlazaPlan), so that it moves out of the way when the yard grows.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Kit = require("./Kit")
+local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
 
+-- The yard: how far out its fence stands from the middle line, and how far back it goes.
+local YARD = PlazaPlan.YARD_HALF
+local DEPTH = PlazaPlan.DEPTH
 -- Where the village's wall stands, studs behind the lane's start.
-local BACK = 352
+local BACK = DEPTH + 140
 -- The pitch of every house's roof, degrees.
 local PITCH = 26
 
@@ -75,29 +83,33 @@ return function(scene: Kit.Scene)
 
 	-- Two streets along each side of the yard, the houses' doors to it.
 	for _, side in { -1, 1 } do
-		for i = 0, 5 do
-			house(-18 - i * 36 + pick(-4, 4), side * pick(101, 110), -side, i % 3 == 1)
+		for i = 0, 6 do
+			house(-16 - i * 36 + pick(-4, 4), side * (YARD + pick(17, 26)), -side, i % 3 == 1)
 		end
-		for i = 0, 4 do
-			house(-34 - i * 40 + pick(-5, 5), side * pick(138, 156), -side, i % 2 == 0)
+		for i = 0, 5 do
+			house(-34 - i * 40 + pick(-5, 5), side * (YARD + pick(56, 74)), -side, i % 2 == 0)
 		end
 	end
-	-- The road from the great gate to the yard, with houses along it.
-	Kit.backdrop(Kit.box(scene, Vector3.new(128, 0.2, 18), at(-282, -0.25, 0), c.path, slate))
+	-- The road from the great gate to the yard, with houses along it. They stop short of the
+	-- gate's doors, which stand open along the road.
+	local road = BACK - DEPTH - 12
+	Kit.backdrop(
+		Kit.box(scene, Vector3.new(road, 0.2, 18), at(-(BACK + DEPTH) / 2, -0.25, 0), c.path, slate)
+	)
 	for _, side in { -1, 1 } do
-		-- They stop short of the gate's doors, which stand open along the road.
 		for i = 0, 2 do
-			house(-240 - i * 27 + pick(-2, 2), side * pick(21, 24), -side, i % 2 == 1)
+			house(-(DEPTH + 26) - i * 27 + pick(-2, 2), side * pick(21, 24), -side, i % 2 == 1)
 		end
 	end
 
-	-- Trees between the houses and beyond them. On the left they keep off the hall.
-	for i = 1, 26 do
+	-- Trees between the houses and beyond them, and behind the yard. On the left they keep off
+	-- the hall.
+	for i = 1, 30 do
 		local side = if i % 2 == 0 then -1 else 1
-		local x = -pick(4, 330)
-		local out = if x < -226 then pick(40, 210) else pick(166, 215)
+		local x = -pick(4, BACK - 22)
+		local out = if x < -(DEPTH + 12) then pick(40, 230) else YARD + pick(84, 126)
 		if side == -1 and x > -128 and x < -56 then
-			out = pick(120, 128)
+			out = YARD + pick(38, 44)
 		end
 		Kit.tree(
 			scene,
@@ -111,11 +123,11 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- Poles along the streets, a pair of wires from each to the next.
+	-- Poles along the yard's fence, a pair of wires from each to the next.
 	for _, side in { -1, 1 } do
 		local previous: Vector3? = nil
-		for i = 0, 4 do
-			local base = at(-10 - i * 48, 0, side * 122)
+		for i = 0, 5 do
+			local base = at(-10 - i * 48, 0, side * (YARD + 7))
 			Kit.pillar(scene, 15, 0.7, base, c.trim, wood)
 			Kit.box(scene, Vector3.new(0.4, 0.4, 4), base + Vector3.new(0, 13.6, 0), c.trim, wood)
 			local head = base + Vector3.new(0, 14.1, 0)
@@ -129,8 +141,8 @@ return function(scene: Kit.Scene)
 		end
 	end
 
-	-- Water tanks on stilts.
-	for _, tank in { { -70, 127 }, { -176, -128 }, { -252, 64 } } do
+	-- Water tanks on stilts: one between the streets on each side, one behind the yard.
+	for _, tank in { { -70, YARD + 41 }, { -176, -(YARD + 41) }, { -(DEPTH + 28), 70 } } do
 		local base = at(tank[1], 0, tank[2])
 		for _, dx in { -2, 2 } do
 			for _, dz in { -2, 2 } do
@@ -150,7 +162,7 @@ return function(scene: Kit.Scene)
 	-- The round red hall under the cliff, on the left: three drums, each under a dark eave, a
 	-- dome on the last, a pale plate with a red mark on the side that looks at the yard, and a
 	-- low wing either side.
-	local hall = at(-92, 0, -206)
+	local hall = at(-92, 0, -(YARD + 122))
 	Kit.pillar(scene, 24, 46, hall, c.hall)
 	Kit.pillar(scene, 1.6, 50, hall + Vector3.new(0, 24, 0), c.roofDark, slate)
 	Kit.pillar(scene, 12, 32, hall + Vector3.new(0, 25.6, 0), c.hall)
@@ -191,10 +203,10 @@ return function(scene: Kit.Scene)
 	-- The cliff the faces are cut in runs on behind the hall: each rock stands under a cap of
 	-- turf, and trees grow on top, set back from its edge. (The trees were bare balls of
 	-- leaves sitting on the rock at first, which the owner did not like the look of.)
-	for i = 0, 7 do
+	for i = 0, 8 do
 		local x = -18 - i * 42
 		local height = pick(84, 120)
-		local z = -258 + pick(-6, 6)
+		local z = -(YARD + 178) + pick(-6, 6)
 		local turn = pick(-6, 6)
 		Kit.backdrop(
 			Kit.box(
@@ -285,11 +297,11 @@ return function(scene: Kit.Scene)
 		end
 	end
 	for i = 0, 3 do
-		hill(-44 - i * 92 + pick(-10, 10), pick(325, 350), false)
+		hill(-44 - i * 92 + pick(-10, 10), YARD + pick(235, 260), false)
 	end
 	for i = 0, 2 do
-		hill(-90 - i * 160, pick(530, 580), true)
-		hill(-70 - i * 160, -pick(490, 550), true)
+		hill(-90 - i * 160, YARD + pick(440, 490), true)
+		hill(-70 - i * 160, -(YARD + pick(420, 480)), true)
 	end
 	for i = -2, 2 do
 		hill(-BACK - pick(160, 190), i * 150 + pick(-20, 20), false)

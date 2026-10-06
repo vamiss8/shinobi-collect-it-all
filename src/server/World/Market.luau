@@ -1,8 +1,9 @@
 --!strict
--- The market: three stalls in a row down the middle of the street, each a counter under a
--- tiered roof with its wares laid out on top. Walking up to a counter and using its prompt opens
--- that shop's window on the client (the prompt's attribute says which). The server only needs to
--- know whether a player is standing at a stall when they ask to buy or sell there.
+-- The market: three stalls round the fountain in the middle of the plaza (Logic/PlazaPlan says
+-- where), each a counter under a tiered roof with its wares laid out on top. Walking up to a
+-- counter and using its prompt opens that shop's window on the client (the prompt's attribute
+-- says which). The server only needs to know whether a player is standing at a stall when they
+-- ask to buy or sell there.
 --
 -- Built from plain parts in Hub coordinates; call start() after Hub.start().
 
@@ -13,6 +14,7 @@ local Build = require(ReplicatedStorage.Shared.View.Build)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hub = require("./Hub")
 local Net = require(ReplicatedStorage.Shared.Net)
+local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
 
 local Market = {}
 
@@ -25,8 +27,7 @@ local PALE_WOOD = Color3.fromRGB(188, 158, 130)
 local GOLD = Color3.fromRGB(255, 202, 40)
 
 type Stall = {
-	id: string, -- also the shop window the prompt opens
-	along: number, -- where on the street it stands, Hub x
+	id: string, -- also the shop window the prompt opens, and its place in PlazaPlan.stalls
 	title: string,
 	color: Color3,
 	-- Lays the stall's wares on the counter, whose top is centered on `top`.
@@ -53,7 +54,6 @@ end
 local STALLS: { Stall } = {
 	{
 		id = "chakra",
-		along = -20,
 		title = "CHAKRA STORE",
 		color = Color3.fromRGB(79, 195, 247),
 		-- A row of kunai, cheapest to dearest, and a glowing orb of chakra.
@@ -83,7 +83,6 @@ local STALLS: { Stall } = {
 	},
 	{
 		id = "speed",
-		along = -36,
 		title = "SPEED STORE",
 		color = GOLD,
 		-- A pair of sandals and a stack of scrolls.
@@ -112,7 +111,6 @@ local STALLS: { Stall } = {
 	},
 	{
 		id = "sell",
-		along = -52,
 		title = "SELL",
 		color = Color3.fromRGB(229, 57, 53),
 		-- A money chest and a stack of coins.
@@ -148,7 +146,8 @@ local STALLS: { Stall } = {
 }
 
 local function build(folder: Folder, stall: Stall)
-	local base = Hub.at(stall.along, 0, 0)
+	local spot = PlazaPlan.stalls[stall.id]
+	local base = Hub.at(spot.along, 0, spot.side)
 	local function at(x: number, y: number, z: number): Vector3
 		return base + Vector3.new(x, y, z)
 	end

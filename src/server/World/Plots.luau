@@ -1,7 +1,8 @@
 --!strict
--- The dojos: one per player, in two rows along the street behind the throwing strip, fenced in
--- by invisible walls. There are six, which is the server size the game is meant for; a seventh
--- player is turned away. Positions are in Hub-local coordinates (see World/Hub).
+-- The dojos: one per player, three along each long side of the plaza behind the throwing strip
+-- (Logic/PlazaPlan has the layout), fenced in by invisible walls. There are six, which is the
+-- server size the game is meant for; a seventh player is turned away. Positions are in
+-- Hub-local coordinates (see World/Hub). The plaza itself, with its fountain, is World/Plaza's.
 --
 -- Each dojo is a building of up to three floors with ten pads on each (Logic/DojoPlan has the
 -- layout, World/DojoHall builds the building). This module lays out the pads, with their
@@ -18,6 +19,7 @@ local DojoHall = require("./DojoHall")
 local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
 local Hub = require("./Hub")
 local Net = require(ReplicatedStorage.Shared.Net)
+local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Util = require("../Util")
 
@@ -54,11 +56,6 @@ export type Plot = {
 	spawn: CFrame, -- where the owner appears: on the street by the entrance, facing the lane
 }
 
-local DOJOS = 6
--- Each pair of facing dojos takes this much of the street's length; the rest is the gap
--- between one pair and the next.
-local SLOT_PITCH = 72
-
 -- A pad: a square wooden mat with a round seal on it.
 local MAT = 0.3 -- height of the mat
 local MAT_MARGIN = 0.6 -- how far the mat reaches past the seal on each side
@@ -79,7 +76,6 @@ local UP = Vector3.new(0, 1, 0)
 local STONE = Color3.fromRGB(99, 95, 98)
 local BOARD = Color3.fromRGB(62, 44, 36)
 local BUTTON = Color3.fromRGB(105, 102, 98)
-local COBBLE = Color3.fromRGB(140, 135, 130)
 local FENCE = Color3.fromRGB(93, 64, 55)
 local FENCE_HEIGHT = 4
 
@@ -205,17 +201,14 @@ local plots: { Plot } = {}
 local byPlayer: { [Player]: Plot } = {}
 
 local function build(index: number): Plot
-	-- Odd dojos stand on the left of the street, even ones on the right, facing each other.
-	-- The first pair starts right at the lane, so their sides meet the throwing strip's line.
-	local slot = math.ceil(index / 2)
-	local side = if index % 2 == 1 then -1 else 1
-	local centerX = -DojoPlan.HALF_WIDTH - (slot - 1) * SLOT_PITCH
-	local streetEdge = Hub.LANE_WIDTH / 2
+	-- Odd dojos stand on the left of the plaza, even ones on the right, facing each other.
+	local place = PlazaPlan.dojo(index)
+	local side = place.side
 	-- Dojo-local x runs away from the lane (see Logic/DojoPlan), so the foot of the staircase
-	-- is at the end of the dojo nearest the throwing strip on both sides of the street.
+	-- is at the end of the dojo nearest the throwing strip on both sides of the plaza.
 	local frame: DojoHall.Frame = {
 		at = function(x: number, y: number, z: number): Vector3
-			return Hub.at(centerX - x, y, side * (streetEdge + z))
+			return Hub.at(place.along - x, y, side * (PlazaPlan.HALF_WIDTH + z))
 		end,
 		inward = Vector3.new(0, 0, side),
 	}
@@ -248,9 +241,9 @@ local function build(index: number): Plot
 
 	folder.Parent = Workspace
 
-	-- On the street in front of the entrance under the first landing.
-	local from, to = DojoPlan.entrance(DojoPlan.landings[1])
-	local spawnAt = frame.at((from + to) / 2, 3, -5)
+	-- On the plaza in front of the entrance under the first landing.
+	local spawn = PlazaPlan.spawn(index)
+	local spawnAt = Hub.at(spawn.along, 3, spawn.side)
 	return {
 		index = index,
 		folder = folder,
@@ -263,28 +256,20 @@ local function build(index: number): Plot
 	}
 end
 
--- What surrounds the dojos: the street between the two rows, a low fence around the whole
--- yard, and behind the fence an invisible wall too tall to jump. Together with the lane's own
--- walls and the gate behind the strip (World/Hub) the walls close the playable area.
+-- What closes the yard the dojos and the plaza stand in: a low fence all round it, and behind
+-- the fence an invisible wall too tall to jump. Together with the lane's own walls and the gate
+-- behind the strip (World/Hub) the walls close the playable area.
 local function buildYard()
 	local folder = Instance.new("Folder")
 	folder.Name = "Yard"
 
 	local height = Hub.WALL_HEIGHT
 	local thick = Hub.WALL_THICKNESS
-	-- How far back the yard goes: to the far edge of the last pair of dojos.
-	local depth = (math.ceil(DOJOS / 2) - 1) * SLOT_PITCH + DojoPlan.WIDTH
+	local depth = PlazaPlan.DEPTH
 	-- From the center line to a dojo's far edge.
-	local halfWidth = Hub.LANE_WIDTH / 2 + DojoPlan.DEPTH
-
-	Build.part(
-		folder,
-		"Street",
-		Vector3.new(depth, 1, Hub.LANE_WIDTH),
-		Hub.at(-depth / 2, -0.5, 0),
-		COBBLE,
-		Enum.Material.Cobblestone
-	)
+	local halfWidth = PlazaPlan.YARD_HALF
+	-- From the lane's side wall out to the yard's: the yard is wider than the lane.
+	local shoulder = halfWidth - Hub.LANE_WIDTH / 2
 
 	-- Each run of the boundary as a center and a size on the ground; a fence and a wall are
 	-- raised on every one of them.
@@ -299,14 +284,14 @@ local function buildYard()
 			center = Vector3.new(-depth / 2, 0, side * (halfWidth + thick / 2)),
 			size = Vector3.new(depth, 0, thick),
 		})
-		-- From a front dojo's corner to the lane's side wall, in line with the throwing strip.
+		-- From the yard's corner to the lane's side wall, in line with the throwing strip.
 		table.insert(runs, {
 			center = Vector3.new(
 				thick / 2,
 				0,
-				side * (Hub.LANE_WIDTH / 2 + (DojoPlan.DEPTH + thick) / 2)
+				side * (Hub.LANE_WIDTH / 2 + (shoulder + thick) / 2)
 			),
-			size = Vector3.new(thick, 0, DojoPlan.DEPTH + thick),
+			size = Vector3.new(thick, 0, shoulder + thick),
 		})
 	end
 
@@ -370,7 +355,7 @@ local function assign(player: Player): Plot?
 end
 
 function Plots.start()
-	for index = 1, DOJOS do
+	for index = 1, PlazaPlan.DOJOS do
 		plots[index] = build(index)
 	end
 	buildYard()

@@ -12,7 +12,9 @@ local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
 
 local Catalog = require("../src/shared/Config/Catalog")
+local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Looks = require("../src/shared/Config/ZoneArt")
+local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local Signs = require("../src/shared/Logic/Signs")
 local Tuning = require("../src/shared/Config/Tuning")
 
@@ -90,7 +92,29 @@ local function lookAt(at: any, target: any, up: any?): any
 		-look.Z
 	)
 end
-local frames = setmetatable({ lookAt = lookAt }, { __index = roblox.CFrame })
+-- The frame at `at` with the given right and up directions, as Roblox makes it; done by hand
+-- for the same reason.
+local function fromMatrix(at: any, right: any, up: any, back: any?): any
+	local behind = back or right:Cross(up)
+	return roblox.CFrame.new(
+		at.X,
+		at.Y,
+		at.Z,
+		right.X,
+		up.X,
+		behind.X,
+		right.Y,
+		up.Y,
+		behind.Y,
+		right.Z,
+		up.Z,
+		behind.Z
+	)
+end
+local frames = setmetatable(
+	{ lookAt = lookAt, fromMatrix = fromMatrix },
+	{ __index = roblox.CFrame }
+)
 
 -- Particles are not looked at here: an emitter is anything that can be given a parent.
 local particles = {
@@ -114,16 +138,20 @@ end
 local replicated = {
 	Shared = {
 		Config = { Catalog = marker(Catalog), ZoneArt = marker(Looks), Tuning = marker(Tuning) },
-		Logic = { Signs = marker(Signs) },
+		Logic = {
+			DojoPlan = marker(DojoPlan),
+			PlazaPlan = marker(PlazaPlan),
+			Signs = marker(Signs),
+		},
 		View = { Particles = marker(particles) },
 	},
 }
 
--- Builds an environment the game's own source can run in. `siblings` says what its string
--- requires resolve to.
-local function environment(siblings: (path: string) -> any): { [string]: any }
+-- Builds an environment the game's own source can run in, and the folder that stands in for
+-- Workspace in it. `siblings` says what its string requires resolve to.
+local function environment(siblings: (path: string) -> any): ({ [string]: any }, any)
 	local workspace = roblox.Instance.new("Folder")
-	return {
+	local scope = {
 		game = {
 			GetService = function(_, name: string): any
 				if name == "ReplicatedStorage" then
@@ -147,10 +175,13 @@ local function environment(siblings: (path: string) -> any): { [string]: any }
 		Instance = roblox.Instance,
 		Vector3 = roblox.Vector3,
 		CFrame = frames,
+		Vector2 = roblox.Vector2,
+		UDim2 = roblox.UDim2,
 		Color3 = roblox.Color3,
 		Enum = roblox.Enum,
 		Random = FakeRandom,
 	}
+	return scope, workspace
 end
 
 -- Runs a piece of the game's source in `scope` and returns what it returns.
@@ -169,14 +200,28 @@ local function load(name: string): any
 	return modules[name]
 end
 
-scope = environment(function(path: string): any
-	if path == "./Kit" then
-		return load("Kit")
-	elseif path == "../Hub" then
-		return hub
-	end
-	error(`the zone harness does not know {path}`)
-end)
+scope = (
+	environment(function(path: string): any
+		if path == "./Kit" then
+			return load("Kit")
+		elseif path == "../Hub" then
+			return hub
+		end
+		error(`the zone harness does not know {path}`)
+	end)
+)
+
+-- The game's own small constructors (shared View/Build), run here as they are, but for one
+-- thing: Lune keeps a part's Position and its CFrame as two unrelated properties, where Roblox
+-- moves the part, so a part placed by its position is given the frame to match.
+local build = run(fs.readFile("src/shared/View/Build.luau"), "Build", scope)
+local placed = build.part
+build.part = function(parent: any, name: string, size: any, position: any, ...: any): any
+	local part = placed(parent, name, size, position, ...)
+	part.CFrame = roblox.CFrame.new(position)
+	return part
+end
+replicated.Shared.View.Build = marker(build)
 
 export type Built = {
 	id: string,
@@ -274,6 +319,43 @@ function Zones.describe(part: any): { any }
 		table.insert(described, component)
 	end
 	return described
+end
+
+-- Builds the plaza behind the lane's start (src/server/World/Plaza) and returns the folder it
+-- put into the world: unlike scenery, some of what is in it is solid.
+function Zones.plaza(): any
+	local world, workspace = environment(function(path: string): any
+		if path == "./Hub" then
+			return hub
+		end
+		error(`the zone harness does not know {path}`)
+	end)
+	run(fs.readFile("src/server/World/Plaza.luau"), "Plaza", world).start()
+	return workspace:FindFirstChild("Plaza")
+end
+
+-- Builds the six dojos (src/server/World/DojoHall) where World/Plots stands them, each with
+-- as many floors as `floors` says for it, and returns the folder they are in.
+function Zones.dojos(floors: { number }): any
+	local world = environment(function(path: string): any
+		error(`the zone harness does not know {path}`)
+	end)
+	local hall = run(fs.readFile("src/server/World/DojoHall.luau"), "DojoHall", world)
+	local all = roblox.Instance.new("Folder")
+	for index = 1, PlazaPlan.DOJOS do
+		local place = PlazaPlan.dojo(index)
+		local folder = roblox.Instance.new("Folder")
+		folder.Name = `Dojo{index}`
+		local raised = hall.build(folder, {
+			at = function(x: number, y: number, z: number)
+				return hub.at(place.along - x, y, place.side * (PlazaPlan.HALF_WIDTH + z))
+			end,
+			inward = roblox.Vector3.new(0, 0, place.side),
+		})
+		hall.setFloors(raised, floors[index] or 1)
+		folder.Parent = all
+	end
+	return all
 end
 
 Zones.hub = hub
