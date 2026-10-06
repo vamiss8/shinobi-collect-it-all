@@ -109,9 +109,12 @@ return {
 		},
 	},
 
+	-- A dojo has 30 pads (Logic/DojoPlan): the free ones, those bought for Ryo one after another,
+	-- each at `padPriceGrowth` times the last, and those of the +4 pads game pass. The pass's
+	-- pads are the last ones, at the back of the top floor.
 	Dojo = {
-		startPads = 6,
-		buyablePads = 14,
+		startPads = 5,
+		buyablePads = 21,
 		gamePassPads = 4,
 		padBasePrice = 500,
 		padPriceGrowth = 2.5,

@@ -47,8 +47,13 @@ function Build.prompt(parent: Instance, action: string, object: string): Proximi
 end
 
 -- A text label floating `offsetY` studs above `parent`. `size` is in studs, so the label
--- shrinks with distance like a real sign.
-function Build.label(parent: Instance, text: string, offsetY: number, size: Vector2): TextLabel
+-- shrinks with distance like a real sign. Returns the label and the gui that holds it.
+function Build.label(
+	parent: Instance,
+	text: string,
+	offsetY: number,
+	size: Vector2
+): (TextLabel, BillboardGui)
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromScale(size.X, size.Y)
 	gui.StudsOffset = Vector3.new(0, offsetY, 0)
@@ -65,7 +70,7 @@ function Build.label(parent: Instance, text: string, offsetY: number, size: Vect
 	label.RichText = true
 	label.Text = text
 	label.Parent = gui
-	return label
+	return label, gui
 end
 
 -- Text painted on one face of a part, filling it. Unlike a floating label it turns with the

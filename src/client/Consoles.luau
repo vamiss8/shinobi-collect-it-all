@@ -21,6 +21,28 @@ local Consoles = {}
 
 -- How far the pointer reaches into the world, studs. The camera can be zoomed well out.
 local REACH = 300
+-- How many invisible walls a ray may pass through on its way to a button.
+local SEE_THROUGH = 6
+
+-- The first part the ray hits that can be seen. Invisible walls, such as those behind the
+-- dojo's railings and the ramps under its stairs, stop rays as they stop players, so the ray
+-- is cast again past each one it meets.
+local function firstVisible(ray: Ray, ignore: { Instance }): BasePart?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	for _ = 1, SEE_THROUGH do
+		params.FilterDescendantsInstances = ignore
+		local hit = Workspace:Raycast(ray.Origin, ray.Direction * REACH, params)
+		local part = if hit then hit.Instance else nil
+		if not part or not part:IsA("BasePart") then
+			return nil
+		elseif part.Transparency < 1 or part:GetAttribute(Net.UPGRADE_ATTRIBUTE) ~= nil then
+			return part
+		end
+		table.insert(ignore, part)
+	end
+	return nil
+end
 
 -- The console button the ray from the camera lands on, if it would buy something and the
 -- player stands close enough to press it.
@@ -32,11 +54,7 @@ local function buttonUnder(ray: Ray): BasePart?
 	end
 
 	-- The player's own body, and the shinobi they carry, must not shield a button.
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local hit = Workspace:Raycast(ray.Origin, ray.Direction * REACH, params)
-	local part = if hit then hit.Instance else nil
+	local part = firstVisible(ray, { character })
 	if
 		not part
 		or part:GetAttribute(Net.UPGRADE_ATTRIBUTE) == nil

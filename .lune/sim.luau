@@ -13,6 +13,7 @@ local process = require("@lune/process")
 
 local Catalog = require("../src/shared/Config/Catalog")
 local Chase = require("../src/shared/Logic/Chase")
+local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Economy = require("../src/shared/Logic/Economy")
 local Format = require("../src/shared/Logic/Format")
 local Kick = require("../src/shared/Logic/Kick")
@@ -73,6 +74,7 @@ type Player = {
 	reached: { [number]: number }, -- zone number -> when its threshold was first met
 	caughtFirst: { [number]: Mark }, -- zone number -> the first shinobi brought home from it
 	kunaiAt: { [number]: number }, -- kunai number -> when it was bought
+	padAt: { [number]: number }, -- pads bought so far -> when the last of them was bought
 	spent: { [string]: number }, -- what the Ryo went on
 }
 
@@ -290,6 +292,7 @@ local function shop(player: Player)
 		player.spent[if bestPad == 0 then "pads" else "upgrades"] += bestPrice
 		if bestPad == 0 then
 			player.padsBought += 1
+			player.padAt[player.padsBought] = player.time
 		else
 			player.pads[bestPad] = Economy.upgraded(player.pads[bestPad])
 		end
@@ -313,6 +316,7 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		reached = { [1] = 0 },
 		caughtFirst = {},
 		kunaiAt = { [1] = 0 },
+		padAt = {},
 		spent = { kunai = 0, speed = 0, pads = 0, upgrades = 0 },
 	}
 
@@ -384,6 +388,20 @@ local function printZones()
 	print("")
 end
 
+-- Pad numbers worth reporting: the first one bought on each floor and the last one sold for Ryo.
+local function padMilestones(): { number }
+	local start = Tuning.Dojo.startPads
+	local list = { start + 1 }
+	for floor = 2, DojoPlan.FLOORS do
+		local first = (floor - 1) * DojoPlan.PADS_PER_FLOOR + 1
+		if first > start + 1 and first <= start + Tuning.Dojo.buyablePads then
+			table.insert(list, first)
+		end
+	end
+	table.insert(list, start + Tuning.Dojo.buyablePads)
+	return list
+end
+
 local function printPrices()
 	local kunai, speed, pads = {}, {}, {}
 	for _, item in Catalog.kunai do
@@ -396,8 +414,10 @@ local function printPrices()
 			table.insert(speed, `L{level + 1} {Format.short(Economy.speedPrice(level))}`)
 		end
 	end
-	for bought = 0, Tuning.Dojo.buyablePads - 1, 3 do
-		table.insert(pads, `#{bought + 1} {Format.short(Economy.padPrice(bought))}`)
+	-- The first pad for sale on each floor, and the last one.
+	for _, index in padMilestones() do
+		local bought = index - Tuning.Dojo.startPads - 1
+		table.insert(pads, `#{index} {Format.short(Economy.padPrice(bought))}`)
 	end
 	print("PRICES")
 	print(`kunai: {table.concat(kunai, ", ")}`)
@@ -451,6 +471,11 @@ local function printProfile(profile: Profile, hours: number)
 		table.insert(bought, clock(player.kunaiAt[number]))
 	end
 	print(`kunai bought at: {table.concat(bought, ", ")}`)
+	local pads = {}
+	for _, index in padMilestones() do
+		table.insert(pads, `#{index} {clock(player.padAt[index - Tuning.Dojo.startPads])}`)
+	end
+	print(`pads bought at: {table.concat(pads, ", ")}`)
 	local total = 0
 	for _, amount in player.spent do
 		total += amount

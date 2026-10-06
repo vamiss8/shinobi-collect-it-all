@@ -144,6 +144,7 @@ local TEXT: { [string]: string } = {
 	NotEnoughRyo = "Not enough Ryo.",
 	NotYourDojo = "This is not your dojo.",
 	Merged = "Merged into %s!",
+	FloorBuilt = "Your dojo grew! Floor %s is open.",
 	Sold = "Sold %s for %s Ryo.",
 	SoldMany = "Sold %s shinobi for %s Ryo.",
 }

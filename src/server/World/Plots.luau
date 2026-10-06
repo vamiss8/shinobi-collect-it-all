@@ -2,6 +2,11 @@
 -- The dojos: one per player, in two rows along the street behind the throwing strip, fenced in
 -- by invisible walls. There are six, which is the server size the game is meant for; a seventh
 -- player is turned away. Positions are in Hub-local coordinates (see World/Hub).
+--
+-- Each dojo is a building of up to three floors with ten pads on each (Logic/DojoPlan has the
+-- layout, World/DojoHall builds the building). This module lays out the pads, with their
+-- upgrade consoles and price tags, and hands the dojos out to players. A dojo stands with one
+-- floor until Services/Dojo puts up more for its owner (setFloors).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -9,6 +14,8 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Data = require("../Data")
+local DojoHall = require("./DojoHall")
+local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
 local Hub = require("./Hub")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -25,10 +32,13 @@ export type Button = {
 
 export type Pad = {
 	index: number,
-	part: Part,
+	part: Part, -- the round seal on the pad, whose color shows the pad's state
 	prompt: ProximityPrompt, -- place, take, swap, merge, or unlock the pad
-	console: Part, -- the board at the foot of the pad that the upgrade buttons sit on
+	console: Part, -- the board between the pad and the aisle that the upgrade buttons sit on
 	buttons: { one: Button, ten: Button, max: Button }, -- +1 level, +10, as many as affordable
+	stand: CFrame, -- where a shinobi on the pad stands, facing the aisle
+	tag: TextLabel, -- floats over a pad that is not open yet: its price, or the game pass
+	tagGui: BillboardGui,
 	figure: Model?,
 }
 
@@ -37,61 +47,67 @@ export type Plot = {
 	owner: Player?,
 	folder: Folder,
 	pads: { Pad },
-	sign: TextLabel,
-	spawn: CFrame, -- where the owner appears: on the street by the dojo, facing the lane
+	hall: DojoHall.Hall,
+	sign: TextLabel, -- the name board on the roof
+	banner: BillboardGui, -- the owner's name floating over the roof, seen from afar
+	bannerLabel: TextLabel,
+	spawn: CFrame, -- where the owner appears: on the street by the entrance, facing the lane
 }
 
 local DOJOS = 6
 -- Each pair of facing dojos takes this much of the street's length; the rest is the gap
 -- between one pair and the next.
 local SLOT_PITCH = 72
-local DOJO_DEPTH = 64 -- along the street
-local DOJO_WIDTH = 50 -- away from the street
-local PAD_SIZE = 7
-local PAD_PITCH = 10
-local PAD_COLUMNS = 6
-local PAD_ROWS = 4
+
+-- A pad: a square wooden mat with a round seal on it.
+local MAT = 0.3 -- height of the mat
+local MAT_MARGIN = 0.6 -- how far the mat reaches past the seal on each side
+local SEAL = 0.25 -- thickness of the seal
 
 -- The upgrade console: a board leaning back towards its pad, as wide as most of the pad.
 local CONSOLE_SLOPE = math.rad(40) -- how far the board is tipped up from lying flat
+local CONSOLE_GAP = MAT_MARGIN -- between the seal's edge and the board's top edge
 local CONSOLE_WIDTH = 5.4
-local CONSOLE_LENGTH = 2.8 -- from its foot up the slope
+-- From its foot up the slope; it reaches DojoPlan.CONSOLE_DEPTH into the aisle.
+local CONSOLE_LENGTH = (DojoPlan.CONSOLE_DEPTH - CONSOLE_GAP) / math.cos(CONSOLE_SLOPE)
 local CONSOLE_MARGIN = 0.15 -- bare board around the buttons
 local BUTTON_GAP = 0.1
 local SMALL_BUTTON = 0.95 -- how far up the slope the two small buttons reach
 local SLAB = 0.25 -- thickness of the board and of a button
+local UP = Vector3.new(0, 1, 0)
 
-local WOOD = Color3.fromRGB(121, 85, 61)
 local STONE = Color3.fromRGB(99, 95, 98)
+local BOARD = Color3.fromRGB(62, 44, 36)
+local BUTTON = Color3.fromRGB(105, 102, 98)
 local COBBLE = Color3.fromRGB(140, 135, 130)
 local FENCE = Color3.fromRGB(93, 64, 55)
 local FENCE_HEIGHT = 4
-local BOARD = Color3.fromRGB(62, 44, 36)
-local BUTTON = Color3.fromRGB(105, 102, 98)
 
--- Builds the upgrade console of the pad at hub-local (x, z), on the pad's street side. The
--- wide button on top buys one level; under it two small ones buy ten and as many as the Ryo
--- allows. They are plain parts marked with attributes: the client finds the one under the
--- pointer and reports a press (client/Consoles). A ClickDetector would do it without client
--- code, but it swaps the mouse cursor for a large hand while hovered. The buttons start out
--- hidden: Services/Dojo shows and labels them.
+-- Builds the upgrade console of the pad whose seal's top is centered on `top`, on the side
+-- `facing` (a level unit vector, towards the aisle). The wide button on top buys one level; under it
+-- two small ones buy ten and as many as the Ryo allows. They are plain parts marked with
+-- attributes: the client finds the one under the pointer and reports a press
+-- (client/Consoles). A ClickDetector would do it without client code, but it swaps the mouse
+-- cursor for a large hand while hovered. The buttons start out hidden: Services/Dojo shows and
+-- labels them.
 local function buildConsole(
 	folder: Folder,
 	padIndex: number,
-	x: number,
-	z: number,
-	side: number
+	top: Vector3,
+	facing: Vector3
 ): (Part, { one: Button, ten: Button, max: Button })
-	-- `up` runs up the board, away from the street; `out` is the way its face looks.
-	local up = Vector3.new(0, math.sin(CONSOLE_SLOPE), side * math.cos(CONSOLE_SLOPE))
-	local out = Vector3.new(0, math.cos(CONSOLE_SLOPE), -side * math.sin(CONSOLE_SLOPE))
-	local reach = PAD_SIZE / 2 + 0.2 + CONSOLE_LENGTH * math.cos(CONSOLE_SLOPE)
-	local foot = Hub.at(x, 0, z - side * reach)
+	-- `up` runs up the board, towards the pad; `out` is the way its face looks; `right` is the
+	-- right hand of a player who stands in the aisle and reads it.
+	local up = UP * math.sin(CONSOLE_SLOPE) - facing * math.cos(CONSOLE_SLOPE)
+	local out = UP * math.cos(CONSOLE_SLOPE) + facing * math.sin(CONSOLE_SLOPE)
+	local right = UP:Cross(facing)
+	local floor = Vector3.new(top.X, top.Y - MAT - SEAL, top.Z)
+	local foot = floor + facing * (DojoPlan.PAD_SIZE / 2 + DojoPlan.CONSOLE_DEPTH)
 
 	-- A slab lying on the board: `along` is how far up the slope its middle is, `across` how
-	-- far to the side, `lift` how far its middle stands off the board's surface.
+	-- far to the reader's right, `lift` how far its middle stands off the board's surface.
 	local function slab(name: string, size: Vector2, along: number, across: number, lift: number)
-		local center = foot + up * along + Vector3.new(across, 0, 0) + out * lift
+		local center = foot + up * along + right * across + out * lift
 		local part = Build.part(folder, name, Vector3.new(size.X, size.Y, SLAB), center, BUTTON)
 		-- A part's front face looks where its CFrame looks, and text on it reads upright.
 		part.CFrame = CFrame.lookAt(center, center + out)
@@ -124,14 +140,65 @@ local function buildConsole(
 	local big = Vector2.new(inner, CONSOLE_LENGTH - 2 * CONSOLE_MARGIN - BUTTON_GAP - SMALL_BUTTON)
 	local smallAlong = CONSOLE_MARGIN + small.Y / 2
 	local bigAlong = CONSOLE_MARGIN + small.Y + BUTTON_GAP + big.Y / 2
-	-- Seen from the street, +10 is on the left and MAX on the right in either row of dojos.
-	local toLeft = side * (small.X + BUTTON_GAP) / 2
+	-- +10 on the reader's left, MAX on the right.
+	local offset = (small.X + BUTTON_GAP) / 2
 	return board,
 		{
 			one = button("one", big, bigAlong, 0),
-			ten = button("ten", small, smallAlong, toLeft),
-			max = button("max", small, smallAlong, -toLeft),
+			ten = button("ten", small, smallAlong, -offset),
+			max = button("max", small, smallAlong, offset),
 		}
+end
+
+-- One pad of a dojo: the mat, the seal with its prompt, the console and the price tag.
+local function buildPad(folder: Folder, frame: DojoHall.Frame, padIndex: number): Pad
+	local spot = DojoPlan.pad(padIndex)
+	local floor = frame.at(spot.x, spot.y, spot.z)
+	local matSize = DojoPlan.PAD_SIZE + 2 * MAT_MARGIN
+	Build.part(
+		folder,
+		`PadMat{padIndex}`,
+		Vector3.new(matSize, MAT, matSize),
+		floor + Vector3.new(0, MAT / 2, 0),
+		BOARD,
+		Enum.Material.Wood
+	)
+
+	-- A cylinder lies along its X axis; this lays the seal flat.
+	local center = floor + Vector3.new(0, MAT + SEAL / 2, 0)
+	local seal = Build.part(
+		folder,
+		`Pad{padIndex}`,
+		Vector3.new(SEAL, DojoPlan.PAD_SIZE, DojoPlan.PAD_SIZE),
+		center,
+		STONE
+	)
+	seal.Shape = Enum.PartType.Cylinder
+	seal.CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(90))
+	seal.Transparency = 0.6 -- locked, as Services/Dojo draws it until someone owns the dojo
+
+	local prompt = Build.prompt(seal, "Place", "Empty pad")
+	prompt.MaxActivationDistance = 7
+	prompt.Enabled = false
+
+	local facing = frame.inward * spot.facing
+	local top = floor + Vector3.new(0, MAT + SEAL, 0)
+	local console, buttons = buildConsole(folder, padIndex, top, facing)
+
+	local tag, tagGui = Build.label(seal, "", 4.5, Vector2.new(9, 3.6))
+	tagGui.MaxDistance = 150
+	tagGui.Enabled = false
+
+	return {
+		index = padIndex,
+		part = seal,
+		prompt = prompt,
+		console = console,
+		buttons = buttons,
+		stand = CFrame.lookAt(top, top + facing),
+		tag = tag,
+		tagGui = tagGui,
+	}
 end
 
 local plots: { Plot } = {}
@@ -139,73 +206,59 @@ local byPlayer: { [Player]: Plot } = {}
 
 local function build(index: number): Plot
 	-- Odd dojos stand on the left of the street, even ones on the right, facing each other.
+	-- The first pair starts right at the lane, so their sides meet the throwing strip's line.
 	local slot = math.ceil(index / 2)
 	local side = if index % 2 == 1 then -1 else 1
-	-- The first pair starts right at the lane, so their floors meet the throwing strip's line.
-	local centerX = -DOJO_DEPTH / 2 - (slot - 1) * SLOT_PITCH
+	local centerX = -DojoPlan.HALF_WIDTH - (slot - 1) * SLOT_PITCH
 	local streetEdge = Hub.LANE_WIDTH / 2
-	local centerZ = side * (streetEdge + DOJO_WIDTH / 2)
+	-- Dojo-local x runs away from the lane (see Logic/DojoPlan), so the foot of the staircase
+	-- is at the end of the dojo nearest the throwing strip on both sides of the street.
+	local frame: DojoHall.Frame = {
+		at = function(x: number, y: number, z: number): Vector3
+			return Hub.at(centerX - x, y, side * (streetEdge + z))
+		end,
+		inward = Vector3.new(0, 0, side),
+	}
 
 	local folder = Instance.new("Folder")
 	folder.Name = `Dojo{index}`
+	local hall = DojoHall.build(folder, frame)
 
-	Build.part(
-		folder,
-		"Floor",
-		Vector3.new(DOJO_DEPTH, 1, DOJO_WIDTH),
-		Hub.at(centerX, -0.5, centerZ),
-		WOOD,
-		Enum.Material.WoodPlanks
-	)
-
-	local signAnchor =
-		Build.part(folder, "SignAnchor", Vector3.one, Hub.at(centerX, 14, centerZ), WOOD)
-	signAnchor.Transparency = 1
-	signAnchor.CanCollide = false
-	local sign = Build.label(signAnchor, "Empty Dojo", 0, Vector2.new(36, 6))
-
-	-- Pads in rows parallel to the street, numbered from the street inwards, so the row a new
-	-- player starts with is the one by the entrance.
+	-- Each pad goes up and comes down with its floor.
 	local pads: { Pad } = {}
-	for row = 1, PAD_ROWS do
-		for column = 1, PAD_COLUMNS do
-			local padIndex = #pads + 1
-			local x = centerX + (column - (PAD_COLUMNS + 1) / 2) * PAD_PITCH
-			local z = side * (streetEdge + 9 + (row - 1) * PAD_PITCH)
-			local part = Build.part(
-				folder,
-				`Pad{padIndex}`,
-				Vector3.new(PAD_SIZE, 0.5, PAD_SIZE),
-				Hub.at(x, 0.25, z),
-				STONE
-			)
-			local prompt = Build.prompt(part, "Place", "Empty pad")
-			prompt.MaxActivationDistance = 7
-			prompt.Enabled = false
-
-			local console, buttons = buildConsole(folder, padIndex, x, z, side)
-			table.insert(pads, {
-				index = padIndex,
-				part = part,
-				prompt = prompt,
-				console = console,
-				buttons = buttons,
-			})
-		end
+	for padIndex = 1, DojoPlan.PAD_COUNT do
+		local storey = hall.storeys[DojoPlan.pad(padIndex).floor]
+		table.insert(pads, buildPad(storey, frame, padIndex))
 	end
+	local d = Tuning.Dojo
 	assert(
-		#pads >= Tuning.Dojo.startPads + Tuning.Dojo.buyablePads + Tuning.Dojo.gamePassPads,
+		#pads >= d.startPads + d.buyablePads + d.gamePassPads,
 		"the dojo has fewer pads than Tuning.Dojo allows a player to unlock"
 	)
 
+	-- Over the roof, which it rises with.
+	local bannerAt =
+		frame.at(0, DojoPlan.level(hall.floors + 1) + 22, (DojoPlan.FRONT + DojoPlan.BACK) / 2)
+	local bannerAnchor = Build.part(hall.roof, "BannerAnchor", Vector3.one, bannerAt, BOARD)
+	bannerAnchor.Transparency = 1
+	bannerAnchor.CanCollide = false
+	bannerAnchor.CanQuery = false
+	local banner, bannerGui = Build.label(bannerAnchor, "", 0, Vector2.new(36, 6))
+	bannerGui.Enabled = false
+
 	folder.Parent = Workspace
 
-	local spawnAt = Hub.at(centerX, 3, side * (streetEdge - 5))
+	-- On the street in front of the entrance under the first landing.
+	local from, to = DojoPlan.entrance(DojoPlan.landings[1])
+	local spawnAt = frame.at((from + to) / 2, 3, -5)
 	return {
 		index = index,
 		folder = folder,
 		pads = pads,
-		sign = sign,
+		hall = hall,
+		sign = hall.sign,
+		banner = bannerGui,
+		bannerLabel = banner,
 		spawn = CFrame.lookAt(spawnAt, spawnAt + Vector3.new(10, 0, 0)),
 	}
 end
@@ -220,8 +273,9 @@ local function buildYard()
 	local height = Hub.WALL_HEIGHT
 	local thick = Hub.WALL_THICKNESS
 	-- How far back the yard goes: to the far edge of the last pair of dojos.
-	local depth = (math.ceil(DOJOS / 2) - 1) * SLOT_PITCH + DOJO_DEPTH
-	local halfWidth = Hub.LANE_WIDTH / 2 + DOJO_WIDTH -- from the center line to a dojo's far edge
+	local depth = (math.ceil(DOJOS / 2) - 1) * SLOT_PITCH + DojoPlan.WIDTH
+	-- From the center line to a dojo's far edge.
+	local halfWidth = Hub.LANE_WIDTH / 2 + DojoPlan.DEPTH
 
 	Build.part(
 		folder,
@@ -250,9 +304,9 @@ local function buildYard()
 			center = Vector3.new(
 				thick / 2,
 				0,
-				side * (Hub.LANE_WIDTH / 2 + (DOJO_WIDTH + thick) / 2)
+				side * (Hub.LANE_WIDTH / 2 + (DojoPlan.DEPTH + thick) / 2)
 			),
-			size = Vector3.new(thick, 0, DOJO_WIDTH + thick),
+			size = Vector3.new(thick, 0, DojoPlan.DEPTH + thick),
 		})
 	end
 
@@ -280,6 +334,14 @@ function Plots.of(player: Player): Plot?
 	return byPlayer[player]
 end
 
+-- Puts up the dojo's first `count` floors and takes down the rest. Returns how many floors
+-- stood before.
+function Plots.setFloors(plot: Plot, count: number): number
+	local before = plot.hall.floors
+	DojoHall.setFloors(plot.hall, count)
+	return before
+end
+
 -- Runs `fn` for every dojo. Services use it, after Plots.start(), to hook up the pads' prompts.
 function Plots.forEach(fn: (plot: Plot) -> ())
 	for _, plot in plots do
@@ -287,12 +349,19 @@ function Plots.forEach(fn: (plot: Plot) -> ())
 	end
 end
 
+local function setOwner(plot: Plot, player: Player?)
+	plot.owner = player
+	local name = if player then `{player.DisplayName}'s Dojo` else "Empty Dojo"
+	plot.sign.Text = name
+	plot.bannerLabel.Text = name
+	plot.banner.Enabled = player ~= nil
+end
+
 -- Gives the player the first free dojo, or nothing if all are taken.
 local function assign(player: Player): Plot?
 	for _, plot in plots do
 		if not plot.owner then
-			plot.owner = player
-			plot.sign.Text = `{player.DisplayName}'s Dojo`
+			setOwner(plot, player)
 			byPlayer[player] = plot
 			return plot
 		end
@@ -328,8 +397,8 @@ function Plots.start()
 	Data.onLeaving(function(player)
 		local plot = byPlayer[player]
 		if plot then
-			plot.owner = nil
-			plot.sign.Text = "Empty Dojo"
+			setOwner(plot, nil)
+			Plots.setFloors(plot, 1)
 			byPlayer[player] = nil
 		end
 	end)

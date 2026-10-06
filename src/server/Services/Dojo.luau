@@ -6,11 +6,17 @@
 -- on is the one the player is carrying. Upgrades are bought on the console at the foot of the
 -- pad: three buttons for one level, ten levels, and as many as the Ryo pays for. A button is
 -- yellow when pressing it would buy something and gray when it would not.
+--
+-- Pads are bought one at a time, in order, as in Kick an Uma: the next one glows, with its
+-- price floating over it in green when the player can pay it and in red when not. The game
+-- pass's pads come last and say so. The dojo grows with them: when a floor's pads are all
+-- bought, the next floor goes up (Logic/DojoPlan.floorsFor).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Data = require("../Data")
+local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
@@ -27,8 +33,13 @@ local Dojo = {}
 
 local PAD_LOCKED = Color3.fromRGB(70, 70, 70)
 local PAD_FOR_SALE = Color3.fromRGB(66, 165, 245)
+local PAD_PASS = Color3.fromRGB(171, 71, 188)
 local PAD_EMPTY = Color3.fromRGB(102, 187, 106)
 local PAD_TAKEN = Color3.fromRGB(255, 213, 79)
+
+local CAN_PAY = Color3.fromRGB(129, 230, 135)
+local CANNOT_PAY = Color3.fromRGB(255, 112, 102)
+local PASS_TEXT = Color3.fromRGB(225, 170, 255)
 
 local BUTTON_ON = Color3.fromRGB(255, 200, 48)
 local BUTTON_OFF = Color3.fromRGB(105, 102, 98)
@@ -100,6 +111,19 @@ local function drawConsole(pad: Plots.Pad, data: Data.Data?, isOpen: boolean)
 	)
 end
 
+-- Whether the pad is the next one the player can buy: the first locked one, while there are
+-- pads left to buy for Ryo.
+local function isForSale(pad: Plots.Pad, data: Data.Data): boolean
+	return pad.index == Stats.unlockedPads(data) + 1 and data.padsBought < Tuning.Dojo.buyablePads
+end
+
+-- Colors the price over the pad for sale by whether the player can pay it right now.
+local function drawPrice(pad: Plots.Pad, data: Data.Data)
+	local price = Economy.padPrice(data.padsBought)
+	pad.tag.Text = `UNLOCK\n{Format.short(price)} Ryo`
+	pad.tag.TextColor3 = if data.ryo >= price then CAN_PAY else CANNOT_PAY
+end
+
 -- Redraws one pad from the save; without a save the pad goes back to its locked look.
 local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	if pad.figure then
@@ -110,19 +134,31 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	local unlocked = if data then Stats.unlockedPads(data) else 0
 	local isOpen = pad.index <= unlocked
 	-- The first locked pad can be bought by walking up to it.
-	local forSale = data ~= nil
-		and pad.index == unlocked + 1
-		and data.padsBought < Tuning.Dojo.buyablePads
+	local forSale = data ~= nil and isForSale(pad, data)
+	-- The game pass's pads come after all those sold for Ryo.
+	local d = Tuning.Dojo
+	local forPass = data ~= nil and not isOpen and pad.index > d.startPads + d.buyablePads
 	local unitId = if data then data.pads[tostring(pad.index)] else nil
 	local unit = if data and unitId then data.units[unitId] else nil
 
 	pad.prompt.Enabled = isOpen or forSale
-	pad.part.Transparency = if isOpen then 0 elseif forSale then 0.3 else 0.7
+	pad.part.Transparency = if isOpen or forSale then 0 elseif forPass then 0.35 else 0.6
+	pad.part.Material = if forSale then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	pad.part.Color = if forSale
 		then PAD_FOR_SALE
+		elseif forPass then PAD_PASS
 		elseif not isOpen then PAD_LOCKED
 		elseif unit then PAD_TAKEN
 		else PAD_EMPTY
+
+	-- Only the first of the pass's pads carries the sign, so the floor is not covered in them.
+	pad.tagGui.Enabled = forSale or (forPass and pad.index == d.startPads + d.buyablePads + 1)
+	if data and forSale then
+		drawPrice(pad, data)
+	elseif forPass then
+		pad.tag.Text = `GAME PASS\n+{d.gamePassPads} PADS`
+		pad.tag.TextColor3 = PASS_TEXT
+	end
 
 	drawConsole(pad, data, isOpen)
 
@@ -131,7 +167,7 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 		pad.prompt.ObjectText = `{Format.short(Economy.padPrice(data.padsBought))} Ryo`
 	elseif unit then
 		local figure = Figure.build(unit)
-		figure:PivotTo(CFrame.new(pad.part.Position + Vector3.new(0, pad.part.Size.Y / 2, 0)))
+		figure:PivotTo(pad.stand)
 		figure.Parent = plot.folder
 		pad.figure = figure
 		pad.prompt.ActionText = "Take / Swap"
@@ -142,10 +178,16 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	end
 end
 
+-- How many floors the dojo stands with for this save.
+local function floorsOf(data: Data.Data): number
+	return DojoPlan.floorsFor(Stats.unlockedPads(data))
+end
+
 local function drawPads(player: Player)
 	local plot = Plots.of(player)
 	if plot then
 		local data = Data.get(player)
+		Plots.setFloors(plot, if data then floorsOf(data) else 1)
 		for _, pad in plot.pads do
 			drawPad(plot, pad, data)
 		end
@@ -158,9 +200,13 @@ local function unlockPad(player: Player, data: Data.Data)
 		State.notify(player, "NotEnoughRyo")
 		return
 	end
+	local floors = floorsOf(data)
 	data.ryo -= price
 	data.padsBought += 1
 	drawPads(player)
+	if floorsOf(data) > floors then
+		State.notify(player, "FloorBuilt", floorsOf(data))
+	end
 	State.push(player)
 end
 
@@ -217,13 +263,18 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 	State.push(player)
 end
 
--- Redraws every console of the player's dojo: what they can afford has changed.
+-- Redraws every console of the player's dojo, and the price of the pad for sale: what they
+-- can afford has changed.
 local function drawConsoles(player: Player, data: Data.Data)
 	local plot = Plots.of(player)
 	if plot then
 		local unlocked = Stats.unlockedPads(data)
 		for _, pad in plot.pads do
 			drawConsole(pad, data, pad.index <= unlocked)
+		end
+		local nextPad = plot.pads[unlocked + 1]
+		if nextPad and isForSale(nextPad, data) then
+			drawPrice(nextPad, data)
 		end
 	end
 end
@@ -290,10 +341,14 @@ local function collectOffline(player: Player, data: Data.Data)
 	end
 end
 
--- Drops pad references to units that no longer exist, so one bad save cannot break the dojo.
+-- Drops pad references to units that no longer exist, so one bad save cannot break the dojo,
+-- and takes units off pads the player does not have (after a change to Tuning.Dojo): they go
+-- back to the inventory.
 local function repair(data: Data.Data)
+	local unlocked = Stats.unlockedPads(data)
 	for key, unitId in data.pads do
-		if not data.units[unitId] then
+		local index = tonumber(key)
+		if not data.units[unitId] or not index or index > unlocked then
 			data.pads[key] = nil
 		end
 	end
