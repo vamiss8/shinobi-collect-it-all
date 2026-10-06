@@ -2,10 +2,12 @@
 -- The figures that stand for shinobi and enemies in the world.
 --
 -- A figure is a real model when one has been supplied, and a placeholder otherwise. To supply
--- one, put a Model into ReplicatedStorage.Models (in Studio) named after the character's id from
--- Config/Characters, e.g. "kakashi", or "enemy_" plus a zone id from Config/Zones for that
--- zone's enemy. It is cloned, scaled to a standard height and stood on its feet; nothing else in
--- the game needs to change. The placeholder is a block body in the rank's color with a head.
+-- one, put a Model (or a single MeshPart) into ReplicatedStorage.Models (in Studio) named after
+-- the character's id from Config/Characters, e.g. "kakashi", or "enemy_" plus a zone id from
+-- Config/Zones for that zone's enemy. It is cloned, scaled to a standard height and stood on
+-- its feet; nothing else in the game needs to change. A model that turns out to stand with its
+-- back to the viewer is turned around by giving it a boolean attribute "Flip" set to true.
+-- The placeholder is a block body in the rank's color with a head.
 --
 -- Shared because the server stands figures on pads and the client rolls them in the reveal.
 
@@ -21,6 +23,7 @@ local Net = require("../Net")
 local Figure = {}
 
 local UNIT_HEIGHT = 4.8
+local FLIP_ATTRIBUTE = "Flip"
 local ENEMY_HEIGHT = 9.3
 local SKIN = Color3.fromRGB(255, 219, 172)
 
@@ -63,11 +66,16 @@ end
 local function supplied(name: string, height: number): Model?
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	local template = if folder then folder:FindFirstChild(name) else nil
-	if not template or not template:IsA("Model") then
+	local model: Model
+	if template and template:IsA("Model") then
+		model = template:Clone()
+	elseif template and template:IsA("BasePart") then
+		-- An importer may hand over a single mesh with no model around it.
+		model = Instance.new("Model")
+		template:Clone().Parent = model
+	else
 		return nil
 	end
-
-	local model = template:Clone()
 	for _, item in model:GetDescendants() do
 		if item:IsA("BasePart") then
 			item.Anchored = true
@@ -90,7 +98,11 @@ local function supplied(name: string, height: number): Model?
 	end
 	model:ScaleTo(model:GetScale() * height / size.Y)
 	local box = model:GetBoundingBox()
-	model.WorldPivot = CFrame.new(box.Position - Vector3.new(0, height / 2, 0))
+	local feet = CFrame.new(box.Position - Vector3.new(0, height / 2, 0))
+	if template:GetAttribute(FLIP_ATTRIBUTE) == true then
+		feet *= CFrame.Angles(0, math.pi, 0)
+	end
+	model.WorldPivot = feet
 	model:PivotTo(CFrame.new())
 	return model
 end
