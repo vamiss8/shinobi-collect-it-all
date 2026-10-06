@@ -22,6 +22,7 @@ import re
 import struct
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
 CONFIG = Path(__file__).resolve().parent.parent / "src" / "shared" / "Config"
 MODEL_FILES = {".glb", ".gltf", ".fbx", ".obj"}
@@ -170,7 +171,7 @@ def node_matrix(node):
 
 
 def image_size(data):
-    """(width, height) of a PNG or JPEG from its first bytes, or None."""
+    """(width, height) of a PNG, JPEG or WebP from its bytes, or None."""
     if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) >= 24:
         return struct.unpack(">II", data[16:24])
     if data[:2] == b"\xff\xd8":
@@ -187,24 +188,64 @@ def image_size(data):
                 at += 2
                 continue
             at += 2 + struct.unpack(">H", data[at + 2 : at + 4])[0]
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP" and len(data) >= 30:
+        kind = data[12:16]
+        if kind == b"VP8X":
+            width = 1 + int.from_bytes(data[24:27], "little")
+            height = 1 + int.from_bytes(data[27:30], "little")
+            return width, height
+        if kind == b"VP8 ":
+            width, height = struct.unpack("<HH", data[26:30])
+            return width & 0x3FFF, height & 0x3FFF
+        if kind == b"VP8L":
+            bits = int.from_bytes(data[21:25], "little")
+            return 1 + (bits & 0x3FFF), 1 + ((bits >> 14) & 0x3FFF)
     return None
 
 
-def image_bytes(document, binary, image, folder):
-    if "bufferView" in image and binary is not None:
-        view = document["bufferViews"][image["bufferView"]]
-        start = view.get("byteOffset", 0)
-        return binary[start : start + view["byteLength"]]
-    uri = image.get("uri", "")
-    if uri.startswith("data:"):
-        return base64.b64decode(uri.split(",", 1)[1])
-    if uri:
-        target = folder / uri
+def outside_file(folder, uri):
+    """The bytes of a file a .gltf points at, or None if it is not there."""
+    for name in (unquote(uri), uri):
+        target = folder / name
         if target.is_file():
-            with target.open("rb") as handle:
-                return handle.read(1 << 16)
-        return None
+            return target.read_bytes()
     return None
+
+
+def read_texture(document, binary, image, folder):
+    """What one image of the file is: (width, height), or a word on why that is not known."""
+    data = None
+    if "bufferView" in image:
+        view = document["bufferViews"][image["bufferView"]]
+        buffer = document["buffers"][view.get("buffer", 0)]
+        source = binary
+        if "uri" in buffer:
+            uri = buffer["uri"]
+            if uri.startswith("data:"):
+                source = base64.b64decode(uri.split(",", 1)[1])
+            else:
+                source = outside_file(folder, uri)
+                if source is None:
+                    return f"MISSING {unquote(uri)}"
+        if source is None:
+            return "unreadable"
+        start = view.get("byteOffset", 0)
+        data = source[start : start + view["byteLength"]]
+    else:
+        uri = image.get("uri", "")
+        if uri.startswith("data:"):
+            data = base64.b64decode(uri.split(",", 1)[1])
+        elif uri:
+            data = outside_file(folder, uri)
+            if data is None:
+                return f"MISSING {unquote(uri)}"
+    if not data:
+        return "unreadable"
+    size = image_size(data)
+    if size:
+        return size
+    kind = image.get("mimeType") or Path(unquote(image.get("uri", ""))).suffix or "unknown"
+    return f"format {kind}"
 
 
 def measure(path):
@@ -256,16 +297,23 @@ def measure(path):
                         high[axis] = max(high[axis], value)
         stack.extend((child, world) for child in node.get("children", []))
 
+    lost = []
+    if path.suffix.lower() == ".gltf":
+        for buffer in document.get("buffers", []):
+            uri = buffer.get("uri", "")
+            if uri and not uri.startswith("data:") and outside_file(path.parent, uri) is None:
+                lost.append(unquote(uri))
+
     textures = []
     for image in document.get("images", []):
-        data = image_bytes(document, binary, image, path.parent)
-        textures.append(image_size(data) if data else None)
+        textures.append(read_texture(document, binary, image, path.parent))
 
     return {
         "triangles": total,
         "biggest": biggest,
         "meshes": placed,
         "textures": textures,
+        "lost": lost,
         "size": [high[i] - low[i] for i in range(3)] if placed and low[0] != math.inf else None,
         "rigged": bool(document.get("skins")),
         "animated": bool(document.get("animations")),
@@ -298,7 +346,19 @@ def remarks(kind, facts):
                 "nearly flat: the flight camera looks from behind, where a flat kunai is a line; "
                 "about a tenth of its length is a good thickness"
             )
-    known = [t for t in facts["textures"] if t]
+    for name in facts["lost"]:
+        problems.append(f"{name} is not next to the .gltf: the model's shape is in that file")
+    known = [t for t in facts["textures"] if isinstance(t, tuple)]
+    for texture in facts["textures"]:
+        if isinstance(texture, str) and texture.startswith("MISSING "):
+            problems.append(
+                f"texture {texture[8:]} is not next to the .gltf: the model would come in without it"
+            )
+        elif isinstance(texture, str) and texture.startswith("format "):
+            notes.append(
+                f"texture is in a {texture[7:]} file this script cannot measure;"
+                " Roblox takes PNG and JPEG, check that it shows in Studio"
+            )
     if not facts["textures"]:
         notes.append("no texture inside: it will come in one flat color")
     elif any(max(t) > TEXTURE_LIMIT for t in known):
@@ -372,7 +432,9 @@ def main():
             try:
                 facts = measure(path)
                 problems, notes = remarks(kind, facts)
-                sizes = ", ".join(f"{t[0]}x{t[1]}" if t else "?" for t in facts["textures"]) or "none"
+                sizes = ", ".join(
+                    f"{t[0]}x{t[1]}" if isinstance(t, tuple) else "?" for t in facts["textures"]
+                ) or "none"
                 shape = "x".join(f"{v:.2f}" for v in facts["size"]) if facts["size"] else "?"
                 details = (
                     f"{facts['triangles']:,} triangles in {facts['meshes']} mesh(es), "
