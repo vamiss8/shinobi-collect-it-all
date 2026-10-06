@@ -16,6 +16,7 @@ local PlaytestGate = require(script.PlaytestGate)
 local Plots = require(script.World.Plots)
 local Scenery = require(script.World.Scenery)
 local Shop = require(script.Services.Shop)
+local Showroom = require(script.World.Showroom)
 local State = require(script.Services.State)
 local Training = require(script.Services.Training)
 
@@ -32,6 +33,7 @@ PlaytestGate.start()
 Hub.start()
 Market.start()
 Scenery.start()
+Showroom.start()
 
 -- Order matters twice over. Load hooks run in this order (dojo first, snapshot last) and leave
 -- hooks in reverse. Training, Inventory and Shop also fill the hotbar in this order, so the

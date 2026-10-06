@@ -52,9 +52,19 @@ Net.UPGRADE_ATTRIBUTE = "Upgrade"
 Net.ACTIVE_ATTRIBUTE = "Active"
 -- How close a player has to stand to press a console button, studs.
 Net.PRESS_DISTANCE = 16
--- Folder in ReplicatedStorage with real models that replace the placeholder figures: a Model
--- named after a character id (Config/Characters), or "enemy_" plus a zone id (Config/Zones).
+-- Folder in ReplicatedStorage with real models that replace the placeholders: a Model or a
+-- MeshPart named after a character id (Config/Characters), "enemy_" plus a zone id
+-- (Config/Zones) for that zone's enemy, or "kunai_" plus a kunai id (Config/Kunai).
 Net.MODELS_FOLDER = "Models"
+Net.ENEMY_MODEL = "enemy_"
+Net.KUNAI_MODEL = "kunai_"
+-- Boolean attribute on a supplied model that came out facing the wrong way: a figure with its
+-- back to the viewer, a kunai that flies ring first. It is turned around. On the folder itself
+-- it turns every figure around, and a figure's own attribute then turns that one back.
+Net.FLIP_ATTRIBUTE = "Flip"
+-- Boolean attribute on the folder: in a Studio test, stand every model on the lane to be
+-- looked over (server World/Showroom).
+Net.SHOWROOM_ATTRIBUTE = "Showroom"
 
 -- The numbers the HUD and the store windows are drawn from. Sent on every change and once a
 -- second with the income tick.

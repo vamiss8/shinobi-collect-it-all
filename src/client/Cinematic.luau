@@ -10,12 +10,10 @@
 --   intro   once the server has teleported the player there, the camera turns to the zone's enemy
 -- Then control comes back with the camera behind the player, looking the way home.
 --
--- A kunai is a real model when one has been supplied, and a plain blade otherwise. To supply
--- one, put a Model or a MeshPart into ReplicatedStorage.Models (in Studio) named "kunai_" plus
--- the kunai's id from Config/Kunai, e.g. "kunai_steel". It is cloned, scaled to a standard
--- length and flown along its longest side, so it has to lie along one of its own axes. If it
--- flies ring first, give it a boolean attribute "Flip" set to true.
+-- A kunai is a real model when one has been supplied (see View/KunaiModel), and a plain blade
+-- otherwise.
 
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -26,6 +24,8 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hud = require("./Hud")
+local KunaiEffects = require("./KunaiEffects")
+local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local Strings = require("./Strings")
@@ -38,10 +38,14 @@ local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
 -- If the run has not started this long after it should have, the camera is given back anyway.
 local FAILSAFE_SECONDS = 4
--- A supplied kunai model is scaled to this length for the first kunai, studs.
-local MODEL_LENGTH = 3.6
-local MODEL_PREFIX = "kunai_"
-local FLIP_ATTRIBUTE = "Flip"
+-- The plain blade that stands in for a kunai without a model is this thick, as a share of
+-- its length.
+local BLADE_THICKNESS = 0.18
+-- A landed kunai sticks in the ground leaning this steeply forward, with this share of its
+-- length in the earth. Steeply, because the camera of the reveal looks from behind and above:
+-- left the way it came down, the kunai would point away from the camera and show only its ring.
+local STUCK_PITCH = math.rad(65)
+local BURIED = 0.25
 
 type Stage = {
 	reveal: Net.Reveal,
@@ -248,69 +252,13 @@ local function begin(reveal: Net.Reveal)
 	end)
 end
 
--- The supplied model of a kunai, made safe to show and scaled to `length`, or nil if there is
--- none. Its pivot is put in its middle, looking along its longest side, so that pivoting it to
--- a CFrame points the blade the way that CFrame looks.
-local function suppliedKunai(id: string, length: number): Model?
-	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
-	local template = if folder then folder:FindFirstChild(MODEL_PREFIX .. id) else nil
-	if not template then
-		return nil
-	end
-
-	local model: Model
-	if template:IsA("Model") then
-		model = template:Clone()
-	elseif template:IsA("BasePart") then
-		model = Instance.new("Model")
-		template:Clone().Parent = model
-	else
-		return nil
-	end
-	for _, item in model:GetDescendants() do
-		if item:IsA("BasePart") then
-			item.Anchored = true
-			item.CanCollide = false
-			item.CanQuery = false
-			item.CanTouch = false
-			item.CastShadow = false
-		elseif item:IsA("LuaSourceContainer") then
-			-- Models from outside may carry scripts; a kunai never needs one.
-			item:Destroy()
-		end
-	end
-
-	-- Without a primary part the bounding box is measured along the world's axes.
-	model.PrimaryPart = nil
-	local _, size = model:GetBoundingBox()
-	local longest = math.max(size.X, size.Y, size.Z)
-	if longest <= 0 then
-		model:Destroy()
-		return nil
-	end
-	model:ScaleTo(model:GetScale() * length / longest)
-
-	local box, scaled = model:GetBoundingBox()
-	local along, up = Vector3.zAxis, Vector3.yAxis
-	if scaled.X >= scaled.Y and scaled.X >= scaled.Z then
-		along = Vector3.xAxis
-	elseif scaled.Y >= scaled.Z then
-		along, up = Vector3.yAxis, Vector3.zAxis
-	end
-	if template:GetAttribute(FLIP_ATTRIBUTE) == true then
-		along = -along
-	end
-	model.WorldPivot = CFrame.lookAt(box.Position, box.Position + along, up)
-	return model
-end
-
--- Builds the kunai for a flight: the part that is moved, and the supplied model that follows
--- it if there is one. Which kunai the thrower owns decides its color, whether it glows, and
--- the trail it leaves; better ones are a little bigger with a longer trail.
-local function buildKunai(index: number, at: Vector3): (Part, Model?)
+-- Builds the kunai for a flight: the part that is moved, the supplied model that follows it if
+-- there is one, and its effects. Which kunai the thrower owns decides its color, whether it
+-- glows, what it trails and how long it is.
+local function buildKunai(index: number, at: Vector3): (Part, Model?, KunaiEffects.Effects)
 	local tier = math.clamp(index, 1, #Catalog.kunai)
 	local look = Catalog.kunai[tier]
-	local scale = 1 + 0.06 * (tier - 1)
+	local length = KunaiModel.length(tier)
 
 	local kunai = Instance.new("Part")
 	kunai.Name = "Kunai"
@@ -318,53 +266,27 @@ local function buildKunai(index: number, at: Vector3): (Part, Model?)
 	kunai.CanCollide = false
 	kunai.CanQuery = false
 	kunai.CastShadow = false
-	kunai.Size = Vector3.new(0.5, 0.5, 2.8) * scale
+	kunai.Size = Vector3.new(BLADE_THICKNESS, BLADE_THICKNESS, 1) * length
 	kunai.Color = Color3.fromHex(look.color)
 	kunai.Material = if look.glow then Enum.Material.Neon else Enum.Material.Metal
 	kunai.CFrame = CFrame.new(at)
 
-	-- A trail is a ribbon stretched between two points on the part.
-	local top = Instance.new("Attachment")
-	top.Position = Vector3.new(0, 0.3 * scale, 0)
-	top.Parent = kunai
-	local bottom = Instance.new("Attachment")
-	bottom.Position = Vector3.new(0, -0.3 * scale, 0)
-	bottom.Parent = kunai
-
-	local trail = Instance.new("Trail")
-	trail.Attachment0 = top
-	trail.Attachment1 = bottom
-	trail.Color = ColorSequence.new(Color3.fromHex(look.trail))
-	trail.Transparency = NumberSequence.new(0.15, 1)
-	trail.Lifetime = 0.25 + 0.07 * tier
-	trail.LightEmission = if look.glow then 1 else 0.2
-	trail.FaceCamera = true
-	trail.Parent = kunai
-
-	-- With a model, the plain blade is only what carries the trail; a glowing kunai lights
-	-- its surroundings instead of being neon itself.
-	local model = suppliedKunai(look.id, MODEL_LENGTH * scale)
+	-- With a model, the plain blade only carries the effects.
+	local model = KunaiModel.supplied(look.id, length)
 	if model then
 		kunai.Transparency = 1
 		model:PivotTo(kunai.CFrame)
 		model.Parent = kunai
-		if look.glow then
-			local light = Instance.new("PointLight")
-			light.Color = Color3.fromHex(look.trail)
-			light.Range = 10
-			light.Brightness = 1.5
-			light.Shadows = false
-			light.Parent = kunai
-		end
 	end
+	local effects = KunaiEffects.attach(kunai, tier)
 
 	kunai.Parent = Workspace
-	return kunai, model
+	return kunai, model, effects
 end
 
 -- Draws one kunai along its arc.
 local function fly(flight: Net.Flight)
-	local kunai, model = buildKunai(flight.kunai, flight.from)
+	local kunai, model, effects = buildKunai(flight.kunai, flight.from)
 	local function place(cframe: CFrame)
 		kunai.CFrame = cframe
 		if model then
@@ -390,7 +312,12 @@ local function fly(flight: Net.Flight)
 			-- Point the kunai along its path by looking at where it will be a moment later.
 			place(CFrame.lookAt(pointAt(t), pointAt(t + 0.01)))
 		else
-			place(kunai.CFrame.Rotation + flight.to)
+			local ahead = (flight.to - flight.from) * Vector3.new(1, 0, 1)
+			local forward = if ahead.Magnitude > 0.01 then ahead.Unit else Vector3.xAxis
+			local axis = forward * math.cos(STUCK_PITCH) - Vector3.yAxis * math.sin(STUCK_PITCH)
+			local middle = flight.to + axis * (BURIED - 0.5) * kunai.Size.Z
+			place(CFrame.lookAt(middle, middle + axis))
+			KunaiEffects.land(effects)
 			connection:Disconnect()
 		end
 	end)
@@ -405,6 +332,17 @@ local function fly(flight: Net.Flight)
 end
 
 function Cinematic.start()
+	-- The supplied models are fetched ahead of time, in the background: the roulette swaps
+	-- figures many times a second, and one whose mesh is still on its way shows as nothing.
+	task.spawn(function()
+		local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
+		if folder then
+			pcall(function()
+				ContentProvider:PreloadAsync(folder:GetChildren())
+			end)
+		end
+	end)
+
 	Remotes.Flight.OnClientEvent:Connect(fly)
 	Remotes.Reveal.OnClientEvent:Connect(begin)
 

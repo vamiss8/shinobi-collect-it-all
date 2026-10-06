@@ -6,7 +6,8 @@
 -- the character's id from Config/Characters, e.g. "kakashi", or "enemy_" plus a zone id from
 -- Config/Zones for that zone's enemy. It is cloned, scaled to a standard height and stood on
 -- its feet; nothing else in the game needs to change. A model that turns out to stand with its
--- back to the viewer is turned around by giving it a boolean attribute "Flip" set to true.
+-- back to the viewer is turned around by giving it a boolean attribute "Flip" set to true; if
+-- they all do, the same attribute on the Models folder turns every one of them.
 -- The placeholder is a block body in the rank's color with a head.
 --
 -- Shared because the server stands figures on pads and the client rolls them in the reveal.
@@ -23,7 +24,6 @@ local Net = require("../Net")
 local Figure = {}
 
 local UNIT_HEIGHT = 4.8
-local FLIP_ATTRIBUTE = "Flip"
 local ENEMY_HEIGHT = 9.3
 local SKIN = Color3.fromRGB(255, 219, 172)
 
@@ -99,7 +99,9 @@ local function supplied(name: string, height: number): Model?
 	model:ScaleTo(model:GetScale() * height / size.Y)
 	local box = model:GetBoundingBox()
 	local feet = CFrame.new(box.Position - Vector3.new(0, height / 2, 0))
-	if template:GetAttribute(FLIP_ATTRIBUTE) == true then
+	-- The folder's attribute turns every figure around; a figure's own turns it once more.
+	local allTurned = folder ~= nil and folder:GetAttribute(Net.FLIP_ATTRIBUTE) == true
+	if allTurned ~= (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true) then
 		feet *= CFrame.Angles(0, math.pi, 0)
 	end
 	model.WorldPivot = feet
@@ -184,7 +186,7 @@ end
 
 -- Builds a zone's enemy standing at the world origin, pivot at its feet.
 function Figure.enemy(zone: Catalog.Zone): Model
-	local model = supplied(`enemy_{zone.id}`, ENEMY_HEIGHT)
+	local model = supplied(Net.ENEMY_MODEL .. zone.id, ENEMY_HEIGHT)
 		or placeholderEnemy(Color3.fromHex(zone.enemy.color))
 	model.Name = zone.enemy.name
 	Build.label(
