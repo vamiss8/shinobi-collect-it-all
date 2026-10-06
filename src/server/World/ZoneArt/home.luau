@@ -188,23 +188,40 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- The cliff the faces are cut in runs on behind the hall, trees along its top.
+	-- The cliff the faces are cut in runs on behind the hall: each rock stands under a cap of
+	-- turf, and trees grow on top, set back from its edge. (The trees were bare balls of
+	-- leaves sitting on the rock at first, which the owner did not like the look of.)
 	for i = 0, 7 do
 		local x = -18 - i * 42
 		local height = pick(84, 120)
+		local z = -258 + pick(-6, 6)
+		local turn = pick(-6, 6)
 		Kit.backdrop(
 			Kit.box(
 				scene,
 				Vector3.new(46, height, 40),
-				at(x, -2, -258 + pick(-6, 6)),
+				at(x, -2, z),
 				if i % 2 == 0 then c.cliff else c.cliffShade,
 				slate,
-				pick(-6, 6)
+				turn
 			)
 		)
+		local top = height - 2
 		Kit.backdrop(
-			Kit.ball(scene, pick(20, 30), at(x + pick(-10, 10), height + 4, -262), c.leaf, grass)
+			Kit.box(scene, Vector3.new(48, 2.2, 42), at(x, top - 0.4, z), c.hill, grass, turn)
 		)
+		for _ = 1, 2 do
+			Kit.tree(
+				scene,
+				at(x + pick(-15, 15), top + 1.6, z + pick(-12, 4)),
+				pick(7, 10),
+				1.6,
+				pick(10, 14),
+				c.bark,
+				if i % 2 == 0 then c.leaf else c.leafLight,
+				2
+			)
+		end
 	end
 
 	-- The village's wall closes the back, capped in green, and in it the great gate: two red

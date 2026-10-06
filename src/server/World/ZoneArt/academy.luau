@@ -166,15 +166,29 @@ return function(scene: Kit.Scene)
 	-- Far off on the left, the cliff over the village with four great faces cut into it, tall
 	-- enough to be seen over the Academy's roof from the lane. The faces are only blocks: a
 	-- brow, a nose, eyes, a mouth, each under a different crown of hair.
+	-- Each rock of the cliff stands under a cap of turf.
+	local tops: { number } = {}
 	for i = 0, 4 do
+		local height = pick(118, 140)
+		local z = -178 + pick(-4, 4)
+		local turn = pick(-6, 6)
 		Kit.box(
 			scene,
-			Vector3.new(30, pick(118, 140), 34),
-			at(10 + i * 20, -2, -178 + pick(-4, 4)),
+			Vector3.new(30, height, 34),
+			at(10 + i * 20, -2, z),
 			c.cliff,
 			Enum.Material.Slate,
-			pick(-6, 6)
+			turn
 		)
+		Kit.box(
+			scene,
+			Vector3.new(32, 2.2, 36),
+			at(10 + i * 20, height - 2.4, z),
+			c.hill,
+			Enum.Material.Grass,
+			turn
+		)
+		tops[i + 1] = height - 2
 	end
 	for i = 0, 3 do
 		Kit.rock(scene, at(18 + i * 22, 0, -152), Vector3.new(24, pick(30, 44), 22), c.cliffShade)
@@ -195,7 +209,9 @@ return function(scene: Kit.Scene)
 		for _, eye in { -3.8, 3.8 } do
 			Kit.box(scene, Vector3.new(3.4, 1.6, 0.7), at(x + eye, 86, -157.7), c.trim)
 		end
-		Kit.ball(scene, 16, at(x + 10, 124, -178), c.leaf, Enum.Material.Grass)
+		-- A tree on the rock behind each face, set back from the edge. (They were bare balls
+		-- of leaves sitting on the rock at first, which the owner did not like the look of.)
+		Kit.tree(scene, at(x + 10, tops[i + 2] + 1.6, -186), 8, 1.6, 12, c.bark, c.leaf, 2)
 	end
 
 	-- Village houses behind the field and beside the Academy.
