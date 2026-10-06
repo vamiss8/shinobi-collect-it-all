@@ -43,7 +43,7 @@ Hub.WALL_HEIGHT = WALL_HEIGHT
 Hub.WALL_THICKNESS = WALL_THICKNESS
 
 -- How far the grass reaches past the playable area, studs. More past the far end of the lane,
--- where Scenery stands a colossal tree.
+-- where the last zone's scenery stands a colossal tree.
 local GROUND_MARGIN = 40
 local FAR_END_MARGIN = 200
 
@@ -304,7 +304,7 @@ function Hub.start()
 		end
 		marker.CanCollide = false
 
-		-- Past the first zone the sign hangs above the gate that Scenery raises at each border.
+		-- Past the first zone the sign hangs above the gate the zone's scenery raises at its start.
 		local signAt = if i == 1 then Tuning.Kick.stripDepth + 14 else zone.startsAt + 0.5
 		local signHeight = if i == 1 then 14 else 32
 		local post =

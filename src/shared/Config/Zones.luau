@@ -5,7 +5,7 @@
 -- with a small chance of the next rank up that grows towards its far end (see Tuning.Zones).
 -- Lower ranks never drop. The zone's enemy chases the player home, faster the farther in the
 -- kunai fell (see Logic/Chase). Zones must be listed in ascending `chakra`, `startsAt` and rank.
--- A zone's id also names its scenery (World/Scenery), its lighting (client Mood) and its enemy's
+-- A zone's id also names its look (Config/ZoneArt), its scenery (World/ZoneArt) and its enemy's
 -- model ("enemy_<id>", see View/Figure).
 
 export type Enemy = {

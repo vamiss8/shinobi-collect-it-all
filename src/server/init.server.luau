@@ -14,11 +14,11 @@ local Loadout = require(script.Services.Loadout)
 local Market = require(script.World.Market)
 local PlaytestGate = require(script.PlaytestGate)
 local Plots = require(script.World.Plots)
-local Scenery = require(script.World.Scenery)
 local Shop = require(script.Services.Shop)
 local Showroom = require(script.World.Showroom)
 local State = require(script.Services.State)
 local Training = require(script.Services.Training)
+local ZoneArt = require(script.World.ZoneArt)
 
 local problems = Catalog.validate()
 if #problems > 0 then
@@ -32,7 +32,7 @@ PlaytestGate.start()
 -- The world first: services hook up to its prompts when they start.
 Hub.start()
 Market.start()
-Scenery.start()
+ZoneArt.start()
 Showroom.start()
 
 -- Order matters twice over. Load hooks run in this order (dojo first, snapshot last) and leave
