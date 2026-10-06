@@ -11,6 +11,8 @@ local Zones = require("./zones")
 local FLAT = 0.2
 -- How much room a player needs clear of anything solid, studs.
 local ROOM = 4
+-- What hangs over where players walk hangs above the tallest of them.
+local HEADROOM = 7.5
 local LANE_HALF = Zones.LANE_WIDTH / 2
 
 local folder: any = nil
@@ -286,6 +288,30 @@ return {
 			end
 		end
 		T.ok(lanterns >= 12, `only {lanterns} lanterns`)
+	end,
+
+	["a lantern on a post is solid and hangs over a tall player's head"] = function()
+		local lanterns = 0
+		for _, part in parts() do
+			if part.Name == "Lantern" or part.Name == "LanternCap" or part.Name == "LanternArm" then
+				lanterns += 1
+				local low = Zones.bounds(part)
+				T.ok(part.CanCollide, `{where(part)} cannot be touched`)
+				T.ok(low.Y >= HEADROOM, `{where(part)} hangs only {low.Y} studs up`)
+			end
+		end
+		T.ok(lanterns >= 48, `only {lanterns} pieces of lantern`)
+	end,
+
+	["a stone lantern is solid from its foot to its knob"] = function()
+		local pieces = 0
+		for _, part in parts() do
+			if string.sub(part.Name, 1, 12) == "StoneLantern" then
+				pieces += 1
+				T.ok(part.CanCollide, `{where(part)} can be walked through`)
+			end
+		end
+		T.ok(pieces >= 6 * 2 * PlazaPlan.DOJOS, `only {pieces} pieces of stone lantern`)
 	end,
 
 	-- Two flat sides in one plane, one over the other, flicker as the camera moves.

@@ -9,9 +9,9 @@
 -- World/Market's.
 --
 -- Unlike the zones' scenery (World/ZoneArt) this is ground that players walk on: the paving,
--- the fountain's rim and bowls, the benches, posts, planters and trunks are solid, and can be
--- stood on. What is only for the eye, the water, the leaves and the patterns laid into the
--- paving, nothing bumps into.
+-- the fountain's rim and bowls, the benches, posts, lanterns, planters and trunks are solid,
+-- and can be stood on. What is only for the eye, the water, the leaves and the patterns laid
+-- into the paving, nothing bumps into.
 --
 -- Built from plain parts in Hub coordinates; call start() after Hub.start().
 
@@ -59,6 +59,10 @@ local LEAF_LIGHT = Color3.fromRGB(156, 204, 101)
 local BLOSSOM = Color3.fromRGB(248, 187, 208)
 local BLOSSOM_DEEP = Color3.fromRGB(244, 143, 177)
 local SOIL = Color3.fromRGB(92, 70, 52)
+-- How tall a lantern post stands. Its lantern is solid and hangs over the edge of a path, so
+-- it hangs clear of the tallest player's head: a character is five to seven studs tall, and
+-- the lantern's foot is four under the post's top.
+local POST = 12
 
 -- Drops leaving a bowl with its water: they set off up and outward and fall with the stream.
 -- The pull down and the life are matched to how far each has to fall.
@@ -439,7 +443,7 @@ local function buildFountain(folder: Folder)
 	-- A ring of jets from nozzles inside the wall, arcing in over the pool towards the pillar.
 	for i = 0, 11 do
 		local out = heading(i * math.pi / 6 + math.pi / 12)
-		show(column(folder, "Nozzle", center + UP * 1.6 + out * 14.4, 1, 0.9, STONE_DARK, slate))
+		column(folder, "Nozzle", center + UP * 0.3 + out * 14.4, 2.3, 0.9, STONE_DARK, slate)
 		stream(
 			UP * 2.6 + out * 14.4,
 			UP * 0.9 - out * 0.42,
@@ -462,34 +466,40 @@ local function buildFountain(folder: Folder)
 end
 
 -- A lantern post: a wooden post with an arm that reaches `towards`, braced from below, and a
--- paper lantern hanging from the arm's end on a cord, lit or not.
+-- paper lantern hanging from the arm's end on a cord, lit or not. The post, its arm and the
+-- lantern are solid: a player who jumps touches the lantern. Only the thin pieces are not,
+-- the brace, the cord and the tassel, which would catch on nothing but annoy.
 local function lanternPost(folder: Folder, base: Vector3, towards: Vector3, lit: boolean)
 	local wood = Enum.Material.Wood
-	Build.part(folder, "LanternPost", Vector3.new(0.9, 10, 0.9), base + UP * 5, TIMBER, wood)
-	show(
-		Build.part(
-			folder,
-			"LanternPostCap",
-			Vector3.new(1.5, 0.4, 1.5),
-			base + UP * 10.2,
-			TIMBER,
-			wood
-		)
+	Build.part(
+		folder,
+		"LanternPost",
+		Vector3.new(0.9, POST, 0.9),
+		base + UP * (POST / 2),
+		TIMBER,
+		wood
+	)
+	Build.part(
+		folder,
+		"LanternPostCap",
+		Vector3.new(1.5, 0.4, 1.5),
+		base + UP * (POST + 0.2),
+		TIMBER,
+		wood
 	)
 	local angle = math.atan2(towards.Z, towards.X)
-	show(
-		block(
-			folder,
-			"LanternArm",
-			Vector3.new(3, 0.45, 0.45),
-			base + UP * 8.85 + towards * 1.5,
-			angle,
-			TIMBER,
-			wood
-		)
+	block(
+		folder,
+		"LanternArm",
+		Vector3.new(3, 0.45, 0.45),
+		base + UP * (POST - 1.15) + towards * 1.5,
+		angle,
+		TIMBER,
+		wood
 	)
 	-- The brace: from the post up to the arm, halfway along it.
-	local low, high = base + UP * 7.4 + towards * 0.3, base + UP * 8.9 + towards * 1.7
+	local low = base + UP * (POST - 2.6) + towards * 0.3
+	local high = base + UP * (POST - 1.1) + towards * 1.7
 	local brace = show(
 		Build.part(
 			folder,
@@ -504,80 +514,85 @@ local function lanternPost(folder: Folder, base: Vector3, towards: Vector3, lit:
 
 	-- The lantern hangs under the arm's end, cord and all.
 	local hang = base + towards * 2.4
-	show(Build.part(folder, "LanternCord", Vector3.new(0.14, 0.7, 0.14), hang + UP * 8.5, TIMBER))
-	local body = show(
+	show(
 		Build.part(
 			folder,
-			"Lantern",
-			Vector3.new(1.3, 1.8, 1.3),
-			hang + UP * 7,
-			LANTERN,
-			Enum.Material.Neon
+			"LanternCord",
+			Vector3.new(0.14, 0.7, 0.14),
+			hang + UP * (POST - 1.5),
+			TIMBER
 		)
 	)
-	for _, y in { 5.98, 8.02 } do
-		show(
-			Build.part(
-				folder,
-				"LanternCap",
-				Vector3.new(1.5, 0.25, 1.5),
-				hang + UP * y,
-				TIMBER,
-				wood
-			)
+	local body = Build.part(
+		folder,
+		"Lantern",
+		Vector3.new(1.3, 1.8, 1.3),
+		hang + UP * (POST - 3),
+		LANTERN,
+		Enum.Material.Neon
+	)
+	for _, under in { 4.02, 1.98 } do
+		Build.part(
+			folder,
+			"LanternCap",
+			Vector3.new(1.5, 0.25, 1.5),
+			hang + UP * (POST - under),
+			TIMBER,
+			wood
 		)
 	end
 	show(
-		Build.part(folder, "LanternTassel", Vector3.new(0.16, 0.7, 0.16), hang + UP * 5.5, LACQUER)
+		Build.part(
+			folder,
+			"LanternTassel",
+			Vector3.new(0.16, 0.7, 0.16),
+			hang + UP * (POST - 4.5),
+			LACQUER
+		)
 	)
 	if lit then
 		local light = Instance.new("PointLight")
 		light.Color = LANTERN
-		light.Range = 16
+		light.Range = 18
 		light.Brightness = 0.7
 		light.Shadows = false
 		light.Parent = body
 	end
 end
 
--- A stone lantern: a foot, a shaft, a table, a small lit house and its roof.
+-- A stone lantern: a foot, a shaft, a table, a small lit house, its roof and a knob on top.
+-- Solid from foot to knob: at first only the foot and the shaft were, and a player walked
+-- through the rest.
 local function stoneLantern(folder: Folder, base: Vector3)
 	local slate = Enum.Material.Slate
 	Build.part(folder, "StoneLantern", Vector3.new(3, 0.8, 3), base + UP * 0.4, STONE_DARK, slate)
 	column(folder, "StoneLanternShaft", base + UP * 0.8, 3.4, 1.3, STONE, slate)
-	show(
-		Build.part(
-			folder,
-			"StoneLanternTable",
-			Vector3.new(2.8, 0.5, 2.8),
-			base + UP * 4.45,
-			STONE_DARK,
-			slate
-		)
+	Build.part(
+		folder,
+		"StoneLanternTable",
+		Vector3.new(2.8, 0.5, 2.8),
+		base + UP * 4.45,
+		STONE_DARK,
+		slate
 	)
-	show(
-		Build.part(
-			folder,
-			"StoneLanternLight",
-			Vector3.new(1.6, 1.6, 1.6),
-			base + UP * 5.5,
-			LANTERN,
-			Enum.Material.Neon
-		)
+	Build.part(
+		folder,
+		"StoneLanternLight",
+		Vector3.new(1.6, 1.6, 1.6),
+		base + UP * 5.5,
+		LANTERN,
+		Enum.Material.Neon
 	)
-	show(
-		Build.part(
-			folder,
-			"StoneLanternRoof",
-			Vector3.new(3.4, 0.6, 3.4),
-			base + UP * 6.6,
-			STONE_DARK,
-			slate
-		)
+	Build.part(
+		folder,
+		"StoneLanternRoof",
+		Vector3.new(3.4, 0.6, 3.4),
+		base + UP * 6.6,
+		STONE_DARK,
+		slate
 	)
-	local knob = show(
+	local knob =
 		Build.part(folder, "StoneLanternKnob", Vector3.new(1, 1, 1), base + UP * 7.3, STONE, slate)
-	)
 	knob.Shape = Enum.PartType.Ball
 end
 
@@ -800,7 +815,7 @@ local function trainingCorner(folder: Folder, base: Vector3, face: number)
 	-- The dummy: a post, arms across it, a body of straw and a head.
 	local dummy = base + Vector3.new(-7, 0, face * 8)
 	Build.part(folder, "DummyPost", Vector3.new(0.7, 5.2, 0.7), dummy + UP * 2.6, BARK, wood)
-	show(Build.part(folder, "DummyArms", Vector3.new(4.2, 0.5, 0.5), dummy + UP * 4, BARK, wood))
+	Build.part(folder, "DummyArms", Vector3.new(4.2, 0.5, 0.5), dummy + UP * 4, BARK, wood)
 	column(folder, "DummyBody", dummy + UP * 1.6, 2.8, 1.8, STRAW, Enum.Material.Fabric)
 	local head = Build.part(
 		folder,
@@ -839,10 +854,11 @@ local function trainingCorner(folder: Folder, base: Vector3, face: number)
 end
 
 -- The well: a ring of stone with dark water in it, two posts, a roof and a bucket on a rope.
+-- All but the water and the rope is solid.
 local function well(folder: Folder, base: Vector3)
 	local wood = Enum.Material.Wood
 	column(folder, "Well", base, 2.8, 7, STONE, Enum.Material.Slate)
-	show(column(folder, "WellRim", base + UP * 2.8, 0.3, 7.6, STONE_DARK, Enum.Material.Slate))
+	column(folder, "WellRim", base + UP * 2.8, 0.3, 7.6, STONE_DARK, Enum.Material.Slate)
 	show(column(folder, "WellWater", base + UP * 3.1, 0.06, 5.2, DEEP))
 	for _, x in { -3.9, 3.9 } do
 		Build.part(
@@ -854,10 +870,10 @@ local function well(folder: Folder, base: Vector3)
 			wood
 		)
 	end
-	show(Build.part(folder, "WellBar", Vector3.new(8.6, 0.5, 0.5), base + UP * 7.4, TIMBER, wood))
+	Build.part(folder, "WellBar", Vector3.new(8.6, 0.5, 0.5), base + UP * 7.4, TIMBER, wood)
 	roof(folder, base + UP * 10.2, 10.4, 3, 2, false, LACQUER)
 	show(Build.part(folder, "WellRope", Vector3.new(0.14, 2.4, 0.14), base + UP * 6, PAPER))
-	show(column(folder, "WellBucket", base + UP * 3.6, 1.3, 1.5, WOOD, wood))
+	column(folder, "WellBucket", base + UP * 3.6, 1.3, 1.5, WOOD, wood)
 end
 
 -- A small shrine: a little house of dark wood under a red roof on a base of stone, its door
@@ -891,9 +907,7 @@ local function shrine(folder: Folder, base: Vector3, face: number)
 		)
 	)
 	roof(folder, base + UP * 7.4, 6.4, 3.2, 2, false, LACQUER)
-	show(
-		Build.part(folder, "ShrineRidge", Vector3.new(6.8, 0.4, 0.5), base + UP * 7.5, TIMBER, wood)
-	)
+	Build.part(folder, "ShrineRidge", Vector3.new(6.8, 0.4, 0.5), base + UP * 7.5, TIMBER, wood)
 	-- Its gate, a few steps out.
 	local gate = base + Vector3.new(0, 0, face * 7.5)
 	for _, x in { -2.4, 2.4 } do
