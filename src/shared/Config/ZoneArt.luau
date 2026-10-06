@@ -7,11 +7,12 @@
 -- Plain data, so that it can be checked without Roblox: colors are hex strings and materials
 -- are named as in Enum.Material.
 --
--- THE LAST ZONE IS A REFERENCE. The owner likes the moon and the light of Great Ninja War as
--- they are (2026-10-06) and they are not to change: its `light` below is exactly what the game
--- showed that day, the five values the old Mood set plus the place's own Lighting for the rest,
--- and tests/ZoneArt.spec pins every number. The moon itself belongs to the place's Sky, which
--- no code touches.
+-- THE LAST ZONE'S LIGHT IS A REFERENCE. The owner likes the moon and the light of Great Ninja
+-- War as they are (2026-10-06) and they are not to change: its `light` below is exactly what
+-- the game showed that day, the five values the old Mood set plus the place's own Lighting for
+-- the rest, and tests/ZoneArt.spec pins every number. The moon itself belongs to the place's
+-- Sky, which no code touches. Its scenery is another matter: the owner had it rebuilt the same
+-- day, once the other nine were seen, the old one being too plain beside them.
 
 export type Surface = {
 	color: string,
@@ -65,7 +66,7 @@ export type Weather = {
 
 export type Art = {
 	palette: { [string]: string },
-	ground: Surface, -- the ground either side of the lane
+	ground: Surface, -- the ground either side of the lane, all the way to the horizon
 	lane: Surface?, -- the lane's own surface; nil leaves it as the Hub built it
 	light: Light,
 	weather: Weather?,
@@ -167,38 +168,59 @@ local MORNING = light({
 	raysSpread = 0.3,
 })
 
+-- The village: the first zone and the streets round the dojos are built in the same colors.
+local VILLAGE = {
+	bark = "#6D4C41",
+	leaf = "#689F38",
+	leafLight = "#9CCC65",
+	blossom = "#F8BBD0",
+	wall = "#F3E5C3",
+	wallShade = "#D9C49A",
+	roof = "#D2552B",
+	roofDark = "#A63E1F",
+	trim = "#5D4037",
+	window = "#4E7CA8",
+	door = "#4E342E",
+	stone = "#B8B2A6",
+	path = "#CDB98F",
+	band = "#C62828",
+	target = "#F5F5F5",
+	cloth = "#FFF8E1",
+	lantern = "#FF8A50",
+	cliff = "#A9A190",
+	cliffShade = "#8D8576",
+	flower = "#FFD54F",
+	fence = "#8D6E63",
+	hill = "#5C9138",
+	hillFar = "#4F7F3A",
+	-- Only the streets behind the lane use these.
+	rampart = "#D9C9A3",
+	rampartCap = "#3F6B3A",
+	gateGreen = "#2E6B3E",
+	gateRed = "#B5362A",
+	hall = "#C4452D",
+	wire = "#2B2B2B",
+	tank = "#7FA7B5",
+}
+
 local ZoneArt = {}
 
 -- The dojos, the market and the throwing strip share the first zone's morning: they are the
 -- same village, and a camera standing on the strip crosses the lane's start all the time.
 ZoneArt.home = MORNING
 
+-- What stands round the dojos (World/ZoneArt/home): not a zone, so it has no lane, sign or
+-- weather of its own. Its grass is the Hub's.
+ZoneArt.village = {
+	palette = VILLAGE,
+	ground = { color = "#689F38", material = "Grass" },
+	light = MORNING,
+} :: Art
+
 ZoneArt.zones = {
 	-- A sunny morning in the village: green and orange under a warm sky.
 	academy = {
-		palette = {
-			bark = "#6D4C41",
-			leaf = "#689F38",
-			leafLight = "#9CCC65",
-			blossom = "#F8BBD0",
-			wall = "#F3E5C3",
-			wallShade = "#D9C49A",
-			roof = "#D2552B",
-			roofDark = "#A63E1F",
-			trim = "#5D4037",
-			window = "#4E7CA8",
-			door = "#4E342E",
-			stone = "#B8B2A6",
-			path = "#CDB98F",
-			band = "#C62828",
-			target = "#F5F5F5",
-			cloth = "#FFF8E1",
-			lantern = "#FF8A50",
-			cliff = "#A9A190",
-			cliffShade = "#8D8576",
-			flower = "#FFD54F",
-			fence = "#8D6E63",
-		},
+		palette = VILLAGE,
 		ground = { color = "#7CB342", material = "Grass" },
 		lane = { color = "#9CCC65", material = "Grass" },
 		light = MORNING,
@@ -307,6 +329,8 @@ ZoneArt.zones = {
 			bark = "#6D4C41",
 			leaf = "#558B2F",
 			torch = "#FF8A3D",
+			hill = "#5E8F3A",
+			hillFar = "#4F7F3A",
 		},
 		ground = { color = "#C4B28A", material = "Sand" },
 		lane = { color = "#E3CFA0", material = "Sand" },
@@ -553,16 +577,36 @@ ZoneArt.zones = {
 		}),
 	},
 
-	-- The battlefield under the moon. Not to be changed: see the note at the top.
+	-- The battlefield under the moon. Its light is not to be changed: see the note at the top.
 	great_ninja_war = {
 		palette = {
 			spike = "#6D4C41",
 			boulder = "#424242",
+			rockWarm = "#57463E",
 			gate = "#C62828",
+			gateDark = "#7F1D1D",
 			trunk = "#3E2723",
+			trunkDark = "#2E1C19",
+			root = "#4A342C",
 			crown = "#880E4F",
+			petal = "#AD1457",
+			glow = "#FF80AB",
+			scorch = "#231C1A",
+			meteor = "#3A3436",
+			ridge = "#32282A",
+			rope = "#C9B48A",
+			tag = "#ECE7D8",
+			tent = "#8D8372",
+			flap = "#3E3A34",
+			banner = "#1F3A5F",
+			pole = "#4E342E",
+			steel = "#8D9499",
+			char = "#1E1917",
+			ember = "#FF7043",
+			smoke = "#5A5050",
 		},
 		ground = { color = "#3E322E", material = "Ground" },
+		lane = { color = "#4A3B37", material = "Ground" },
 		light = light({
 			clock = 19.3,
 			outdoor = "#6E3C5A",
@@ -570,6 +614,19 @@ ZoneArt.zones = {
 			decay = "#963C5A",
 			density = 0.5,
 			haze = 3,
+		}),
+		-- Ash coming down on the field.
+		weather = drifting({
+			rate = 5,
+			life = { 6, 8 },
+			speed = { 1, 2.2 },
+			size = { 0.3, 0.2 },
+			squash = 0,
+			spin = 60,
+			fade = 0.35,
+			color = "#B9A7A2",
+			wind = { -0.6, 0.3 },
+			fall = 0.1,
 		}),
 	},
 } :: { [string]: Art }

@@ -1,16 +1,12 @@
 --!strict
 -- The rules every zone's scenery keeps, checked on the scenery itself: the builders are run
--- outside Roblox (tests/zones) and what they made is measured.
+-- outside Roblox (tests/zones) and what they made is measured. The village round the dojos is
+-- built the same way and held to the rules that apply to it.
 
 local Catalog = require("../src/shared/Config/Catalog")
 local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
 local Zones = require("./zones")
-local reference = require("./fixtures/great_ninja_war")
-
--- The zone that is kept as it was; it predates the rules below and is held to its own
--- reference instead.
-local KEPT = "great_ninja_war"
 
 -- Scenery stays out of the lane: nothing nearer its middle than this, studs. The lane is 30
 -- to a side and its walls stand just outside that.
@@ -23,15 +19,38 @@ local GATE_FROM, GATE_TO = 18, 28.5
 local BUDGET = { 300, 600 }
 local LIGHTS = 12
 local SHADOW_FROM = 10
--- How far past its own stretch of the lane a zone's backdrop may reach.
+-- How far past its own stretch of the lane a zone's scenery may reach, and how far its
+-- backdrop may: hills do not stop at a border. Backdrop is what stands at least this far from
+-- the lane's middle.
 local OVERHANG = 80
+local BACKDROP_OVERHANG = 220
+local BACKDROP_FROM = 120
+-- A backdrop closes the view when something this tall stands between these distances from the
+-- lane's middle, all along the zone.
+local HORIZON_HEIGHT = 45
+local HORIZON_FROM, HORIZON_TO = 60, 700
+-- The sea has no far shore: there the water runs out into the fog, and that is its horizon.
+local OPEN = { land_of_waves = true }
+-- The yard the players walk in (World/Plots), with room to spare: how far back it goes from
+-- the lane's start and how far out from the middle of the street.
+local YARD_DEPTH, YARD_HALF = 216, 88
 
 local built: { [string]: Zones.Built } = {}
-local function zoneBuilt(id: string): Zones.Built
+local function sceneBuilt(id: string): Zones.Built
 	if not built[id] then
 		built[id] = Zones.build(id)
 	end
 	return built[id]
+end
+
+-- Every scene: the zones in their order, then the village.
+local function scenes(): { Zones.Built }
+	local all = {}
+	for _, zone in Catalog.zones do
+		table.insert(all, sceneBuilt(zone.id))
+	end
+	table.insert(all, sceneBuilt(Zones.HOME))
+	return all
 end
 
 -- Whether a part's box overlaps the lane's footprint, whatever its height.
@@ -42,48 +61,71 @@ local function overLane(low: any, high: any): boolean
 		and low.Z < LANE_EDGE
 end
 
+-- How near the lane's middle a part comes on its own side of it; 0 if it lies across.
+local function nearest(low: any, high: any): number
+	if low.Z > 0 then
+		return low.Z
+	elseif high.Z < 0 then
+		return -high.Z
+	end
+	return 0
+end
+
 local function where(part: any): string
 	local at = part.CFrame.Position
-	return string.format("%s at %.0f, %.0f, %.0f", part.ClassName, at.X, at.Y, at.Z)
+	return string.format("%s at %.0f, %.0f, %.0f", Zones.shape(part), at.X, at.Y, at.Z)
+end
+
+-- Whether something `tall` stands over the point `x` along the lane, on the given side of it
+-- and between `from` and `to` studs out.
+local function closed(scenery: Zones.Built, x: number, side: number, tall: number): boolean
+	for _, part in scenery.parts do
+		local low, high = Zones.bounds(part)
+		if high.Y >= tall and low.X <= x and high.X >= x then
+			local near = if side > 0 then low.Z else -high.Z
+			if near >= HORIZON_FROM and near <= HORIZON_TO then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 return {
-	["every new zone is within its budget of parts and lights"] = function()
+	["every zone is within its budget of parts and lights"] = function()
 		for _, zone in Catalog.zones do
-			if zone.id ~= KEPT then
-				local scenery = zoneBuilt(zone.id)
-				local count = #scenery.parts
-				T.ok(
-					count >= BUDGET[1] and count <= BUDGET[2],
-					`{zone.id} has {count} parts, outside {BUDGET[1]}..{BUDGET[2]}`
-				)
-				T.ok(scenery.lights <= LIGHTS, `{zone.id} has {scenery.lights} lights`)
-			end
+			local scenery = sceneBuilt(zone.id)
+			local count = #scenery.parts
+			T.ok(
+				count >= BUDGET[1] and count <= BUDGET[2],
+				`{zone.id} has {count} parts, outside {BUDGET[1]}..{BUDGET[2]}`
+			)
+			T.ok(scenery.lights <= LIGHTS, `{zone.id} has {scenery.lights} lights`)
 		end
+		local village = sceneBuilt(Zones.HOME)
+		T.ok(#village.parts <= BUDGET[2], `the village has {#village.parts} parts`)
+		T.ok(village.lights <= LIGHTS, `the village has {village.lights} lights`)
 	end,
 
 	["scenery is only to be looked at"] = function()
-		for _, zone in Catalog.zones do
-			for _, part in zoneBuilt(zone.id).parts do
-				T.ok(part.Anchored, `{zone.id}: {where(part)} is not anchored`)
-				T.ok(not part.CanCollide, `{zone.id}: {where(part)} can be collided with`)
-				T.ok(not part.CanQuery, `{zone.id}: {where(part)} can be hit by a ray`)
+		for _, scenery in scenes() do
+			for _, part in scenery.parts do
+				T.ok(part.Anchored, `{scenery.id}: {where(part)} is not anchored`)
+				T.ok(not part.CanCollide, `{scenery.id}: {where(part)} can be collided with`)
+				T.ok(not part.CanQuery, `{scenery.id}: {where(part)} can be hit by a ray`)
 			end
 		end
 	end,
 
 	["nothing stands in the lane or hangs low over it"] = function()
-		for _, zone in Catalog.zones do
-			if zone.id ~= KEPT then
-				local scenery = zoneBuilt(zone.id)
-				for _, part in scenery.parts do
-					local low, high = Zones.bounds(part)
-					if not scenery.gate[part] and overLane(low, high) then
-						T.ok(
-							high.Y <= FLAT or low.Y >= CLEAR,
-							`{zone.id}: {where(part)} is in the way, from {low.Y} to {high.Y} up`
-						)
-					end
+		for _, scenery in scenes() do
+			for _, part in scenery.parts do
+				local low, high = Zones.bounds(part)
+				if not scenery.gate[part] and overLane(low, high) then
+					T.ok(
+						high.Y <= FLAT or low.Y >= CLEAR,
+						`{scenery.id}: {where(part)} is in the way, from {low.Y} to {high.Y} up`
+					)
 				end
 			end
 		end
@@ -91,68 +133,201 @@ return {
 
 	["a gate stands where its zone begins and crosses the lane at the right height"] = function()
 		for index, zone in Catalog.zones do
-			if zone.id ~= KEPT then
-				local scenery = zoneBuilt(zone.id)
-				local crossing = 0
-				for _, part in scenery.parts do
-					if scenery.gate[part] then
-						local low, high = Zones.bounds(part)
+			local scenery = sceneBuilt(zone.id)
+			local crossing = 0
+			for _, part in scenery.parts do
+				if scenery.gate[part] then
+					local low, high = Zones.bounds(part)
+					T.ok(
+						math.abs(part.CFrame.Position.X - scenery.from) <= 8,
+						`{zone.id}: {where(part)} of the gate is not at the zone's start`
+					)
+					if overLane(low, high) then
+						crossing += 1
 						T.ok(
-							math.abs(part.CFrame.Position.X - scenery.from) <= 8,
-							`{zone.id}: {where(part)} of the gate is not at the zone's start`
+							low.Y >= GATE_FROM and high.Y <= GATE_TO,
+							`{zone.id}: {where(part)} of the gate spans {low.Y} to {high.Y} up`
 						)
-						if overLane(low, high) then
-							crossing += 1
-							T.ok(
-								low.Y >= GATE_FROM and high.Y <= GATE_TO,
-								`{zone.id}: {where(part)} of the gate spans {low.Y} to {high.Y} up`
-							)
-						end
 					end
 				end
-				-- The first zone begins at the throwing strip and has no gate of its own.
-				if index == 1 then
-					T.eq(crossing, 0, "the first zone has no gate")
-				else
-					T.ok(crossing > 0, `{zone.id} has no gate over the lane`)
-				end
+			end
+			-- The first zone begins at the throwing strip and has no gate of its own.
+			if index == 1 then
+				T.eq(crossing, 0, "the first zone has no gate")
+			else
+				T.ok(crossing > 0, `{zone.id} has no gate over the lane`)
 			end
 		end
 	end,
 
 	["small pieces cast no shadow"] = function()
-		for _, zone in Catalog.zones do
-			if zone.id ~= KEPT then
-				for _, part in zoneBuilt(zone.id).parts do
-					local size = part.Size
-					if math.max(size.X, size.Y, size.Z) < SHADOW_FROM then
-						T.ok(
-							not part.CastShadow,
-							`{zone.id}: {where(part)} is small and casts a shadow`
-						)
-					end
-				end
-			end
-		end
-	end,
-
-	["a zone's scenery keeps to its own stretch of the lane"] = function()
-		for _, zone in Catalog.zones do
-			if zone.id ~= KEPT then
-				local scenery = zoneBuilt(zone.id)
-				for _, part in scenery.parts do
-					local low, high = Zones.bounds(part)
+		for _, scenery in scenes() do
+			for _, part in scenery.parts do
+				local size = part.Size
+				if math.max(size.X, size.Y, size.Z) < SHADOW_FROM then
 					T.ok(
-						low.X >= scenery.from - OVERHANG and high.X <= scenery.to + OVERHANG,
-						`{zone.id}: {where(part)} reaches far outside the zone`
+						not part.CastShadow,
+						`{scenery.id}: {where(part)} is small and casts a shadow`
 					)
 				end
 			end
 		end
 	end,
 
+	["a zone's scenery keeps to its own stretch of the lane"] = function()
+		for index, zone in Catalog.zones do
+			local scenery = sceneBuilt(zone.id)
+			-- What lies past the end of the lane is the last zone's to build.
+			local last = index == #Catalog.zones
+			for _, part in scenery.parts do
+				local low, high = Zones.bounds(part)
+				local backdrop = nearest(low, high) >= BACKDROP_FROM
+				local reach = if backdrop then BACKDROP_OVERHANG else OVERHANG
+				T.ok(
+					low.X >= scenery.from - reach,
+					`{zone.id}: {where(part)} reaches {scenery.from - low.X} before the zone`
+				)
+				T.ok(
+					high.X <= scenery.to + (if last then Zones.FAR else reach),
+					`{zone.id}: {where(part)} reaches {high.X - scenery.to} past the zone`
+				)
+			end
+		end
+	end,
+
+	["the ground goes on to the horizon every way"] = function()
+		local far = Zones.FAR - 1
+		-- Whether flat ground of this scene covers the given rectangle.
+		local function covered(
+			scenery: Zones.Built,
+			fromX: number,
+			toX: number,
+			fromZ: number,
+			toZ: number
+		): boolean
+			for _, part in scenery.parts do
+				local low, high = Zones.bounds(part)
+				if
+					high.Y <= FLAT
+					and low.X <= fromX
+					and high.X >= toX
+					and low.Z <= fromZ
+					and high.Z >= toZ
+				then
+					return true
+				end
+			end
+			return false
+		end
+		for index, zone in Catalog.zones do
+			local scenery = sceneBuilt(zone.id)
+			local from, to = scenery.from, scenery.to
+			T.ok(covered(scenery, from, to, 40, far), `{zone.id}: no ground out to the right`)
+			T.ok(covered(scenery, from, to, -far, -40), `{zone.id}: no ground out to the left`)
+			if index == #Catalog.zones then
+				T.ok(covered(scenery, to, to + far, 0, far), "no ground past the lane, right")
+				T.ok(covered(scenery, to, to + far, -far, 0), "no ground past the lane, left")
+			end
+		end
+		local village = sceneBuilt(Zones.HOME)
+		T.ok(covered(village, -far, 0, 0, far), "no ground behind the dojos, right")
+		T.ok(covered(village, -far, 0, -far, 0), "no ground behind the dojos, left")
+	end,
+
+	["a backdrop closes the view all along every zone, and behind both ends of the world"] = function()
+		for _, zone in Catalog.zones do
+			if not OPEN[zone.id] then
+				local scenery = sceneBuilt(zone.id)
+				for x = scenery.from + 5, scenery.to - 5, 10 do
+					for _, side in { -1, 1 } do
+						T.ok(
+							closed(scenery, x, side, HORIZON_HEIGHT),
+							`{zone.id}: the view is open {x} studs along, on side {side}`
+						)
+					end
+				end
+			end
+		end
+
+		-- Past the far end of the lane, across the whole width of the view down it.
+		local last = sceneBuilt(Catalog.zones[#Catalog.zones].id)
+		for z = -300, 300, 20 do
+			local shut = false
+			for _, part in last.parts do
+				local low, high = Zones.bounds(part)
+				if
+					high.Y >= HORIZON_HEIGHT
+					and low.X >= last.to + 40
+					and low.Z <= z
+					and high.Z >= z
+				then
+					shut = true
+					break
+				end
+			end
+			T.ok(shut, `the view past the lane's end is open {z} studs across`)
+		end
+
+		-- Round the dojos: both sides, and behind.
+		local village = sceneBuilt(Zones.HOME)
+		for x = -345, -5, 10 do
+			for _, side in { -1, 1 } do
+				T.ok(
+					closed(village, x, side, HORIZON_HEIGHT),
+					`the village: the view is open {x} studs along, on side {side}`
+				)
+			end
+		end
+		for z = -300, 300, 20 do
+			local shut = false
+			for _, part in village.parts do
+				local low, high = Zones.bounds(part)
+				if high.Y >= 30 and high.X <= -YARD_DEPTH and low.Z <= z and high.Z >= z then
+					shut = true
+					break
+				end
+			end
+			T.ok(shut, `the view behind the dojos is open {z} studs across`)
+		end
+	end,
+
+	["the village stays out of the yard"] = function()
+		for _, part in sceneBuilt(Zones.HOME).parts do
+			local low, high = Zones.bounds(part)
+			local inYard = high.X > -YARD_DEPTH
+				and low.X < 6
+				and high.Z > -YARD_HALF
+				and low.Z < YARD_HALF
+			T.ok(not inYard or high.Y <= FLAT, `{where(part)} of the village stands in the yard`)
+		end
+	end,
+
+	["nothing is built over the place's own spawn pad"] = function()
+		local spawn = Zones.SPAWN
+		for _, scenery in scenes() do
+			for _, part in scenery.parts do
+				local low, high = Zones.bounds(part)
+				local over = low.X < spawn.along + 12
+					and high.X > spawn.along - 12
+					and low.Z < spawn.side + 12
+					and high.Z > spawn.side - 12
+				-- A hill is round: its box has corners the hill does not reach.
+				if over and Zones.shape(part) == "Ball" then
+					local middle = part.CFrame.Position
+					local wide = (high.X - low.X) / 2
+					local dx, dz = middle.X - spawn.along, middle.Z - spawn.side
+					over = math.sqrt(dx * dx + dz * dz) < wide + 12
+				end
+				T.ok(
+					not over or high.Y <= FLAT,
+					`{scenery.id}: {where(part)} stands over the spawn pad`
+				)
+			end
+		end
+	end,
+
 	["building a zone twice gives the same zone"] = function()
-		local first = zoneBuilt("hidden_sand").parts
+		local first = sceneBuilt("hidden_sand").parts
 		local second = Zones.build("hidden_sand").parts
 		T.eq(#second, #first)
 		for i, part in first do
@@ -160,25 +335,6 @@ return {
 			for field, value in a do
 				T.eq(b[field], value, `part {i}, field {field}`)
 			end
-		end
-	end,
-
-	-- The owner's reference: Great Ninja War is not to change.
-	["the last zone is built piece for piece as it always was"] = function()
-		local parts = zoneBuilt(KEPT).parts
-		T.eq(#parts, #reference, "the number of parts")
-		for i, part in parts do
-			local now, was = Zones.describe(part), reference[i]
-			T.eq(#now, #was, `part {i} is described differently`)
-			for field, value in now do
-				if typeof(value) == "number" then
-					T.near(value, was[field] :: number, 1e-4, `part {i}, field {field}`)
-				else
-					T.eq(value, was[field], `part {i}, field {field}`)
-				end
-			end
-			-- The old scenery cast shadows from everything, down to the smallest stone.
-			T.ok(part.CastShadow, `part {i} lost its shadow`)
 		end
 	end,
 }

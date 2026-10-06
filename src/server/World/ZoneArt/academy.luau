@@ -2,7 +2,7 @@
 -- Academy Grounds: a sunny morning in the village. The Academy stands on the left with its red
 -- roof and round sign, a tree with a swing by the lane, rows of training posts and targets on
 -- the right, a ramen stand at the far corner, village houses behind, and far off a cliff with
--- four great faces cut into it.
+-- four great faces cut into it. Wooded hills close the view on both sides.
 --
 -- The zone has no gate of its own: it begins at the throwing strip, which is the Hub's.
 
@@ -295,6 +295,41 @@ return function(scene: Kit.Scene)
 			0.8,
 			at(pick(40, 76), 0.3, -pick(38, 62)),
 			if i % 2 == 0 then c.flower else c.blossom
+		)
+	end
+
+	-- The wooded hills the village lies among close the view: a nearer row with trees standing
+	-- on it and a higher one behind. On the left they rise behind the cliff.
+	local grass = Enum.Material.Grass
+	for _, side in { -1, 1 } do
+		for i = 0, 1 do
+			local x = 22 + i * 56 + pick(-6, 6)
+			local out = if side == -1 then pick(318, 340) else pick(275, 305)
+			local height = pick(60, 82)
+			Kit.mound(scene, at(x, 0, side * out), pick(110, 128), height, c.hill, grass)
+			for _ = 1, 3 do
+				Kit.backdrop(
+					Kit.ball(
+						scene,
+						pick(22, 34),
+						at(
+							x + pick(-45, 45),
+							height * pick(0.6, 0.95),
+							side * (out + pick(-25, 35))
+						),
+						c.leaf,
+						grass
+					)
+				)
+			end
+		end
+		Kit.mound(
+			scene,
+			at(50 + pick(-10, 10), 0, side * pick(480, 540)),
+			pick(200, 230),
+			pick(125, 160),
+			c.hillFar,
+			grass
 		)
 	end
 end

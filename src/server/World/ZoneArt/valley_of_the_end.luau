@@ -1,7 +1,8 @@
 --!strict
 -- Valley of the End: a canyon in the rain at sunset. The river runs along both sides of the
 -- lane between wet cliffs; at the far end two stone giants face each other across it, hands
--- raised in a seal, and waterfalls come down the head of the canyon behind them.
+-- raised in a seal, and waterfalls come down the head of the canyon behind them. Past the
+-- canyon's rim the mountains go on, row behind row.
 --
 -- The giants are stacks of blocks: a robed figure with a wild mane and one with long straight
 -- hair. They are meant to be read as "two ancient rivals", not as anyone's portrait.
@@ -333,5 +334,32 @@ return function(scene: Kit.Scene)
 		)
 		bank.Transparency = 0.9
 		bank.CastShadow = false
+	end
+
+	-- Past the canyon's rim the mountains go on: great crags near at hand, and behind them
+	-- heights that are only shapes in the rain.
+	for _, side in { -1, 1 } do
+		for i = 0, 4 do
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(pick(46, 64), pick(170, 240), pick(50, 70)),
+					at(12 + i * 39 + pick(-8, 8), -2, side * pick(196, 262)),
+					if i % 2 == 0 then c.rockDark else c.rock,
+					slate,
+					pick(-14, 14)
+				)
+			)
+		end
+		for i = 0, 2 do
+			Kit.mound(
+				scene,
+				at(24 + i * 66 + pick(-8, 8), 0, side * pick(500, 580)),
+				pick(190, 220),
+				pick(230, 290),
+				c.rockDark,
+				slate
+			)
+		end
 	end
 end

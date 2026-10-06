@@ -2,6 +2,8 @@
 -- Forest of Death: trees as thick as houses with roots taller than a player, crowns that close
 -- over the lane far above it, a green dusk underneath and shafts of light coming through. The
 -- zone is entered through the gate of the training ground's fence, hung with warning signs.
+-- Behind the giants the forest goes on: a wall of trunks under one roof of leaves, and dark
+-- wooded heights beyond it.
 
 local Kit = require("./Kit")
 
@@ -188,5 +190,37 @@ return function(scene: Kit.Scene)
 		local side = if i % 2 == 0 then -1 else 1
 		local top = at(pick(6, 134), pick(84, 104), side * pick(36, 80))
 		Kit.rod(scene, top, top - Vector3.new(pick(-2, 2), pick(18, 32), 0), 0.5, c.vine, leaves)
+	end
+
+	-- Behind the giants the forest goes on: a wall of trunks whose crowns have grown into one
+	-- roof, and dark wooded heights beyond.
+	for _, side in { -1, 1 } do
+		for i = 0, 6 do
+			local x = 4 + i * 22 + pick(-6, 6)
+			local out = pick(200, 300)
+			local height = pick(130, 180)
+			Kit.backdrop(
+				Kit.pillar(scene, height, pick(16, 26), at(x, 0, side * out), c.barkDark, wood)
+			)
+			Kit.backdrop(
+				Kit.ball(
+					scene,
+					pick(90, 130),
+					at(x + pick(-10, 10), height + pick(10, 30), side * (out + pick(-10, 30))),
+					if i % 2 == 0 then c.leafDark else c.leaf,
+					leaves
+				)
+			)
+		end
+		for i = 0, 2 do
+			Kit.mound(
+				scene,
+				at(14 + i * 56 + pick(-8, 8), 0, side * pick(440, 500)),
+				pick(150, 180),
+				pick(140, 180),
+				c.leafDark,
+				Enum.Material.LeafyGrass
+			)
+		end
 	end
 end

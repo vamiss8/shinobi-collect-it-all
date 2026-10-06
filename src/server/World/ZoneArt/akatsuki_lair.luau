@@ -5,6 +5,9 @@
 -- the far end two great stone hands rise out of the floor.
 --
 -- The vault is kept above Kit.CLEAR: a kunai flies high, and the camera with it.
+--
+-- From outside the cave is a mountain: rock is heaped against its walls and piled over its
+-- roof, so that neither neighbor sees a box standing on the plain.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -206,6 +209,44 @@ return function(scene: Kit.Scene)
 			at(pick(4, length - 4), 0, side * pick(36, 44)),
 			Vector3.new(pick(2, 5), pick(1.5, 3.5), pick(2, 5)),
 			c.rockDark
+		)
+	end
+
+	-- From outside the cave is a mountain. Rock is heaped against its walls, each heap half a
+	-- ball that ends inside the wall's thickness, and piled over its roof; higher ground rises
+	-- behind.
+	for _, side in { -1, 1 } do
+		for i = 0, 2 do
+			Kit.mound(
+				scene,
+				at(58 + i * 52 + pick(-3, 3), 0, side * pick(200, 212)),
+				pick(126, 134),
+				pick(120, 134),
+				if i % 2 == 0 then c.rockDark else c.rock,
+				slate
+			)
+		end
+		for i = 0, 1 do
+			Kit.mound(
+				scene,
+				at(50 + i * 120 + pick(-10, 10), 0, side * pick(470, 540)),
+				pick(190, 220),
+				pick(200, 250),
+				c.rockDark,
+				slate
+			)
+		end
+	end
+	for i = 0, 5 do
+		Kit.backdrop(
+			Kit.box(
+				scene,
+				Vector3.new(pick(48, 66), pick(26, 58), pick(96, 132)),
+				at(20 + i * 36 + pick(-5, 5), VAULT + 12, pick(-12, 12)),
+				if i % 2 == 0 then c.rock else c.rockDark,
+				slate,
+				pick(-12, 12)
+			)
 		)
 	end
 end

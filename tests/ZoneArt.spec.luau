@@ -120,7 +120,8 @@ return {
 		end
 	end,
 
-	-- The owner's reference: the last zone looks as it did on 2026-10-06 and is not to drift.
+	-- The owner's reference: the last zone is lit as it was on 2026-10-06 and is not to drift.
+	-- Its scenery, lane and weather are free to change; its light, air and ground are not.
 	["the last zone keeps its light, its moonlit air and its ground"] = function()
 		local art = ZoneArt.zones.great_ninja_war
 		local expected: { [string]: any } = {
@@ -157,15 +158,18 @@ return {
 			T.ok((art.light :: any)[field] ~= nil, `great_ninja_war light lost {field}`)
 		end
 		T.eq(count, 20, "a field was added to the light without a reference value for it")
-		T.eq(art.weather, nil, "the last zone has no weather")
-		T.eq(art.lane, nil, "the last zone's lane stays as the Hub built it")
 		T.eq(art.ground.color, "#3E322E")
 		T.eq(art.ground.material, "Ground")
 	end,
 
-	["the dojos share the first zone's morning"] = function()
+	["the dojos share the first zone's morning and its colors"] = function()
 		for field, value in ZoneArt.zones.academy.light :: any do
 			T.eq((ZoneArt.home :: any)[field], value, `home light.{field}`)
 		end
+		for name, color in ZoneArt.zones.academy.palette do
+			T.eq(ZoneArt.village.palette[name], color, `the village's {name}`)
+		end
+		T.ok(isHex(ZoneArt.village.ground.color), "the village's ground color")
+		T.ok(MATERIALS[ZoneArt.village.ground.material] == true, "the village's ground")
 	end,
 }

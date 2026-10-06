@@ -2,7 +2,8 @@
 -- Kamui Dimension: a void with no sky. Pale cuboids of every height stand in ranks away from
 -- the lane and step up into the haze, thin columns rise among them, and cubes hang in the air
 -- at every height, a few with an edge of violet light. Nothing here is alive and nothing is
--- any other color.
+-- any other color. Behind the great blocks at the edge of sight stand greater ones, and the
+-- floor goes on under them into the gray.
 --
 -- The cuboids on the ground stand square to the lane, as they do in the dimension itself; only
 -- what floats is turned.
@@ -109,6 +110,19 @@ return function(scene: Kit.Scene)
 			base + Vector3.new(0, height, -side * (width / 2 - 0.2)),
 			c.edge,
 			neon
+		)
+	end
+
+	-- And past the great blocks stand greater ones, lost in the gray.
+	for i = 1, 10 do
+		local side = if i % 2 == 0 then -1 else 1
+		Kit.backdrop(
+			Kit.box(
+				scene,
+				Vector3.new(pick(60, 110), pick(220, 420), pick(60, 100)),
+				at(12 + (i - 1) * 23, 0, side * pick(270, 470)),
+				c.cubeDark
+			)
 		)
 	end
 end

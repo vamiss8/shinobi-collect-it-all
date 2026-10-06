@@ -1,8 +1,12 @@
 --!strict
--- The scenery of the lane. Every zone has a module of its own here, named by the zone's id,
+-- The scenery of the world. Every zone has a module of its own here, named by the zone's id,
 -- that builds what stands around its stretch of the lane out of plain parts, and a folder of
--- its own in Workspace.Zones. What a zone is colored in, and the surface of its lane, come from
--- Config/ZoneArt; its light and its weather are each client's business (client Mood, Weather).
+-- its own in Workspace.Zones; `home` does the same for the village round the dojos. What a zone
+-- is colored in and the surface of its lane come from Config/ZoneArt;
+-- its light and its weather are each client's business (client Mood, Weather).
+--
+-- The world is never seen to end: every scene lays its ground out to Kit.FAR and stands a
+-- backdrop on it, hills or towers or whatever suits it, that closes the view.
 --
 -- Scenery is only looked at. It stands outside the lane's walls or hangs high over them, it is
 -- never collided with or found by a ray, and it does not move the lane, its walls, the gate,
@@ -15,6 +19,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Kit = require(script.Kit)
 local Looks = require(ReplicatedStorage.Shared.Config.ZoneArt)
 local Net = require(ReplicatedStorage.Shared.Net)
+local home = require(script.home)
 
 local ZoneArt = {}
 
@@ -31,6 +36,15 @@ local BUILDERS: { [string]: (scene: Kit.Scene) -> () } = {
 	great_ninja_war = require(script.great_ninja_war),
 }
 
+-- Gives a part of the Hub's the surface a zone's look names for it. Only how it looks: its size
+-- and place are the Hub's and stay as they are.
+local function surface(part: Instance?, look: Looks.Surface?)
+	if look and part and part:IsA("BasePart") then
+		part.Color = Color3.fromHex(look.color)
+		part.Material = Kit.material(look.material)
+	end
+end
+
 -- Call after Hub.start(): positions are in the Hub's coordinates, and the lane it built gets
 -- each zone's surface here.
 function ZoneArt.start()
@@ -40,31 +54,30 @@ function ZoneArt.start()
 
 	local counts: { string } = {}
 	local total = 0
+	-- Builds one scene. A scene that fails to build must not take the server's start down with
+	-- it. Typed loosely: pcall of a function that returns nothing is typed without the error.
+	local function raise(scene: Kit.Scene, build: (scene: Kit.Scene) -> ())
+		local ok, problem = (pcall :: any)(build, scene)
+		if not ok then
+			warn(`[Zones] {scene.id} was left unfinished: {problem}`)
+		end
+		scene.folder.Parent = root
+		table.insert(counts, `{scene.id} {scene.parts}`)
+		total += scene.parts
+	end
+
+	raise(Kit.place("home", 104729, Looks.village, 0, 0), home)
 	for index, zone in Catalog.zones do
 		local art = Looks.zones[zone.id]
 		if not art then
 			continue
 		end
-
-		-- Only how the lane looks: its size and place are the Hub's and stay as they are.
-		local lane = if hub then hub:FindFirstChild(`Lane_{zone.id}`) else nil
-		if art.lane and lane and lane:IsA("BasePart") then
-			lane.Color = Color3.fromHex(art.lane.color)
-			lane.Material = Kit.material(art.lane.material)
+		if hub then
+			surface(hub:FindFirstChild(`Lane_{zone.id}`), art.lane)
 		end
-
 		local build = BUILDERS[zone.id]
 		if build then
-			local scene = Kit.scene(zone, index, art)
-			-- A zone that fails to build must not take the server's start down with it.
-			-- Typed loosely: pcall of a function that returns nothing is typed without the error.
-			local ok, problem = (pcall :: any)(build, scene)
-			if not ok then
-				warn(`[Zones] {zone.id} was left unfinished: {problem}`)
-			end
-			scene.folder.Parent = root
-			table.insert(counts, `{zone.id} {scene.parts}`)
-			total += scene.parts
+			raise(Kit.scene(zone, index, art), build)
 		end
 	end
 

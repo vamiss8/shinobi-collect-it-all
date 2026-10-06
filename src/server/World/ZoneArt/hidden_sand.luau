@@ -2,7 +2,8 @@
 -- Hidden Sand: the desert village in the heat of the day. Round houses of sandstone under
 -- domes crowd both sides of the lane, with the village head's great dome on the left, market
 -- awnings by the road, wind-carved pillars of rock, dunes rolling away behind and the cliffs
--- that ring the village closing the view.
+-- that ring the village closing the view. Past the cliffs the desert rolls on, long dunes and
+-- table rocks standing out of the haze.
 
 local Kit = require("./Kit")
 
@@ -226,5 +227,42 @@ return function(scene: Kit.Scene)
 			c.scrub,
 			Enum.Material.Grass
 		)
+	end
+
+	-- Past the cliffs the desert rolls on: long dunes, and table rocks standing out of the haze.
+	-- On the left the dunes keep clear of where the place's own spawn pad lies (80 studs along,
+	-- 300 out): a player is there for a moment before being sent to a dojo.
+	local dunes = {
+		{ 10, -440, 120 },
+		{ 75, -520, 125 },
+		{ 140, -440, 120 },
+		{ 200, -350, 115 },
+		{ 16, 330, 130 },
+		{ 74, 400, 150 },
+		{ 136, 320, 135 },
+		{ 196, 410, 150 },
+	}
+	for _, dune in dunes do
+		Kit.mound(scene, at(dune[1], 0, dune[2]), dune[3], pick(28, 52), c.dune, Enum.Material.Sand)
+	end
+	for _, side in { -1, 1 } do
+		for i = 0, 2 do
+			local width, height, depth = pick(70, 110), pick(110, 170), pick(60, 90)
+			local base = at(32 + i * 68 + pick(-10, 10), -2, side * pick(470, 560))
+			local turn = pick(-12, 12)
+			Kit.backdrop(
+				Kit.box(scene, Vector3.new(width, height, depth), base, c.cliff, sandstone, turn)
+			)
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(width + 2, 9, depth + 2),
+					base + Vector3.new(0, height * pick(0.35, 0.7), 0),
+					c.strata,
+					sandstone,
+					turn
+				)
+			)
+		end
 	end
 end

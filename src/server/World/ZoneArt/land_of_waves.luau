@@ -1,9 +1,10 @@
 --!strict
 -- Land of Waves: a cold morning on the water. The lane is the deck of a bridge that is still
 -- being built: railings and piles along it, side spans that end in the air, scaffolds, a crane
--- and stacks of planks. Around it, in the fog, rowing boats, huts on stilts and small islands.
+-- and stacks of planks. Around it, in the fog, rowing boats, huts on stilts and small islands,
+-- and far out the shapes of larger ones. The sea has no other shore: it runs out into the fog.
 --
--- The water lies level with the deck, not under it: the grass under the whole world is just
+-- The water lies level with the deck, not under it: the grass under the playable world is just
 -- below, and the fog hides how shallow the picture is.
 
 local Kit = require("./Kit")
@@ -264,5 +265,29 @@ return function(scene: Kit.Scene)
 		)
 		bank.Transparency = 0.9
 		bank.CastShadow = false
+	end
+
+	-- Far out, larger islands show through the fog as shapes and no more.
+	for i = 1, 6 do
+		local side = if i % 2 == 0 then -1 else 1
+		local x, out = 10 + (i - 1) * 20 + pick(-8, 8), pick(300, 560)
+		local height = pick(40, 90)
+		Kit.mound(
+			scene,
+			at(x, 0, side * out),
+			pick(70, 110),
+			height,
+			if i % 3 == 0 then c.rock else c.leaf,
+			Enum.Material.Slate
+		)
+		Kit.backdrop(
+			Kit.ball(
+				scene,
+				pick(24, 36),
+				at(x + pick(-20, 20), height * 0.9, side * out),
+				c.leaf,
+				Enum.Material.Grass
+			)
+		)
 	end
 end

@@ -1,7 +1,8 @@
 --!strict
 -- Chunin Exam Finals: the arena at noon. High walls run along both sides of the lane with
 -- three tiers of stands behind them and a crowd on every tier, flags along the top, banners on
--- the walls, corner towers, and on the left the covered box where the two Kage sit.
+-- the walls, corner towers, and on the left the covered box where the two Kage sit. The arena
+-- stands in the village: its wooded hills close the view beyond the stands.
 
 local Kit = require("./Kit")
 
@@ -191,5 +192,42 @@ return function(scene: Kit.Scene)
 			c.leaf,
 			2
 		)
+	end
+
+	-- The village's wooded hills beyond the stands: a nearer row with trees on it, a higher one
+	-- behind.
+	local grass = Enum.Material.Grass
+	for _, side in { -1, 1 } do
+		for i = 0, 2 do
+			local x = 24 + i * 56 + pick(-8, 8)
+			local out = pick(262, 300)
+			local height = pick(55, 80)
+			Kit.mound(scene, at(x, 0, side * out), pick(105, 128), height, c.hill, grass)
+			for _ = 1, 2 do
+				Kit.backdrop(
+					Kit.ball(
+						scene,
+						pick(22, 34),
+						at(
+							x + pick(-45, 45),
+							height * pick(0.6, 0.95),
+							side * (out + pick(-25, 35))
+						),
+						c.leaf,
+						grass
+					)
+				)
+			end
+		end
+		for i = 0, 1 do
+			Kit.mound(
+				scene,
+				at(40 + i * 80 + pick(-10, 10), 0, side * pick(470, 530)),
+				pick(190, 225),
+				pick(120, 150),
+				c.hillFar,
+				grass
+			)
+		end
 	end
 end

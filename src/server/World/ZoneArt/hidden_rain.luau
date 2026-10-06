@@ -2,7 +2,8 @@
 -- Hidden Rain: the village where it never stops raining. Steel towers stand close on both
 -- sides, each with pipes up its corners, lit windows and a spire; pipes run along the lane on
 -- trestles, lamps throw a cold light on wet ground and puddles, and at the far end, on the
--- left, rises the tallest tower of them all.
+-- left, rises the tallest tower of them all. Farther off the village goes on as shapes in the
+-- rain.
 --
 -- The towers are painted concrete and plastic, not Metal or DiamondPlate: those show what they
 -- reflect, and under a dull sky that was black (see the note in Config/ZoneArt). Only small
@@ -308,5 +309,24 @@ return function(scene: Kit.Scene)
 		local puddle =
 			Kit.pillar(scene, 0.06, pick(5, 9), at(20 + i * 36, 0.02, pick(-22, 22)), c.puddle)
 		puddle.Reflectance = 0.4
+	end
+
+	-- Farther off the village goes on: towers too far away to be anything but their shapes.
+	for _, side in { -1, 1 } do
+		for i = 0, 7 do
+			local width = pick(26, 44)
+			local height = pick(200, 380)
+			local base = at(6 + i * 30 + pick(-8, 8), 0, side * pick(215, 420))
+			Kit.backdrop(Kit.box(scene, Vector3.new(width, height, width), base, c.far, concrete))
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(width * 0.6, pick(30, 70), width * 0.6),
+					base + Vector3.new(0, height, 0),
+					c.farDark,
+					concrete
+				)
+			)
+		end
 	end
 end

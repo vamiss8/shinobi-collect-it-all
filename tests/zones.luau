@@ -22,6 +22,15 @@ local SOURCE = "src/server/World/ZoneArt/"
 -- The Hub's numbers the scenery goes by (src/server/World/Hub).
 Zones.LANE_WIDTH = 60
 Zones.WALL_THICKNESS = 2
+-- How far out a zone's own scenery stands and how far its ground goes on (ZoneArt/Kit).
+Zones.REACH = 190
+Zones.FAR = 2000
+-- The village round the dojos is built as a scene of this name.
+Zones.HOME = "home"
+-- The place's own spawn pad lies at the world's origin, which the Hub's coordinates put here:
+-- 780 studs down the lane and 300 to its left. A player stands on it for a moment before being
+-- sent to a dojo.
+Zones.SPAWN = { along = 780, side = -300 }
 
 -- A stand-in for Roblox's Random: the same numbers for the same seed, every run.
 local FakeRandom = {}
@@ -114,7 +123,6 @@ local function environment(siblings: (path: string) -> any): { [string]: any }
 		Color3 = roblox.Color3,
 		Enum = roblox.Enum,
 		Random = FakeRandom,
-		workspaceForTests = workspace,
 	}
 end
 
@@ -145,36 +153,59 @@ end)
 
 export type Built = {
 	id: string,
-	parts: { any }, -- the zone's parts, in the order they were made
+	parts: { any }, -- the scene's parts, in the order they were made
 	gate: { [any]: boolean }, -- which of them are its gate
 	lights: number,
 	from: number,
 	to: number,
 }
 
--- Builds one zone's scenery and returns what it is made of.
-function Zones.build(id: string): Built
-	local zone = Catalog.zoneById[id]
-	local scene = load("Kit").scene(zone, Catalog.zoneOrder[id], Looks.zones[id])
-	load(id)(scene)
+local function built(scene: any, from: number, to: number): Built
 	local gate: { [any]: boolean } = {}
 	for _, part in scene.arch do
 		gate[part] = true
 	end
 	return {
-		id = id,
+		id = scene.id,
 		parts = scene.folder:GetChildren(),
 		gate = gate,
 		lights = scene.lights,
-		from = zone.startsAt,
-		to = Catalog.zoneEnd(zone),
+		from = from,
+		to = to,
 	}
 end
 
--- The box a part fits in, along the world's axes: its lowest and highest corner.
+-- Builds one zone's scenery, or the village's when asked for Zones.HOME, and returns what it
+-- is made of.
+function Zones.build(id: string): Built
+	local kit = load("Kit")
+	if id == Zones.HOME then
+		-- As World/ZoneArt builds it.
+		local scene = kit.place(Zones.HOME, 104729, Looks.village, 0, 0)
+		load(Zones.HOME)(scene)
+		return built(scene, 0, 0)
+	end
+	local zone = Catalog.zoneById[id]
+	local scene = kit.scene(zone, Catalog.zoneOrder[id], Looks.zones[id])
+	load(id)(scene)
+	return built(scene, zone.startsAt, Catalog.zoneEnd(zone))
+end
+
+-- The box a part fits in, along the world's axes: its lowest and highest corner. A ball that
+-- is sunk into the ground, as a hill is, is taken by what shows of it: it is as wide as it is
+-- where it meets the ground, or at its middle if that is above ground.
 function Zones.bounds(part: any): (any, any)
-	local half = part.Size / 2
 	local frame = part.CFrame
+	if part.ClassName == "Part" and part.Shape == roblox.Enum.PartType.Ball then
+		local radius = part.Size.X / 2
+		local middle = frame.Position
+		local wide = if middle.Y < 0
+			then math.sqrt(math.max(radius * radius - middle.Y * middle.Y, 0))
+			else radius
+		return roblox.Vector3.new(middle.X - wide, middle.Y - radius, middle.Z - wide),
+			roblox.Vector3.new(middle.X + wide, middle.Y + radius, middle.Z + wide)
+	end
+	local half = part.Size / 2
 	local right, up, look = frame.RightVector, frame.UpVector, frame.LookVector
 	local reach = roblox.Vector3.new(
 		math.abs(right.X) * half.X + math.abs(up.X) * half.Y + math.abs(look.X) * half.Z,
@@ -184,13 +215,18 @@ function Zones.bounds(part: any): (any, any)
 	return frame.Position - reach, frame.Position + reach
 end
 
+-- What shape a part is: a wedge has no Shape of its own.
+function Zones.shape(part: any): string
+	return if part.ClassName == "Part" then part.Shape.Name else part.ClassName
+end
+
 -- One part as plain numbers and names, for comparing two builds piece by piece.
 function Zones.describe(part: any): { any }
 	local size = part.Size
 	local color = part.Color
 	local described: { any } = {
 		part.ClassName,
-		part.Shape.Name,
+		Zones.shape(part),
 		part.Material.Name,
 		math.round(color.R * 255),
 		math.round(color.G * 255),
@@ -203,20 +239,6 @@ function Zones.describe(part: any): { any }
 		table.insert(described, component)
 	end
 	return described
-end
-
--- Runs source that is not one of the zone modules: the old scenery, to make the last zone's
--- reference from. `siblings` resolves its string requires; returns what the source returns and
--- the folder standing in for Workspace.
-function Zones.runOther(source: string, siblings: { [string]: any }): (any, any)
-	local other = environment(function(path: string): any
-		local value = siblings[path]
-		if value == nil then
-			error(`the zone harness does not know {path}`)
-		end
-		return value
-	end)
-	return run(source, "other", other), other.workspaceForTests
 end
 
 Zones.hub = hub

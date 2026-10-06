@@ -1,6 +1,7 @@
 --!strict
 -- What the zones' scenery is built with: a scene per zone (its folder, colors, random numbers
--- and a count of what was built) and the shapes to put in it.
+-- and a count of what was built) and the shapes to put in it. The village behind the lane's
+-- start, where the dojos stand, is a scene too.
 --
 -- Everything made here is only to be looked at: anchored, and neither collided with nor found
 -- by a ray, so no kunai, runner or camera ever notices it. Small pieces cast no shadow.
@@ -23,17 +24,21 @@ Kit.EDGE = Hub.LANE_WIDTH / 2 + Hub.WALL_THICKNESS + 1
 -- Nothing hangs over the lane below this: a kunai rises to 60 studs and the camera that
 -- chases it rides 10 above that.
 Kit.CLEAR = 80
--- How far out from the lane's middle a zone's own ground reaches.
+-- How far out from the lane's middle a zone's own scenery stands. Past it there is only the
+-- backdrop: hills, far towers, whatever closes the view.
 Kit.REACH = 190
+-- How far the ground itself goes on, every way: far enough for its edge to be lost in the haze
+-- of the clearest zone, so that the world is never seen to end. (A part can be 2048 long.)
+Kit.FAR = 2000
 
 -- A piece whose longest side is under this casts no shadow.
 local SHADOW_FROM = 10
 
 export type Scene = {
 	folder: Folder,
-	zone: Catalog.Zone,
+	id: string,
 	art: ZoneArt.Art,
-	from: number, -- where the zone begins on the lane, studs
+	from: number, -- where the scene begins on the lane, studs
 	length: number,
 	rng: Random,
 	colors: { [string]: Color3 },
@@ -44,37 +49,48 @@ export type Scene = {
 	inGateway: boolean,
 }
 
--- A scene for the zone that is `index`-th on the lane. Its random numbers are seeded by that,
--- so the world comes out the same on every server.
-function Kit.scene(zone: Catalog.Zone, index: number, art: ZoneArt.Art): Scene
+-- A scene called `id` that begins `from` studs down the lane. Its random numbers come from
+-- `seed`, so the world comes out the same on every server.
+function Kit.place(id: string, seed: number, art: ZoneArt.Art, from: number, length: number): Scene
 	local folder = Instance.new("Folder")
-	folder.Name = zone.id
+	folder.Name = id
 
-	-- A color the zone's module asks for and its palette lacks is a mistake to be told about,
-	-- not a nil to trip over later.
+	-- A color the module asks for and its palette lacks is a mistake to be told about, not a
+	-- nil to trip over later.
 	local colors: { [string]: Color3 } = {}
 	for name, hex in art.palette do
 		colors[name] = Color3.fromHex(hex)
 	end
 	setmetatable(colors :: any, {
 		__index = function(_, name)
-			error(`zone {zone.id} has no color named "{name}" in Config/ZoneArt`, 2)
+			error(`{id} has no color named "{name}" in Config/ZoneArt`, 2)
 		end,
 	})
 
 	return {
 		folder = folder,
-		zone = zone,
+		id = id,
 		art = art,
-		from = zone.startsAt,
-		length = Catalog.zoneEnd(zone) - zone.startsAt,
-		rng = Random.new(index * 7919),
+		from = from,
+		length = length,
+		rng = Random.new(seed),
 		colors = colors,
 		parts = 0,
 		lights = 0,
 		arch = {},
 		inGateway = false,
 	}
+end
+
+-- A scene for the zone that is `index`-th on the lane.
+function Kit.scene(zone: Catalog.Zone, index: number, art: ZoneArt.Art): Scene
+	return Kit.place(
+		zone.id,
+		index * 7919,
+		art,
+		zone.startsAt,
+		Catalog.zoneEnd(zone) - zone.startsAt
+	)
 end
 
 -- Builds the zone's gate: whatever `build` makes is marked as part of it. A gate stands where
@@ -111,6 +127,13 @@ local function dress(scene: Scene, part: BasePart, color: Color3, material: Enum
 	if scene.inGateway then
 		table.insert(scene.arch, part)
 	end
+end
+
+-- Marks a piece as backdrop: too far off to be worth a shadow, and a hill between the sun and
+-- the lane would otherwise put a whole zone in the dark.
+function Kit.backdrop<T>(part: T): T
+	(part :: any).CastShadow = false
+	return part
 end
 
 -- A block at any angle.
@@ -257,6 +280,21 @@ function Kit.roof(
 	end
 end
 
+-- A hill: the top of a great ball sunk into the ground, `height` tall over `foot` and `radius`
+-- wide where it meets the ground. Taller than it is wide, it bulges out above its foot.
+function Kit.mound(
+	scene: Scene,
+	foot: Vector3,
+	radius: number,
+	height: number,
+	color: Color3,
+	material: Enum.Material?
+): Part
+	local ball = (radius * radius + height * height) / (2 * height)
+	local part = Kit.ball(scene, ball * 2, foot + Vector3.new(0, height - ball, 0), color, material)
+	return Kit.backdrop(part)
+end
+
 -- A boulder: a block sunk a little into the ground and turned at random.
 function Kit.rock(
 	scene: Scene,
@@ -296,18 +334,38 @@ function Kit.tree(
 	end
 end
 
--- Both stretches of the zone's own ground, either side of the lane, out to Kit.REACH. They lie
--- a hair above the grass that is under the whole world.
+-- Both stretches of the zone's ground, either side of the lane and all the way out to Kit.FAR.
+-- They lie a hair above the grass that is under the playable world, and begin at the lane's
+-- very edge: begun outside the walls, they left a strip of that grass along the lane in every
+-- zone, bright green in the cave and on the sea.
 function Kit.ground(scene: Scene): { Part }
 	local surface = scene.art.ground
-	local near = Hub.LANE_WIDTH / 2 + Hub.WALL_THICKNESS
-	local width = Kit.REACH - near
+	local near = Hub.LANE_WIDTH / 2
+	local width = Kit.FAR - near
 	local parts = {}
 	for _, side in { -1, 1 } do
 		local part = Kit.block(
 			scene,
 			Vector3.new(scene.length, 1, width),
 			CFrame.new(Kit.at(scene, scene.length / 2, -0.55, side * (near + width / 2))),
+			Color3.fromHex(surface.color),
+			Kit.material(surface.material)
+		)
+		part.CastShadow = false
+		table.insert(parts, part)
+	end
+	return parts
+end
+
+-- The ground past the far end of the lane, for the last zone: the world goes on there too.
+function Kit.beyond(scene: Scene): { Part }
+	local surface = scene.art.ground
+	local parts = {}
+	for _, side in { -1, 1 } do
+		local part = Kit.block(
+			scene,
+			Vector3.new(Kit.FAR, 1, Kit.FAR),
+			CFrame.new(Kit.at(scene, scene.length + Kit.FAR / 2, -0.55, side * Kit.FAR / 2)),
 			Color3.fromHex(surface.color),
 			Kit.material(surface.material)
 		)
