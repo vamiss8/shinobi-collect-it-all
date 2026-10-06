@@ -67,6 +67,31 @@ local hub = {
 	end,
 }
 
+-- Lune's CFrame.lookAt returns the turn the wrong way round: the frame that undoes the one
+-- asked for, so that a rod stood on end comes out lying down (seen in Lune 0.10.5; Roblox is
+-- right). The scenery leans on it for every rod and leaning slab, so here it is done by hand:
+-- the frame at `at` whose front looks at `target`, as Roblox makes it.
+local function lookAt(at: any, target: any, up: any?): any
+	local look = (target - at).Unit
+	local right = look:Cross(up or roblox.Vector3.yAxis).Unit
+	local above = right:Cross(look)
+	return roblox.CFrame.new(
+		at.X,
+		at.Y,
+		at.Z,
+		right.X,
+		above.X,
+		-look.X,
+		right.Y,
+		above.Y,
+		-look.Y,
+		right.Z,
+		above.Z,
+		-look.Z
+	)
+end
+local frames = setmetatable({ lookAt = lookAt }, { __index = roblox.CFrame })
+
 -- Particles are not looked at here: an emitter is anything that can be given a parent.
 local particles = {
 	SPARKLE = "sparkle",
@@ -121,7 +146,7 @@ local function environment(siblings: (path: string) -> any): { [string]: any }
 		end,
 		Instance = roblox.Instance,
 		Vector3 = roblox.Vector3,
-		CFrame = roblox.CFrame,
+		CFrame = frames,
 		Color3 = roblox.Color3,
 		Enum = roblox.Enum,
 		Random = FakeRandom,
