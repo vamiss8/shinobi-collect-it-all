@@ -211,13 +211,42 @@ local function parade()
 	end
 
 	hall.Parent = Workspace
-	print("[Models] showroom is up on the lane: fly over it with the free camera (Shift+P)")
+	print(
+		"[Models] showroom is up: stand on the throwing strip and look down the lane, the rows"
+			.. " begin right past it. Shift+P is the free camera for a closer look"
+	)
+end
+
+-- Whether the showroom was asked for. Forgiving about how the attribute was put in: any
+-- capitals, a ticked box or the word "true", and on a model in the folder as well as on the
+-- folder itself, which is where a first try tends to leave it.
+local function wanted(folder: Instance): boolean
+	local asked = string.lower(Net.SHOWROOM_ATTRIBUTE)
+	local places = folder:GetChildren()
+	table.insert(places, folder)
+	for _, place in places do
+		for name, value in place:GetAttributes() do
+			if string.lower(name) == asked and (value == true or value == "true") then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 function Showroom.start()
 	local folder = check()
-	if folder and RunService:IsStudio() and folder:GetAttribute(Net.SHOWROOM_ATTRIBUTE) == true then
+	if not folder or not RunService:IsStudio() then
+		return
+	end
+	if wanted(folder) then
 		parade()
+	else
+		print(
+			`[Models] showroom is off. To stand every model on the lane: stop the test, select`
+				.. ` the {Net.MODELS_FOLDER} folder in ReplicatedStorage, and under Properties >`
+				.. ` Attributes add "{Net.SHOWROOM_ATTRIBUTE}" of type boolean with its box ticked`
+		)
 	end
 end
 
