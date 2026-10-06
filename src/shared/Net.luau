@@ -62,9 +62,15 @@ Net.KUNAI_MODEL = "kunai_"
 -- back to the viewer, a kunai that flies ring first. It is turned around. On the folder itself
 -- it turns every figure around, and a figure's own attribute then turns that one back.
 Net.FLIP_ATTRIBUTE = "Flip"
+-- Boolean attribute on the folder that turns every kunai around, for a set of kunai that were
+-- all made pointing the same wrong way; a kunai's own "Flip" then turns that one back.
+Net.FLIP_KUNAI_ATTRIBUTE = "FlipKunai"
 -- Boolean attribute on the folder: in a Studio test, stand every model on the lane to be
 -- looked over (server World/Showroom).
 Net.SHOWROOM_ATTRIBUTE = "Showroom"
+-- Number attribute on the folder: in a Studio test, the place in the store (Config/Kunai) of
+-- the kunai the tester is given, to throw one they have not bought.
+Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
 
 -- The numbers the HUD and the store windows are drawn from. Sent on every change and once a
 -- second with the income tick.

@@ -24,7 +24,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hud = require("./Hud")
-local KunaiEffects = require("./KunaiEffects")
+local KunaiEffects = require(ReplicatedStorage.Shared.View.KunaiEffects)
 local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
@@ -38,9 +38,6 @@ local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
 -- If the run has not started this long after it should have, the camera is given back anyway.
 local FAILSAFE_SECONDS = 4
--- The plain blade that stands in for a kunai without a model is this thick, as a share of
--- its length.
-local BLADE_THICKNESS = 0.18
 -- A landed kunai sticks in the ground leaning this steeply forward, with this share of its
 -- length in the earth. Steeply, because the camera of the reveal looks from behind and above:
 -- left the way it came down, the kunai would point away from the camera and show only its ring.
@@ -252,41 +249,11 @@ local function begin(reveal: Net.Reveal)
 	end)
 end
 
--- Builds the kunai for a flight: the part that is moved, the supplied model that follows it if
--- there is one, and its effects. Which kunai the thrower owns decides its color, whether it
--- glows, what it trails and how long it is.
-local function buildKunai(index: number, at: Vector3): (Part, Model?, KunaiEffects.Effects)
-	local tier = math.clamp(index, 1, #Catalog.kunai)
-	local look = Catalog.kunai[tier]
-	local length = KunaiModel.length(tier)
-
-	local kunai = Instance.new("Part")
-	kunai.Name = "Kunai"
-	kunai.Anchored = true
-	kunai.CanCollide = false
-	kunai.CanQuery = false
-	kunai.CastShadow = false
-	kunai.Size = Vector3.new(BLADE_THICKNESS, BLADE_THICKNESS, 1) * length
-	kunai.Color = Color3.fromHex(look.color)
-	kunai.Material = if look.glow then Enum.Material.Neon else Enum.Material.Metal
-	kunai.CFrame = CFrame.new(at)
-
-	-- With a model, the plain blade only carries the effects.
-	local model = KunaiModel.supplied(look.id, length)
-	if model then
-		kunai.Transparency = 1
-		model:PivotTo(kunai.CFrame)
-		model.Parent = kunai
-	end
-	local effects = KunaiEffects.attach(kunai, tier)
-
-	kunai.Parent = Workspace
-	return kunai, model, effects
-end
-
 -- Draws one kunai along its arc.
 local function fly(flight: Net.Flight)
-	local kunai, model, effects = buildKunai(flight.kunai, flight.from)
+	-- Which kunai the thrower owns decides its shape, color, effects and length.
+	local kunai, model, effects = KunaiModel.build(flight.kunai, CFrame.new(flight.from))
+	kunai.Parent = Workspace
 	local function place(cframe: CFrame)
 		kunai.CFrame = cframe
 		if model then

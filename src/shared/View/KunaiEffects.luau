@@ -2,15 +2,15 @@
 -- What a kunai looks like in the air beyond its shape: the ribbon it trails, the particles that
 -- stream off it, and its light.
 --
+-- Shared because the client flies kunai and the server hangs them in the showroom.
+--
 -- A better kunai is not much bigger than a worse one (View/KunaiModel): it is louder. The
 -- first four are plain metal and wood and leave a thin ribbon. From the Explosive Tag on,
 -- every kunai has particles of its own and lights what it flies past, and its ribbon is wider.
 -- The last few trail a second, broader ribbon, like a comet.
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
-local Particles = require(ReplicatedStorage.Shared.View.Particles)
+local Catalog = require("../Config/Catalog")
+local Particles = require("./Particles")
 
 local KunaiEffects = {}
 
@@ -310,10 +310,13 @@ function KunaiEffects.attach(kunai: BasePart, tier: number): Effects
 	end
 
 	if look.glow then
+		-- A soft glow on the ground under it, no more: at twice this the light washed out
+		-- the kunai itself and everything near where it landed.
 		local light = Instance.new("PointLight")
+		light.Name = "Glow"
 		light.Color = trailColor
-		light.Range = 8 + 0.5 * tier
-		light.Brightness = 1.2 + 0.05 * tier
+		light.Range = 6 + 0.25 * tier
+		light.Brightness = 0.5 + 0.03 * tier
 		light.Shadows = false
 		light.Parent = kunai
 	end

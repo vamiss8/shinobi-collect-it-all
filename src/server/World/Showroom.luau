@@ -8,8 +8,10 @@
 --
 -- The showroom is for after an import: in a Studio test, with the boolean attribute "Showroom"
 -- set to true on the Models folder, every shinobi and enemy is stood on the lane, a row per
--- zone, facing the throwing strip, with the kunai lined up in front of them. Whoever has no
--- model yet stands there as a placeholder. It never appears on a live server.
+-- zone, facing the throwing strip, with the kunai hung in the air in front of them, each with
+-- its effects. Whoever has no model yet is there as a placeholder. A number attribute "Kunai"
+-- on the folder hands the tester the kunai at that place in the store, to throw one they have
+-- not bought. None of it ever happens on a live server.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -17,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Data = require("../Data")
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hub = require("./Hub")
 local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
@@ -33,13 +36,16 @@ local LYING = 1.7
 local SLENDER = 1.8
 
 -- Where the showroom's rows stand, in Hub-local studs.
-local KUNAI_ROW = Tuning.Kick.stripDepth + 5
-local FIRST_ROW = Tuning.Kick.stripDepth + 14
+local KUNAI_WALL = Tuning.Kick.stripDepth + 10
+local KUNAI_COLUMNS = 5
+local KUNAI_GAP = 12 -- between kunai in a row: room for what streams off each
+local KUNAI_FLOOR = 2.5 -- the lowest row hangs this high
+local KUNAI_RISE = 3.5 -- and each row above it this much higher
+local FIRST_ROW = Tuning.Kick.stripDepth + 26
 local ROW_GAP = 10
 local ENEMY_SIDE = -25
 local FIRST_SHINOBI = -13
 local SHINOBI_GAP = 9.5
-local KUNAI_GAP = 3
 
 type Kind = "shinobi" | "enemy" | "kunai"
 
@@ -181,39 +187,37 @@ local function parade()
 		end
 	end
 
-	-- The kunai stand on their rings, tips up; one without a model is a gray stick.
-	local first = -(#Catalog.kunai - 1) / 2 * KUNAI_GAP
+	-- The kunai hang in the air past the strip like a wall of them, five to a row, the first
+	-- at the top left: each seen from its broad side, tip to the right, with what streams off
+	-- it in flight streaming off to the left. One without a model hangs there as a plain blade.
+	-- The ribbon a kunai trails only shows on one that moves.
+	local columns = KUNAI_COLUMNS
+	local rows = math.ceil(#Catalog.kunai / columns)
 	for place, kunai in Catalog.kunai do
-		-- Each at the length it flies at.
-		local length = KunaiModel.length(place)
-		local at = Hub.at(KUNAI_ROW, length / 2 + 0.3, first + (place - 1) * KUNAI_GAP)
-		local upright = CFrame.lookAt(at, at + Vector3.yAxis, home)
-		local model = KunaiModel.supplied(kunai.id, length)
-		local tagged: Instance
-		if model then
-			model:PivotTo(upright)
-			model.Parent = hall
-			tagged = model:FindFirstChildWhichIsA("BasePart", true) or model
-		else
-			local stick = Build.part(
-				hall,
-				kunai.id,
-				Vector3.new(0.3, 0.3, length),
-				at,
-				Color3.fromRGB(120, 120, 120)
-			)
-			stick.CFrame = upright
-			stick.CanCollide = false
-			tagged = stick
+		local column = (place - 1) % columns
+		local row = (place - 1) // columns
+		local at = Hub.at(
+			KUNAI_WALL,
+			KUNAI_FLOOR + (rows - 1 - row) * KUNAI_RISE,
+			(column - (columns - 1) / 2) * KUNAI_GAP
+		)
+		local facing = CFrame.lookAt(at, at + Vector3.zAxis, home)
+		local part = KunaiModel.build(place, facing)
+		-- Fifteen lights side by side flood the wall and hide what hangs on it; a kunai in
+		-- flight is alone with its own.
+		local glow = part:FindFirstChildWhichIsA("PointLight")
+		if glow then
+			glow:Destroy()
 		end
-		-- Every other name hangs higher, so neighbors do not cover each other.
-		Build.label(tagged, kunai.id, 2.6 + (place % 2) * 1.1, Vector2.new(6, 1))
+		part.Parent = hall
+		Build.label(part, `{place}. {kunai.id}`, 1.2, Vector2.new(9, 0.9))
 	end
 
 	hall.Parent = Workspace
 	print(
-		"[Models] showroom is up: stand on the throwing strip and look down the lane, the rows"
-			.. " begin right past it. Shift+P is the free camera for a closer look"
+		"[Models] showroom is up: stand on the throwing strip and look down the lane. The kunai"
+			.. " hang in the air right past it, the figures stand in rows behind them. Shift+P is"
+			.. " the free camera for a closer look"
 	)
 end
 
@@ -239,6 +243,17 @@ function Showroom.start()
 	if not folder or not RunService:IsStudio() then
 		return
 	end
+	-- The kunai to test with: a save in a Studio test lives in memory, so nothing real is
+	-- touched.
+	local testKunai = folder:GetAttribute(Net.TEST_KUNAI_ATTRIBUTE)
+	if typeof(testKunai) == "number" then
+		local place = math.clamp(math.floor(testKunai), 1, #Catalog.kunai)
+		Data.onLoaded(function(_, data)
+			data.kunai = place
+		end)
+		print(`[Models] this test throws kunai {place}, {Catalog.kunai[place].id}`)
+	end
+
 	if wanted(folder) then
 		parade()
 	else

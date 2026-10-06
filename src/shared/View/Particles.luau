@@ -1,7 +1,7 @@
 --!strict
 -- Particle emitters described as plain data, so that an effect is a short list of layers and
 -- not a page of properties. Used for the aura of a mutation (View/Aura) and for what streams
--- off a flying kunai (client KunaiEffects).
+-- off a flying kunai (View/KunaiEffects).
 --
 -- Only textures that ship with Roblox are used, so there is nothing to upload.
 
