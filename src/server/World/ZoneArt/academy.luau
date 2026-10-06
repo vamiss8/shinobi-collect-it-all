@@ -23,7 +23,7 @@ return function(scene: Kit.Scene)
 	local front = -66
 	Kit.box(scene, Vector3.new(56, 20, 24), at(58, 0, front - 12), c.wall)
 	Kit.box(scene, Vector3.new(57, 1, 1), at(58, 10, front + 0.3), c.trim, Enum.Material.Wood)
-	Kit.roof(scene, at(58, 28, front - 12), 60, 15, 28, c.roof, Enum.Material.Slate)
+	Kit.roof(scene, at(58, 27.9, front - 12), 60, 15, 28, c.roof, Enum.Material.Slate)
 	Kit.box(
 		scene,
 		Vector3.new(60, 1.2, 1.6),
@@ -46,7 +46,7 @@ return function(scene: Kit.Scene)
 			Enum.Material.Wood
 		)
 	end
-	Kit.roof(scene, at(58, 10.5, front + 2.5), 11, 3.4, 22, c.roof, Enum.Material.Slate)
+	Kit.roof(scene, at(58, 9.3, front + 2.5), 11, 3.4, 22, c.roof, Enum.Material.Slate)
 	-- The round sign over the door: a red disc with a dark mark, facing the lane.
 	Kit.rod(scene, at(58, 15, front + 0.2), at(58, 15, front + 0.8), 5, c.band, nil, true)
 	Kit.rod(scene, at(58, 15, front + 0.7), at(58, 15, front + 1), 2.2, c.door, nil, true)
@@ -61,7 +61,7 @@ return function(scene: Kit.Scene)
 	end
 	-- Its lower wing.
 	Kit.box(scene, Vector3.new(22, 13, 18), at(19, 0, front - 9), c.wallShade)
-	Kit.roof(scene, at(19, 18.5, front - 9), 24, 11, 26, c.roofDark, Enum.Material.Slate)
+	Kit.roof(scene, at(19, 18.3, front - 9), 24, 11, 26, c.roofDark, Enum.Material.Slate)
 	for _, x in { 13, 25 } do
 		Kit.box(scene, Vector3.new(3, 4, 0.5), at(x, 5, front + 0.2), c.window)
 	end
@@ -142,7 +142,7 @@ return function(scene: Kit.Scene)
 			Kit.box(scene, Vector3.new(0.7, 8.6, 0.7), at(x, 0, z), c.trim, Enum.Material.Wood)
 		end
 	end
-	Kit.roof(scene, at(86, 11.2, 44.3), 15, 5.2, 24, c.roofDark, Enum.Material.Slate)
+	Kit.roof(scene, at(86, 10.8, 44.3), 15, 5.2, 24, c.roofDark, Enum.Material.Slate)
 	for i = 0, 4 do
 		local cloth = if i % 2 == 0 then c.cloth else c.band
 		Kit.box(
@@ -221,11 +221,13 @@ return function(scene: Kit.Scene)
 			at(x, 0, z),
 			if i % 2 == 0 then c.wall else c.wallShade
 		)
+		-- The roof's foot rests on the walls: its ridge is as high over them as its slope takes it.
+		local reach = depth / 2 + 2
 		Kit.roof(
 			scene,
-			at(x, height + 4.6, z),
+			at(x, height + reach * math.tan(math.rad(26)) - 0.1, z),
 			width + 3,
-			depth / 2 + 2,
+			reach,
 			26,
 			if i % 3 == 0 then c.roofDark else c.roof,
 			Enum.Material.Slate

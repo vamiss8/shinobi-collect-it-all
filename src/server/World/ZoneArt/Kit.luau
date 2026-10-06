@@ -204,9 +204,28 @@ function Kit.rod(
 	return part
 end
 
--- A pitched roof of two slabs meeting at a ridge. `ridge` is the middle of the ridge line,
--- `length` runs along it, `reach` is how far each slab goes out from under it, flat on the
--- ground, and `pitch` is the slope in degrees. The ridge runs down the lane unless `across`.
+-- A wedge: a block cut corner to corner. Its tall side is its back (+Z), and the slope faces
+-- up and to its front.
+function Kit.wedge(
+	scene: Scene,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material?
+): WedgePart
+	local part = Instance.new("WedgePart")
+	part.Size = size
+	part.CFrame = cframe
+	dress(scene, part, color, material)
+	return part
+end
+
+-- A pitched roof, solid from every side: two wedges back to back under one ridge. `ridge` is
+-- the middle of the ridge line, `length` runs along it, `reach` is how far each side goes out
+-- from under it, flat on the ground, and `pitch` is the slope in degrees. The ridge runs down
+-- the lane unless `across`.
+--
+-- It used to be two slabs leaning together, and from either end one looked straight through.
 function Kit.roof(
 	scene: Scene,
 	ridge: Vector3,
@@ -217,29 +236,24 @@ function Kit.roof(
 	material: Enum.Material?,
 	across: boolean?
 )
-	local angle = math.rad(pitch)
-	local slope = reach / math.cos(angle)
-	local drop = Vector3.new(0, -math.sin(angle) * slope / 2, 0)
+	local rise = reach * math.tan(math.rad(pitch))
 	for _, side in { -1, 1 } do
+		-- Each half is turned so that its tall back stands under the ridge.
+		local out, turn
 		if across then
-			local out = Vector3.new(side * math.cos(angle) * slope / 2, 0, 0)
-			Kit.block(
-				scene,
-				Vector3.new(slope, 0.8, length),
-				CFrame.new(ridge + drop + out) * CFrame.Angles(0, 0, -side * angle),
-				color,
-				material
-			)
+			out = Vector3.new(side * reach / 2, -rise / 2, 0)
+			turn = -side * math.pi / 2
 		else
-			local out = Vector3.new(0, 0, side * math.cos(angle) * slope / 2)
-			Kit.block(
-				scene,
-				Vector3.new(length, 0.8, slope),
-				CFrame.new(ridge + drop + out) * CFrame.Angles(side * angle, 0, 0),
-				color,
-				material
-			)
+			out = Vector3.new(0, -rise / 2, side * reach / 2)
+			turn = if side == 1 then math.pi else 0
 		end
+		Kit.wedge(
+			scene,
+			Vector3.new(length, rise, reach),
+			CFrame.new(ridge + out) * CFrame.Angles(0, turn, 0),
+			color,
+			material
+		)
 	end
 end
 
