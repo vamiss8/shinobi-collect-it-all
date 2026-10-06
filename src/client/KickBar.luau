@@ -33,17 +33,20 @@ local RESULT_SECONDS = 1.2
 
 -- The board, in layout pixels; it shrinks as a whole on a screen it does not fit.
 local WIDTH = 780
-local HEIGHT = 232
+local HEIGHT = 296
 local PAD = 16
 -- Room the board leaves under itself for the bar of slots.
 local BOTTOM = 132
 local TITLE_HEIGHT = 40
-local GAUGE_TOP = 84
+local GAUGE_TOP = 148
 local GAUGE_HEIGHT = 76
 local ROLLER_WIDTH = 24
 local PAPER_INSET = 7 -- bare paper around the bands
-local TOKEN = 54 -- the round paper tag the marker's kunai is drawn on
-local STREAK_TOP = 172
+-- The paper tag that hangs over the scroll with the marker's kunai on it, and the square the
+-- kunai is shown in: taller than the tag is wide, but a kunai is slim and stays inside it.
+local TAG = Vector2.new(52, 120)
+local TAG_KUNAI = 112
+local STREAK_TOP = 236
 local STREAK_HEIGHT = 48
 local SEAL = 42
 
@@ -262,8 +265,8 @@ function KickBar.start()
 
 	local rail = buildGauge(board)
 
-	-- The marker: a line across the bands under a paper tag with the player's own kunai, tip
-	-- down. Paper, because a black kunai would be lost on anything dark.
+	-- The marker: a line across the bands under a tall paper tag with the player's own kunai
+	-- on it, tip down. Paper, because a black kunai would be lost on anything dark.
 	-- It has no width of its own, so its position on the rail is exactly the bar position.
 	local marker = Ui.make("Frame", {
 		Position = UDim2.fromScale(0, 0),
@@ -289,14 +292,14 @@ function KickBar.start()
 	local token = disc(marker, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromOffset(0, bandsTop + 9),
-		Size = UDim2.fromOffset(TOKEN, TOKEN),
+		Size = UDim2.fromOffset(TAG.X, TAG.Y),
 		BackgroundColor3 = Ui.PARCHMENT,
 	})
 	Ui.stroke(token, INK, 3)
 	local tokenIcon = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.94, 0.94),
+		Size = UDim2.fromOffset(TAG_KUNAI, TAG_KUNAI),
 		BackgroundTransparency = 1,
 	}, token)
 
