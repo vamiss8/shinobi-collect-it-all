@@ -229,6 +229,28 @@ return {
 		T.eq(art.ground.material, "Ground")
 	end,
 
+	-- The village has a day and a night, and its night is moonlit: enough of the sky's light
+	-- for the plaza and the first zone, and enough light indoors for a dojo's pads.
+	["the village is never left in the dark, whatever the hour"] = function()
+		for index, hour in ZoneArt.day do
+			local light = hour.light
+			local what = `hour {index} ({hour.clock})`
+			within(hour.clock, 0, 24, `{what} clock`)
+			T.ok(brightness(light.outdoor) >= 0.26, `{what}: outdoor ambient {light.outdoor}`)
+			T.ok(brightness(light.ambient) >= 0.26, `{what}: indoor ambient {light.ambient}`)
+			within(light.brightness, 1.5, 4, `{what} brightness`)
+			within(light.density, 0, 0.35, `{what} density`)
+			within(light.bloom, 0, 1.3, `{what} bloom`)
+			within(light.exposure, -0.2, 0.5, `{what} exposure`)
+		end
+	end,
+
+	["only the village goes by the hour: every other zone keeps its own light"] = function()
+		for id, art in ZoneArt.zones do
+			T.eq(art.daily == true, id == "academy", `{id} and the village's clock`)
+		end
+	end,
+
 	["the dojos share the first zone's morning and its colors"] = function()
 		for field, value in ZoneArt.zones.academy.light :: any do
 			T.eq((ZoneArt.home :: any)[field], value, `home light.{field}`)

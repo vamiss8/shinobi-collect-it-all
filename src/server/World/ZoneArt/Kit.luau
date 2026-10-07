@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hub = require("../Hub")
+local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local Signs = require(ReplicatedStorage.Shared.Logic.Signs)
 local ZoneArt = require(ReplicatedStorage.Shared.Config.ZoneArt)
@@ -522,6 +523,13 @@ function Kit.light(scene: Scene, part: BasePart, color: Color3, range: number, b
 	light.Shadows = false
 	light.Parent = part
 	scene.lights += 1
+end
+
+-- Marks a glowing piece as one of the village's lanterns, which burn low by day and bright by
+-- night (client Lanterns). Only for what stands where the village's day is seen.
+function Kit.lantern<T>(part: T): T
+	(part :: any):AddTag(Net.LANTERN_TAG)
+	return part
 end
 
 -- Particles coming off a piece of scenery: a flame in a bowl, the spray of a waterfall.

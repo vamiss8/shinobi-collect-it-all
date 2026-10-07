@@ -64,8 +64,17 @@ export type Weather = {
 	flash: { number }?, -- lightning: seconds between flashes, at least and at most
 }
 
+-- The village's light at an hour of its clock.
+export type Hour = {
+	clock: number, -- 0..24
+	light: Light,
+}
+
 export type Art = {
 	palette: { [string]: string },
+	-- Whether the zone is lit as the village is, by the hour of its day (ZoneArt.day). Its
+	-- own `light` is then the village's morning, kept for what cannot follow a clock.
+	daily: boolean?,
 	-- The length of lane the zone's scenery was laid out for, studs. The zone may be longer
 	-- today (Config/Zones): its scenery is then spread over it (World/ZoneArt/Kit). Nil for
 	-- what is not a stretch of the lane.
@@ -208,11 +217,162 @@ local VILLAGE = {
 	tank = "#7FA7B5",
 }
 
+-- The rest of the village's day. Night is moonlit and blue, never dark: the sky's light stays
+-- well above what leaves a zone black, and indoors there is light enough to see a dojo's pads.
+local NIGHT = light({
+	clock = 0,
+	brightness = 2,
+	exposure = 0.1,
+	ambient = "#585E78",
+	outdoor = "#5C6890",
+	air = "#3E4868",
+	decay = "#283250",
+	density = 0.28,
+	haze = 0.6,
+	glare = 0,
+	tint = "#DDE6FF",
+	saturation = -0.04,
+	contrast = 0.04,
+	bloom = 1.2,
+	bloomThreshold = 1.5,
+	rays = 0,
+	raysSpread = 0.3,
+})
+local DAWN = light({
+	clock = 6.2,
+	brightness = 2.4,
+	ambient = "#4E4A52",
+	outdoor = "#9C8C8A",
+	air = "#FFC9AC",
+	decay = "#FFA07C",
+	density = 0.3,
+	haze = 1.6,
+	glare = 0.3,
+	tint = "#FFEBDD",
+	saturation = 0.1,
+	contrast = 0.05,
+	bloom = 1.15,
+	bloomThreshold = 1.7,
+	rays = 0.12,
+	raysSpread = 0.3,
+})
+local NOON = light({
+	clock = 12.5,
+	brightness = 3.2,
+	outdoor = "#B0AC9E",
+	air = "#F6EEDD",
+	decay = "#EAD6B6",
+	density = 0.24,
+	haze = 1,
+	glare = 0.1,
+	tint = "#FFFBF2",
+	saturation = 0.12,
+	contrast = 0.05,
+	bloom = 1,
+	bloomThreshold = 1.9,
+	rays = 0.05,
+	raysSpread = 0.3,
+})
+local AFTERNOON = light({
+	clock = 16.6,
+	brightness = 3,
+	outdoor = "#AC9C84",
+	air = "#FFD8A8",
+	decay = "#FFB66E",
+	density = 0.27,
+	haze = 1.4,
+	glare = 0.3,
+	tint = "#FFF0DA",
+	saturation = 0.14,
+	contrast = 0.05,
+	bloom = 1.1,
+	bloomThreshold = 1.8,
+	rays = 0.1,
+	raysSpread = 0.3,
+})
+local SUNSET = light({
+	clock = 18.1,
+	brightness = 2.3,
+	ambient = "#4E4A52",
+	outdoor = "#94808C",
+	air = "#F0A68C",
+	decay = "#B4687A",
+	density = 0.29,
+	haze = 1.5,
+	glare = 0.25,
+	tint = "#FFE2D4",
+	saturation = 0.1,
+	contrast = 0.05,
+	bloom = 1.15,
+	bloomThreshold = 1.7,
+	rays = 0.06,
+	raysSpread = 0.3,
+})
+local DUSK = light({
+	clock = 19.4,
+	brightness = 2,
+	exposure = 0.05,
+	ambient = "#545670",
+	outdoor = "#6C6C92",
+	air = "#6E6488",
+	decay = "#40405E",
+	density = 0.28,
+	haze = 0.9,
+	glare = 0,
+	tint = "#E8E2FA",
+	saturation = 0,
+	contrast = 0.04,
+	bloom = 1.2,
+	bloomThreshold = 1.55,
+	rays = 0,
+	raysSpread = 0.3,
+})
+
 local ZoneArt = {}
 
--- The dojos, the market and the throwing strip share the first zone's morning: they are the
--- same village, and a camera standing on the strip crosses the lane's start all the time.
+-- The dojos, the market and the throwing strip share the first zone's light: they are the
+-- same village, and a camera standing on the strip crosses the lane's start all the time. This
+-- is that light in the morning, the hour the village's day begins at.
 ZoneArt.home = MORNING
+
+-- THE VILLAGE HAS A DAY AND A NIGHT (owner, 2026-10-07: "the time of day changes smoothly; in
+-- the evening the lanterns light up, in the morning they go out, but not altogether"). Its
+-- light at the hours that follow, in order round the clock; between two of them it is the two
+-- mixed (Logic/Daylight, client Mood). The first and the last are the same night, so that the
+-- clock comes round without a jolt. Only the village is lit by the hour: the plaza with its
+-- dojos, and the first zone, which is the same village. Every other zone keeps the light that
+-- is its own, whatever the hour.
+ZoneArt.day = {
+	{ clock = 0, light = NIGHT },
+	{ clock = 4.8, light = NIGHT },
+	{ clock = 6.2, light = DAWN },
+	{ clock = 8.2, light = MORNING },
+	{ clock = 12.5, light = NOON },
+	{ clock = 16.6, light = AFTERNOON },
+	{ clock = 18.1, light = SUNSET },
+	{ clock = 19.4, light = DUSK },
+	{ clock = 20.6, light = NIGHT },
+	{ clock = 24, light = NIGHT },
+} :: { Hour }
+
+-- How long the village's day is, in seconds of play: from sunrise to sunset and from sunset to
+-- sunrise, each twelve hours on the clock; and the hour a server's first day begins at, so that
+-- whoever joins a new server finds a morning.
+ZoneArt.daytime = {
+	daylight = 600,
+	night = 300,
+	begins = 8,
+}
+
+-- A lantern burns low by day and bright by night: this share of its brightness by day, and its
+-- glowing shade this much darker. It lights up over the evening hours named here and dies
+-- down over the morning ones. Never out altogether: a dead lantern is a gray lump on a post.
+ZoneArt.lanterns = {
+	low = 0.35,
+	shade = 0.5,
+	lightUp = { 17.2, 18.8 },
+	dieDown = { 5.6, 7.4 },
+}
 
 -- What stands round the dojos (World/ZoneArt/home): not a zone, so it has no lane, sign or
 -- weather of its own. Its grass is the Hub's.
@@ -226,6 +386,7 @@ ZoneArt.zones = {
 	-- A sunny morning in the village: green and orange under a warm sky.
 	academy = {
 		laidOut = 100,
+		daily = true,
 		palette = VILLAGE,
 		ground = { color = "#7CB342", material = "Grass" },
 		lane = { color = "#9CCC65", material = "Grass" },

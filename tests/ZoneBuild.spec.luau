@@ -4,6 +4,7 @@
 -- built the same way and held to the rules that apply to it.
 
 local Catalog = require("../src/shared/Config/Catalog")
+local Net = require("../src/shared/Net")
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local Signs = require("../src/shared/Logic/Signs")
 local T = require("./harness")
@@ -128,6 +129,27 @@ return {
 		local village = sceneBuilt(Zones.HOME)
 		T.ok(#village.parts <= BUDGET[2], `the village has {#village.parts} parts`)
 		T.ok(village.lights <= LIGHTS, `the village has {village.lights} lights`)
+	end,
+
+	-- The village's lanterns are lit by the hour of its day; a zone with a light of its own
+	-- keeps its lamps and fires as they are.
+	["only the village's lanterns are the evening's to light"] = function()
+		for _, scenery in scenes() do
+			local lanterns = 0
+			for _, part in scenery.parts do
+				if part:HasTag(Net.LANTERN_TAG) then
+					lanterns += 1
+					T.eq(part.Material.Name, "Neon", `{scenery.id}: {where(part)} does not glow`)
+				end
+			end
+			if scenery.id == Zones.HOME then
+				T.ok(lanterns >= 8, `the avenue has {lanterns} lanterns`)
+			elseif scenery.id == "academy" then
+				T.ok(lanterns >= 1, "the first zone has no lantern")
+			else
+				T.eq(lanterns, 0, `{scenery.id} has lanterns that go by the village's clock`)
+			end
+		end
 	end,
 
 	["scenery is only to be looked at"] = function()

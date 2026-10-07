@@ -47,6 +47,15 @@ Net.KEEPER = "Keeper"
 -- world position where the lane starts.
 Net.HUB_FOLDER = "Hub"
 Net.ORIGIN_ATTRIBUTE = "Origin"
+-- An attribute of the Hub folder: the server's clock (Workspace:GetServerTimeNow) at the moment
+-- the village's day began. Every client works the hour out from it, so all see the same sky.
+Net.DAY_ATTRIBUTE = "DayBegan"
+-- For looking at an hour without waiting for it: a number put on the Hub folder under this
+-- name in a Studio test stops the village's clock at that hour.
+Net.HOUR_ATTRIBUTE = "Hour"
+-- Tag on every lantern of the village: the part that glows, with its light inside it if it
+-- has one. Each client burns them low by day and bright by night (client Lanterns).
+Net.LANTERN_TAG = "Lantern"
 -- Name of the part by the throwing strip that each client hangs its own luck board on.
 Net.LUCK_BOARD = "LuckBoard"
 -- Attributes on a button of an upgrade console, a Part at the foot of a pad: which button it

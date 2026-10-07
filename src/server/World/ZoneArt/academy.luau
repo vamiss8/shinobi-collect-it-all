@@ -223,6 +223,7 @@ return function(scene: Kit.Scene)
 		end
 		local lantern = Kit.ball(scene, 1.8, at(79.2, 6.4, 40.4), c.lantern, Enum.Material.Neon)
 		Kit.light(scene, lantern, c.lantern, 14, 1)
+		Kit.lantern(lantern)
 		Kit.box(scene, Vector3.new(7, 2, 0.4), at(86, 11.6, 41.4), c.cloth, Enum.Material.Wood)
 		Kit.box(scene, Vector3.new(5, 0.5, 0.6), at(86, 12.3, 41.4), c.band)
 		Kit.pillar(scene, 1.4, 1.6, at(89, 3.4, 42), c.stone, Enum.Material.Metal)

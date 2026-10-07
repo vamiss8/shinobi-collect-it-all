@@ -237,6 +237,7 @@ local function buildStrip(folder: Folder): Part
 		light.Range = 18
 		light.Brightness = 1.2
 		light.Parent = lantern
+		lantern:AddTag(Net.LANTERN_TAG)
 	end
 
 	piece(
@@ -314,6 +315,9 @@ function Hub.start()
 	folder.Name = Net.HUB_FOLDER
 	-- Clients read this to turn world positions into distances down the lane.
 	folder:SetAttribute(Net.ORIGIN_ATTRIBUTE, ORIGIN)
+	-- The village's day begins with the server. Clients work the hour out from this and the
+	-- clock they share with the server, so everyone sees the same sky and nothing is sent.
+	folder:SetAttribute(Net.DAY_ATTRIBUTE, Workspace:GetServerTimeNow())
 
 	-- Grass under everything, a touch below floor level so nothing z-fights with it. It shows
 	-- through the gaps between the dojos, the street and the lane. In slabs, because a part

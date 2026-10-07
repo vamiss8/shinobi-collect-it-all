@@ -11,6 +11,7 @@ local specs: { [string]: Spec } = {
 	Chase = require("../tests/Chase.spec"),
 	Corridor = require("../tests/Corridor.spec"),
 	Crossing = require("../tests/Crossing.spec"),
+	Daylight = require("../tests/Daylight.spec"),
 	DojoHall = require("../tests/DojoHall.spec"),
 	DojoPlan = require("../tests/DojoPlan.spec"),
 	Economy = require("../tests/Economy.spec"),

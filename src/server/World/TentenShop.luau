@@ -253,6 +253,8 @@ local function lantern(folder: Instance, hang: Vector3, top: number, size: numbe
 	light.Range = range
 	light.Brightness = 0.9
 	light.Parent = body
+	-- The evening lights it and the morning dims it, with the rest of the village's.
+	body:AddTag(Net.LANTERN_TAG)
 end
 
 -- A kunai with its point at `tip`, its blade pointing `down` from the ring and its flat side

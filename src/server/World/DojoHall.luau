@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
+local Net = require(ReplicatedStorage.Shared.Net)
 
 local DojoHall = {}
 
@@ -268,6 +269,8 @@ local function lantern(ctx: Ctx, hang: Vector3, size: number, lit: boolean)
 	local top = hang.Y - size * 0.5
 	local bottom = V(hang.X, top - height, hang.Z)
 	local body = decor(column(ctx, "Lantern", bottom, height, size, LANTERN, Enum.Material.Neon))
+	-- The evening lights it and the morning dims it, with the rest of the village's.
+	body:AddTag(Net.LANTERN_TAG)
 	for _, y in { top - height, top } do
 		decor(column(ctx, "LanternCap", V(hang.X, y - 0.12, hang.Z), 0.24, size * 0.72, TIMBER))
 	end

@@ -8,6 +8,9 @@
 -- is the two mixed (Logic/Crossing), and what is on screen closes on that quickly. Nothing
 -- waits for a line to be crossed and then takes its time.
 --
+-- The village's own light goes by the hour of its day (Logic/Daylight, client Daytime): the
+-- plaza with its dojos, and the first zone. Every other zone keeps its light whatever the hour.
+--
 -- Only numbers are changed here, on Lighting, its Atmosphere and its effects. The place's Sky,
 -- and with it the moon, is never touched.
 
@@ -17,6 +20,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Crossing = require(ReplicatedStorage.Shared.Logic.Crossing)
+local Daylight = require(ReplicatedStorage.Shared.Logic.Daylight)
+local Daytime = require("./Daytime")
 local Looks = require(ReplicatedStorage.Shared.Config.ZoneArt)
 local Net = require(ReplicatedStorage.Shared.Net)
 
@@ -35,9 +40,16 @@ Mood.LIGHTNING = "Lightning"
 local FOLLOW = 6
 -- Closer to where it is going than this, the light is put there and left alone.
 local SETTLED = 0.002
+-- The village's light is worked out anew this often, seconds, and what is on screen is written
+-- out again once it has moved this far from what was last written. The sun then crosses the
+-- sky in steps of a tenth of a degree, a few a second, instead of being moved every frame.
+local HOUR_SECONDS = 0.2
+local WRITTEN = 0.0005
 
--- A look as two rows, numbers and colors, in the order they are written out below.
+-- A look as two rows, numbers and colors, in the order they are written out below. The first
+-- number is the hour, which is mixed and measured round the clock.
 type Row = { numbers: { number }, colors: { Color3 } }
+local CLOCK = 1
 
 type Listener = (place: string) -> ()
 
@@ -103,6 +115,7 @@ local function between(from: Row, to: Row, share: number): Row
 	for i, value in from.numbers do
 		numbers[i] = value + (to.numbers[i] - value) * share
 	end
+	numbers[CLOCK] = Daylight.toward(from.numbers[CLOCK], to.numbers[CLOCK], share)
 	for i, color in from.colors do
 		colors[i] = color:Lerp(to.colors[i], share)
 	end
@@ -112,10 +125,12 @@ end
 -- How far apart two rows are, by the one thing that differs most. Hours and bloom sizes run
 -- into the tens while most of the rest stays under one, hence the scale.
 local function apart(a: Row, b: Row): number
-	local most = 0
+	local most = math.abs(Daylight.onward(a.numbers[CLOCK], b.numbers[CLOCK])) / 12
 	for i, value in a.numbers do
-		local scale = math.max(math.abs(value), math.abs(b.numbers[i]), 1)
-		most = math.max(most, math.abs(value - b.numbers[i]) / scale)
+		if i ~= CLOCK then
+			local scale = math.max(math.abs(value), math.abs(b.numbers[i]), 1)
+			most = math.max(most, math.abs(value - b.numbers[i]) / scale)
+		end
 	end
 	for i, color in a.colors do
 		local other = b.colors[i]
@@ -144,13 +159,36 @@ function Mood.start()
 		local grade: ColorCorrectionEffect = effect("ColorCorrectionEffect")
 
 		local rows: { [string]: Row } = { [Mood.HOME] = row(Looks.home) }
+		-- The places lit by the hour of the village's day.
+		local daily: { [string]: boolean } = { [Mood.HOME] = true }
 		for id, art in Looks.zones do
 			rows[id] = row(art.light)
+			daily[id] = art.daily == true
+		end
+		local hours: { Row } = {}
+		for index, hour in Looks.day do
+			hours[index] = row(hour.light)
+		end
+
+		-- The village's light at this hour. The hour itself is put in as it stands on the
+		-- clock: the hours listed are only where the light is known.
+		local village: Row = rows[Mood.HOME]
+		local villageAt = -math.huge
+		local function byTheHour(): Row
+			local now = os.clock()
+			if now - villageAt >= HOUR_SECONDS then
+				villageAt = now
+				local clock = Daytime.clock()
+				local from, to, share = Daylight.mix(clock)
+				village = between(hours[from], hours[to], share)
+				village.numbers[CLOCK] = clock
+			end
+			return village
 		end
 
 		local function put(look: Row)
 			local n, c = look.numbers, look.colors
-			Lighting.ClockTime = n[1]
+			Lighting.ClockTime = n[CLOCK]
 			Lighting.Brightness = n[2]
 			Lighting.ExposureCompensation = n[3]
 			Lighting.Ambient = c[1]
@@ -172,9 +210,11 @@ function Mood.start()
 			rays.Spread = n[15]
 		end
 
-		-- What is on screen, and whether it is where it is going: then nothing is written until
-		-- the camera's place asks for another light.
+		-- What is on screen, what was last written out, and whether the light is where it is
+		-- going: then nothing is worked out until the camera's place asks for another light,
+		-- or the hour does.
 		local shown: Row? = nil
+		local written: Row? = nil
 		local settled = false
 		local lastFrom, lastTo, lastShare = "", "", -1
 
@@ -192,11 +232,14 @@ function Mood.start()
 			end
 
 			local from, to, share = Crossing.mix(along)
-			local first, second = rows[from], rows[to]
+			local byHour = daily[from] or daily[to]
+			local first = if daily[from] then byTheHour() else rows[from]
+			local second = if daily[to] then byTheHour() else rows[to]
 			if not first or not second then
 				return
 			end
-			if settled and from == lastFrom and to == lastTo and share == lastShare then
+			local same = from == lastFrom and to == lastTo and share == lastShare
+			if settled and same and not byHour then
 				return
 			end
 			lastFrom, lastTo, lastShare = from, to, share
@@ -209,7 +252,10 @@ function Mood.start()
 				now = wanted
 			end
 			shown = now
-			put(now)
+			if not written or apart(now, written) >= WRITTEN then
+				written = now
+				put(now)
+			end
 		end)
 	end)
 end

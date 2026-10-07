@@ -171,6 +171,7 @@ local function build(folder: Folder, stall: Stall)
 			)
 			lantern.Shape = Enum.PartType.Ball
 			lantern.CanCollide = false
+			lantern:AddTag(Net.LANTERN_TAG)
 			-- It hangs from the roof on a cord, not in the air.
 			local cord = Build.part(
 				folder,

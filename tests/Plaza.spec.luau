@@ -3,6 +3,7 @@
 -- Roblox (tests/zones) and what it made is measured against the layout (Logic/PlazaPlan).
 
 local DojoPlan = require("../src/shared/Logic/DojoPlan")
+local Net = require("../src/shared/Net")
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local T = require("./harness")
 local Zones = require("./zones")
@@ -80,7 +81,35 @@ return {
 				lights += 1
 			end
 		end
-		T.ok(lights <= 8, `the plaza has {lights} lights`)
+		-- The pool's, and one in the lantern of every post: they light the paths by night.
+		T.ok(lights <= 16, `the plaza has {lights} lights`)
+	end,
+
+	-- The village's lanterns burn low by day and bright by night (client Lanterns), which a
+	-- client can only do to the ones the server marked.
+	["every lantern of the plaza, the shop and the dojos is one the evening lights"] = function()
+		local places = { plaza = parts(), shop = shopParts(), dojos = hallParts() }
+		for place, list in places do
+			local lanterns = 0
+			for _, part in list do
+				local glows = part.Name == "Lantern" or part.Name == "StoneLanternLight"
+				T.eq(part:HasTag(Net.LANTERN_TAG), glows, `{where(part)} of the {place}`)
+				if glows then
+					lanterns += 1
+					T.eq(part.Material.Name, "Neon", `{where(part)} of the {place} does not glow`)
+				end
+			end
+			T.ok(lanterns >= 3, `the {place} has {lanterns} lanterns`)
+		end
+		-- Every lantern post lights its stretch of the path.
+		for _, part in parts() do
+			if part.Name == "Lantern" then
+				T.ok(
+					part:FindFirstChildOfClass("PointLight") ~= nil,
+					`{where(part)} gives no light`
+				)
+			end
+		end
 	end,
 
 	["everything of the plaza is anchored and stands inside the yard"] = function()

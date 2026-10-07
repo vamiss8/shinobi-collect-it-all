@@ -134,12 +134,14 @@ return function(scene: Kit.Scene)
 			local base = at(x, 0, side * 13)
 			Kit.box(scene, Vector3.new(3, 0.8, 3), base, c.cliffShade, slate)
 			Kit.pillar(scene, 3.4, 1.3, base + Vector3.new(0, 0.8, 0), c.stone, slate)
-			Kit.box(
-				scene,
-				Vector3.new(1.6, 1.6, 1.6),
-				base + Vector3.new(0, 4.7, 0),
-				c.lantern,
-				Enum.Material.Neon
+			Kit.lantern(
+				Kit.box(
+					scene,
+					Vector3.new(1.6, 1.6, 1.6),
+					base + Vector3.new(0, 4.7, 0),
+					c.lantern,
+					Enum.Material.Neon
+				)
 			)
 			Kit.box(
 				scene,

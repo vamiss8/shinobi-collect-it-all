@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Hub = require("./Hub")
+local Net = require(ReplicatedStorage.Shared.Net)
 local Notices = require("./Notices")
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
@@ -579,10 +580,12 @@ local function buildFountain(folder: Folder)
 end
 
 -- A lantern post: a wooden post with an arm that reaches `towards`, braced from below, and a
--- paper lantern hanging from the arm's end on a cord, lit or not. The post, its arm and the
--- lantern are solid: a player who jumps touches the lantern. Only the thin pieces are not,
+-- paper lantern hanging from the arm's end on a cord. A `bright` one lights the fountain's
+-- ring, the others a stretch of path; all burn low by day and up at night (client Lanterns).
+-- The post, its arm and the lantern are solid: a player who jumps touches the lantern. Only
+-- the thin pieces are not,
 -- the brace, the cord and the tassel, which would catch on nothing but annoy.
-local function lanternPost(folder: Folder, base: Vector3, towards: Vector3, lit: boolean)
+local function lanternPost(folder: Folder, base: Vector3, towards: Vector3, bright: boolean)
 	local wood = Enum.Material.Wood
 	Build.part(
 		folder,
@@ -663,14 +666,13 @@ local function lanternPost(folder: Folder, base: Vector3, towards: Vector3, lit:
 			LACQUER
 		)
 	)
-	if lit then
-		local light = Instance.new("PointLight")
-		light.Color = LANTERN
-		light.Range = 18
-		light.Brightness = 0.7
-		light.Shadows = false
-		light.Parent = body
-	end
+	local light = Instance.new("PointLight")
+	light.Color = LANTERN
+	light.Range = if bright then 18 else 15
+	light.Brightness = if bright then 0.7 else 0.5
+	light.Shadows = false
+	light.Parent = body
+	body:AddTag(Net.LANTERN_TAG)
 end
 
 -- A stone lantern: a foot, a shaft, a table, a small lit house, its roof and a knob on top.
@@ -695,7 +697,7 @@ local function stoneLantern(folder: Folder, base: Vector3)
 		base + UP * 5.5,
 		LANTERN,
 		Enum.Material.Neon
-	)
+	):AddTag(Net.LANTERN_TAG)
 	Build.part(
 		folder,
 		"StoneLanternRoof",
