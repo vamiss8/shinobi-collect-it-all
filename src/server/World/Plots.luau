@@ -38,7 +38,7 @@ export type Pad = {
 	prompt: ProximityPrompt, -- place, take, swap, merge, or unlock the pad
 	console: Part, -- the board between the pad and the aisle that the upgrade buttons sit on
 	buttons: { one: Button, ten: Button, max: Button }, -- +1 level, +10, as many as affordable
-	stand: CFrame, -- where a shinobi on the pad stands, facing the aisle
+	stand: CFrame, -- where a shinobi on the pad stands, facing the plaza
 	tag: TextLabel, -- floats over a pad that is not open yet: its price, or the game pass
 	tagGui: BillboardGui,
 	figure: Model?,
@@ -191,7 +191,10 @@ local function buildPad(folder: Folder, frame: DojoHall.Frame, padIndex: number)
 		prompt = prompt,
 		console = console,
 		buttons = buttons,
-		stand = CFrame.lookAt(top, top + facing),
+		-- Every shinobi looks out of the dojo, at the plaza, whichever row it stands in. (Each
+		-- used to face the aisle: the front row, the one a new player fills first, stood with
+		-- its back to the plaza and its face to the back wall.)
+		stand = CFrame.lookAt(top, top - frame.inward),
 		tag = tag,
 		tagGui = tagGui,
 	}
