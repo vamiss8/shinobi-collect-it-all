@@ -39,7 +39,7 @@ export type Pad = {
 	console: Part, -- the board between the pad and the aisle that the upgrade buttons sit on
 	buttons: { one: Button, ten: Button, max: Button }, -- +1 level, +10, as many as affordable
 	trim: { BasePart }, -- the rest of the console: its scroll, rods and stand
-	stand: CFrame, -- where a shinobi on the pad stands, facing the plaza
+	stand: CFrame, -- where a shinobi on the pad stands, facing the aisle
 	tag: TextLabel, -- floats over a pad that is not open yet: its price, or the game pass
 	tagGui: BillboardGui,
 	figure: Model?,
@@ -277,10 +277,9 @@ local function buildPad(folder: Folder, frame: DojoHall.Frame, padIndex: number)
 		console = console,
 		buttons = buttons,
 		trim = trim,
-		-- Every shinobi looks out of the dojo, at the plaza, whichever row it stands in. (Each
-		-- used to face the aisle: the front row, the one a new player fills first, stood with
-		-- its back to the plaza and its face to the back wall.)
-		stand = CFrame.lookAt(top, top - frame.inward),
+		-- A shinobi faces the aisle between the two rows, where its console is and where its
+		-- owner stands to look at it.
+		stand = CFrame.lookAt(top, top + facing),
 		tag = tag,
 		tagGui = tagGui,
 	}
