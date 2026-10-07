@@ -197,6 +197,38 @@ return {
 		T.eq(planters, 2 * (PlazaPlan.PER_SIDE + 1), "a tree in every alley on both sides")
 	end,
 
+	-- What is see-through is drawn farthest first, measured to each piece's middle: two such
+	-- pieces one over the other change places as the camera moves, and one paints out the
+	-- other. So the fountain's water is not see-through, and of what lies on it only foam is.
+	["nothing see-through lies over anything else that is"] = function()
+		local clear = {}
+		local water = 0
+		for _, part in parts() do
+			if part.Name == "Water" or part.Name == "Shoal" or part.Name == "BowlWater" then
+				water += 1
+				T.eq(part.Transparency, 0, `{where(part)} is see-through`)
+			end
+			if part.Transparency > 0 and part.Transparency < 1 then
+				table.insert(clear, part)
+			end
+		end
+		T.eq(water, 4, "the pool, its shoal and the two bowls' water")
+		for i, a in clear do
+			local lowA, highA = Zones.bounds(a)
+			for j = i + 1, #clear do
+				local b = clear[j]
+				local lowB, highB = Zones.bounds(b)
+				-- Seen from anywhere above, two pieces cover one another only if one is over
+				-- the other or they overlap on the ground.
+				local apart = highA.X <= lowB.X
+					or highB.X <= lowA.X
+					or highA.Z <= lowB.Z
+					or highB.Z <= lowA.Z
+				T.ok(apart, `{where(a)} and {where(b)} are both see-through, one over the other`)
+			end
+		end
+	end,
+
 	["the fountain's water runs down in streams that stay over its pool"] = function()
 		parts()
 		local fountain = PlazaPlan.FOUNTAIN

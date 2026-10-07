@@ -38,10 +38,13 @@ local STONE = Color3.fromRGB(210, 203, 188)
 local STONE_DARK = Color3.fromRGB(146, 139, 127)
 local TILE = Color3.fromRGB(58, 118, 150)
 local DEEP = Color3.fromRGB(52, 132, 176)
+local SHOAL = Color3.fromRGB(84, 170, 212)
 local WATER = Color3.fromRGB(120, 205, 240)
 local SPRAY = Color3.fromRGB(214, 240, 252)
 local FOAM = Color3.fromRGB(240, 250, 255)
 local GOLD = Color3.fromRGB(255, 202, 40)
+local TOAD = Color3.fromRGB(122, 140, 110)
+local LILY = Color3.fromRGB(70, 132, 78)
 local RIM = 1.8 -- thickness of the basin's wall
 local RIM_HEIGHT = 2.6
 local RIM_SEGMENTS = 20
@@ -96,7 +99,7 @@ local LONG_DROPS: Particles.Layer = {
 -- Where water strikes water: the pool glitters all over, and a haze hangs on it.
 local SPLASH: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 26,
+	rate = 34,
 	life = { 0.35, 0.6 },
 	speed = { 2, 5 },
 	spread = 35,
@@ -247,14 +250,16 @@ local function buildPaving(folder: Folder)
 		part.CastShadow = false
 	end
 	inlay("PathAlong", Vector3.new(depth, 0.06, PATH_WIDTH), Hub.at(middle, 0.03, 0), PATH)
-	-- The path across stops at the bands along the plaza's edges.
-	inlay(
-		"PathAcross",
-		Vector3.new(PATH_WIDTH, 0.07, 2 * half - 6),
-		Hub.at(fountain.along, 0.035, 0),
-		PATH
-	)
+	-- The path across is two pieces, from the middle path out to the bands along the plaza's
+	-- edges: the two paths meet edge to edge and neither lies over the other.
+	local out = half - 3 - PATH_WIDTH / 2
 	for _, side in { -1, 1 } do
+		inlay(
+			"PathAcross",
+			Vector3.new(PATH_WIDTH, 0.06, out),
+			Hub.at(fountain.along, 0.03, side * (PATH_WIDTH / 2 + out / 2)),
+			PATH
+		)
 		inlay(
 			"Border",
 			Vector3.new(depth, 0.09, 3),
@@ -262,24 +267,65 @@ local function buildPaving(folder: Folder)
 			BAND
 		)
 	end
-	-- Round the fountain: a dark ring with a pale one inside it.
+	-- Round the fountain: a dark ring with a pale one inside it, each a clear step above what
+	-- it lies on.
 	local center = Hub.at(fountain.along, 0, fountain.side)
 	local reach = PlazaPlan.FOUNTAIN_RADIUS
-	local ring = show(column(folder, "Ring", center, 0.11, 2 * (reach + 15), BAND, slabs))
+	local ring = show(column(folder, "Ring", center, 0.12, 2 * (reach + 15), BAND, slabs))
 	ring.CastShadow = false
-	local apron = show(column(folder, "Apron", center, 0.14, 2 * (reach + 10), PATH, slabs))
+	local apron = show(column(folder, "Apron", center, 0.18, 2 * (reach + 10), PATH, slabs))
 	apron.CastShadow = false
+end
+
+-- A stone toad sitting at `base`, looking the level way `towards`: a round body on its
+-- haunches, a head with two gilded eyes, two forefeet. All of it is solid.
+local function toad(folder: Folder, base: Vector3, towards: Vector3)
+	local slate = Enum.Material.Slate
+	local beside = UP:Cross(towards)
+	local function ball(
+		name: string,
+		at: Vector3,
+		across: number,
+		color: Color3,
+		material: Enum.Material
+	)
+		local part =
+			Build.part(folder, name, Vector3.new(across, across, across), at, color, material)
+		part.Shape = Enum.PartType.Ball
+		part.CastShadow = false
+	end
+	ball("Toad", base + UP * 1 - towards * 0.1, 2.4, TOAD, slate)
+	ball("ToadHead", base + UP * 1.9 + towards * 0.9, 1.8, TOAD, slate)
+	for _, side in { -1, 1 } do
+		ball("ToadHaunch", base + UP * 0.6 - towards * 0.5 + beside * side * 1.15, 1.5, TOAD, slate)
+		ball("ToadFoot", base + UP * 0.3 + towards * 1 + beside * side * 0.8, 0.7, TOAD, slate)
+		ball(
+			"ToadEye",
+			base + UP * 2.7 + towards * 0.95 + beside * side * 0.5,
+			0.7,
+			GOLD,
+			Enum.Material.Metal
+		)
+	end
 end
 
 -- The fountain: a round basin walled in stone and full of water, and in its middle a pillar
 -- that carries two bowls, the smaller above the larger, under a gilded ball. Water springs
 -- from under the ball into the upper bowl, pours over the rim of each bowl into what lies
--- below, and a ring of jets round the basin throws it in arcs back towards the pillar; the
--- pool glitters where it all comes down, and a haze hangs over it.
+-- below, a ring of jets round the basin throws it in arcs back towards the pillar, and four
+-- stone toads on the wall spit it into the pool; the pool glitters where it all comes down,
+-- lily pads lie on its quiet edge, and a haze hangs over it.
 --
 -- The streams are Beams: ribbons that turn to face whoever looks, bent along a curve. A beam
 -- leaves its first end along that end's own right-hand side and comes into its second end
 -- along that end's, which is how every stream below is given its arc.
+--
+-- ONLY ONE THING HERE MAY BE SEE-THROUGH AT A TIME. Whatever is see-through is drawn after
+-- everything solid, farthest first, and how far a piece is gets measured to its middle: with
+-- a see-through sheet of water under them, the foam and the streams on the far side of the
+-- pool were drawn before the sheet and then painted over by it, and the foam round the pillar,
+-- whose middle is the sheet's own, flickered. So the water is not see-through at all: it is a
+-- dark pool with a lighter shoal in its middle, and only the foam on top of it is.
 local function buildFountain(folder: Folder)
 	local center = Hub.at(PlazaPlan.FOUNTAIN.along, 0, PlazaPlan.FOUNTAIN.side)
 	local reach = PlazaPlan.FOUNTAIN_RADIUS
@@ -302,27 +348,27 @@ local function buildFountain(folder: Folder)
 		)
 	end
 
-	-- Still water, one sheet of it: a darker body with a bright, half-clear skin on top.
-	-- (Not of Glass: whatever is see-through and behind glass is not drawn at all.)
-	local function sheet(base: Vector3, depth: number, diameter: number)
-		if depth > 0.5 then
-			local body = show(column(folder, "WaterBody", base, depth - 0.3, diameter, DEEP))
-			body.Transparency = 0.1
-			body.CastShadow = false
-		end
-		local skin =
-			show(column(folder, "WaterSkin", base + UP * (depth - 0.3), 0.3, diameter, WATER))
-		skin.Transparency = 0.4
-		skin.Reflectance = 0.25
-		skin.CastShadow = false
+	-- Still water: a round of plain color that takes a shine from the sky.
+	local function water(
+		name: string,
+		base: Vector3,
+		depth: number,
+		diameter: number,
+		color: Color3
+	)
+		local part = show(column(folder, name, base, depth, diameter, color))
+		part.Reflectance = 0.2
+		part.CastShadow = false
 	end
 	local inner = 2 * (reach - RIM)
 	show(column(folder, "BasinFloor", center, 0.3, inner + 0.4, TILE))
-	sheet(center + UP * 0.3, POOL - 0.3, inner + 0.2)
+	water("Water", center + UP * 0.3, POOL - 0.3, inner + 0.2, DEEP)
+	-- The shoal: lighter water where it is churned, from the pillar out past the falls.
+	water("Shoal", center + UP * POOL, 0.05, 27.8, SHOAL)
 	-- Foam where the water comes down: round the pillar's foot, and under every fall.
 	local function foam(at: Vector3, diameter: number)
-		local patch = show(column(folder, "Foam", at, 0.05, diameter, FOAM))
-		patch.Transparency = 0.5
+		local patch = show(column(folder, "Foam", at + UP * 0.05, 0.05, diameter, FOAM))
+		patch.Transparency = 0.35
 		patch.CastShadow = false
 	end
 	foam(center + UP * POOL, 14)
@@ -345,8 +391,8 @@ local function buildFountain(folder: Folder)
 		Enum.Material.Metal
 	)
 	ball.Shape = Enum.PartType.Ball
-	sheet(center + UP * 11.05, 0.35, 16.4)
-	sheet(center + UP * 16.9, 0.35, 8.4)
+	water("BowlWater", center + UP * 11.1, 0.3, 16.4, WATER)
+	water("BowlWater", center + UP * 16.95, 0.3, 8.4, WATER)
 
 	-- Every stream hangs from one unseen piece at the fountain's foot, so that a stream's ends
 	-- can be given from there.
@@ -361,33 +407,54 @@ local function buildFountain(folder: Folder)
 	end
 	-- A stream from `from`, which it leaves along `leave`, to `to`, where it arrives along
 	-- `arrive`; `bend` is how far it carries on each way before turning, `width` how thick it
-	-- is at each end. Points are from the fountain's foot.
+	-- is at each end. Points are from the fountain's foot. With a `rush` it is seen to run:
+	-- white gushes slide along it from its first end to its last, so many lengths of the
+	-- pattern a second (a pattern on a beam moves that way when its speed is above zero).
 	local function stream(
 		from: Vector3,
 		leave: Vector3,
 		to: Vector3,
 		arrive: Vector3,
 		bend: { number },
-		width: { number }
+		width: { number },
+		rush: number?
 	)
-		local beam = Instance.new("Beam")
-		beam.Attachment0 = tip(from, leave.Unit)
-		beam.Attachment1 = tip(to, arrive.Unit)
-		beam.CurveSize0 = bend[1]
-		beam.CurveSize1 = bend[2]
-		beam.Segments = 16
-		beam.FaceCamera = true
-		beam.Width0 = width[1]
-		beam.Width1 = width[2]
-		beam.Color = ColorSequence.new(SPRAY, WATER)
-		beam.Transparency = NumberSequence.new({
+		local first, last = tip(from, leave.Unit), tip(to, arrive.Unit)
+		local function ribbon(): Beam
+			local beam = Instance.new("Beam")
+			beam.Attachment0 = first
+			beam.Attachment1 = last
+			beam.CurveSize0 = bend[1]
+			beam.CurveSize1 = bend[2]
+			beam.Segments = 16
+			beam.FaceCamera = true
+			beam.Width0 = width[1]
+			beam.Width1 = width[2]
+			beam.LightInfluence = 0.5
+			beam.Parent = hold
+			return beam
+		end
+		local body = ribbon()
+		body.Color = ColorSequence.new(SPRAY, WATER)
+		body.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0.2),
 			NumberSequenceKeypoint.new(0.75, 0.35),
 			NumberSequenceKeypoint.new(1, 0.75),
 		})
-		beam.LightEmission = 0.3
-		beam.LightInfluence = 0.5
-		beam.Parent = hold
+		body.LightEmission = 0.3
+		if rush then
+			local gush = ribbon()
+			gush.Name = "Gush"
+			gush.Color = ColorSequence.new(FOAM, FOAM)
+			gush.Texture = Particles.SMOKE
+			gush.TextureMode = Enum.TextureMode.Wrap
+			gush.TextureLength = 2.2 * math.max(width[1], width[2])
+			gush.TextureSpeed = rush
+			gush.Transparency = NumberSequence.new(0.3, 0.55)
+			gush.LightEmission = 0.5
+			-- A touch nearer the eye than the ribbon it runs on, so that the two keep their order.
+			gush.ZOffset = 0.1
+		end
 	end
 	-- Where drops leave a bowl's rim: an unseen piece tipped so that what it throws up sets
 	-- off outward as well.
@@ -406,10 +473,11 @@ local function buildFountain(folder: Folder)
 		stream(
 			UP * 19.2 + out * 0.5,
 			out * 0.55 + UP * 0.84,
-			UP * 17.2 + out * 3.4,
+			UP * 17.3 + out * 3.4,
 			-UP,
 			{ 2.4, 1.4 },
-			{ 0.4, 0.6 }
+			{ 0.5, 0.8 },
+			1.6
 		)
 	end
 	-- Over the upper bowl's rim into the lower bowl.
@@ -418,54 +486,92 @@ local function buildFountain(folder: Folder)
 		stream(
 			UP * 17.05 + out * 4.7,
 			out * 0.9 + UP * 0.44,
-			UP * 11.4 + out * 7.3,
+			UP * 11.45 + out * 7.3,
 			-UP,
 			{ 2.1, 3.4 },
-			{ 0.9, 1.2 }
+			{ 1.3, 1.8 },
+			1.5
 		)
 		if i % 2 == 0 then
 			lip(center + UP * 17 + out * 4.6, out, DROPS)
 		end
 	end
-	-- Over the lower bowl's rim into the pool, a patch of foam under each fall.
+	-- Over the lower bowl's rim into the pool, in broad falls, a patch of foam under each.
 	for i = 0, 15 do
 		local out = heading(i * math.pi / 8 + math.pi / 16)
 		stream(
 			UP * 11.25 + out * 8.9,
 			out * 0.9 + UP * 0.44,
-			UP * (POOL + 0.05) + out * 12.4,
+			UP * (POOL + 0.1) + out * 12.4,
 			-UP,
 			{ 2.6, 5.4 },
-			{ 1.2, 1.7 }
+			{ 1.8, 2.6 },
+			1.4
 		)
 		foam(center + UP * POOL + out * 12.4, 2.6)
 		if i % 2 == 0 then
 			lip(center + UP * 11.2 + out * 8.8, out, LONG_DROPS)
 		end
 	end
-	-- A ring of jets from nozzles inside the wall, arcing in over the pool towards the pillar.
+	-- A ring of jets from nozzles that stand in the pool inside the wall, arcing in over it
+	-- towards the pillar.
 	for i = 0, 11 do
 		local out = heading(i * math.pi / 6 + math.pi / 12)
 		column(folder, "Nozzle", center + UP * 0.3 + out * 14.4, 2.3, 0.9, STONE_DARK, slate)
 		stream(
 			UP * 2.6 + out * 14.4,
 			UP * 0.9 - out * 0.42,
-			UP * (POOL + 0.05) + out * 6.2,
+			UP * (POOL + 0.1) + out * 6.2,
 			-UP * 0.9 - out * 0.42,
 			{ 8.5, 8.5 },
 			{ 0.5, 0.35 }
 		)
 	end
+	-- Four toads sit on the wall, one facing each path, and each spits a jet between two of
+	-- the falls into the pool.
+	for i = 0, 3 do
+		local out = heading(i * math.pi / 2)
+		toad(folder, center + UP * (RIM_HEIGHT + 0.5) + out * (reach - RIM / 2), -out)
+		stream(
+			UP * 5 + out * 15.6,
+			UP * 0.66 - out * 0.75,
+			UP * (POOL + 0.1) + out * 10.4,
+			-UP * 0.9 - out * 0.45,
+			{ 3.2, 3 },
+			{ 0.7, 0.5 },
+			2
+		)
+		foam(center + UP * POOL + out * 10.4, 1.8)
+	end
+	-- Lily pads on the quiet water by the wall, between the nozzles; every other one in flower.
+	for index, turn in { 30, 120, 150, 240, 300, 330 } do
+		local at = center + UP * POOL + heading(math.rad(turn)) * (14.95 + (index % 3) * 0.07)
+		local pad = show(column(folder, "LilyPad", at, 0.06, 1.5 + (index % 2) * 0.4, LILY))
+		pad.CastShadow = false
+		if index % 2 == 1 then
+			local flower = show(
+				Build.part(folder, "LilyFlower", Vector3.new(0.6, 0.6, 0.6), at + UP * 0.3, BLOSSOM)
+			)
+			flower.Shape = Enum.PartType.Ball
+			flower.CastShadow = false
+		end
+	end
 
 	-- The pool glitters and steams from an unseen slab lying on it, level, so that what it
-	-- gives off rises.
+	-- gives off rises; and a faint light of the water's own color lies on the bowls from below.
 	local surface = show(
-		Build.part(folder, "Surface", Vector3.new(22, 0.2, 22), center + UP * (POOL + 0.1), WATER)
+		Build.part(folder, "Surface", Vector3.new(22, 0.2, 22), center + UP * (POOL + 0.3), WATER)
 	)
 	surface.Transparency = 1
 	surface.CastShadow = false
 	Particles.emitter(SPLASH, FOAM).Parent = surface
 	Particles.emitter(MIST, SPRAY).Parent = surface
+	local glow = Instance.new("PointLight")
+	glow.Color = WATER
+	glow.Range = 22
+	glow.Brightness = 0.5
+	glow.Shadows = false
+	glow.Parent = surface
 end
 
 -- A lantern post: a wooden post with an arm that reaches `towards`, braced from below, and a
