@@ -7,8 +7,9 @@
 --   roll    it holds on the landing spot while shinobi flick past a few steps beyond the
 --           kunai, slowing down, until the roulette stops on the one that was rolled
 --   hold    the camera moves in on the result
---   intro   once the server has teleported the player there, the camera flies past them at the
---           zone's enemy while a banner names it, then swings back behind the player
+--   intro   once the server has teleported the player there, the camera flies past them, a
+--           few steps to one side, at the zone's enemy while a banner names it, then swings
+--           back behind the player
 -- Then control comes back with the camera behind the player, looking the way home.
 --
 -- A kunai is a real model when one has been supplied (see View/KunaiModel), and a plain blade
@@ -47,6 +48,8 @@ local ROLL_BEYOND = 5
 local POP_SECONDS = 0.12
 local RESULT_POP_SECONDS = 0.38
 local RESULT_SIZE = 1.18
+-- How far to one side of the player the camera passes them on its way to the enemy, studs.
+local PASS_ASIDE = 7
 -- The last stretch of the intro, in which the camera swings back behind the player, and how
 -- long the banner's last words stay up once the player is running.
 local SWING_SECONDS = 0.7
@@ -77,6 +80,7 @@ type Stage = {
 	reveal: Net.Reveal,
 	startedAt: number,
 	down: Vector3, -- unit vector pointing down the lane, away from home
+	aside: Vector3, -- unit vector across the lane, from the landing spot towards its middle
 	shownAt: number?, -- os.clock() time the roulette stopped on its result
 	introFrom: number?, -- os.clock() time the enemy intro began
 }
@@ -188,9 +192,14 @@ local function stepCamera(dt: number)
 			target = behind(reveal.at, down)
 			stiffness = 7
 		else
-			-- From over the player's shoulder past them towards the enemy.
+			-- From behind the player's shoulder past them towards the enemy, well to one
+			-- side all the way. The player stands on the landing spot with the catch over
+			-- their head: a camera that went straight over them went through the catch.
 			local share = since / look
-			local eye = reveal.at + down * (-9 + 27 * share) + Vector3.new(0, 9 - 3 * share, 0)
+			local eye = reveal.at
+				+ down * (-7 + 24 * share)
+				+ current.aside * (PASS_ASIDE - 2.5 * share)
+				+ Vector3.new(0, 8.5 - 2.5 * share, 0)
 			target = CFrame.lookAt(eye, reveal.enemyAt + Vector3.new(0, 5.5, 0))
 			stiffness = 5
 		end
@@ -421,10 +430,20 @@ local function begin(reveal: Net.Reveal)
 	release(false)
 
 	local offset = reveal.enemyAt - reveal.at
+	local down = if offset.Magnitude > 0.01 then offset.Unit else Vector3.xAxis
+	-- Across the lane, towards its middle from where the kunai landed: on that side there is
+	-- room for the camera between the walls wherever the landing spot is.
+	local across = down:Cross(Vector3.yAxis)
+	local hub = Workspace:FindFirstChild(Net.HUB_FOLDER)
+	local origin = if hub then hub:GetAttribute(Net.ORIGIN_ATTRIBUTE) else nil
+	if typeof(origin) == "Vector3" and (reveal.at - origin):Dot(across) > 0 then
+		across = -across
+	end
 	local mine: Stage = {
 		reveal = reveal,
 		startedAt = os.clock(),
-		down = if offset.Magnitude > 0.01 then offset.Unit else Vector3.xAxis,
+		down = down,
+		aside = across,
 	}
 	stage = mine
 	camera.CameraType = Enum.CameraType.Scriptable
