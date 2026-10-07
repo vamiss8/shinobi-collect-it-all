@@ -461,74 +461,85 @@ ZoneArt.zones = {
 		}),
 	},
 
-	-- A cave under the earth: black rock, red light and bowls of black flame.
+	-- A cave under the earth: gray rock, fires burning in bowls along the lane, and daylight
+	-- coming down in shafts through cracks in the vault.
+	--
+	-- It was built red on black: red rock, black flame with a red edge, red crystal that
+	-- glowed, red embers in the air, and a bloom turned up to make it all shine. The owner
+	-- first saw it black ("nothing to be seen"), and once it was lit, "red glows on a black
+	-- background look unnatural". So nothing here glows red now. The rock is gray stone of a
+	-- middle tone, the fire is fire, the crystal is pale quartz that only catches the light,
+	-- and the air is a thin pale haze, so that what is far off is pale and not black. What
+	-- says whose cave it is are the black banners with their red clouds, and the stone hands.
 	akatsuki_lair = {
 		laidOut = 220,
-		-- The rock is dark, not black: in a cave nothing is lit but by the air's own light
-		-- and the fires, and near-black rock under them was a black screen.
 		palette = {
-			rock = "#6A5A5E",
-			rockDark = "#52464A",
-			rockRed = "#7C4A4E",
+			rock = "#8A848C",
+			rockDark = "#6C666E",
+			-- A band of browner stone among the gray. (The name is from when it was red.)
+			rockRed = "#8C7A72",
 			-- The mountain the cave is in, seen from outside under its neighbors' daylight:
 			-- pale enough not to be a black shape against the sand.
 			crag = "#514547",
 			cragDark = "#3F3537",
-			bowl = "#3B3436",
-			ember = "#E53935",
-			-- What the fires light the cave with: warmer and paler than the embers, so that
-			-- what it falls on shows in its own colors and not only in red.
-			firelight = "#FF8A66",
-			flame = "#0D0D0D",
+			bowl = "#4A4446",
+			-- A fire's body and its bright tongues, and the light it throws: warm and pale, so
+			-- that what it falls on shows in its own colors.
+			flame = "#FF9A3C",
+			ember = "#FFD98C",
+			firelight = "#FFBE7A",
+			-- Daylight in the dust under a crack in the vault.
+			shaft = "#FFF1DC",
 			banner = "#141214",
 			cloud = "#B71C1C",
 			bone = "#8E857A",
 			boneDark = "#655E56",
-			crystal = "#FF5252",
+			crystal = "#CFC3E6",
 		},
-		ground = { color = "#4C3E41", material = "Slate" },
-		lane = { color = "#62504F", material = "Slate" },
+		ground = { color = "#5F5A60", material = "Slate" },
+		lane = { color = "#77706F", material = "Slate" },
 		sign = { color = "#141214", material = "Fabric" },
 		-- Under a roof the sun and the sky's light do not reach: what is seen is seen by the
-		-- indoor ambient light, the fires and the exposure. All three are set high for a cave,
-		-- because at the first try (ambient at a twelfth of white, thick dark-red air, the
-		-- contrast turned up) the owner saw "very dark, nothing to be seen, all of it black".
-		-- It is still the dimmest zone, and red; it is no longer a dark one.
+		-- indoor ambient light, the fires and the exposure. The ambient light is strong and
+		-- nearly without color, the rock under it is of a middle tone, and the bloom is the
+		-- place's own and no more: turned up, it put a red halo round every fire and crystal.
 		light = light({
 			clock = 20.5,
 			brightness = 1.5,
-			exposure = 0.5,
-			ambient = "#A08890",
-			outdoor = "#8C747C",
-			air = "#74484E",
-			decay = "#4C2C32",
-			density = 0.3,
-			haze = 1,
-			tint = "#FFE2DE",
+			exposure = 0.35,
+			ambient = "#B4B0BE",
+			outdoor = "#8C8A96",
+			air = "#8A8692",
+			decay = "#5E5A66",
+			density = 0.22,
+			haze = 0.6,
+			tint = "#FFF4EA",
 			saturation = -0.05,
 			contrast = 0.05,
-			lift = 0.03,
-			bloom = 1.6,
-			bloomSize = 30,
-			bloomThreshold = 1.2,
+			lift = 0.02,
+			bloom = 0.9,
+			bloomSize = 24,
+			bloomThreshold = 2,
 			rays = 0,
 		}),
-		-- Embers rising in the dark.
+		-- Dust hanging in the air, pale where the light catches it.
 		weather = drifting({
 			texture = "sparkle",
-			direction = "up",
-			rate = 5,
-			life = { 4, 6 },
-			speed = { 1.5, 3 },
-			size = { 0.35, 0.1 },
+			direction = "down",
+			rate = 3,
+			life = { 6, 9 },
+			speed = { 0.2, 0.6 },
+			spread = 60,
+			size = { 0.16, 0.1 },
 			squash = 0,
-			glow = 1,
-			fade = 0,
-			color = "#FF5A36",
+			spin = 40,
+			glow = 0.25,
+			fade = 0.55,
+			color = "#EDE4D6",
 			wind = { 0, 0 },
-			fall = -0.3,
-			box = { 60, 2, 60 },
-			shift = { 0, -4, 0 },
+			fall = 0.02,
+			box = { 60, 24, 60 },
+			shift = { 0, 10, 0 },
 		}),
 	},
 

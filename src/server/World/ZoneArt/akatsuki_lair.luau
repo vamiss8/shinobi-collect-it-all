@@ -1,8 +1,12 @@
 --!strict
 -- Akatsuki Lair: a cave under the earth. Rock walls close in on both sides and a vault hangs
--- far overhead with stalactites; bowls of black flame burn along the lane and throw a warm
--- light right across it; black banners hang by the walls, red crystal grows in the cracks, and
--- at the far end two great stone hands rise out of the floor.
+-- far overhead with stalactites; fires burn in bowls along the lane and throw a warm light
+-- right across it, and daylight comes down in pale shafts through cracks in the vault; black
+-- banners hang by the walls, pale quartz grows in the cracks, and at the far end two great
+-- stone hands rise out of the floor.
+--
+-- Nothing in it glows red. It did at first, black flame with a red edge and red crystal that
+-- shone, and the owner found red glows on a black background unnatural.
 --
 -- The vault is kept above Kit.CLEAR: a kunai flies high, and the camera with it.
 --
@@ -19,30 +23,43 @@ local Particles = require(ReplicatedStorage.Shared.View.Particles)
 
 local VAULT = 92 -- the underside of the cave's roof, studs above the lane
 
--- Black fire with a red edge.
-local BLACK_FLAME: Particles.Layer = {
+-- A fire in a bowl: its body, the brighter tongues inside it, and a thin smoke over it.
+local FLAME: Particles.Layer = {
 	texture = Particles.FIRE,
 	rate = 14,
-	life = { 0.8, 1.3 },
+	life = { 0.7, 1.1 },
 	speed = { 3, 5 },
-	spread = 15,
-	size = { 3.2, 0.6 },
+	spread = 14,
+	size = { 2.8, 0.5 },
 	lift = 2,
 	spin = 30,
-	glow = 0,
-	fade = 0.1,
+	glow = 0.7,
+	fade = 0.15,
 }
-local RED_EDGE: Particles.Layer = {
+local TONGUE: Particles.Layer = {
 	texture = Particles.FIRE,
-	rate = 8,
-	life = { 0.6, 1 },
+	rate = 9,
+	life = { 0.4, 0.7 },
 	speed = { 2.5, 4 },
-	spread = 22,
-	size = { 2.2, 0.4 },
+	spread = 10,
+	size = { 1.5, 0.3 },
 	lift = 2,
 	spin = 30,
-	glow = 1,
-	fade = 0.25,
+	glow = 0.9,
+	fade = 0.2,
+}
+local SMOKE: Particles.Layer = {
+	texture = Particles.SMOKE,
+	rate = 2,
+	life = { 2.5, 4 },
+	speed = { 2, 3 },
+	spread = 12,
+	size = { 1.6, 4.5 },
+	lift = 0.6,
+	spin = 20,
+	glow = 0,
+	fade = 0.8,
+	color = "#4A4648",
 }
 
 return function(scene: Kit.Scene)
@@ -68,6 +85,7 @@ return function(scene: Kit.Scene)
 	end
 	local slate = Enum.Material.Slate
 	local cloth = Enum.Material.Fabric
+	local quartz = Enum.Material.Glass
 
 	Kit.ground(scene)
 
@@ -158,18 +176,36 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- Bowls of black flame along the lane, one every 42 studs on each side. Each lights the lane from its own
-	-- wall to past the middle: they stand 35 studs out, and with a reach of 26 they lit a
-	-- red pool at the foot of each wall and left the lane itself in the dark.
+	-- Fires in bowls along the lane, one every 42 studs on each side. Each lights the lane from
+	-- its own wall to past the middle: they stand 35 studs out, and with a reach of 26 they
+	-- lit a pool at the foot of each wall and left the lane itself in the dark. The light is
+	-- a fire's, warm and no brighter than it need be: the cave is seen by its own air.
 	for i = 0, many(9) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(18 + i * gap(21), 0, side * 35)
 		Kit.pillar(scene, 4.6, 2.2, base, c.bowl, slate)
 		local bowl =
 			Kit.pillar(scene, 1, 4.6, base + Vector3.new(0, 4.6, 0), c.bowl, Enum.Material.Metal)
-		Kit.emit(bowl, BLACK_FLAME, c.flame)
-		Kit.emit(bowl, RED_EDGE, c.ember)
-		Kit.light(scene, bowl, c.firelight, 48, 2.2)
+		Kit.emit(bowl, FLAME, c.flame)
+		Kit.emit(bowl, TONGUE, c.ember)
+		Kit.emit(bowl, SMOKE, c.rockDark)
+		Kit.light(scene, bowl, c.firelight, 46, 1.5)
+	end
+
+	-- Daylight through cracks in the vault: pale shafts slanting down beside the lane. They
+	-- stand by the walls, between the fires, and none comes down over the lane.
+	for i = 0, many(4) do
+		local side = if i % 2 == 0 then 1 else -1
+		local shaft = Kit.block(
+			scene,
+			Vector3.new(pick(5, 8), VAULT + 6, pick(3, 5)),
+			CFrame.new(at(29 + i * gap(42), VAULT / 2 + 1, side * pick(38, 44)))
+				* CFrame.Angles(0, 0, math.rad(pick(-9, 9))),
+			c.shaft,
+			Enum.Material.Neon
+		)
+		shaft.Transparency = 0.93
+		shaft.CastShadow = false
 	end
 
 	-- Black banners by the walls, each with red blots like clouds.
@@ -184,7 +220,8 @@ return function(scene: Kit.Scene)
 		end)
 	end
 
-	-- Red crystal growing out of the cracks at the foot of the walls.
+	-- Pale quartz growing out of the cracks at the foot of the walls. It does not shine of
+	-- itself: it catches the fires' light.
 	for i = 1, many(12) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(8, length - 8), 0, side * pick(36, 42))
@@ -194,16 +231,18 @@ return function(scene: Kit.Scene)
 			base + Vector3.new(pick(-1.5, 1.5), pick(3, 6), pick(-1, 1)),
 			1,
 			c.crystal,
-			Enum.Material.Neon
-		)
+			quartz
+		).Reflectance =
+			0.2
 		Kit.rod(
 			scene,
 			base,
 			base + Vector3.new(pick(-2, 2), pick(1.6, 3), pick(-1.5, 1.5)),
 			0.7,
 			c.crystal,
-			Enum.Material.Neon
-		)
+			quartz
+		).Reflectance =
+			0.2
 	end
 
 	-- The statue's hands at the far end: a wrist and palm of stone, and five fingers that
@@ -237,7 +276,7 @@ return function(scene: Kit.Scene)
 	end
 
 	-- The zone's sign: a black banner edged in red on the slab over the cave's mouth, red
-	-- clouds at its ends and crystal growing from its top.
+	-- clouds at its ends and quartz growing from its top.
 	Kit.signage(scene, function(sign)
 		local a, half = sign.along, sign.width / 2
 		Kit.border(scene, sign, 0.9, c.cloud, cloth)
@@ -262,8 +301,9 @@ return function(scene: Kit.Scene)
 				base + Vector3.new(0, pick(2.4, 4.2), pick(-1.2, 1.2)),
 				0.9,
 				c.crystal,
-				Enum.Material.Neon
-			)
+				quartz
+			).Reflectance =
+				0.2
 		end
 	end)
 

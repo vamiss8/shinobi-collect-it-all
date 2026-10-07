@@ -135,22 +135,56 @@ return {
 
 	-- The cave is under a roof, where neither the sun nor the sky's light comes: it is seen by
 	-- the indoor ambient light alone, and by its fires. So that light is strong there, and the
-	-- rock it falls on is dark but not black; the air is thin enough to see the far wall.
+	-- rock it falls on is of a middle tone; the air is thin and pale, so that the far wall is
+	-- seen and is not black.
 	["the cave is lit from within"] = function()
 		local art = ZoneArt.zones.akatsuki_lair
 		local look = art.light
-		T.ok(brightness(look.ambient) >= 0.5, `indoor ambient is {brightness(look.ambient)}`)
+		T.ok(brightness(look.ambient) >= 0.6, `indoor ambient is {brightness(look.ambient)}`)
 		T.ok(look.exposure >= 0.3, `exposure is {look.exposure}`)
-		T.ok(look.density <= 0.35, `the air's density is {look.density}`)
-		T.ok(brightness(look.air) >= 0.25, "the air itself is dark, and so is all that is far")
+		T.ok(look.density <= 0.3, `the air's density is {look.density}`)
+		T.ok(brightness(look.air) >= 0.45, "the air itself is dark, and so is all that is far")
 		T.ok(look.contrast <= 0.1, "contrast turned up makes the dark darker")
 		for _, name in { "rock", "rockDark", "rockRed" } do
 			local bright = brightness(art.palette[name])
-			T.ok(bright >= 0.28, `{name} is {bright} of white: black under any light`)
+			T.ok(bright >= 0.38, `{name} is {bright} of white: dark under any light`)
 		end
-		T.ok(brightness(art.ground.color) >= 0.24, "the ground is black")
-		T.ok(art.lane ~= nil and brightness(art.lane.color) >= 0.3, "the lane is black")
+		T.ok(brightness(art.ground.color) >= 0.3, "the ground is black")
+		T.ok(art.lane ~= nil and brightness(art.lane.color) >= 0.4, "the lane is black")
 		T.ok(brightness(art.palette.firelight) >= 0.6, "the fires give too little light")
+	end,
+
+	-- The owner on the cave as it was first lit: "red glows on a black background look
+	-- unnatural". What gives light in it, and the air it is seen through, are not red: the
+	-- red channel does not stand far above the other two.
+	["nothing that lights the cave is red"] = function()
+		local art = ZoneArt.zones.akatsuki_lair
+		local function redness(hex: string): number
+			local r = tonumber(hex:sub(2, 3), 16) :: number
+			local g = tonumber(hex:sub(4, 5), 16) :: number
+			local b = tonumber(hex:sub(6, 7), 16) :: number
+			return (r - math.max(g, b)) / 255
+		end
+		local glowing = {
+			firelight = art.palette.firelight,
+			flame = art.palette.flame,
+			ember = art.palette.ember,
+			crystal = art.palette.crystal,
+			shaft = art.palette.shaft,
+			air = art.light.air,
+			ambient = art.light.ambient,
+			tint = art.light.tint,
+			weather = (art.weather :: any).color,
+		}
+		for name, hex in glowing do
+			T.ok(redness(hex) <= 0.42, `{name} is red: {hex}`)
+		end
+		for _, name in { "rock", "rockDark", "rockRed" } do
+			T.ok(redness(art.palette[name]) <= 0.1, `{name} is red rock`)
+		end
+		-- A bloom above the place's own puts a halo round every fire.
+		T.ok(art.light.bloom <= 1, `bloom is {art.light.bloom}`)
+		T.ok(art.light.bloomThreshold >= 1.8, `bloom starts at {art.light.bloomThreshold}`)
 	end,
 
 	-- The owner's reference: the last zone is lit as it was on 2026-10-06 and is not to drift.
