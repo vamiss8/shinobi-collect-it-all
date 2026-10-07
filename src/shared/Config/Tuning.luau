@@ -143,15 +143,16 @@ return {
 	},
 
 	-- Run speed is what gets a catch home (Logic/Chase). Every zone from the third on asks
-	-- for two more levels at its near edge, and the far end of the lane for all twenty. Two
-	-- levels cost about a quarter of that zone's kunai, hence a growth of six a level against
-	-- the kunai's thirty-five a zone.
+	-- for about four more levels at its near edge, and the far end of the lane for all but
+	-- the last of the forty. Prices grow as the kunai's do, thirty-five times a zone, so the
+	-- four levels a zone asks for stay the same small share of what its two kunai cost: run
+	-- speed is to be there by the time the Chakra is (see `lune run sim`).
 	Speed = {
 		base = 16, -- Roblox default WalkSpeed
-		perLevel = 2,
-		maxLevel = 20,
-		basePrice = 300,
-		priceGrowth = 6,
+		perLevel = 1,
+		maxLevel = 40,
+		basePrice = 20,
+		priceGrowth = 2.43,
 	},
 
 	Index = {

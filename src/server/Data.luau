@@ -11,12 +11,14 @@ local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Index = require(ReplicatedStorage.Shared.Logic.Index)
 local ProfileStore = require("./Vendor/ProfileStore")
 local Roster = require(ReplicatedStorage.Shared.Logic.Roster)
+local Saves = require(ReplicatedStorage.Shared.Logic.Saves)
 
 local Data = {}
 
 -- The saved shape. Only add fields (with a default in TEMPLATE); old saves get them on load.
 -- Maps are keyed by strings because saves are stored as JSON.
 export type Data = {
+	version: number, -- the rules the save was written under (Logic/Saves)
 	ryo: number,
 	chakra: number,
 	kunai: number, -- index into Config/Kunai of the best owned kunai
@@ -33,6 +35,9 @@ export type Data = {
 }
 
 local TEMPLATE: Data = {
+	-- Not today's number: a save from before the rules were numbered gets this one filled in
+	-- on load, and is then brought up to date like any other. A new save comes to no harm.
+	version = 0,
 	ryo = 0,
 	chakra = 1,
 	kunai = 1,
@@ -105,6 +110,7 @@ local function load(player: Player)
 
 	profile:AddUserId(player.UserId)
 	profile:Reconcile()
+	Saves.bring(profile.Data)
 	-- Shinobi that have left the roster since this save was written become their replacements.
 	Roster.migrate(profile.Data.units, profile.Data.found)
 	profile.OnSessionEnd:Connect(function()

@@ -133,6 +133,34 @@ return {
 		end
 	end,
 
+	["a level of run speed is a step small enough to be felt as one"] = function()
+		T.eq(Tuning.Speed.perLevel, 1)
+		-- Every zone from the third on is a few levels' work, and none is a level's.
+		for i = 3, #Catalog.zones do
+			local zone = Catalog.zones[i]
+			local levels = (levelFor(zone.startsAt) :: number)
+				- levelFor(Catalog.zones[i - 1].startsAt) :: number
+			T.ok(levels >= 3 and levels <= 5, `{zone.id} asks for {levels} more levels`)
+		end
+	end,
+
+	["the run speed a zone asks for costs a small share of the zone's kunai"] = function()
+		-- Two kunai for every zone after the first; the levels to enter a zone are bought
+		-- with the same Ryo, and are not to be what the player waits for.
+		for i = 3, #Catalog.zones do
+			local zone = Catalog.zones[i]
+			local from = levelFor(Catalog.zones[i - 1].startsAt) :: number
+			local to = levelFor(zone.startsAt) :: number
+			local speed = 0
+			for level = from, to - 1 do
+				speed += Economy.speedPrice(level)
+			end
+			local kunai = Catalog.kunai[2 * i - 2].price + Catalog.kunai[2 * i - 1].price
+			T.ok(speed < kunai * 0.15, `{zone.id}: run speed {speed} against {kunai} for its kunai`)
+			T.ok(speed > kunai * 0.01, `{zone.id}: run speed costs next to nothing`)
+		end
+	end,
+
 	["speed prices keep growing"] = function()
 		for level = 1, Tuning.Speed.maxLevel - 1 do
 			T.ok(

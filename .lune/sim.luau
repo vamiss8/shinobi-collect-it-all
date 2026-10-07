@@ -60,6 +60,11 @@ local MIN_LANDING = Tuning.Kick.stripDepth + 8 -- as in Services/Kicking
 
 type Mark = { time: number, kunai: number, speed: number, income: number, chakra: number }
 
+-- What run speed stood between a player and a zone at the moment their Chakra first reached
+-- it: how many levels they were short, what those cost, and how long their dojo took to earn
+-- that much then.
+type Bill = { levels: number, price: number, seconds: number }
+
 type Player = {
 	time: number,
 	chakra: number,
@@ -72,6 +77,7 @@ type Player = {
 	pads: { Unit },
 	caught: number,
 	reached: { [number]: number }, -- zone number -> when its threshold was first met
+	bills: { [number]: Bill }, -- zone number -> the run speed it still asked for just then
 	caughtFirst: { [number]: Mark }, -- zone number -> the first shinobi brought home from it
 	kunaiAt: { [number]: number }, -- kunai number -> when it was bought
 	padAt: { [number]: number }, -- pads bought so far -> when the last of them was bought
@@ -233,15 +239,15 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 end
 
 -- Spends Ryo the way a sensible player would. They save for one thing at a time: run speed
--- when the enemy keeps them out of a zone their Chakra already reaches, otherwise the next
--- kunai. On the way they take any upgrade or pad that pays for itself before the thing they
--- are saving for is due.
+-- when the enemy makes them throw with less Chakra than they have, otherwise the next kunai.
+-- On the way they take any upgrade or pad that pays for itself before the thing they are
+-- saving for is due.
 local function shop(player: Player)
 	local maxSpeed = Tuning.Speed.maxLevel
 	while true do
 		local perSecond = income(player)
 		local nextKunai = Catalog.kunai[player.kunai + 1]
-		local heldBack = Catalog.zoneFor(aim(player)) ~= Catalog.zoneFor(player.chakra)
+		local heldBack = aim(player) < player.chakra * 0.999
 
 		local goal: string? = nil
 		local goalPrice = 0
@@ -317,6 +323,7 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		pads = {},
 		caught = 0,
 		reached = { [1] = 0 },
+		bills = {},
 		caughtFirst = {},
 		kunaiAt = { [1] = 0 },
 		padAt = {},
@@ -332,6 +339,25 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		for number, zone in Catalog.zones do
 			if not player.reached[number] and player.chakra >= zone.chakra then
 				player.reached[number] = player.time
+				local levels, price = 0, 0
+				while
+					player.speedLevel + levels < Tuning.Speed.maxLevel
+					and not Chase.escapesFrom(
+						Economy.walkSpeed(player.speedLevel + levels),
+						zone.startsAt
+					)
+				do
+					price += Economy.speedPrice(player.speedLevel + levels)
+					levels += 1
+				end
+				local perSecond = income(player)
+				player.bills[number] = {
+					levels = levels,
+					price = price,
+					seconds = if perSecond > 0
+						then math.max(price - player.ryo, 0) / perSecond
+						else 0,
+				}
 			end
 		end
 		shop(player)
@@ -413,7 +439,7 @@ local function printPrices()
 	local speedTotal = 0
 	for level = 0, Tuning.Speed.maxLevel - 1 do
 		speedTotal += Economy.speedPrice(level)
-		if level % 4 == 0 or level == Tuning.Speed.maxLevel - 1 then
+		if level % 8 == 0 or level == Tuning.Speed.maxLevel - 1 then
 			table.insert(speed, `L{level + 1} {Format.short(Economy.speedPrice(level))}`)
 		end
 	end
@@ -454,10 +480,22 @@ local function printProfile(profile: Profile, hours: number)
 			.. ` x{string.format("%.2f", bubbleBoost(profile))} from bubbles,`
 			.. ` {profile.trainPerThrow} s of training per throw`
 	)
-	local widths = { 2, 20, 11, 11, 6, 6, 10 }
-	print(row({ "#", "zone", "Chakra met", "first home", "kunai", "speed", "income/s" }, widths))
+	-- "speed to buy" is what run speed the zone still asked for when the Chakra got there:
+	-- levels, their price, and how long the dojo took to earn what was missing of it.
+	local widths = { 2, 20, 11, 11, 6, 6, 10, 26 }
+	print(row({
+		"#",
+		"zone",
+		"Chakra met",
+		"first home",
+		"kunai",
+		"speed",
+		"income/s",
+		"speed to buy",
+	}, widths))
 	for number, zone in Catalog.zones do
 		local mark = player.caughtFirst[number]
+		local bill = player.bills[number]
 		print(row({
 			tostring(number),
 			zone.name,
@@ -466,6 +504,10 @@ local function printProfile(profile: Profile, hours: number)
 			if mark then tostring(mark.kunai) else "-",
 			if mark then tostring(mark.speed) else "-",
 			if mark then Format.short(mark.income) else "-",
+			if not bill
+				then "-"
+				elseif bill.levels == 0 then "none"
+				else `{bill.levels} lvl, {Format.short(bill.price)}, {clock(bill.seconds)}`,
 		}, widths))
 	end
 
