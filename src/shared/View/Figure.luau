@@ -12,6 +12,7 @@
 --
 -- Shared because the server stands figures on pads and the client rolls them in the reveal.
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Aura = require("./Aura")
@@ -31,6 +32,9 @@ local TAG_LINE = 1.3
 local TAG_WIDTH = 13
 local TAG_GAP = 0.4
 local TAG_ANCHOR = "TagAnchor"
+
+-- How high over a carrier's root a carried figure's feet are.
+Figure.CARRY_HEIGHT = 3.5
 local SKIN = Color3.fromRGB(255, 219, 172)
 
 function Figure.title(unit: Economy.Unit): string
@@ -227,23 +231,48 @@ function Figure.enemy(zone: Catalog.Zone): Model
 	return model
 end
 
--- Carries the figure above a character's head.
+-- Carries the figure above a character's head. The whole figure hangs from the character's
+-- root on one joint, so that it can be turned as one piece: every client turns the joint to
+-- make the figure face its own camera (client/Carried finds it by its tag). Until a client
+-- does, the figure looks back over its carrier's shoulder, where the camera usually is.
+--
+-- (Each of its parts used to be welded to the root as it stood, face forward: whoever carried
+-- a shinobi saw its back, and it turned with every turn of the carrier.)
 function Figure.attach(figure: Model, character: Model)
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not root or not root:IsA("BasePart") then
 		return
 	end
-	figure:PivotTo(root.CFrame * CFrame.new(0, 3.5, 0))
+	local seat = CFrame.new(0, Figure.CARRY_HEIGHT, 0) * CFrame.Angles(0, math.pi, 0)
+	figure:PivotTo(root.CFrame * seat)
+
+	-- An unseen piece at the figure's feet that everything else of it is fixed to.
+	local handle = Build.part(figure, "CarryHandle", Vector3.new(0.2, 0.2, 0.2), Vector3.zero, SKIN)
+	handle.CFrame = root.CFrame * seat
+	handle.Transparency = 1
+	handle.CanCollide = false
+	handle.CanQuery = false
+	handle.CanTouch = false
+	handle.Massless = true
 	for _, part in figure:GetDescendants() do
-		if part:IsA("BasePart") then
+		if part:IsA("BasePart") and part ~= handle then
 			part.Massless = true
 			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = root
+			weld.Part0 = handle
 			weld.Part1 = part
 			weld.Parent = part
 			part.Anchored = false
 		end
 	end
+
+	local joint = Instance.new("Weld")
+	joint.Name = Net.CARRY_TAG
+	joint.Part0 = root
+	joint.Part1 = handle
+	joint.C0 = seat
+	joint.Parent = handle
+	handle.Anchored = false
+	CollectionService:AddTag(joint, Net.CARRY_TAG)
 	figure.Parent = character
 end
 

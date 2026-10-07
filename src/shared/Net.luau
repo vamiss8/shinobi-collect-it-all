@@ -53,6 +53,9 @@ Net.UPGRADE_ATTRIBUTE = "Upgrade"
 Net.ACTIVE_ATTRIBUTE = "Active"
 -- How close a player has to stand to press a console button, studs.
 Net.PRESS_DISTANCE = 16
+-- Tag on the joint a carried shinobi hangs from over its carrier's head (View/Figure.attach).
+-- Every client turns the joints so tagged, so that the shinobi faces its own screen.
+Net.CARRY_TAG = "CarryJoint"
 -- Folder in ReplicatedStorage with real models that replace the placeholders: a Model or a
 -- MeshPart named after a character id (Config/Characters), "enemy_" plus a zone id
 -- (Config/Zones) for that zone's enemy, or "kunai_" plus a kunai id (Config/Kunai).

@@ -3,6 +3,7 @@
 -- store starts last, once every UI piece is listening.
 
 local Bubbles = require(script.Bubbles)
+local Carried = require(script.Carried)
 local Cinematic = require(script.Cinematic)
 local Consoles = require(script.Consoles)
 local FocusPanel = require(script.FocusPanel)
@@ -26,6 +27,7 @@ InventoryPanel.start()
 IndexPanel.start()
 KickBar.start()
 Cinematic.start()
+Carried.start()
 Bubbles.start()
 FocusPanel.start()
 Shops.start()
