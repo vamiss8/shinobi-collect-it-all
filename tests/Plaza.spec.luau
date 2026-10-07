@@ -29,6 +29,21 @@ local function parts(): { any }
 	return list
 end
 
+-- The six dojo halls, each with all three of its floors up: as tall and as wide as they get.
+local halls: any = nil
+local function hallParts(): { any }
+	if not halls then
+		halls = Zones.dojos({ 3, 3, 3, 3, 3, 3 })
+	end
+	local list = {}
+	for _, item in halls:GetDescendants() do
+		if item:IsA("BasePart") then
+			table.insert(list, item)
+		end
+	end
+	return list
+end
+
 local function where(part: any): string
 	local at = part.CFrame.Position
 	return string.format("%s at %.0f, %.0f, %.0f", part.Name, at.X, at.Y, at.Z)
@@ -175,26 +190,42 @@ return {
 		end
 	end,
 
-	["cherry trees stand in the alleys beside the dojos, well back from the plaza"] = function()
+	["cherry trees stand on the plaza, clear of every dojo"] = function()
 		local planters = 0
+		local crowns = {}
 		for _, part in parts() do
 			if part.Name == "Planter" then
 				planters += 1
-				local at = part.CFrame.Position
+				local low, high = Zones.bounds(part)
 				T.ok(
-					math.abs(at.Z) >= PlazaPlan.HALF_WIDTH + DojoPlan.FRONT + ROOM + 3,
-					`{where(part)} stands at the mouth of an alley`
+					low.Z >= -PlazaPlan.HALF_WIDTH + ROOM + 3
+						and high.Z <= PlazaPlan.HALF_WIDTH - ROOM - 3,
+					`{where(part)} leaves no way past it along the dojos' fronts`
 				)
-				for index = 1, PlazaPlan.DOJOS do
-					local dojo = PlazaPlan.dojo(index)
-					T.ok(
-						math.abs(at.X - dojo.along) >= DojoPlan.HALF_WIDTH + 1,
-						`{where(part)} stands on the plot of dojo {index}`
-					)
-				end
+			elseif part.Name == "CherryCrown" then
+				table.insert(crowns, part)
 			end
 		end
-		T.eq(planters, 2 * (PlazaPlan.PER_SIDE + 1), "a tree in every alley on both sides")
+		T.eq(planters, 2 * (PlazaPlan.PER_SIDE + 1), "a tree before every alley and at each end")
+		-- No crown reaches into a dojo: not its walls, not its roof, not the small roofs round
+		-- its upper floors. A crown is a ball; a piece of a dojo is taken by the box it fits in.
+		local pieces = hallParts()
+		T.ok(#pieces > 1000, "the dojo halls did not build")
+		for _, crown in crowns do
+			local middle = crown.CFrame.Position
+			local radius = crown.Size.X / 2
+			for _, piece in pieces do
+				local low, high = Zones.bounds(piece)
+				local dx = math.max(low.X - middle.X, 0, middle.X - high.X)
+				local dy = math.max(low.Y - middle.Y, 0, middle.Y - high.Y)
+				local dz = math.max(low.Z - middle.Z, 0, middle.Z - high.Z)
+				local apart = math.sqrt(dx * dx + dy * dy + dz * dz)
+				T.ok(
+					apart >= radius + 1,
+					`{where(crown)} runs into a dojo's {piece.Name} ({apart - radius} studs off)`
+				)
+			end
+		end
 	end,
 
 	-- What is see-through is drawn farthest first, measured to each piece's middle: two such

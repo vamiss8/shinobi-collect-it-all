@@ -2,7 +2,7 @@
 -- The plaza behind the throwing strip, where players appear: paving with a path down its middle
 -- to the lane and another across it from dojo to dojo, and where they cross a fountain of three
 -- bowls. Round the fountain stand benches and lit lanterns; along the middle path, lantern
--- posts; in the alleys between the dojos, cherry trees that shed their petals; before every
+-- posts; down each side of the plaza, cherry trees that shed their petals; before every
 -- dojo, a pair of stone lanterns and planters of shrubs; at the back, a red gate; and in the
 -- plaza's four quarters a notice board, a training corner, a well and a small shrine.
 -- Logic/PlazaPlan says where things stand; the dojos are World/Plots's and the stalls
@@ -753,8 +753,7 @@ local function bench(folder: Folder, base: Vector3, out: Vector3)
 	end
 end
 
--- A cherry tree in a stone planter, shedding petals. The planter stands on the grass of an
--- alley, a little below the paving.
+-- A cherry tree in a stone planter, shedding petals.
 local function cherryTree(folder: Folder, base: Vector3)
 	Build.part(
 		folder,
@@ -1114,19 +1113,19 @@ function Plaza.start()
 		end
 	end
 
-	-- A cherry tree in every alley beside the dojos: between one dojo and the next, and at
-	-- both ends of each row. They stand well back from the plaza: a dojo's staircase starts at
-	-- the mouth of the alley on its lane side, and the way onto it has to stay open.
-	local out = PlazaPlan.HALF_WIDTH + 22
-	local alleys = { -PlazaPlan.FRONT_GAP / 2 - 1, -PlazaPlan.DEPTH + PlazaPlan.BACK_GAP / 2 + 1 }
+	-- Cherry trees down both sides of the plaza: one before the mouth of each alley between two
+	-- dojos, and one at each end of a row. They stand on the paving, a good way out from the
+	-- dojos' fronts. (They stood in the alleys at first, which are ten studs wide under roofs
+	-- and eaves that overhang them: the crowns ran into the walls and the roofs.)
+	local row = PlazaPlan.HALF_WIDTH - 14
+	local trees = { -PlazaPlan.FRONT_GAP + 4, -PlazaPlan.DEPTH + PlazaPlan.BACK_GAP - 4 }
 	for pair = 1, PlazaPlan.PER_SIDE - 1 do
 		local dojo = PlazaPlan.dojo(pair * 2)
-		table.insert(alleys, dojo.along - (PlazaPlan.PITCH / 2))
+		table.insert(trees, dojo.along - (PlazaPlan.PITCH / 2))
 	end
-	for _, along in alleys do
+	for _, along in trees do
 		for _, side in { -1, 1 } do
-			-- The alleys are grass, which lies a hair below the paving.
-			cherryTree(folder, Hub.at(along, -0.1, side * out))
+			cherryTree(folder, Hub.at(along, 0, side * row))
 		end
 	end
 
