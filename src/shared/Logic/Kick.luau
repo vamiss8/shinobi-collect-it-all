@@ -65,6 +65,14 @@ function Kick.distance(power: number): number
 	return zone.startsAt + (Catalog.zoneEnd(zone) - zone.startsAt) * math.min(depth, DEEPEST)
 end
 
+-- How a kunai flies to a spot `distance` studs down the lane: seconds in the air, and how high
+-- it rises on the way.
+function Kick.flight(distance: number): (number, number)
+	local k = Tuning.Kick
+	return math.clamp(distance / k.flightSpeed, k.flightSeconds[1], k.flightSeconds[2]),
+		math.clamp(distance * k.flightArc, k.flightHeight[1], k.flightHeight[2])
+end
+
 -- Picks the elapsed time to grade a press by.
 --
 -- The client reports how long it had been watching the bar when the player pressed. The server

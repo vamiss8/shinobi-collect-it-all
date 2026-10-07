@@ -54,6 +54,18 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
+	local function far(studs: number): number
+		return Kit.far(scene, studs)
+	end
 	local slate = Enum.Material.Slate
 	local cloth = Enum.Material.Fabric
 
@@ -81,14 +93,14 @@ return function(scene: Kit.Scene)
 	-- The walls: slabs of rock standing shoulder to shoulder, boulders heaped at their feet.
 	-- A slab laps over the next, and the two are of different rock, so every other one stands
 	-- a little taller: two sides of unlike rock in one plane would flicker.
-	local slabs = 11
+	local slabs = many(11)
 	local span = length / slabs
 	for _, side in { -1, 1 } do
 		for i = 0, slabs - 1 do
 			local x = span / 2 + i * span
 			Kit.box(
 				scene,
-				Vector3.new(span + 3, 98 + i % 2, 26),
+				Vector3.new(far(span) + 3, 98 + i % 2, 26),
 				at(x, -2, side * pick(50, 55)),
 				if i % 2 == 0 then c.rock else c.rockRed,
 				slate,
@@ -107,7 +119,7 @@ return function(scene: Kit.Scene)
 	for i = 0, slabs - 1 do
 		Kit.box(
 			scene,
-			Vector3.new(span + 2, pick(12, 18), 126 + i % 2),
+			Vector3.new(far(span) + 2, pick(12, 18), 126 + i % 2),
 			at(span / 2 + i * span, VAULT + (i % 2) * 0.5, 0),
 			if i % 2 == 0 then c.rockDark else c.rock,
 			slate
@@ -116,7 +128,7 @@ return function(scene: Kit.Scene)
 
 	-- Stalactites. Over the lane they are short and stay above the kunai's path; over the
 	-- sides they come down long.
-	for i = 1, 36 do
+	for i = 1, many(36) do
 		local z = pick(-46, 46)
 		local reach = if math.abs(z) < Kit.EDGE + 3
 			then pick(4, VAULT - Kit.CLEAR - 2)
@@ -129,7 +141,7 @@ return function(scene: Kit.Scene)
 		Kit.rod(scene, waist, at(x, VAULT - reach, z), thick * 0.45, c.rockDark, slate, true)
 	end
 	-- Stalagmites by the walls.
-	for i = 1, 24 do
+	for i = 1, many(24) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(6, length - 6), -1, side * pick(36.5, 46))
 		local height = pick(6, 18)
@@ -146,12 +158,12 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- Bowls of black flame along the lane, five to a side. Each lights the lane from its own
+	-- Bowls of black flame along the lane, one every 42 studs on each side. Each lights the lane from its own
 	-- wall to past the middle: they stand 35 studs out, and with a reach of 26 they lit a
 	-- red pool at the foot of each wall and left the lane itself in the dark.
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(18 + i * 21, 0, side * 35)
+		local base = at(18 + i * gap(21), 0, side * 35)
 		Kit.pillar(scene, 4.6, 2.2, base, c.bowl, slate)
 		local bowl =
 			Kit.pillar(scene, 1, 4.6, base + Vector3.new(0, 4.6, 0), c.bowl, Enum.Material.Metal)
@@ -161,17 +173,19 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Black banners by the walls, each with red blots like clouds.
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local side = if i % 2 == 0 then 1 else -1
-		local x = 28 + i * 20
+		local x = 28 + i * gap(20)
 		local z = side * 34.6
-		Kit.box(scene, Vector3.new(7, 18, 0.4), at(x, 5, z), c.banner, cloth)
-		Kit.box(scene, Vector3.new(3.8, 2.6, 0.5), at(x - 0.6, 16, z), c.cloud, cloth)
-		Kit.box(scene, Vector3.new(2.8, 2, 0.5), at(x + 1, 10, z), c.cloud, cloth)
+		Kit.group(scene, x, function()
+			Kit.box(scene, Vector3.new(7, 18, 0.4), at(x, 5, z), c.banner, cloth)
+			Kit.box(scene, Vector3.new(3.8, 2.6, 0.5), at(x - 0.6, 16, z), c.cloud, cloth)
+			Kit.box(scene, Vector3.new(2.8, 2, 0.5), at(x + 1, 10, z), c.cloud, cloth)
+		end)
 	end
 
 	-- Red crystal growing out of the cracks at the foot of the walls.
-	for i = 1, 12 do
+	for i = 1, many(12) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(8, length - 8), 0, side * pick(36, 42))
 		Kit.rod(
@@ -194,23 +208,25 @@ return function(scene: Kit.Scene)
 
 	-- The statue's hands at the far end: a wrist and palm of stone, and five fingers that
 	-- stand up and curl towards the lane.
-	for _, side in { -1, 1 } do
-		local x = length - 26
-		local z = side * 62
-		local face = -side
-		Kit.box(scene, Vector3.new(24, 28, 22), at(x, -2, z), c.boneDark, slate)
-		Kit.box(scene, Vector3.new(30, 8, 26), at(x, 26, z), c.bone, slate)
-		for finger = -2, 2 do
-			local foot = at(x + finger * 6.4, 33, z + face * 4)
-			local knuckle = foot + Vector3.new(0, 20 - math.abs(finger) * 3, face * 3)
-			local tip = knuckle + Vector3.new(0, 10, face * 9)
-			Kit.rod(scene, foot, knuckle, 5, c.bone, slate, true)
-			Kit.rod(scene, knuckle, tip, 4, c.boneDark, slate, true)
+	group(length, function()
+		for _, side in { -1, 1 } do
+			local x = length - 26
+			local z = side * 62
+			local face = -side
+			Kit.box(scene, Vector3.new(24, 28, 22), at(x, -2, z), c.boneDark, slate)
+			Kit.box(scene, Vector3.new(30, 8, 26), at(x, 26, z), c.bone, slate)
+			for finger = -2, 2 do
+				local foot = at(x + finger * 6.4, 33, z + face * 4)
+				local knuckle = foot + Vector3.new(0, 20 - math.abs(finger) * 3, face * 3)
+				local tip = knuckle + Vector3.new(0, 10, face * 9)
+				Kit.rod(scene, foot, knuckle, 5, c.bone, slate, true)
+				Kit.rod(scene, knuckle, tip, 4, c.boneDark, slate, true)
+			end
 		end
-	end
+	end)
 
 	-- Rubble.
-	for i = 1, 20 do
+	for i = 1, many(20) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.rock(
 			scene,
@@ -255,38 +271,41 @@ return function(scene: Kit.Scene)
 	-- another at its far end, stepping down away from the lane, boulders heaped at their feet;
 	-- peaks rise behind them, a brow of rock hangs over the mouth and rock is piled on the roof.
 	for _, along in { 24, length - 24 } do
-		for _, side in { -1, 1 } do
-			for i = 0, 3 do
-				local z = side * (90 + i * 50)
-				Kit.backdrop(
-					Kit.box(
-						scene,
-						Vector3.new(pick(40, 52), 150 - i * 26 + pick(-12, 12), 58),
-						at(along + pick(-4, 4), -2, z),
-						if i % 2 == 0 then c.crag else c.cragDark,
-						slate,
-						pick(-7, 7)
+		-- Each row belongs to its end of the cave.
+		Kit.group(scene, if along < 100 then 0 else length, function()
+			for _, side in { -1, 1 } do
+				for i = 0, 3 do
+					local z = side * (90 + i * 50)
+					Kit.backdrop(
+						Kit.box(
+							scene,
+							Vector3.new(pick(40, 52), 150 - i * 26 + pick(-12, 12), 58),
+							at(along + pick(-4, 4), -2, z),
+							if i % 2 == 0 then c.crag else c.cragDark,
+							slate,
+							pick(-7, 7)
+						)
 					)
-				)
-				if i < 3 then
-					local out = if along < 100 then -pick(22, 30) else pick(22, 30)
-					Kit.rock(
-						scene,
-						at(along + out, 0, z + side * pick(-14, 14)),
-						Vector3.new(pick(10, 18), pick(8, 14), pick(10, 18)),
-						c.cragDark
-					)
+					if i < 3 then
+						local out = if along < 100 then -pick(22, 30) else pick(22, 30)
+						Kit.rock(
+							scene,
+							at(along + out, 0, z + side * pick(-14, 14)),
+							Vector3.new(pick(10, 18), pick(8, 14), pick(10, 18)),
+							c.cragDark
+						)
+					end
 				end
 			end
-		end
+		end)
 	end
 	for _, side in { -1, 1 } do
-		for i = 0, 2 do
+		for i = 0, many(2) do
 			Kit.backdrop(
 				Kit.box(
 					scene,
 					Vector3.new(pick(70, 96), pick(190, 250), pick(80, 110)),
-					at(44 + i * 66 + pick(-6, 6), -2, side * pick(320, 390)),
+					at(44 + i * gap(66) + gap(pick(-6, 6)), -2, side * pick(320, 390)),
 					c.cragDark,
 					slate,
 					pick(-10, 10)
@@ -294,24 +313,26 @@ return function(scene: Kit.Scene)
 			)
 		end
 	end
-	for _, z in { -30, 0, 30 } do
-		Kit.backdrop(
-			Kit.box(
-				scene,
-				Vector3.new(pick(18, 26), pick(30, 46), pick(28, 36)),
-				at(pick(3, 8), 84 + pick(0, 6), z + pick(-4, 4)),
-				if z == 0 then c.cragDark else c.crag,
-				slate,
-				pick(-10, 10)
+	group(0, function()
+		for _, z in { -30, 0, 30 } do
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(pick(18, 26), pick(30, 46), pick(28, 36)),
+					at(pick(3, 8), 84 + pick(0, 6), z + pick(-4, 4)),
+					if z == 0 then c.cragDark else c.crag,
+					slate,
+					pick(-10, 10)
+				)
 			)
-		)
-	end
-	for i = 0, 5 do
+		end
+	end)
+	for i = 0, many(5) do
 		Kit.backdrop(
 			Kit.box(
 				scene,
 				Vector3.new(pick(48, 66), pick(26, 58), pick(96, 132)),
-				at(20 + i * 36 + pick(-5, 5), VAULT + 12, pick(-12, 12)),
+				at(20 + i * gap(36) + gap(pick(-5, 5)), VAULT + 12, pick(-12, 12)),
 				if i % 2 == 0 then c.rock else c.rockDark,
 				slate,
 				pick(-12, 12)

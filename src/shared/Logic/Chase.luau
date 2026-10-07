@@ -8,6 +8,10 @@
 -- `distance / runSpeed` seconds to get home, and the enemy closes the gap at the difference of
 -- the two speeds. A short run forgives a slow runner, because the head start is a bigger share
 -- of it; from deep in the lane a runner has to be nearly as fast as the enemy.
+--
+-- Speeds here are run speeds, the numbers the Speed Store sells and the zones' signs name. On
+-- the lane both the runner and the enemy cover `laneSpeed` times that (Chase.onLane), which
+-- leaves who is faster as it was.
 
 local Catalog = require("../Config/Catalog")
 local Tuning = require("../Config/Tuning")
@@ -30,11 +34,17 @@ function Chase.enemySpeed(zone: Catalog.Zone, distance: number): number
 	return near + (far - near) * Catalog.zoneProgress(zone, distance)
 end
 
+-- Studs a second someone of that run speed covers on the lane.
+function Chase.onLane(speed: number): number
+	return speed * Tuning.Chase.laneSpeed
+end
+
 -- The run speed a player has to beat to get home from `distance` studs with an enemy of
 -- `enemySpeed` behind them.
 function Chase.speedNeeded(enemySpeed: number, distance: number): number
 	local c = Tuning.Chase
-	local headStart = c.enemyGap - c.catchRadius + enemySpeed * c.enemyDelay
+	-- In studs: the gap the enemy starts with, and what it loses by setting off late.
+	local headStart = c.enemyGap - c.catchRadius + Chase.onLane(enemySpeed) * c.enemyDelay
 	return distance * enemySpeed / (distance + headStart)
 end
 

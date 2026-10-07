@@ -66,6 +66,10 @@ export type Weather = {
 
 export type Art = {
 	palette: { [string]: string },
+	-- The length of lane the zone's scenery was laid out for, studs. The zone may be longer
+	-- today (Config/Zones): its scenery is then spread over it (World/ZoneArt/Kit). Nil for
+	-- what is not a stretch of the lane.
+	laidOut: number?,
 	ground: Surface, -- the ground either side of the lane, all the way to the horizon
 	lane: Surface?, -- the lane's own surface; nil leaves it as the Hub built it
 	sign: Surface?, -- the board of the zone's sign; dark, for the writing on it is light
@@ -221,6 +225,7 @@ ZoneArt.village = {
 ZoneArt.zones = {
 	-- A sunny morning in the village: green and orange under a warm sky.
 	academy = {
+		laidOut = 100,
 		palette = VILLAGE,
 		ground = { color = "#7CB342", material = "Grass" },
 		lane = { color = "#9CCC65", material = "Grass" },
@@ -231,6 +236,7 @@ ZoneArt.zones = {
 
 	-- A cold morning on the water: an unfinished bridge in thick fog, gray and blue.
 	land_of_waves = {
+		laidOut = 120,
 		palette = {
 			water = "#3E6F8E",
 			waterDeep = "#2B546E",
@@ -269,6 +275,7 @@ ZoneArt.zones = {
 
 	-- Giant trees and a green dusk under them, with shafts of light through the leaves.
 	forest_of_death = {
+		laidOut = 140,
 		palette = {
 			bark = "#4A3528",
 			barkDark = "#35251C",
@@ -310,6 +317,7 @@ ZoneArt.zones = {
 
 	-- The exam arena at noon: sand, pale stone, flags and a crowd.
 	chunin_exam_finals = {
+		laidOut = 160,
 		palette = {
 			patch = "#CDB57F",
 			wall = "#D8CFBB",
@@ -358,6 +366,7 @@ ZoneArt.zones = {
 
 	-- A canyon in the rain at sunset: wet rock, a river, two stone giants and a waterfall.
 	valley_of_the_end = {
+		laidOut = 180,
 		palette = {
 			rock = "#6B7074",
 			rockDark = "#4C5256",
@@ -399,6 +408,7 @@ ZoneArt.zones = {
 
 	-- The desert village at its hottest: dunes, sandstone domes and sand on the wind.
 	hidden_sand = {
+		laidOut = 200,
 		palette = {
 			dune = "#E2BC78",
 			clay = "#D6AC6C",
@@ -453,6 +463,7 @@ ZoneArt.zones = {
 
 	-- A cave under the earth: black rock, red light and bowls of black flame.
 	akatsuki_lair = {
+		laidOut = 220,
 		-- The rock is dark, not black: in a cave nothing is lit but by the air's own light
 		-- and the fires, and near-black rock under them was a black screen.
 		palette = {
@@ -530,6 +541,7 @@ ZoneArt.zones = {
 	-- what they reflect and little else. Now it is an overcast afternoon, the ambient light is
 	-- twice as strong, the steel is paler and only small fittings are metal.
 	hidden_rain = {
+		laidOut = 220,
 		palette = {
 			steel = "#64747F",
 			steelDark = "#44525C",
@@ -576,6 +588,7 @@ ZoneArt.zones = {
 
 	-- A void with no sky: pale cubes and columns hanging in gray, with a breath of violet.
 	kamui_dimension = {
+		laidOut = 230,
 		palette = {
 			cube = "#8D90A1",
 			cubeDark = "#6C6F80",
@@ -607,6 +620,7 @@ ZoneArt.zones = {
 
 	-- The battlefield under the moon. Its light is not to be changed: see the note at the top.
 	great_ninja_war = {
+		laidOut = 230,
 		palette = {
 			spike = "#6D4C41",
 			boulder = "#424242",

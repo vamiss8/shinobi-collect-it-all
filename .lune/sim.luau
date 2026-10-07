@@ -203,13 +203,13 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	local chase = Tuning.Chase
 	local runSpeed = Economy.walkSpeed(player.speedLevel)
 	local enemySpeed = Chase.enemySpeed(zone, distance)
-	local staged = math.clamp(distance / 250, 0.8, 3.5)
+	local staged = (Kick.flight(distance))
 		+ chase.rollSeconds
 		+ chase.holdSeconds
 		+ chase.introSeconds
 
 	if Chase.escapes(runSpeed, enemySpeed, distance) then
-		pass(player, WALK_TO_STRIP + AIMING + staged + distance / runSpeed + DOJO)
+		pass(player, WALK_TO_STRIP + AIMING + staged + distance / Chase.onLane(runSpeed) + DOJO)
 		keep(player, unit)
 		local number = Catalog.zoneOrder[zone.id]
 		if not player.caughtFirst[number] then
@@ -222,8 +222,11 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 			}
 		end
 	else
-		local headStart = chase.enemyGap - chase.catchRadius + enemySpeed * chase.enemyDelay
-		pass(player, WALK_TO_STRIP + AIMING + staged + headStart / (enemySpeed - runSpeed))
+		local closing = Chase.onLane(enemySpeed) - Chase.onLane(runSpeed)
+		local headStart = chase.enemyGap
+			- chase.catchRadius
+			+ Chase.onLane(enemySpeed) * chase.enemyDelay
+		pass(player, WALK_TO_STRIP + AIMING + staged + headStart / closing)
 		player.ryo += math.floor(Economy.unitIncome(unit) * chase.consolationSeconds)
 		player.caught += 1
 	end

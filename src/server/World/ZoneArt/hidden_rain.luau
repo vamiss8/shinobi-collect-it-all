@@ -37,6 +37,15 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
 	local concrete = Enum.Material.Concrete
 	local paint = Enum.Material.SmoothPlastic
 	local neon = Enum.Material.Neon
@@ -129,8 +138,8 @@ return function(scene: Kit.Scene)
 	for _, side in { -1, 1 } do
 		local previous: Vector3? = nil
 		local previousHeight = 0
-		for i = 0, 11 do
-			local base, height = tower(10 + i * 18.5 + pick(-3, 3), side, pick(48, 150))
+		for i = 0, many(11) do
+			local base, height = tower(10 + i * gap(18.5) + gap(pick(-3, 3)), side, pick(48, 150))
 			-- Every other pair of neighbors is joined by a pipe high up.
 			if previous and i % 2 == 1 then
 				local level = math.min(height, previousHeight) * 0.7
@@ -150,7 +159,10 @@ return function(scene: Kit.Scene)
 
 	-- The great tower at the end of the zone: drums stacked ever narrower, pipes climbing it,
 	-- buttresses with slits of light, a ledge thrust out towards the lane.
-	local great = at(length - 26, 0, -90)
+	local great = Vector3.zero
+	group(length, function()
+		great = at(length - 26, 0, -90)
+	end)
 	local level = 0
 	for _, drum in { { 40, 48 }, { 60, 36 }, { 60, 25 }, { 40, 15 } } do
 		Kit.pillar(
@@ -212,17 +224,17 @@ return function(scene: Kit.Scene)
 			concrete,
 			true
 		)
-		for i = 0, 9 do
+		for i = 0, many(9) do
 			Kit.box(
 				scene,
 				Vector3.new(1, 7.4, 3),
-				at(12 + i * 21.5, 0, side * 35.8),
+				at(12 + i * gap(21.5), 0, side * 35.8),
 				c.steelDark,
 				concrete
 			)
 		end
-		for i = 0, 2 do
-			local x = 34 + i * 70
+		for i = 0, many(2) do
+			local x = 34 + i * gap(70)
 			Kit.rod(
 				scene,
 				at(x, 5.6, side * 35.4),
@@ -245,9 +257,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Lamps: a pole, an arm and a cold light.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(22 + i * 25, 0, side * 39)
+		local base = at(22 + i * gap(25), 0, side * 39)
 		Kit.pillar(scene, 13, 0.6, base, c.steelDark, concrete)
 		Kit.rod(
 			scene,
@@ -262,9 +274,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Sheds and machines between the towers; some leak steam.
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local side = if i % 2 == 0 then 1 else -1
-		local base = at(14 + i * 21, 0, side * pick(40, 46))
+		local base = at(14 + i * gap(21), 0, side * pick(40, 46))
 		local width = pick(6, 10)
 		Kit.box(scene, Vector3.new(width, pick(5, 9), 6), base, c.steelLight, paint)
 		Kit.rod(
@@ -284,17 +296,17 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Gratings beside the lane, and puddles: on the ground, and a few thin ones on the lane.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.box(
 			scene,
 			Vector3.new(8, 0.2, 4),
-			at(18 + i * 26, 0, side * 38),
+			at(18 + i * gap(26), 0, side * 38),
 			c.grate,
 			Enum.Material.DiamondPlate
 		)
 	end
-	for i = 1, 18 do
+	for i = 1, many(18) do
 		local side = if i % 2 == 0 then -1 else 1
 		local puddle = Kit.pillar(
 			scene,
@@ -305,9 +317,9 @@ return function(scene: Kit.Scene)
 		)
 		puddle.Reflectance = 0.4
 	end
-	for i = 0, 5 do
+	for i = 0, many(5) do
 		local puddle =
-			Kit.pillar(scene, 0.06, pick(5, 9), at(20 + i * 36, 0.02, pick(-22, 22)), c.puddle)
+			Kit.pillar(scene, 0.06, pick(5, 9), at(20 + i * gap(36), 0.02, pick(-22, 22)), c.puddle)
 		puddle.Reflectance = 0.4
 	end
 
@@ -358,10 +370,10 @@ return function(scene: Kit.Scene)
 
 	-- Farther off the village goes on: towers too far away to be anything but their shapes.
 	for _, side in { -1, 1 } do
-		for i = 0, 7 do
+		for i = 0, many(7) do
 			local width = pick(26, 44)
 			local height = pick(200, 380)
-			local base = at(6 + i * 30 + pick(-8, 8), 0, side * pick(215, 420))
+			local base = at(6 + i * gap(30) + gap(pick(-8, 8)), 0, side * pick(215, 420))
 			Kit.backdrop(Kit.box(scene, Vector3.new(width, height, width), base, c.far, concrete))
 			Kit.backdrop(
 				Kit.box(
@@ -378,28 +390,30 @@ return function(scene: Kit.Scene)
 	-- The village's wall. Where the zone begins it runs out to both sides of the gantry, steel
 	-- as tall as a house with towers standing along it, a strip of lit windows on each: the
 	-- mountain behind is only seen over it.
-	for _, side in { -1, 1 } do
-		Kit.box(scene, Vector3.new(6, 44, 226), at(5, 0, side * 157), c.steelDark, concrete)
-		Kit.box(scene, Vector3.new(7, 2, 226), at(5, 44, side * 157), c.pipe, paint)
-		for i = 0, 4 do
-			local width = pick(20, 28)
-			local height = pick(80, 160)
-			local base = at(pick(12, 17), 0, side * (68 + i * 46 + pick(-6, 6)))
-			Kit.box(scene, Vector3.new(width, height, width), base, c.steel, concrete)
-			Kit.box(
-				scene,
-				Vector3.new(width * 0.68, pick(12, 24), width * 0.68),
-				base + Vector3.new(0, height, 0),
-				c.steelDark,
-				concrete
-			)
-			Kit.box(
-				scene,
-				Vector3.new(0.4, height * pick(0.3, 0.5), 1.6),
-				base + Vector3.new(width / 2 + 0.2, height * pick(0.15, 0.3), 0),
-				c.window,
-				neon
-			)
+	group(0, function()
+		for _, side in { -1, 1 } do
+			Kit.box(scene, Vector3.new(6, 44, 226), at(5, 0, side * 157), c.steelDark, concrete)
+			Kit.box(scene, Vector3.new(7, 2, 226), at(5, 44, side * 157), c.pipe, paint)
+			for i = 0, 4 do
+				local width = pick(20, 28)
+				local height = pick(80, 160)
+				local base = at(pick(12, 17), 0, side * (68 + i * 46 + pick(-6, 6)))
+				Kit.box(scene, Vector3.new(width, height, width), base, c.steel, concrete)
+				Kit.box(
+					scene,
+					Vector3.new(width * 0.68, pick(12, 24), width * 0.68),
+					base + Vector3.new(0, height, 0),
+					c.steelDark,
+					concrete
+				)
+				Kit.box(
+					scene,
+					Vector3.new(0.4, height * pick(0.3, 0.5), 1.6),
+					base + Vector3.new(width / 2 + 0.2, height * pick(0.15, 0.3), 0),
+					c.window,
+					neon
+				)
+			end
 		end
-	end
+	end)
 end

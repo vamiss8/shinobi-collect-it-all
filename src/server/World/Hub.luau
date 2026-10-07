@@ -40,6 +40,9 @@ Hub.LANE_WIDTH = LANE_WIDTH
 Hub.WALL_HEIGHT = WALL_HEIGHT
 Hub.WALL_THICKNESS = WALL_THICKNESS
 
+-- The longest a part is built here, studs: Roblox takes none longer than 2048.
+local LONGEST = 1200
+
 -- How far the grass reaches past the playable area, studs. More past the far end of the lane,
 -- where the last zone's scenery stands a colossal tree.
 local GROUND_MARGIN = 40
@@ -66,6 +69,11 @@ end
 function Hub.toLocal(position: Vector3): Vector3
 	return position - ORIGIN
 end
+
+-- Where the place's own spawn pad lies, in hub-local coordinates: at the world's origin, which
+-- the lane's start is set well away from. A player stands on it for a moment before being sent
+-- to a dojo, so the scenery keeps the sky over it clear (World/ZoneArt/Kit).
+Hub.SPAWN_PAD = Vector3.zero - ORIGIN
 
 -- Whether a world position is on the throwing strip.
 function Hub.onStrip(position: Vector3): boolean
@@ -308,10 +316,14 @@ function Hub.start()
 	folder:SetAttribute(Net.ORIGIN_ATTRIBUTE, ORIGIN)
 
 	-- Grass under everything, a touch below floor level so nothing z-fights with it. It shows
-	-- through the gaps between the dojos, the street and the lane. Two slabs, because a part
+	-- through the gaps between the dojos, the street and the lane. In slabs, because a part
 	-- cannot be longer than 2048 studs.
 	local length = Tuning.Kick.trackLength
-	for _, span in { { -GROUND_MARGIN - 220, 0 }, { 0, length + FAR_END_MARGIN } } do
+	local spans = { { -GROUND_MARGIN - 220, 0 } }
+	for from = 0, length + FAR_END_MARGIN - 1, LONGEST do
+		table.insert(spans, { from, math.min(from + LONGEST, length + FAR_END_MARGIN) })
+	end
+	for _, span in spans do
 		Build.part(
 			folder,
 			"Ground",
@@ -366,14 +378,22 @@ function Hub.start()
 	)
 
 	-- Invisible walls along both sides of the lane and past its end, so nobody runs off it or
-	-- around it, and the one-way gate behind the strip.
+	-- around it, and the one-way gate behind the strip. A wall is built in stretches that meet
+	-- end to end, the lane being longer than a part can be.
 	for _, side in { -1, 1 } do
-		Build.wall(
-			folder,
-			"LaneWall",
-			Vector3.new(length, WALL_HEIGHT, WALL_THICKNESS),
-			Hub.at(length / 2, WALL_HEIGHT / 2, side * (LANE_WIDTH + WALL_THICKNESS) / 2)
-		)
+		for from = 0, length - 1, LONGEST do
+			local stretch = math.min(LONGEST, length - from)
+			Build.wall(
+				folder,
+				"LaneWall",
+				Vector3.new(stretch, WALL_HEIGHT, WALL_THICKNESS),
+				Hub.at(
+					from + stretch / 2,
+					WALL_HEIGHT / 2,
+					side * (LANE_WIDTH + WALL_THICKNESS) / 2
+				)
+			)
+		end
 	end
 	Build.wall(
 		folder,

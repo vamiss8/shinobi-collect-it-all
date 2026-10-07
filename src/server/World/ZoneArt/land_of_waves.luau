@@ -17,6 +17,18 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
+	local function far(studs: number): number
+		return Kit.far(scene, studs)
+	end
 	local wood = Enum.Material.Wood
 	local planks = Enum.Material.WoodPlanks
 
@@ -48,106 +60,127 @@ return function(scene: Kit.Scene)
 
 	-- Railings and piles along both edges of the deck.
 	for _, side in { -1, 1 } do
-		for i = 0, 13 do
+		for i = 0, many(13) do
 			Kit.box(
 				scene,
 				Vector3.new(0.8, 4, 0.8),
-				at(6 + i * 8, 0, side * 33.4),
+				at(6 + i * gap(8), 0, side * 33.4),
 				c.plankDark,
 				wood
 			)
 		end
-		Kit.box(scene, Vector3.new(105, 0.4, 0.5), at(58, 3.4, side * 33.4), c.plank, wood)
+		Kit.box(scene, Vector3.new(far(105), 0.4, 0.5), at(58, 3.4, side * 33.4), c.plank, wood)
 		Kit.box(
 			scene,
-			Vector3.new(105, 0.25, 0.25),
+			Vector3.new(far(105), 0.25, 0.25),
 			at(58, 1.8, side * 33.4),
 			c.rope,
 			Enum.Material.Fabric
 		)
-		for i = 0, 9 do
-			Kit.pillar(scene, pick(2, 6), 1.6, at(8 + i * 11.5, 0, side * 36), c.pile, wood)
+		for i = 0, many(9) do
+			Kit.pillar(scene, pick(2, 6), 1.6, at(8 + i * gap(11.5), 0, side * 36), c.pile, wood)
 		end
 	end
 
 	-- Side spans that were begun and left: a stretch of deck on piles, loose planks, a stack of
 	-- timber, a coil of rope, a couple of crates.
-	for index, span in { { 30, 1 }, { 82, 1 }, { 46, -1 }, { 96, -1 } } do
-		local x, side = span[1], span[2]
-		Kit.box(scene, Vector3.new(14, 0.6, 16), at(x, 0, side * 42), c.plank, planks)
-		for _, dx in { -6, 6 } do
-			for _, z in { 37, 49 } do
-				Kit.pillar(scene, 3, 1.4, at(x + dx, 0, side * z), c.pile, wood)
-			end
+	local spans = { { 30, 1 }, { 82, 1 }, { 46, -1 }, { 96, -1 } }
+	if many(1) > 1 then
+		for _, span in { { 46, 1 }, { 70, 1 }, { 15, -1 }, { 70, -1 } } do
+			table.insert(spans, span)
 		end
-		Kit.block(
-			scene,
-			Vector3.new(1.4, 0.3, 9),
-			CFrame.new(at(x - 3, 1.6, side * 51)) * CFrame.Angles(math.rad(-18), math.rad(20), 0),
-			c.plank,
-			planks
-		)
-		Kit.block(
-			scene,
-			Vector3.new(1.4, 0.3, 8),
-			CFrame.new(at(x + 4, 1.2, side * 50)) * CFrame.Angles(math.rad(-12), math.rad(-25), 0),
-			c.plankDark,
-			planks
-		)
-		Kit.box(scene, Vector3.new(7, 1.6, 2.4), at(x + 2, 0.6, side * 38), c.plank, planks, 8)
-		Kit.pillar(scene, 0.7, 2.2, at(x - 4, 0.6, side * 44), c.rope, Enum.Material.Fabric)
-		Kit.box(
-			scene,
-			Vector3.new(2.2, 2.2, 2.2),
-			at(x - 1, 0.6, side * 46),
-			c.boat,
-			planks,
-			index * 20
-		)
-		Kit.box(
-			scene,
-			Vector3.new(1.6, 1.6, 1.6),
-			at(x + 1.5, 0.6, side * 45),
-			c.plankDark,
-			planks,
-			35
-		)
+	end
+	for index, span in spans do
+		local x, side = span[1], span[2]
+		Kit.group(scene, x, function()
+			Kit.box(scene, Vector3.new(14, 0.6, 16), at(x, 0, side * 42), c.plank, planks)
+			for _, dx in { -6, 6 } do
+				for _, z in { 37, 49 } do
+					Kit.pillar(scene, 3, 1.4, at(x + dx, 0, side * z), c.pile, wood)
+				end
+			end
+			Kit.block(
+				scene,
+				Vector3.new(1.4, 0.3, 9),
+				CFrame.new(at(x - 3, 1.6, side * 51))
+					* CFrame.Angles(math.rad(-18), math.rad(20), 0),
+				c.plank,
+				planks
+			)
+			Kit.block(
+				scene,
+				Vector3.new(1.4, 0.3, 8),
+				CFrame.new(at(x + 4, 1.2, side * 50))
+					* CFrame.Angles(math.rad(-12), math.rad(-25), 0),
+				c.plankDark,
+				planks
+			)
+			Kit.box(scene, Vector3.new(7, 1.6, 2.4), at(x + 2, 0.6, side * 38), c.plank, planks, 8)
+			Kit.pillar(scene, 0.7, 2.2, at(x - 4, 0.6, side * 44), c.rope, Enum.Material.Fabric)
+			Kit.box(
+				scene,
+				Vector3.new(2.2, 2.2, 2.2),
+				at(x - 1, 0.6, side * 46),
+				c.boat,
+				planks,
+				index * 20
+			)
+			Kit.box(
+				scene,
+				Vector3.new(1.6, 1.6, 1.6),
+				at(x + 1.5, 0.6, side * 45),
+				c.plankDark,
+				planks,
+				35
+			)
+		end)
 	end
 
 	-- Scaffolds: four poles, ties between them, a platform and a ladder.
 	for _, scaffold in { { 58, 1 }, { 104, -1 } } do
 		local x, side = scaffold[1], scaffold[2]
-		local near, far = side * 36, side * 42
-		for _, dx in { -3, 3 } do
-			Kit.rod(scene, at(x + dx, 0, near), at(x + dx, 18, near), 0.6, c.pile, wood, true)
-			Kit.rod(scene, at(x + dx, 0, far), at(x + dx, 18, far), 0.6, c.pile, wood, true)
-		end
-		for _, y in { 6, 12 } do
-			Kit.rod(scene, at(x - 3, y, near), at(x + 3, y, near), 0.4, c.plankDark, wood)
-			Kit.rod(scene, at(x - 3, y, far), at(x + 3, y, far), 0.4, c.plankDark, wood)
-		end
-		Kit.box(scene, Vector3.new(7, 0.4, 7), at(x, 12.2, side * 39), c.plank, planks)
-		for _, dx in { -0.8, 0.8 } do
-			Kit.rod(scene, at(x + dx, 0, side * 44), at(x + dx, 12.6, far), 0.3, c.plankDark, wood)
-		end
-		for rung = 1, 3 do
-			Kit.rod(
-				scene,
-				at(x - 0.8, rung * 3, side * (44 - rung * 0.5)),
-				at(x + 0.8, rung * 3, side * (44 - rung * 0.5)),
-				0.25,
-				c.plankDark,
-				wood
-			)
-		end
+		local near, out = side * 36, side * 42
+		Kit.group(scene, x, function()
+			for _, dx in { -3, 3 } do
+				Kit.rod(scene, at(x + dx, 0, near), at(x + dx, 18, near), 0.6, c.pile, wood, true)
+				Kit.rod(scene, at(x + dx, 0, out), at(x + dx, 18, out), 0.6, c.pile, wood, true)
+			end
+			for _, y in { 6, 12 } do
+				Kit.rod(scene, at(x - 3, y, near), at(x + 3, y, near), 0.4, c.plankDark, wood)
+				Kit.rod(scene, at(x - 3, y, out), at(x + 3, y, out), 0.4, c.plankDark, wood)
+			end
+			Kit.box(scene, Vector3.new(7, 0.4, 7), at(x, 12.2, side * 39), c.plank, planks)
+			for _, dx in { -0.8, 0.8 } do
+				Kit.rod(
+					scene,
+					at(x + dx, 0, side * 44),
+					at(x + dx, 12.6, out),
+					0.3,
+					c.plankDark,
+					wood
+				)
+			end
+			for rung = 1, 3 do
+				Kit.rod(
+					scene,
+					at(x - 0.8, rung * 3, side * (44 - rung * 0.5)),
+					at(x + 0.8, rung * 3, side * (44 - rung * 0.5)),
+					0.25,
+					c.plankDark,
+					wood
+				)
+			end
+		end)
 	end
 
 	-- The crane: a mast, a boom leaning out over the water, a rope and a bundle of planks.
-	Kit.box(scene, Vector3.new(5, 1.2, 5), at(108, 0, 39), c.plankDark, planks)
-	Kit.pillar(scene, 26, 1.6, at(108, 1.2, 39), c.pile, wood)
-	Kit.rod(scene, at(108, 24, 39), at(98, 30, 54), 1, c.pile, wood, true)
-	Kit.rod(scene, at(98, 30, 54), at(98, 12, 54), 0.2, c.rope)
-	Kit.box(scene, Vector3.new(5, 1.4, 2), at(98, 10.6, 54), c.plank, planks, 15)
+	group(104, function()
+		Kit.box(scene, Vector3.new(5, 1.2, 5), at(108, 0, 39), c.plankDark, planks)
+		Kit.pillar(scene, 26, 1.6, at(108, 1.2, 39), c.pile, wood)
+		Kit.rod(scene, at(108, 24, 39), at(98, 30, 54), 1, c.pile, wood, true)
+		Kit.rod(scene, at(98, 30, 54), at(98, 12, 54), 0.2, c.rope)
+		Kit.box(scene, Vector3.new(5, 1.4, 2), at(98, 10.6, 54), c.plank, planks, 15)
+	end)
 
 	-- Lanterns on the first railing posts: the only warm light in the fog.
 	for _, side in { -1, 1 } do
@@ -157,7 +190,7 @@ return function(scene: Kit.Scene)
 
 	-- Rowing boats lying on the water, each riding a hair higher than the one before: two that
 	-- come to lie against each other must not have their decks in one plane.
-	for boat = 1, 7 do
+	for boat = 1, many(7) do
 		local side = if pick(0, 1) < 0.5 then -1 else 1
 		local turn = pick(0, 180)
 		local where = CFrame.new(at(pick(8, 112), 0.5 + boat * 0.03, side * pick(54, 150)))
@@ -191,48 +224,64 @@ return function(scene: Kit.Scene)
 
 	-- Fishermen's huts on stilts.
 	local huts = { { 16, 92 }, { 58, 128 }, { 100, 98 }, { 24, -104 }, { 66, -86 }, { 102, -132 } }
+	if many(1) > 1 then
+		for _, hut in
+			{ { 37, 112 }, { 79, 96 }, { 112, 142 }, { 45, -130 }, { 86, -112 }, { 8, -78 } }
+		do
+			table.insert(huts, hut)
+		end
+	end
 	for i, hut in huts do
 		local x, z = hut[1], hut[2]
-		for _, dx in { -4.5, 4.5 } do
-			for _, dz in { -4, 4 } do
-				Kit.pillar(scene, 7, 0.9, at(x + dx, 0, z + dz), c.pile, wood)
+		Kit.group(scene, x, function()
+			for _, dx in { -4.5, 4.5 } do
+				for _, dz in { -4, 4 } do
+					Kit.pillar(scene, 7, 0.9, at(x + dx, 0, z + dz), c.pile, wood)
+				end
 			end
-		end
-		Kit.box(scene, Vector3.new(12, 0.6, 11), at(x, 6.6, z), c.plank, planks)
-		Kit.box(scene, Vector3.new(9, 6, 8), at(x, 7.2, z), c.hut, planks)
-		Kit.roof(scene, at(x, 16.4, z), 11, 6, 30, c.roof, Enum.Material.Slate, i % 2 == 0)
-		Kit.box(
-			scene,
-			Vector3.new(2, 4, 0.3),
-			at(x, 7.2, z - (if z > 0 then 4 else -4)),
-			c.plankDark,
-			wood
-		)
+			Kit.box(scene, Vector3.new(12, 0.6, 11), at(x, 6.6, z), c.plank, planks)
+			Kit.box(scene, Vector3.new(9, 6, 8), at(x, 7.2, z), c.hut, planks)
+			Kit.roof(scene, at(x, 16.4, z), 11, 6, 30, c.roof, Enum.Material.Slate, i % 2 == 0)
+			Kit.box(
+				scene,
+				Vector3.new(2, 4, 0.3),
+				at(x, 7.2, z - (if z > 0 then 4 else -4)),
+				c.plankDark,
+				wood
+			)
+		end)
 	end
 
 	-- Small islands of rock, each with a crooked pine.
-	for _ = 1, 5 do
+	for _ = 1, many(5) do
 		local side = if pick(0, 1) < 0.5 then -1 else 1
 		local x, z = pick(6, 114), side * pick(70, 165)
-		Kit.rock(scene, at(x, 0, z), Vector3.new(pick(12, 20), pick(5, 9), pick(10, 16)), c.rock)
-		Kit.rock(
-			scene,
-			at(x + 5, 0, z + 4),
-			Vector3.new(pick(6, 9), pick(3, 5), pick(6, 9)),
-			c.rock
-		)
-		Kit.rod(scene, at(x, 3, z), at(x + 2, 13, z - 1), 1.1, c.bark, wood, true)
-		Kit.ball(scene, 7, at(x + 2.5, 14.5, z - 1), c.leaf, Enum.Material.Grass)
-		Kit.ball(scene, 5, at(x - 0.5, 11.5, z + 1.5), c.leaf, Enum.Material.Grass)
+		Kit.group(scene, x, function()
+			Kit.rock(
+				scene,
+				at(x, 0, z),
+				Vector3.new(pick(12, 20), pick(5, 9), pick(10, 16)),
+				c.rock
+			)
+			Kit.rock(
+				scene,
+				at(x + 5, 0, z + 4),
+				Vector3.new(pick(6, 9), pick(3, 5), pick(6, 9)),
+				c.rock
+			)
+			Kit.rod(scene, at(x, 3, z), at(x + 2, 13, z - 1), 1.1, c.bark, wood, true)
+			Kit.ball(scene, 7, at(x + 2.5, 14.5, z - 1), c.leaf, Enum.Material.Grass)
+			Kit.ball(scene, 5, at(x - 0.5, 11.5, z + 1.5), c.leaf, Enum.Material.Grass)
+		end)
 	end
 
 	-- Mooring poles standing about, some leaning; foam around the nearer ones.
-	for i = 1, 24 do
+	for i = 1, many(24) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(4, 116), 0, side * pick(44, 120))
 		local lean = Vector3.new(pick(-1.5, 1.5), pick(4, 12), pick(-1.5, 1.5))
 		Kit.rod(scene, base, base + lean, 1.1, c.pile, wood, true)
-		if i <= 16 then
+		if i <= many(16) then
 			Kit.box(
 				scene,
 				Vector3.new(pick(3, 6), 0.06, 0.5),
@@ -247,21 +296,23 @@ return function(scene: Kit.Scene)
 	-- Racks with nets hung out to dry.
 	for _, rack in { { 40, 62 }, { 88, -60 }, { 14, -58 } } do
 		local x, z = rack[1], rack[2]
-		for _, dx in { -4, 4 } do
-			Kit.pillar(scene, 6, 0.5, at(x + dx, 0, z), c.pile, wood)
-		end
-		local net =
-			Kit.box(scene, Vector3.new(8, 4, 0.2), at(x, 1.6, z), c.rope, Enum.Material.Fabric)
-		net.Transparency = 0.45
+		Kit.group(scene, x, function()
+			for _, dx in { -4, 4 } do
+				Kit.pillar(scene, 6, 0.5, at(x + dx, 0, z), c.pile, wood)
+			end
+			local net =
+				Kit.box(scene, Vector3.new(8, 4, 0.2), at(x, 1.6, z), c.rope, Enum.Material.Fabric)
+			net.Transparency = 0.45
+		end)
 	end
 
 	-- Banks of fog lying on the water away from the lane.
-	for i = 1, 6 do
+	for i = 1, many(6) do
 		local side = if i % 2 == 0 then -1 else 1
 		local bank = Kit.box(
 			scene,
 			Vector3.new(pick(50, 70), pick(6, 10), pick(30, 46)),
-			at(pick(10, 110), pick(1, 5), side * pick(96, 150)),
+			at(pick(10, 110), pick(1.1, 5), side * pick(96, 150)),
 			c.mist
 		)
 		bank.Transparency = 0.9
@@ -313,59 +364,69 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- Far out, larger islands show through the fog as shapes and no more.
-	for i = 1, 6 do
+	for i = 1, many(5) + 1 do
 		local side = if i % 2 == 0 then -1 else 1
-		local x, out = 10 + (i - 1) * 20 + pick(-8, 8), pick(300, 560)
+		local x, out = 10 + (i - 1) * gap(20) + gap(pick(-8, 8)), pick(300, 560)
 		local height = pick(40, 90)
-		Kit.mound(
-			scene,
-			at(x, 0, side * out),
-			pick(70, 110),
-			height,
-			if i % 3 == 0 then c.rock else c.leaf,
-			Enum.Material.Slate
-		)
-		Kit.backdrop(
-			Kit.ball(
+		Kit.group(scene, x, function()
+			Kit.mound(
 				scene,
-				pick(24, 36),
-				at(x + pick(-20, 20), height * 0.9, side * out),
-				c.leaf,
-				Enum.Material.Grass
+				at(x, 0, side * out),
+				pick(70, 110),
+				height,
+				if i % 3 == 0 then c.rock else c.leaf,
+				Enum.Material.Slate
 			)
-		)
+			Kit.backdrop(
+				Kit.ball(
+					scene,
+					pick(24, 36),
+					at(x + pick(-20, 20), height * 0.9, side * out),
+					c.leaf,
+					Enum.Material.Grass
+				)
+			)
+		end)
 	end
 
 	-- Where the village's grass ends the sea begins at a quay: a low wall of stone along the
 	-- shore either side of the bridge, planked on top, bollards on it, and rocks with a pine
-	-- where the houses thin out.
-	for _, side in { -1, 1 } do
-		Kit.backdrop(
-			Kit.box(
-				scene,
-				Vector3.new(5, 2.8, 250),
-				at(2.5, -0.5, side * 167),
-				c.rock,
-				Enum.Material.Slate
+	-- where the houses thin out. It belongs to the zone's start.
+	group(0, function()
+		for _, side in { -1, 1 } do
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(5, 2.8, 250),
+					at(2.5, -0.5, side * 167),
+					c.rock,
+					Enum.Material.Slate
+				)
 			)
-		)
-		Kit.backdrop(
-			Kit.box(scene, Vector3.new(6, 0.4, 250), at(2.5, 2.3, side * 167), c.plankDark, planks)
-		)
-		for i = 0, 5 do
-			Kit.pillar(scene, 1.6, 1.3, at(2.5, 2.7, side * (52 + i * 40)), c.pile, wood)
-		end
-		for i = 0, 1 do
-			local x, z = pick(8, 13), side * (156 + i * 72 + pick(-10, 10))
-			Kit.rock(
-				scene,
-				at(x, 0, z),
-				Vector3.new(pick(12, 18), pick(6, 10), pick(12, 18)),
-				c.rock
+			Kit.backdrop(
+				Kit.box(
+					scene,
+					Vector3.new(6, 0.4, 250),
+					at(2.5, 2.3, side * 167),
+					c.plankDark,
+					planks
+				)
 			)
-			Kit.rod(scene, at(x, 4, z), at(x + 2, 15, z - 1), 1.1, c.bark, wood, true)
-			Kit.ball(scene, 8, at(x + 2.5, 16.5, z - 1), c.leaf, Enum.Material.Grass)
-			Kit.ball(scene, 5.5, at(x - 0.5, 13, z + 1.5), c.leaf, Enum.Material.Grass)
+			for i = 0, 5 do
+				Kit.pillar(scene, 1.6, 1.3, at(2.5, 2.7, side * (52 + i * 40)), c.pile, wood)
+			end
+			for i = 0, 1 do
+				local x, z = pick(8, 13), side * (156 + i * 72 + pick(-10, 10))
+				Kit.rock(
+					scene,
+					at(x, 0, z),
+					Vector3.new(pick(12, 18), pick(6, 10), pick(12, 18)),
+					c.rock
+				)
+				Kit.rod(scene, at(x, 4, z), at(x + 2, 15, z - 1), 1.1, c.bark, wood, true)
+				Kit.ball(scene, 8, at(x + 2.5, 16.5, z - 1), c.leaf, Enum.Material.Grass)
+				Kit.ball(scene, 5.5, at(x - 0.5, 13, z + 1.5), c.leaf, Enum.Material.Grass)
+			end
 		end
-	end
+	end)
 end

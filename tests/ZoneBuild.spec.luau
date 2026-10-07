@@ -22,8 +22,11 @@ local GATE_FROM, GATE_TO = 18, Signs.FOOT
 -- The frame of a sign stays this close to its board: no lower than this under its foot, no
 -- higher than this over its top, and no farther than this up or down the lane.
 local FRAME_UNDER, FRAME_OVER, FRAME_NEAR = 6, 10, 4
-local BUDGET = { 300, 600 }
-local LIGHTS = 12
+-- A zone twice as long as it was first built has about twice the pieces.
+local BUDGET = { 300, 1000 }
+-- The least share of a zone's pieces by the lane that stands in any quarter of its length.
+local SPREAD = 0.15
+local LIGHTS = 24
 local SHADOW_FROM = 10
 -- How far past its own stretch of the lane a zone's scenery may reach, and how far its
 -- backdrop may: hills do not stop at a border. Backdrop is what stands farther from the lane's
@@ -256,6 +259,38 @@ return {
 				T.ok(
 					high.X <= scenery.to + (if last then Zones.FAR else reach),
 					`{zone.id}: {where(part)} reaches {high.X - scenery.to} past the zone`
+				)
+			end
+		end
+	end,
+
+	-- A zone's scenery was laid out for a stretch of lane and is spread over the longer one the
+	-- zone takes up today (ZoneArt/Kit). Built as it was laid out, a zone grown twice as long
+	-- had all but its ground in its first half.
+	["a zone's scenery is spread over the whole of its length"] = function()
+		for _, zone in Catalog.zones do
+			local scenery = sceneBuilt(zone.id)
+			local length = scenery.to - scenery.from
+			local quarters = { 0, 0, 0, 0 }
+			local count = 0
+			for _, part in scenery.parts do
+				local low, high = Zones.bounds(part)
+				local middle = (low.X + high.X) / 2
+				-- What stands by the lane, and is not the ground or a wall as long as the zone.
+				if
+					nearest(low, high) < Zones.REACH
+					and high.X - low.X < length / 4
+					and middle >= scenery.from
+					and middle < scenery.to
+				then
+					quarters[math.floor((middle - scenery.from) / length * 4) + 1] += 1
+					count += 1
+				end
+			end
+			for quarter, pieces in quarters do
+				T.ok(
+					pieces >= count * SPREAD,
+					`{zone.id}: quarter {quarter} of its length holds {pieces} of {count} pieces`
 				)
 			end
 		end

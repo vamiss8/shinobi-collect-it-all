@@ -16,6 +16,18 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
+	local function far(studs: number): number
+		return Kit.far(scene, studs)
+	end
 	local sandstone = Enum.Material.Sandstone
 	local wood = Enum.Material.Wood
 	local cloth = Enum.Material.Fabric
@@ -56,16 +68,16 @@ return function(scene: Kit.Scene)
 			sandstone
 		)
 	end
-	for i = 0, 11 do
+	for i = 0, many(11) do
 		local width = pick(10, 16)
-		local along = 10 + i * 16.5 + pick(-3, 3)
+		local along = 10 + i * gap(16.5) + gap(pick(-3, 3))
 		-- Near the village head's building the houses keep to the road, in front of it.
-		local out = if math.abs(along - 112) < 30 then pick(46, 62) else pick(46, 128)
+		local out = if far(math.abs(along - 112)) < 30 then pick(46, 62) else pick(46, 128)
 		house(along, -1, out, width, pick(8, 18))
 	end
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local width = pick(10, 15)
-		house(14 + i * 24 + pick(-4, 4), 1, pick(46, 116), width, pick(8, 16))
+		house(14 + i * gap(24) + gap(pick(-4, 4)), 1, pick(46, 116), width, pick(8, 16))
 	end
 
 	-- The village head's building: the largest dome, with a smaller one on its crown and a pale
@@ -96,12 +108,12 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Low walls of mud brick between the houses nearest the road.
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.box(
 			scene,
 			Vector3.new(pick(10, 16), pick(2.5, 4), 1.4),
-			at(16 + i * 18, 0, side * pick(40, 44)),
+			at(16 + i * gap(18), 0, side * pick(40, 44)),
 			c.clayDark,
 			sandstone,
 			pick(-8, 8)
@@ -109,41 +121,43 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Market stalls by the road: four poles, a cloth roof sloping to the lane, a counter, pots.
-	for i = 0, 5 do
+	for i = 0, many(5) do
 		local side = if i % 2 == 0 then 1 else -1
-		local x = 24 + i * 30
-		for _, dx in { -4, 4 } do
-			Kit.box(scene, Vector3.new(0.5, 6.5, 0.5), at(x + dx, 0, side * 36.5), c.wood, wood)
-			Kit.box(scene, Vector3.new(0.5, 8, 0.5), at(x + dx, 0, side * 43), c.wood, wood)
-		end
-		Kit.block(
-			scene,
-			Vector3.new(10, 0.3, 8),
-			CFrame.new(at(x, 7.4, side * 39.8)) * CFrame.Angles(math.rad(side * 13), 0, 0),
-			if i % 3 == 0 then c.clothAlt else c.cloth,
-			cloth
-		)
-		Kit.box(
-			scene,
-			Vector3.new(8, 2.6, 2),
-			at(x, 0, side * 41),
-			c.wood,
-			Enum.Material.WoodPlanks
-		)
-		for pot = 0, 2 do
-			Kit.pillar(
+		local x = 24 + i * gap(30)
+		Kit.group(scene, x, function()
+			for _, dx in { -4, 4 } do
+				Kit.box(scene, Vector3.new(0.5, 6.5, 0.5), at(x + dx, 0, side * 36.5), c.wood, wood)
+				Kit.box(scene, Vector3.new(0.5, 8, 0.5), at(x + dx, 0, side * 43), c.wood, wood)
+			end
+			Kit.block(
 				scene,
-				pick(1.6, 2.8),
-				pick(1.4, 2.2),
-				at(x - 3 + pot * 3, 0, side * 37.6),
-				c.pot,
-				sandstone
+				Vector3.new(10, 0.3, 8),
+				CFrame.new(at(x, 7.4, side * 39.8)) * CFrame.Angles(math.rad(side * 13), 0, 0),
+				if i % 3 == 0 then c.clothAlt else c.cloth,
+				cloth
 			)
-		end
+			Kit.box(
+				scene,
+				Vector3.new(8, 2.6, 2),
+				at(x, 0, side * 41),
+				c.wood,
+				Enum.Material.WoodPlanks
+			)
+			for pot = 0, 2 do
+				Kit.pillar(
+					scene,
+					pick(1.6, 2.8),
+					pick(1.4, 2.2),
+					at(x - 3 + pot * 3, 0, side * 37.6),
+					c.pot,
+					sandstone
+				)
+			end
+		end)
 	end
 
 	-- Pillars of rock the wind has carved: three stones stacked, the middle one the narrowest.
-	for i = 0, 13 do
+	for i = 0, many(13) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(6, length - 6), 0, side * pick(120, 176))
 		local width = pick(8, 14)
@@ -164,12 +178,14 @@ return function(scene: Kit.Scene)
 		)
 	end
 	-- And one arch of it, on the right.
-	Kit.box(scene, Vector3.new(8, 26, 10), at(150, 0, 132), c.rock, sandstone, 10)
-	Kit.box(scene, Vector3.new(8, 24, 10), at(178, 0, 138), c.rock, sandstone, -6)
-	Kit.box(scene, Vector3.new(40, 7, 11), at(164, 24, 135), c.strata, sandstone, 12)
+	group(164, function()
+		Kit.box(scene, Vector3.new(8, 26, 10), at(150, 0, 132), c.rock, sandstone, 10)
+		Kit.box(scene, Vector3.new(8, 24, 10), at(178, 0, 138), c.rock, sandstone, -6)
+		Kit.box(scene, Vector3.new(40, 7, 11), at(164, 24, 135), c.strata, sandstone, 12)
+	end)
 
 	-- Dunes: only the crowns of great buried spheres show above the sand.
-	for i = 0, 13 do
+	for i = 0, many(13) do
 		local side = if i % 2 == 0 then -1 else 1
 		local diameter = pick(70, 130)
 		local crest = pick(5, 12)
@@ -184,8 +200,10 @@ return function(scene: Kit.Scene)
 
 	-- The cliffs that ring the village, banded with darker rock.
 	for _, side in { -1, 1 } do
-		for i = 0, 7 do
-			local x = 12 + i * 25
+		-- One more than the row was laid out with: the cliffs are no wider for standing along
+		-- a longer village, and the last must still reach the zone's end.
+		for i = 0, many(7) + 1 do
+			local x = 12 + i * gap(25)
 			local height = pick(64, 100)
 			Kit.box(
 				scene,
@@ -207,9 +225,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Streamers on poles, and dry scrub.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(12 + i * 25, 0, side * pick(48, 60))
+		local base = at(12 + i * gap(25), 0, side * pick(48, 60))
 		Kit.pillar(scene, 12, 0.4, base, c.wood, wood)
 		Kit.box(
 			scene,
@@ -219,7 +237,7 @@ return function(scene: Kit.Scene)
 			cloth
 		)
 	end
-	for i = 1, 14 do
+	for i = 1, many(14) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.ball(
 			scene,
@@ -258,8 +276,6 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- Past the cliffs the desert rolls on: long dunes, and table rocks standing out of the haze.
-	-- On the left the dunes keep clear of where the place's own spawn pad lies (80 studs along,
-	-- 300 out): a player is there for a moment before being sent to a dojo.
 	local dunes = {
 		{ 10, -440, 120 },
 		{ 75, -520, 125 },
@@ -274,9 +290,9 @@ return function(scene: Kit.Scene)
 		Kit.mound(scene, at(dune[1], 0, dune[2]), dune[3], pick(28, 52), c.dune, Enum.Material.Sand)
 	end
 	for _, side in { -1, 1 } do
-		for i = 0, 2 do
+		for i = 0, many(2) do
 			local width, height, depth = pick(70, 110), pick(110, 170), pick(60, 90)
-			local base = at(32 + i * 68 + pick(-10, 10), -2, side * pick(470, 560))
+			local base = at(32 + i * gap(68) + gap(pick(-10, 10)), -2, side * pick(470, 560))
 			local turn = pick(-12, 12)
 			Kit.backdrop(
 				Kit.box(scene, Vector3.new(width, height, depth), base, c.cliff, sandstone, turn)
@@ -296,25 +312,27 @@ return function(scene: Kit.Scene)
 
 	-- The cliffs that ring the village close across its front too, lower the farther out, and
 	-- the gate stands in the cleft they leave: the way into the village is through the rock.
-	for _, side in { -1, 1 } do
-		for i = 0, 7 do
-			local height = pick(64, 98) - i * 3
-			local z = side * (57 + i * 27)
-			Kit.box(
-				scene,
-				Vector3.new(22, height, 29),
-				at(10, -2, z),
-				c.cliff,
-				sandstone,
-				pick(-6, 6)
-			)
-			Kit.box(
-				scene,
-				Vector3.new(23 + (i % 2) * 0.8, 5, 30),
-				at(10, height * pick(0.3, 0.7), z),
-				c.strata,
-				sandstone
-			)
+	group(0, function()
+		for _, side in { -1, 1 } do
+			for i = 0, 7 do
+				local height = pick(64, 98) - i * 3
+				local z = side * (57 + i * 27)
+				Kit.box(
+					scene,
+					Vector3.new(22, height, 29),
+					at(10, -2, z),
+					c.cliff,
+					sandstone,
+					pick(-6, 6)
+				)
+				Kit.box(
+					scene,
+					Vector3.new(23 + (i % 2) * 0.8, 5, 30),
+					at(10, height * pick(0.3, 0.7), z),
+					c.strata,
+					sandstone
+				)
+			end
 		end
-	end
+	end)
 end

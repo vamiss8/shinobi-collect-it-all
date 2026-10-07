@@ -10,6 +10,11 @@
 
 local Kit = require("./Kit")
 
+-- Two sides nearer each other than this count as in one plane, studs, and a block is cut this
+-- much larger each time it has to be: either side of it then moves by more than half of that.
+local SAME_PLANE = 0.06
+local GROW = 0.14
+
 return function(scene: Kit.Scene)
 	local c = scene.colors
 	local length = scene.length
@@ -19,8 +24,51 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
 	local shades = { c.cube, c.cubeDark, c.cubeLight }
 	local neon = Enum.Material.Neon
+
+	-- The blocks here stand in one another by the hundred, square to the lane and in three
+	-- shades, wherever the scene's random numbers put them. Two that came to have a side in one
+	-- plane would flicker there, and among so many some always would. So a block that would
+	-- share a plane with one already standing is cut a little larger, until it does not.
+	local standing: { { low: Vector3, high: Vector3 } } = {}
+	local function block(size: Vector3, base: Vector3, color: Color3): Part
+		local low, high = base, base
+		for _ = 1, 24 do
+			low = base - Vector3.new(size.X / 2, 0, size.Z / 2)
+			high = base + Vector3.new(size.X / 2, size.Y, size.Z / 2)
+			local shared = false
+			for _, other in standing do
+				local overX = low.X < other.high.X and high.X > other.low.X
+				local overZ = low.Z < other.high.Z and high.Z > other.low.Z
+				local sideX = math.abs(low.X - other.low.X) < SAME_PLANE
+					or math.abs(high.X - other.high.X) < SAME_PLANE
+				local sideZ = math.abs(low.Z - other.low.Z) < SAME_PLANE
+					or math.abs(high.Z - other.high.Z) < SAME_PLANE
+				local top = math.abs(high.Y - other.high.Y) < SAME_PLANE
+				-- Every block stands on the ground, so two that overlap on it overlap in height.
+				if (overZ and sideX) or (overX and sideZ) or (overX and overZ and top) then
+					shared = true
+					break
+				end
+			end
+			if not shared then
+				break
+			end
+			size += Vector3.new(GROW, GROW, GROW)
+		end
+		table.insert(standing, { low = low, high = high })
+		return Kit.box(scene, size, base, color)
+	end
 
 	Kit.ground(scene)
 
@@ -37,15 +85,14 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- The ranks of cuboids: low by the lane, higher the farther out they stand.
-	for i = 1, 170 do
+	for i = 1, many(170) do
 		local side = if i % 2 == 0 then -1 else 1
 		local out = pick(38, 186)
 		local width = pick(8, 22)
 		local height = pick(4, 16 + (out - 38) * 0.55)
 		-- Kept off the lane's walls whatever its width.
 		out = math.max(out, Kit.EDGE + width / 2 + 1)
-		Kit.box(
-			scene,
+		block(
 			Vector3.new(width, height, pick(8, 22)),
 			at(pick(2, length - 2), 0, side * out),
 			Kit.oneOf(scene, shades)
@@ -53,11 +100,10 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Thin columns among them.
-	for i = 1, 26 do
+	for i = 1, many(26) do
 		local side = if i % 2 == 0 then -1 else 1
 		local width = pick(5, 8)
-		Kit.box(
-			scene,
+		block(
 			Vector3.new(width, pick(70, 170), width),
 			at(pick(4, length - 4), 0, side * pick(60, 180)),
 			Kit.oneOf(scene, shades)
@@ -65,12 +111,11 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Great blocks at the edge of sight.
-	for i = 1, 12 do
+	for i = 1, many(11) + 1 do
 		local side = if i % 2 == 0 then -1 else 1
-		Kit.box(
-			scene,
+		block(
 			Vector3.new(pick(40, 70), pick(100, 220), pick(30, 50)),
-			at(10 + (i - 1) * 19, 0, side * pick(160, 186)),
+			at(10 + (i - 1) * gap(19), 0, side * pick(160, 186)),
 			c.cubeDark
 		)
 	end
@@ -90,24 +135,25 @@ return function(scene: Kit.Scene)
 			Kit.oneOf(scene, shades)
 		)
 	end
-	for _ = 1, 50 do
+	for _ = 1, many(50) do
 		floating(pick(6, 18), 14)
 	end
-	for _ = 1, 22 do
+	for _ = 1, many(22) do
 		floating(pick(2, 4), 8)
 	end
 
 	-- A line of violet light along the top edge of some of the nearer cuboids.
-	for i = 1, 14 do
+	for i = 1, many(13) + 1 do
 		local side = if i % 2 == 0 then -1 else 1
 		local width = pick(10, 18)
 		local height = pick(8, 20)
-		local base = at(8 + (i - 1) * 16.5, 0, side * pick(46, 70))
-		Kit.box(scene, Vector3.new(width, height, width), base, c.cubeLight)
+		local base = at(8 + (i - 1) * gap(16.5), 0, side * pick(46, 70))
+		-- The light lies along the edge of the block as it was cut.
+		local size = block(Vector3.new(width, height, width), base, c.cubeLight).Size
 		Kit.box(
 			scene,
-			Vector3.new(width, 0.3, 0.5),
-			base + Vector3.new(0, height, -side * (width / 2 - 0.2)),
+			Vector3.new(size.X, 0.3, 0.5),
+			base + Vector3.new(0, size.Y, -side * (size.Z / 2 - 0.2)),
 			c.edge,
 			neon
 		)
@@ -152,13 +198,13 @@ return function(scene: Kit.Scene)
 	end)
 
 	-- And past the great blocks stand greater ones, lost in the gray.
-	for i = 1, 10 do
+	for i = 1, many(9) + 1 do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.backdrop(
 			Kit.box(
 				scene,
 				Vector3.new(pick(60, 110), pick(220, 420), pick(60, 100)),
-				at(12 + (i - 1) * 23, 0, side * pick(270, 470)),
+				at(12 + (i - 1) * gap(23), 0, side * pick(270, 470)),
 				c.cubeDark
 			)
 		)
@@ -166,14 +212,15 @@ return function(scene: Kit.Scene)
 
 	-- Where the zone begins a wall of great blocks stands across on both sides of the gate,
 	-- taller the farther out: the dimension has no way out but the lane.
-	for _, side in { -1, 1 } do
-		for i = 0, 6 do
-			Kit.box(
-				scene,
-				Vector3.new(pick(26, 40), 80 + i * 22 + pick(-14, 14), pick(35, 42)),
-				at(pick(16, 21), 0, side * (62 + i * 33)),
-				Kit.oneOf(scene, shades)
-			)
+	group(0, function()
+		for _, side in { -1, 1 } do
+			for i = 0, 6 do
+				block(
+					Vector3.new(pick(26, 40), 80 + i * 22 + pick(-14, 14), pick(35, 42)),
+					at(pick(16, 21), 0, side * (62 + i * 33)),
+					Kit.oneOf(scene, shades)
+				)
+			end
 		end
-	end
+	end)
 end

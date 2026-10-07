@@ -65,6 +65,7 @@ local hub = {
 	LANE_WIDTH = Zones.LANE_WIDTH,
 	WALL_THICKNESS = Zones.WALL_THICKNESS,
 	WALL_HEIGHT = 80,
+	SPAWN_PAD = roblox.Vector3.new(Zones.SPAWN.along, 0, Zones.SPAWN.side),
 	at = function(x: number, y: number, z: number)
 		return roblox.Vector3.new(x, y, z)
 	end,
@@ -276,8 +277,11 @@ local function built(scene: any, from: number, to: number): Built
 end
 
 -- Builds one zone's scenery, or the village's when asked for Zones.HOME, and returns what it
--- is made of.
-function Zones.build(id: string): Built
+-- is made of. With `stretch`, the zone is built that many times longer than it was laid out,
+-- whatever its length in Config/Zones, and starts where it does there; `sameCount` then keeps
+-- its rows and scatterings at the numbers they were laid out with, so that the pieces of two
+-- builds can be told apart one by one.
+function Zones.build(id: string, stretch: number?, sameCount: boolean?): Built
 	local kit = load("Kit")
 	if id == Zones.HOME then
 		-- As World/ZoneArt builds it.
@@ -287,8 +291,21 @@ function Zones.build(id: string): Built
 	end
 	local zone = Catalog.zoneById[id]
 	local scene = kit.scene(zone, Catalog.zoneOrder[id], Looks.zones[id])
+	if stretch then
+		scene.stretch = stretch
+	end
+	local many, gap = kit.many, kit.gap
+	if sameCount then
+		kit.many = function(_, count: number): number
+			return count
+		end
+		kit.gap = function(_, step: number): number
+			return step
+		end
+	end
 	load(id)(scene)
-	return built(scene, zone.startsAt, Catalog.zoneEnd(zone))
+	kit.many, kit.gap = many, gap
+	return built(scene, zone.startsAt, zone.startsAt + scene.length * scene.stretch)
 end
 
 -- The box a part fits in, along the world's axes: its lowest and highest corner. A ball that

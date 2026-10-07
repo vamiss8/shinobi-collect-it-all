@@ -51,7 +51,7 @@ type Run = {
 	carried: Model,
 	enemy: Model,
 	enemyAt: Vector3,
-	enemySpeed: number, -- studs per second; set by how deep into the zone the kunai fell
+	enemySpeed: number, -- studs per second on the lane; set by how deep the kunai fell
 	releaseAt: number, -- os.clock() time the player may start running
 	released: boolean,
 	chaseFrom: number, -- os.clock() time the enemy starts moving
@@ -79,10 +79,12 @@ local function bodyOf(player: Player): (Model?, BasePart?, Humanoid?)
 	return nil, nil, nil
 end
 
--- Stops the player from walking during the reveal, or gives them their run speed back.
-local function setFrozen(player: Player, humanoid: Humanoid, frozen: boolean)
+-- Stops the player from walking during the reveal, or gives them their run speed back: on the
+-- lane, the speed everyone runs at there.
+local function setFrozen(player: Player, humanoid: Humanoid, frozen: boolean, onLane: boolean?)
 	local data = Data.get(player)
-	humanoid.WalkSpeed = if frozen or not data then 0 else Economy.walkSpeed(data.speedLevel)
+	local speed = if frozen or not data then 0 else Economy.walkSpeed(data.speedLevel)
+	humanoid.WalkSpeed = if onLane then Chase.onLane(speed) else speed
 end
 
 local function cancelAim(player: Player)
@@ -182,7 +184,7 @@ local function startRun(player: Player, drop: Roll.Drop, landing: Vector3, enemy
 		carried = carried,
 		enemy = enemy,
 		enemyAt = enemyAt,
-		enemySpeed = Chase.enemySpeed(zone, Hub.toLocal(landing).X),
+		enemySpeed = Chase.onLane(Chase.enemySpeed(zone, Hub.toLocal(landing).X)),
 		releaseAt = releaseAt,
 		released = false,
 		chaseFrom = releaseAt + Tuning.Chase.enemyDelay,
@@ -205,7 +207,7 @@ local function stepRuns(dt: number)
 		elseif not run.released then
 			if now >= run.releaseAt then
 				run.released = true
-				setFrozen(player, run.humanoid, false)
+				setFrozen(player, run.humanoid, false, true)
 			end
 		elseif Hub.toLocal(run.root.Position).X <= 0 then
 			endRun(player, true)
@@ -277,7 +279,7 @@ local function press(player: Player, claimed: unknown)
 	local along = math.max(distance, Tuning.Kick.stripDepth + MIN_LANDING)
 	local landing = Hub.at(along, 0, side)
 	local enemyAt = landing + Vector3.new(chase.enemyGap, 0, 0)
-	local duration = math.clamp(distance / 250, 0.8, 3.5)
+	local duration, height = Kick.flight(distance)
 
 	local token = {}
 	flights[player] = token
@@ -289,7 +291,7 @@ local function press(player: Player, claimed: unknown)
 		from = root.Position + Vector3.new(0, 2, 0),
 		to = landing + Vector3.new(0, 0.5, 0),
 		duration = duration,
-		height = math.clamp(distance * 0.15, 6, 60),
+		height = height,
 		linger = chase.rollSeconds + chase.holdSeconds,
 	}
 	Remotes.Flight:FireAllClients(flight)

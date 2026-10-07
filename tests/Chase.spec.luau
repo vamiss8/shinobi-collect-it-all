@@ -8,16 +8,17 @@ local Tuning = require("../src/shared/Config/Tuning")
 local EPS = 1e-9
 
 -- Plays a chase out step by step, the way the server does: the runner heads home from
--- `distance` studs, the enemy starts a gap behind and a moment later.
+-- `distance` studs, the enemy starts a gap behind and a moment later, and both cover the
+-- ground they do on the lane.
 local function playedOut(runSpeed: number, enemySpeed: number, distance: number): boolean
 	local chase = Tuning.Chase
 	local dt = 1 / 240
 	local runner, enemy, clock = distance, distance + chase.enemyGap, 0
 	while runner > 0 do
 		clock += dt
-		runner -= runSpeed * dt
+		runner -= Chase.onLane(runSpeed) * dt
 		if clock >= chase.enemyDelay then
-			enemy -= enemySpeed * dt
+			enemy -= Chase.onLane(enemySpeed) * dt
 			if runner > 0 and enemy - runner <= chase.catchRadius then
 				return false
 			end
@@ -59,17 +60,31 @@ return {
 	end,
 
 	["a runner as fast as the enemy always gets home"] = function()
-		T.ok(Chase.escapes(30, 30, 1700), "equal speeds, deep in the lane")
-		T.ok(Chase.escapes(30, 25, 1700), "a faster runner")
+		T.ok(Chase.escapes(30, 30, 3400), "equal speeds, deep in the lane")
+		T.ok(Chase.escapes(30, 25, 3400), "a faster runner")
 	end,
 
 	["a short run forgives a slower runner, a long one does not"] = function()
-		T.ok(Chase.escapes(16, 20, 50), "the head start covers a short run")
-		T.ok(not Chase.escapes(16, 20, 1000), "the enemy has time to close the gap")
+		T.ok(Chase.escapes(16, 20, 100), "the head start covers a short run")
+		T.ok(not Chase.escapes(16, 20, 2000), "the enemy has time to close the gap")
+	end,
+
+	["everyone covers more ground on the lane, and who is faster stays as it was"] = function()
+		T.ok(Tuning.Chase.laneSpeed > 1, "the lane is no faster than the village")
+		T.near(Chase.onLane(20), 20 * Tuning.Chase.laneSpeed, EPS)
+		-- By the store's own numbers: as fast as the enemy gets home, a good deal slower does
+		-- not. (The first zone is short enough for the head start to cover the difference.)
+		for i = 2, #Catalog.zones do
+			local zone = Catalog.zones[i]
+			local finish = Catalog.zoneEnd(zone) - 0.01
+			local enemy = Chase.enemySpeed(zone, finish)
+			T.ok(Chase.escapes(enemy, enemy, finish), `{zone.id}: as fast as its enemy`)
+			T.ok(not Chase.escapes(enemy * 0.8, enemy, finish), `{zone.id}: a fifth slower`)
+		end
 	end,
 
 	["the formula agrees with a chase played out step by step"] = function()
-		for _, case in { { 22, 100 }, { 29, 520 }, { 41, 1120 }, { 56, 1800 } } do
+		for _, case in { { 22, 200 }, { 29, 1040 }, { 41, 2240 }, { 56, 3600 } } do
 			local enemySpeed, distance = case[1], case[2]
 			local needed = Chase.speedNeeded(enemySpeed, distance)
 			T.ok(needed < enemySpeed, "a head start always helps")

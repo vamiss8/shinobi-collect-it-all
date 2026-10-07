@@ -58,7 +58,14 @@ return {
 			{ id = "Miss", from = 0 },
 		},
 		lastZoneSpan = 8, -- the last zone's far end takes this many times its threshold
-		trackLength = 1800, -- studs; throws never land past the end
+		trackLength = 3600, -- studs; throws never land past the end
+		-- A kunai's flight: it covers `flightSpeed` studs a second, but is never in the air for
+		-- less or more than `flightSeconds`, and rises `flightArc` of the way it goes, between
+		-- the two heights of `flightHeight`. Scenery keeps clear of the highest (World/ZoneArt).
+		flightSpeed = 500,
+		flightSeconds = { 0.8, 4.5 },
+		flightArc = 0.075,
+		flightHeight = { 6, 60 },
 		stripDepth = 10, -- depth of the throwing strip at the start of the lane, studs
 		sageStreak = 5, -- Perfects in a row that charge the Sage kick
 		sageMultiplier = 2, -- a Sage kick's power; worth about a third of a zone
@@ -74,8 +81,14 @@ return {
 		-- the player cannot move yet. Long enough to read a name: at 1.4 the run began
 		-- almost as the roulette stopped.
 		introSeconds = 3,
-		enemyGap = 35, -- the enemy appears this many studs farther down the lane
-		enemyDelay = 0.4, -- head start once the player can move, seconds
+		-- On the lane everyone covers this many times the ground their run speed says, the
+		-- runner and the enemy alike; in the village a runner's speed is what the Speed Store
+		-- sold. The zones are twice as long as they were first built: at village speed the way
+		-- home took twice as long too, and it now takes a third longer, which leaves time to
+		-- look at a zone without the run dragging.
+		laneSpeed = 1.5,
+		enemyGap = 65, -- the enemy appears this many studs farther down the lane
+		enemyDelay = 0.5, -- head start once the player can move, seconds
 		catchRadius = 5, -- studs
 		-- An enemy runs at its zone's speed for a kunai on the zone's near edge and speeds up
 		-- to the next zone's speed by the far end, so reaching deep into a zone is not yet a

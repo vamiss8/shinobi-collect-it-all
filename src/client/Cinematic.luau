@@ -48,8 +48,10 @@ local ROLL_BEYOND = 5
 local POP_SECONDS = 0.12
 local RESULT_POP_SECONDS = 0.38
 local RESULT_SIZE = 1.18
--- How far to one side of the player the camera passes them on its way to the enemy, studs.
+-- How far to one side of the player the camera passes them on its way to the enemy, studs,
+-- and how far from the enemy it ends up.
 local PASS_ASIDE = 7
+local ENEMY_CLOSE_UP = 18
 -- The last stretch of the intro, in which the camera swings back behind the player, and how
 -- long the banner's last words stay up once the player is running.
 local SWING_SECONDS = 0.7
@@ -208,18 +210,22 @@ local function stepCamera(dt: number)
 			-- From behind the player's shoulder past them towards the enemy, well to one
 			-- side all the way. The player stands on the landing spot with the catch over
 			-- their head: a camera that went straight over them went through the catch.
+			-- It stops well short of the enemy, wherever that stands.
 			local share = since / look
+			local way = math.max((reveal.enemyAt - reveal.at).Magnitude - ENEMY_CLOSE_UP + 7, 0)
 			local eye = reveal.at
-				+ down * (-7 + 24 * share)
+				+ down * (-7 + way * share)
 				+ current.aside * (PASS_ASIDE - 2.5 * share)
 				+ Vector3.new(0, 8.5 - 2.5 * share, 0)
 			target = CFrame.lookAt(eye, reveal.enemyAt + Vector3.new(0, 5.5, 0))
 			stiffness = 5
 		end
 	elseif now - current.startedAt < reveal.flight and kunai and kunai.Parent then
+		-- Stiff: a kunai covers 500 studs a second, and a camera that eased after it at half
+		-- this would trail it by as far again as it means to stand behind it.
 		local at = kunai.Position
 		target = CFrame.lookAt(at - down * 22 + Vector3.new(0, 10, 0), at)
-		stiffness = 14
+		stiffness = 28
 	elseif current.shownAt then
 		-- The roulette has stopped: closer to the one it stopped on.
 		local eye = reveal.at - down * 8 + Vector3.new(0, 6.5, 0)

@@ -35,6 +35,18 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
+	local function far(studs: number): number
+		return Kit.far(scene, studs)
+	end
 	local slate = Enum.Material.Slate
 	local wood = Enum.Material.Wood
 
@@ -62,7 +74,7 @@ return function(scene: Kit.Scene)
 	for _, side in { -1, 1 } do
 		local water = Kit.box(
 			scene,
-			Vector3.new(length, 0.3, 29),
+			Vector3.new(far(length), 0.3, 29),
 			at(length / 2, -0.1, side * 47.5),
 			c.water,
 			Enum.Material.Glass
@@ -70,26 +82,26 @@ return function(scene: Kit.Scene)
 		water.Transparency = 0.25
 		water.Reflectance = 0.2
 		water.CastShadow = false
-		for i = 0, 6 do
+		for i = 0, many(6) do
 			Kit.box(
 				scene,
 				Vector3.new(pick(8, 16), 0.06, 0.6),
-				at(10 + i * 26 + pick(-6, 6), 0.2, side * pick(36, 60)),
+				at(10 + i * gap(26) + gap(pick(-6, 6)), 0.2, side * pick(36, 60)),
 				c.foam
 			)
 		end
-		for i = 0, 11 do
+		for i = 0, many(11) do
 			Kit.rock(
 				scene,
-				at(6 + i * 15 + pick(-4, 4), 0, side * pick(36, 60)),
+				at(6 + i * gap(15) + gap(pick(-4, 4)), 0, side * pick(Kit.EDGE + 7, 60)),
 				Vector3.new(pick(4, 9), pick(3, 6), pick(4, 8)),
 				if i % 3 == 0 then c.moss else c.rockDark
 			)
 		end
-		for i = 0, 7 do
+		for i = 0, many(7) do
 			Kit.rock(
 				scene,
-				at(8 + i * 22 + pick(-5, 5), 0, side * pick(34.5, 36)),
+				at(8 + i * gap(22) + gap(pick(-5, 5)), 0, side * pick(34.5, 36)),
 				Vector3.new(2.4, pick(1.4, 2.6), 2.4),
 				c.rock
 			)
@@ -100,46 +112,49 @@ return function(scene: Kit.Scene)
 	-- row behind it.
 	for _, side in { -1, 1 } do
 		-- The near row stops short of the giants, who stand where its last cliffs would be.
-		for i = 0, 6 do
-			local x = 6 + i * 18 + pick(-3, 3)
+		-- (Spread over a longer canyon it stops two cliffs later: the giants keep their size.)
+		for i = 0, many(7) - 1 + (if many(1) > 1 then 2 else 0) do
+			local x = 6 + i * gap(18) + gap(pick(-3, 3))
 			local z = side * pick(74, 84)
 			local width, height = pick(22, 30), pick(58, 96)
 			local turn = pick(-14, 14)
-			Kit.box(
-				scene,
-				Vector3.new(width, height, 26),
-				at(x, -2, z),
-				if i % 2 == 0 then c.rock else c.rockWarm,
-				slate,
-				turn
-			)
-			Kit.box(
-				scene,
-				Vector3.new(width * 0.7, 4, 14),
-				at(x + pick(-3, 3), height * pick(0.25, 0.45), z - side * 16),
-				c.rockDark,
-				slate,
-				turn
-			)
-			Kit.rock(scene, at(x, height - 3, z), Vector3.new(width * 0.6, 8, 18), c.rockDark)
-			-- A second, narrower shelf higher up, and a boulder fallen to the cliff's foot.
-			Kit.box(
-				scene,
-				Vector3.new(width * 0.5, 3, 10),
-				at(x + pick(-4, 4), height * pick(0.55, 0.75), z - side * 15),
-				c.rock,
-				slate,
-				turn
-			)
-			Kit.rock(
-				scene,
-				at(x + pick(-8, 8), 0, z - side * pick(15, 19)),
-				Vector3.new(pick(6, 11), pick(4, 8), pick(6, 10)),
-				c.rockWarm
-			)
+			Kit.group(scene, x, function()
+				Kit.box(
+					scene,
+					Vector3.new(width, height, 26),
+					at(x, -2, z),
+					if i % 2 == 0 then c.rock else c.rockWarm,
+					slate,
+					turn
+				)
+				Kit.box(
+					scene,
+					Vector3.new(width * 0.7, 4, 14),
+					at(x + pick(-3, 3), height * pick(0.25, 0.45), z - side * 16),
+					c.rockDark,
+					slate,
+					turn
+				)
+				Kit.rock(scene, at(x, height - 3, z), Vector3.new(width * 0.6, 8, 18), c.rockDark)
+				-- A second, narrower shelf higher up, and a boulder fallen to the cliff's foot.
+				Kit.box(
+					scene,
+					Vector3.new(width * pick(0.42, 0.5), 3, 10),
+					at(x + pick(-4, 4), height * pick(0.55, 0.75), z - side * 15),
+					c.rock,
+					slate,
+					turn
+				)
+				Kit.rock(
+					scene,
+					at(x + pick(-8, 8), 0, z - side * pick(15, 19)),
+					Vector3.new(pick(6, 11), pick(4, 8), pick(6, 10)),
+					c.rockWarm
+				)
+			end)
 		end
-		for i = 0, 6 do
-			local x = 14 + i * 26 + pick(-4, 4)
+		for i = 0, many(6) do
+			local x = 14 + i * gap(26) + gap(pick(-4, 4))
 			local z = side * pick(108, 132)
 			local width, height = pick(28, 38), pick(96, 136)
 			Kit.box(
@@ -155,9 +170,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Crooked pines on the ledges, dead trees by the water, moss on the stones.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(10 + i * 13, pick(18, 34), side * pick(60, 66))
+		local base = at(10 + i * gap(13), pick(18, 34), side * pick(60, 66))
 		local top = base + Vector3.new(pick(-3, 3), pick(10, 14), -side * pick(2, 5))
 		Kit.rod(scene, base, top, 1.2, c.bark, wood, true)
 		Kit.ball(scene, pick(6, 8), top, c.needle, Enum.Material.Grass)
@@ -169,9 +184,9 @@ return function(scene: Kit.Scene)
 			Enum.Material.Grass
 		)
 	end
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then 1 else -1
-		local base = at(20 + i * 20, 0, side * pick(62, 68))
+		local base = at(20 + i * gap(20), 0, side * pick(62, 68))
 		local top = base + Vector3.new(pick(-2, 2), pick(12, 18), pick(-2, 2))
 		Kit.rod(scene, base, top, 1, c.bark, wood, true)
 		Kit.rod(
@@ -184,7 +199,7 @@ return function(scene: Kit.Scene)
 			true
 		)
 	end
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.rock(
 			scene,
@@ -195,7 +210,7 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Tufts of wet grass between the stones.
-	for i = 1, 12 do
+	for i = 1, many(12) do
 		local side = if i % 2 == 0 then -1 else 1
 		Kit.ball(
 			scene,
@@ -272,44 +287,47 @@ return function(scene: Kit.Scene)
 			piece(Vector3.new(11.6, 2, 11.6), 85, 0, 0, c.rockDark)
 		end
 	end
-	giant(-1, true)
-	giant(1, false)
+	-- The giants and the head of the canyon behind them belong to the zone's far end.
+	group(length, function()
+		giant(-1, true)
+		giant(1, false)
 
-	-- The head of the canyon: the walls close in behind the giants and the falls come down.
-	for _, side in { -1, 1 } do
-		local x = length - 8
-		Kit.box(scene, Vector3.new(20, 110, 44), at(x, -2, side * 58), c.rockDark, slate)
-		Kit.rock(scene, at(x - 6, 104, side * 56), Vector3.new(16, 10, 30), c.rock)
-		local sheet = Kit.box(
-			scene,
-			Vector3.new(1.4, 100, 18),
-			at(x - 10.6, 0, side * 52),
-			c.fall,
-			Enum.Material.Glass
-		)
-		sheet.Transparency = 0.25
-		sheet.CastShadow = false
-		local core = Kit.box(
-			scene,
-			Vector3.new(1, 99.6, 9),
-			at(x - 11.2, 0, side * 52),
-			c.foam,
-			Enum.Material.Neon
-		)
-		core.Transparency = 0.45
-		core.CastShadow = false
-		for i = 0, 2 do
-			local foam = Kit.ball(scene, pick(6, 9), at(x - 13, 1, side * (46 + i * 6)), c.foam)
-			foam.Transparency = 0.3
-			if i == 1 then
-				Kit.emit(foam, SPRAY, c.mist)
+		-- The head of the canyon: the walls close in behind the giants and the falls come down.
+		for _, side in { -1, 1 } do
+			local x = length - 8
+			Kit.box(scene, Vector3.new(20, 110, 44), at(x, -2, side * 58), c.rockDark, slate)
+			Kit.rock(scene, at(x - 6, 104, side * 56), Vector3.new(16, 10, 30), c.rock)
+			local sheet = Kit.box(
+				scene,
+				Vector3.new(1.4, 100, 18),
+				at(x - 10.6, 0, side * 52),
+				c.fall,
+				Enum.Material.Glass
+			)
+			sheet.Transparency = 0.25
+			sheet.CastShadow = false
+			local core = Kit.box(
+				scene,
+				Vector3.new(1, 99.6, 9),
+				at(x - 11.2, 0, side * 52),
+				c.foam,
+				Enum.Material.Neon
+			)
+			core.Transparency = 0.45
+			core.CastShadow = false
+			for i = 0, 2 do
+				local foam = Kit.ball(scene, pick(6, 9), at(x - 13, 1, side * (46 + i * 6)), c.foam)
+				foam.Transparency = 0.3
+				if i == 1 then
+					Kit.emit(foam, SPRAY, c.mist)
+				end
 			end
 		end
-	end
+	end)
 	-- Thinner falls down the canyon's sides.
-	for i = 0, 2 do
+	for i = 0, many(2) do
 		local side = if i % 2 == 0 then -1 else 1
-		local x = 36 + i * 44
+		local x = 36 + i * gap(44)
 		local fall = Kit.box(
 			scene,
 			Vector3.new(6, 62, 0.8),
@@ -324,12 +342,12 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Mist lying in the bottom of the canyon.
-	for i = 0, 3 do
+	for i = 0, many(3) do
 		local side = if i % 2 == 0 then -1 else 1
 		local bank = Kit.box(
 			scene,
 			Vector3.new(pick(50, 70), pick(5, 8), 22),
-			at(30 + i * 40, 2, side * pick(48, 56)),
+			at(30 + i * gap(40), 2, side * pick(48, 56)),
 			c.mist
 		)
 		bank.Transparency = 0.9
@@ -374,22 +392,22 @@ return function(scene: Kit.Scene)
 	-- Past the canyon's rim the mountains go on: great crags near at hand, and behind them
 	-- heights that are only shapes in the rain.
 	for _, side in { -1, 1 } do
-		for i = 0, 4 do
+		for i = 0, many(4) do
 			Kit.backdrop(
 				Kit.box(
 					scene,
 					Vector3.new(pick(46, 64), pick(170, 240), pick(50, 70)),
-					at(12 + i * 39 + pick(-8, 8), -2, side * pick(196, 262)),
+					at(12 + i * gap(39) + gap(pick(-8, 8)), -2, side * pick(196, 262)),
 					if i % 2 == 0 then c.rockDark else c.rock,
 					slate,
 					pick(-14, 14)
 				)
 			)
 		end
-		for i = 0, 2 do
+		for i = 0, many(2) do
 			Kit.mound(
 				scene,
-				at(24 + i * 66 + pick(-8, 8), 0, side * pick(500, 580)),
+				at(24 + i * gap(66) + gap(pick(-8, 8)), 0, side * pick(500, 580)),
 				pick(190, 220),
 				pick(230, 290),
 				c.rockDark,
@@ -401,39 +419,41 @@ return function(scene: Kit.Scene)
 	-- The canyon's mouth. Where the zone begins rock closes in on the gate from both sides, a
 	-- fall coming down its inner face into the river, and crags stand on beyond the cliffs: from
 	-- inside the canyon nothing of the arena behind is seen.
-	for _, side in { -1, 1 } do
-		local height = pick(58, 72)
-		Kit.box(
-			scene,
-			Vector3.new(16, height, 30),
-			at(6, -2, side * 54),
-			c.rockDark,
-			slate,
-			side * 5
-		)
-		Kit.rock(scene, at(6, height - 5, side * 54), Vector3.new(13, 9, 22), c.rock)
-		local sheet = Kit.box(
-			scene,
-			Vector3.new(0.8, height - 6, 9),
-			at(14.6, 0, side * 52),
-			c.fall,
-			Enum.Material.Glass
-		)
-		sheet.Transparency = 0.3
-		sheet.CastShadow = false
-		local foam = Kit.ball(scene, 6, at(16, 0.5, side * 52), c.foam)
-		foam.Transparency = 0.3
-		for i, out in { 84, 118, 152, 186, 220, 254 } do
-			Kit.backdrop(
-				Kit.box(
-					scene,
-					Vector3.new(pick(30, 40), pick(84, 120) + i * 8, 38),
-					at(pick(8, 14), -2, side * out),
-					if i % 2 == 0 then c.rock else c.rockDark,
-					slate,
-					pick(-10, 10)
-				)
+	group(0, function()
+		for _, side in { -1, 1 } do
+			local height = pick(58, 72)
+			Kit.box(
+				scene,
+				Vector3.new(16, height, 30),
+				at(6, -2, side * 54),
+				c.rockDark,
+				slate,
+				side * 5
 			)
+			Kit.rock(scene, at(6, height - 5, side * 54), Vector3.new(13, 9, 22), c.rock)
+			local sheet = Kit.box(
+				scene,
+				Vector3.new(0.8, height - 6, 9),
+				at(14.6, 0, side * 52),
+				c.fall,
+				Enum.Material.Glass
+			)
+			sheet.Transparency = 0.3
+			sheet.CastShadow = false
+			local foam = Kit.ball(scene, 6, at(16, 0.5, side * 52), c.foam)
+			foam.Transparency = 0.3
+			for i, out in { 84, 118, 152, 186, 220, 254 } do
+				Kit.backdrop(
+					Kit.box(
+						scene,
+						Vector3.new(pick(30, 40), pick(84, 120) + i * 8, 38),
+						at(pick(8, 14), -2, side * out),
+						if i % 2 == 0 then c.rock else c.rockDark,
+						slate,
+						pick(-10, 10)
+					)
+				)
+			end
 		end
-	end
+	end)
 end

@@ -54,6 +54,15 @@ return function(scene: Kit.Scene)
 	local function pick(low: number, high: number): number
 		return Kit.pick(scene, low, high)
 	end
+	local function group(anchor: number, build: () -> ())
+		Kit.group(scene, anchor, build)
+	end
+	local function many(count: number): number
+		return Kit.many(scene, count)
+	end
+	local function gap(step: number): number
+		return Kit.gap(scene, step)
+	end
 	local slate = Enum.Material.Slate
 	local wood = Enum.Material.Wood
 	local cloth = Enum.Material.Fabric
@@ -118,7 +127,10 @@ return function(scene: Kit.Scene)
 	-- What the lane leads to: the God Tree, past its far end. A trunk of four drums, roots
 	-- thrown out over the ground, boughs spread under a bud that has begun to open, and in the
 	-- bud, on the side that looks down the lane, a pale light.
-	local tree = at(length + TREE_PAST, 0, 0)
+	local tree = Vector3.zero
+	group(length, function()
+		tree = at(length + TREE_PAST, 0, 0)
+	end)
 	local crown = 0
 	for index, drum in { { 90, 76 }, { 90, 62 }, { 80, 50 }, { 70, 38 } } do
 		Kit.backdrop(
@@ -193,33 +205,35 @@ return function(scene: Kit.Scene)
 
 	-- Its roots have come up all over the field: each heaves out of the ground, arches and
 	-- plunges back in.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
-		local x = 16 + i * 26 + pick(-5, 5)
+		local x = 16 + i * gap(26) + gap(pick(-5, 5))
 		local out = pick(52, 124)
 		local span = pick(26, 44)
 		local rise = pick(16, 38)
 		local thick = pick(5, 9)
-		local first = at(x + span * 0.3, rise, side * (out + pick(-8, 8)))
-		local second = at(x + span * 0.7, rise * pick(0.8, 1.1), side * (out + pick(-8, 8)))
-		Kit.rod(scene, at(x, -2, side * out), first, thick, c.root, wood, true)
-		Kit.rod(scene, first, second, thick * 0.9, c.root, wood, true)
-		Kit.rod(
-			scene,
-			second,
-			at(x + span, -2, side * (out + pick(0, 12))),
-			thick * 0.8,
-			c.root,
-			wood,
-			true
-		)
-		Kit.ball(scene, thick * 1.05, first, c.root, wood)
-		Kit.ball(scene, thick * 0.95, second, c.root, wood)
+		Kit.group(scene, x, function()
+			local first = at(x + span * 0.3, rise, side * (out + pick(-8, 8)))
+			local second = at(x + span * 0.7, rise * pick(0.8, 1.1), side * (out + pick(-8, 8)))
+			Kit.rod(scene, at(x, -2, side * out), first, thick, c.root, wood, true)
+			Kit.rod(scene, first, second, thick * 0.9, c.root, wood, true)
+			Kit.rod(
+				scene,
+				second,
+				at(x + span, -2, side * (out + pick(0, 12))),
+				thick * 0.8,
+				c.root,
+				wood,
+				true
+			)
+			Kit.ball(scene, thick * 1.05, first, c.root, wood)
+			Kit.ball(scene, thick * 0.95, second, c.root, wood)
+		end)
 	end
 
 	-- Stakes of the beast's wood, thrown like spears and standing where they struck, in sheaves.
 	-- They lean every way but towards the lane.
-	for i = 1, 14 do
+	for i = 1, many(14) do
 		local side = if i % 2 == 0 then -1 else 1
 		local middle = at(pick(6, length - 6), 0, side * pick(42, 152))
 		for _ = 1, 4 do
@@ -230,9 +244,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Craters: a scorched floor ringed by slabs the blast stood on end.
-	for i = 0, 5 do
+	for i = 0, many(5) do
 		local side = if i % 2 == 0 then 1 else -1
-		local middle = at(24 + i * 37 + pick(-6, 6), 0, side * pick(64, 130))
+		local middle = at(24 + i * gap(37) + gap(pick(-6, 6)), 0, side * pick(64, 130))
 		local radius = pick(12, 20)
 		Kit.backdrop(Kit.pillar(scene, 0.3, radius * 2, middle, c.scorch, slate))
 		for slab = 0, 6 do
@@ -253,12 +267,12 @@ return function(scene: Kit.Scene)
 		end
 	end
 	-- And the marks of smaller blasts, flat on the lane.
-	for i = 0, 5 do
+	for i = 0, many(5) do
 		Kit.pillar(
 			scene,
 			0.06,
 			pick(8, 16),
-			at(18 + i * 38 + pick(-5, 5), 0.02, pick(-22, 22)),
+			at(18 + i * gap(38) + gap(pick(-5, 5)), 0.02, pick(-22, 22)),
 			c.scorch,
 			slate
 		)
@@ -289,24 +303,24 @@ return function(scene: Kit.Scene)
 
 	-- Walls of earth raised to hold the beast back, leaning now: a long line on the left, a
 	-- shorter and lower one on the right.
-	for i = 0, 9 do
+	for i = 0, many(9) do
 		local tall = pick(28, 44)
 		Kit.block(
 			scene,
 			Vector3.new(16, tall, 6),
-			CFrame.new(at(14 + i * 22 + pick(-3, 3), tall / 2 - 2, -pick(86, 98)))
+			CFrame.new(at(14 + i * gap(22) + gap(pick(-3, 3)), tall / 2 - 2, -pick(86, 98)))
 				* CFrame.Angles(0, math.rad(pick(-8, 8)), 0)
 				* CFrame.Angles(math.rad(pick(6, 14)), 0, 0),
 			if i % 2 == 0 then c.rockWarm else c.boulder,
 			slate
 		)
 	end
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local tall = pick(16, 26)
 		Kit.block(
 			scene,
 			Vector3.new(14, tall, 5),
-			CFrame.new(at(20 + i * 26 + pick(-4, 4), tall / 2 - 2, pick(54, 62)))
+			CFrame.new(at(20 + i * gap(26) + gap(pick(-4, 4)), tall / 2 - 2, pick(54, 62)))
 				* CFrame.Angles(0, math.rad(pick(-8, 8)), 0)
 				* CFrame.Angles(math.rad(-pick(6, 14)), 0, 0),
 			if i % 2 == 0 then c.boulder else c.rockWarm,
@@ -315,43 +329,51 @@ return function(scene: Kit.Scene)
 	end
 
 	-- What is left of the allied camp, on the left by the gate: tents, a weapon rack by each.
-	for i = 0, 4 do
-		local x, z = 22 + i * 14 + pick(-2, 2), -pick(46, 74)
+	for i = 0, many(4) do
+		local x, z = 22 + i * gap(14) + gap(pick(-2, 2)), -pick(46, 74)
 		-- Every other tent stands across the lane; the door flap is in the gable end either way.
 		local across = i % 2 == 0
-		Kit.roof(scene, at(x, 5.6, z), 10, 5, 48, c.tent, cloth, across)
-		if across then
-			Kit.box(scene, Vector3.new(2.2, 3.4, 0.3), at(x, 0, z + 5.05), c.flap, cloth)
-		else
-			Kit.box(scene, Vector3.new(0.3, 3.4, 2.2), at(x + 5.05, 0, z), c.flap, cloth)
-		end
-		if i % 2 == 0 then
-			local rack = at(x + 2, 0, z + 9)
-			for _, dx in { -2.4, 2.4 } do
+		Kit.group(scene, x, function()
+			Kit.roof(scene, at(x, 5.6, z), 10, 5, 48, c.tent, cloth, across)
+			if across then
+				Kit.box(scene, Vector3.new(2.2, 3.4, 0.3), at(x, 0, z + 5.05), c.flap, cloth)
+			else
+				Kit.box(scene, Vector3.new(0.3, 3.4, 2.2), at(x + 5.05, 0, z), c.flap, cloth)
+			end
+			if i % 2 == 0 then
+				local rack = at(x + 2, 0, z + 9)
+				for _, dx in { -2.4, 2.4 } do
+					Kit.box(
+						scene,
+						Vector3.new(0.4, 4.4, 0.4),
+						rack + Vector3.new(dx, 0, 0),
+						c.pole,
+						wood
+					)
+				end
 				Kit.box(
 					scene,
-					Vector3.new(0.4, 4.4, 0.4),
-					rack + Vector3.new(dx, 0, 0),
+					Vector3.new(5.6, 0.3, 0.5),
+					rack + Vector3.new(0, 4, 0),
 					c.pole,
 					wood
 				)
+				for spear = -1, 1 do
+					Kit.rod(
+						scene,
+						rack + Vector3.new(spear * 1.6, 0, 1.6),
+						rack + Vector3.new(spear * 1.6, 7.4, -0.3),
+						0.25,
+						c.steel
+					)
+				end
 			end
-			Kit.box(scene, Vector3.new(5.6, 0.3, 0.5), rack + Vector3.new(0, 4, 0), c.pole, wood)
-			for spear = -1, 1 do
-				Kit.rod(
-					scene,
-					rack + Vector3.new(spear * 1.6, 0, 1.6),
-					rack + Vector3.new(spear * 1.6, 7.4, -0.3),
-					0.25,
-					c.steel
-				)
-			end
-		end
+		end)
 	end
 	-- Banners on poles along both sides of the lane, some of them torn short.
-	for i = 0, 7 do
+	for i = 0, many(7) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(22 + i * 27, 0, side * pick(36.5, 39))
+		local base = at(22 + i * gap(27), 0, side * pick(36.5, 39))
 		local drop = pick(3.5, 7)
 		Kit.pillar(scene, 15, 0.5, base, c.pole, wood)
 		Kit.box(
@@ -370,9 +392,9 @@ return function(scene: Kit.Scene)
 		)
 	end
 	-- Great four-bladed shuriken left standing in the ground.
-	for i = 0, 3 do
+	for i = 0, many(3) do
 		local side = if i % 2 == 0 then 1 else -1
-		local stuck = CFrame.new(at(40 + i * 48 + pick(-8, 8), 2.4, side * pick(42, 70)))
+		local stuck = CFrame.new(at(40 + i * gap(48) + gap(pick(-8, 8)), 2.4, side * pick(42, 70)))
 			* CFrame.Angles(math.rad(pick(-20, 20)), math.rad(pick(0, 180)), math.rad(pick(20, 50)))
 		Kit.block(scene, Vector3.new(9, 1.5, 0.3), stuck, c.steel)
 		Kit.block(scene, Vector3.new(1.5, 9, 0.3), stuck, c.steel)
@@ -380,9 +402,9 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Fires burning down: two charred logs and what still glows between them.
-	for i = 0, 5 do
+	for i = 0, many(5) do
 		local side = if i % 2 == 0 then -1 else 1
-		local base = at(30 + i * 34, 0, side * pick(38, 46))
+		local base = at(30 + i * gap(34), 0, side * pick(38, 46))
 		Kit.rod(
 			scene,
 			base + Vector3.new(-2, 0.4, -0.6),
@@ -410,7 +432,7 @@ return function(scene: Kit.Scene)
 	end
 
 	-- Boulders all over the field, and a few at the foot of the tree.
-	for i = 1, 36 do
+	for i = 1, many(36) do
 		local side = if i % 2 == 0 then -1 else 1
 		local width = pick(4, 13)
 		Kit.rock(
@@ -420,19 +442,21 @@ return function(scene: Kit.Scene)
 			if i % 3 == 0 then c.rockWarm else c.boulder
 		)
 	end
-	for i = 1, 6 do
-		local side = if i % 2 == 0 then -1 else 1
-		local width = pick(12, 24)
-		Kit.rock(
-			scene,
-			at(length + pick(20, 120), 0, side * pick(50, 160)),
-			Vector3.new(width, width * pick(0.6, 0.9), width),
-			c.boulder
-		)
-	end
+	group(length, function()
+		for i = 1, 6 do
+			local side = if i % 2 == 0 then -1 else 1
+			local width = pick(12, 24)
+			Kit.rock(
+				scene,
+				at(length + pick(20, 120), 0, side * pick(50, 160)),
+				Vector3.new(width, width * pick(0.6, 0.9), width),
+				c.boulder
+			)
+		end
+	end)
 
 	-- Trees burnt down to their trunks.
-	for i = 1, 10 do
+	for i = 1, many(10) do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(pick(6, length - 6), 0, side * pick(48, 165))
 		local crest = base + Vector3.new(pick(-2, 2), pick(14, 24), pick(-2, 2))
@@ -454,13 +478,15 @@ return function(scene: Kit.Scene)
 	-- The field lies in a ring of broken heights: slabs of the earth stood on end near at hand
 	-- and bare hills behind, on both sides and round behind the tree.
 	for _, side in { -1, 1 } do
-		for i = 0, 5 do
+		for i = 0, many(5) do
 			local tall = pick(120, 190)
 			Kit.backdrop(
 				Kit.block(
 					scene,
 					Vector3.new(pick(40, 60), tall, pick(40, 60)),
-					CFrame.new(at(12 + i * 42 + pick(-8, 8), tall / 2 - 6, side * pick(205, 270)))
+					CFrame.new(
+						at(12 + i * gap(42) + gap(pick(-8, 8)), tall / 2 - 6, side * pick(205, 270))
+					)
 						* CFrame.Angles(
 							math.rad(pick(-8, 8)),
 							math.rad(pick(0, 90)),
@@ -471,42 +497,48 @@ return function(scene: Kit.Scene)
 				)
 			)
 		end
-		for i = 0, 2 do
+		for i = 0, many(2) do
 			Kit.mound(
 				scene,
-				at(30 + i * 85 + pick(-10, 10), 0, side * pick(470, 540)),
+				at(30 + i * gap(85) + gap(pick(-10, 10)), 0, side * pick(470, 540)),
 				pick(200, 230),
 				pick(150, 210),
 				c.ridge,
 				slate
 			)
 		end
-		Kit.mound(scene, at(length + 270, 0, side * 400), 210, pick(150, 200), c.ridge, slate)
+		group(length, function()
+			Kit.mound(scene, at(length + 270, 0, side * 400), 210, pick(150, 200), c.ridge, slate)
+		end)
 	end
-	for i = -3, 3 do
-		Kit.mound(
-			scene,
-			at(length + pick(480, 560), 0, i * 170 + pick(-30, 30)),
-			pick(180, 230),
-			pick(140, 220),
-			c.ridge,
-			slate
-		)
-	end
-
-	-- Where the zone begins the earth itself was stood on end across the field, to both sides
-	-- of the gate: great slabs, leaning now, the last of what held the beast in.
-	for _, side in { -1, 1 } do
-		for i = 0, 6 do
-			local tall = pick(56, 104)
-			Kit.block(
+	group(length, function()
+		for i = -3, 3 do
+			Kit.mound(
 				scene,
-				Vector3.new(10, tall, 36),
-				CFrame.new(at(pick(3, 6), tall / 2 - 4, side * (62 + i * 32)))
-					* CFrame.Angles(0, math.rad(pick(-6, 6)), math.rad(pick(-9, 9))),
-				if i % 2 == 0 then c.ridge else c.rockWarm,
+				at(length + pick(480, 560), 0, i * 170 + pick(-30, 30)),
+				pick(180, 230),
+				pick(140, 220),
+				c.ridge,
 				slate
 			)
 		end
-	end
+	end)
+
+	-- Where the zone begins the earth itself was stood on end across the field, to both sides
+	-- of the gate: great slabs, leaning now, the last of what held the beast in.
+	group(0, function()
+		for _, side in { -1, 1 } do
+			for i = 0, 6 do
+				local tall = pick(56, 104)
+				Kit.block(
+					scene,
+					Vector3.new(10, tall, 36),
+					CFrame.new(at(pick(3, 6), tall / 2 - 4, side * (62 + i * 32)))
+						* CFrame.Angles(0, math.rad(pick(-6, 6)), math.rad(pick(-9, 9))),
+					if i % 2 == 0 then c.ridge else c.rockWarm,
+					slate
+				)
+			end
+		end
+	end)
 end

@@ -6,9 +6,18 @@
 -- Everything made here is only to be looked at: anchored, and neither collided with nor found
 -- by a ray, so no kunai, runner or camera ever notices it. Small pieces cast no shadow.
 --
--- Positions are given the way a zone sees them: `along` is studs from the zone's own start down
--- the lane, `up` is height above the lane, `side` is studs from the lane's middle, negative to
+-- Positions are given the way a zone sees them: `along` is from the zone's own start down the
+-- lane, `up` is height above the lane, `side` is studs from the lane's middle, negative to
 -- the left of someone looking down the lane.
+--
+-- `along` IS IN THE ZONE'S OWN MEASURE, NOT IN STUDS. A zone's scenery was laid out for a
+-- stretch of lane of a certain length (Config/ZoneArt, `laidOut`), and the zones have grown
+-- since. The scenery is spread over the longer lane: a point stands as far along the zone, in
+-- proportion, as it was laid out to stand. What is built of several pieces and must keep its
+-- shape, a house, a statue, a gate, is built in a Kit.group, which moves as one. Sizes are
+-- always studs; a rail or a wall that runs along the lane is given its length through Kit.far,
+-- and rows and scatterings get their numbers from Kit.many and Kit.gap, so that there is as
+-- much to see on every stud of a longer zone as there was on the shorter one.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -34,13 +43,18 @@ Kit.FAR = 2000
 
 -- A piece whose longest side is under this casts no shadow.
 local SHADOW_FROM = 10
+-- Nothing tall stands this near the place's own spawn pad (Hub.SPAWN_PAD), studs.
+local PAD_CLEAR = 24
 
 export type Scene = {
 	folder: Folder,
 	id: string,
 	art: ZoneArt.Art,
 	from: number, -- where the scene begins on the lane, studs
-	length: number,
+	length: number, -- how long it is, in its own measure
+	stretch: number, -- studs of lane to one of that measure
+	-- Inside a group: the point along the scene that the group keeps its shape about.
+	anchor: number?,
 	rng: Random,
 	colors: { [string]: Color3 },
 	parts: number,
@@ -54,9 +68,17 @@ export type Scene = {
 	inSign: boolean,
 }
 
--- A scene called `id` that begins `from` studs down the lane. Its random numbers come from
--- `seed`, so the world comes out the same on every server.
-function Kit.place(id: string, seed: number, art: ZoneArt.Art, from: number, length: number): Scene
+-- A scene called `id` that begins `from` studs down the lane and is `length` long in its own
+-- measure, each one of which takes `stretch` studs of lane (one, if not given). Its random
+-- numbers come from `seed`, so the world comes out the same on every server.
+function Kit.place(
+	id: string,
+	seed: number,
+	art: ZoneArt.Art,
+	from: number,
+	length: number,
+	stretch: number?
+): Scene
 	local folder = Instance.new("Folder")
 	folder.Name = id
 
@@ -78,6 +100,8 @@ function Kit.place(id: string, seed: number, art: ZoneArt.Art, from: number, len
 		art = art,
 		from = from,
 		length = length,
+		stretch = stretch or 1,
+		anchor = nil,
 		rng = Random.new(seed),
 		colors = colors,
 		parts = 0,
@@ -90,10 +114,12 @@ function Kit.place(id: string, seed: number, art: ZoneArt.Art, from: number, len
 	}
 end
 
--- A scene for the zone that is `index`-th on the lane.
+-- A scene for the zone that is `index`-th on the lane: as long as its scenery was laid out
+-- for, and spread over the lane the zone takes up today.
 function Kit.scene(zone: Catalog.Zone, index: number, art: ZoneArt.Art): Scene
-	local scene =
-		Kit.place(zone.id, index * 7919, art, zone.startsAt, Catalog.zoneEnd(zone) - zone.startsAt)
+	local studs = Catalog.zoneEnd(zone) - zone.startsAt
+	local laidOut = art.laidOut or studs
+	local scene = Kit.place(zone.id, index * 7919, art, zone.startsAt, laidOut, studs / laidOut)
 	local box = Signs.box(zone)
 	scene.sign = {
 		along = box.along - zone.startsAt,
@@ -111,7 +137,7 @@ end
 -- on it.
 function Kit.gateway(scene: Scene, build: () -> ())
 	scene.inGateway = true
-	build()
+	Kit.group(scene, 0, build)
 	scene.inGateway = false
 end
 
@@ -121,14 +147,63 @@ function Kit.signage(scene: Scene, build: (sign: Signs.Box) -> ())
 	local sign = scene.sign
 	if sign then
 		scene.inSign = true
-		build(sign)
+		-- The board hangs so many studs past the zone's line, whatever the zone's measure.
+		Kit.group(scene, 0, function()
+			build(sign)
+		end)
 		scene.inSign = false
 	end
 end
 
+-- How many studs down the lane from the scene's start a point `along` it is.
+local function studs(scene: Scene, along: number): number
+	local anchor = scene.anchor
+	return if anchor then anchor * scene.stretch + (along - anchor) else along * scene.stretch
+end
+
 -- A point of the zone in the world.
 function Kit.at(scene: Scene, along: number, up: number, side: number): Vector3
-	return Hub.at(scene.from + along, up, side)
+	return Hub.at(scene.from + studs(scene, along), up, side)
+end
+
+-- Builds something that keeps its shape however the zone is stretched: inside `build` a stud
+-- along the lane is a stud, measured from `anchor`, which alone moves with the zone. The anchor
+-- is the thing's own middle as a rule; what belongs to the zone's start is anchored at 0, and
+-- what stands by its far end at the scene's length. A group inside a group is part of it.
+function Kit.group(scene: Scene, anchor: number, build: () -> ())
+	if scene.anchor then
+		build()
+		return
+	end
+	scene.anchor = anchor
+	build()
+	scene.anchor = nil
+end
+
+-- Whether something `reach` studs across its middle, standing at that point of the zone, would
+-- stand over the place's own spawn pad or right beside it.
+function Kit.overPad(scene: Scene, along: number, side: number, reach: number): boolean
+	local pad = Hub.SPAWN_PAD
+	local dx = scene.from + studs(scene, along) - pad.X
+	local dz = side - pad.Z
+	return math.sqrt(dx * dx + dz * dz) < reach + PAD_CLEAR
+end
+
+-- The length in studs of something that runs `length` along the lane: a rail, a wall, a row.
+function Kit.far(scene: Scene, length: number): number
+	return length * scene.stretch
+end
+
+-- How many of something there are in a zone that was laid out with `count` of them: as many
+-- more as the zone is longer.
+function Kit.many(scene: Scene, count: number): number
+	return math.floor(count * scene.stretch + 0.5)
+end
+
+-- The step between the things of a row that was laid out with `step` between them, in the
+-- scene's measure: the row keeps the step it had in studs, and Kit.many makes it as long.
+function Kit.gap(scene: Scene, step: number): number
+	return step / scene.stretch
 end
 
 function Kit.material(name: string): Enum.Material
@@ -317,6 +392,16 @@ function Kit.mound(
 	color: Color3,
 	material: Enum.Material?
 ): Part
+	-- A hill that would lie over the place's own spawn pad stands farther out from the lane
+	-- instead, just clear of it. Which zone the pad lies beside depends on how long the zones
+	-- are, so the hills see to it themselves.
+	local pad = Hub.SPAWN_PAD
+	local clear = math.max(radius, height) + PAD_CLEAR
+	local dx, dz = foot.X - Hub.at(pad.X, 0, pad.Z).X, foot.Z - Hub.at(pad.X, 0, pad.Z).Z
+	if dx * dx + dz * dz < clear * clear then
+		local out = math.sqrt(clear * clear - dx * dx)
+		foot += Vector3.new(0, 0, (if pad.Z < 0 then -out else out) - dz)
+	end
 	local ball = (radius * radius + height * height) / (2 * height)
 	local part = Kit.ball(scene, ball * 2, foot + Vector3.new(0, height - ball, 0), color, material)
 	return Kit.backdrop(part)
@@ -369,12 +454,13 @@ function Kit.ground(scene: Scene): { Part }
 	local surface = scene.art.ground
 	local near = Hub.LANE_WIDTH / 2
 	local width = Kit.FAR - near
+	local long = scene.length * scene.stretch
 	local parts = {}
 	for _, side in { -1, 1 } do
 		local part = Kit.block(
 			scene,
-			Vector3.new(scene.length, 1, width),
-			CFrame.new(Kit.at(scene, scene.length / 2, -0.55, side * (near + width / 2))),
+			Vector3.new(long, 1, width),
+			CFrame.new(Hub.at(scene.from + long / 2, -0.55, side * (near + width / 2))),
 			Color3.fromHex(surface.color),
 			Kit.material(surface.material)
 		)
@@ -387,12 +473,13 @@ end
 -- The ground past the far end of the lane, for the last zone: the world goes on there too.
 function Kit.beyond(scene: Scene): { Part }
 	local surface = scene.art.ground
+	local finish = scene.from + scene.length * scene.stretch
 	local parts = {}
 	for _, side in { -1, 1 } do
 		local part = Kit.block(
 			scene,
 			Vector3.new(Kit.FAR, 1, Kit.FAR),
-			CFrame.new(Kit.at(scene, scene.length + Kit.FAR / 2, -0.55, side * Kit.FAR / 2)),
+			CFrame.new(Hub.at(finish + Kit.FAR / 2, -0.55, side * Kit.FAR / 2)),
 			Color3.fromHex(surface.color),
 			Kit.material(surface.material)
 		)
