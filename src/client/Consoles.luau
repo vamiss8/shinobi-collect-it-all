@@ -121,33 +121,61 @@ local function celebrate(upgrade: Net.Upgraded)
 	sparks.Parent = source
 	sparks:Emit(16 + 3 * math.min(upgrade.levels, 10))
 
+	-- A tag of parchment in a gilt outline: a red seal stamped with the levels gained, and
+	-- beside it, in ink, what happened and what the shinobi earns now.
 	local gui: BillboardGui = Ui.make("BillboardGui", {
-		Size = UDim2.fromScale(10, 3.4),
+		Size = UDim2.fromScale(9, 3),
 		StudsOffset = Vector3.new(0, WORDS_FROM, 0),
 		MaxDistance = 140,
 		LightInfluence = 0,
 		-- Drawn over the shinobi it is about, not hidden inside it.
 		AlwaysOnTop = true,
 	}, source)
-	local gained = Ui.text(gui, {
-		Size = UDim2.fromScale(1, 0.6),
+	local tag: Frame = Ui.make("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, gui)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.18, 0) }, tag)
+	local outline = Ui.stroke(tag, Ui.GOLD, 3)
+	local seal: Frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.04, 0.5),
+		Size = UDim2.fromScale(0.74, 0.74),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, tag)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
+	local stamped = Ui.text(seal, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.8, 0.62),
 		TextScaled = true,
-		TextColor3 = Ui.GOLD,
+		TextColor3 = Ui.PARCHMENT,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.2,
 		Text = Strings.get("UpgradeGained", upgrade.levels),
 	})
-	local earns = Ui.text(gui, {
-		Position = UDim2.fromScale(0, 0.6),
-		Size = UDim2.fromScale(1, 0.4),
+	local what = Ui.text(tag, {
+		Position = UDim2.fromScale(0.32, 0.06),
+		Size = UDim2.fromScale(0.64, 0.5),
 		TextScaled = true,
+		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.2,
+		Text = Strings.get("UpgradeDone"),
+	})
+	local earns = Ui.text(tag, {
+		Position = UDim2.fromScale(0.32, 0.56),
+		Size = UDim2.fromScale(0.64, 0.36),
+		TextScaled = true,
+		TextColor3 = Color3.fromRGB(150, 40, 30),
+		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = Strings.get("UpgradeEarns", upgrade.income),
 	})
 	local rising = TweenInfo.new(WORDS_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local risen = Vector3.new(0, WORDS_FROM + WORDS_RISE, 0)
 	TweenService:Create(gui, rising, { StudsOffset = risen }):Play()
+	-- It holds for the first half of its rise and fades through the second, all of it at once.
 	local fading = TweenInfo.new(
 		WORDS_SECONDS * 0.5,
 		Enum.EasingStyle.Quad,
@@ -156,9 +184,11 @@ local function celebrate(upgrade: Net.Upgraded)
 		false,
 		WORDS_SECONDS * 0.5
 	)
-	for _, words in { gained, earns } do
-		TweenService:Create(words, fading, { TextTransparency = 1, TextStrokeTransparency = 1 })
-			:Play()
+	TweenService:Create(tag, fading, { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(seal, fading, { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(outline, fading, { Transparency = 1 }):Play()
+	for _, words in { stamped, what, earns } do
+		TweenService:Create(words, fading, { TextTransparency = 1 }):Play()
 	end
 	task.delay(WORDS_SECONDS + 0.2, function()
 		source:Destroy()

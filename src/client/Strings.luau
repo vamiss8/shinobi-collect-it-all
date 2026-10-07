@@ -117,8 +117,9 @@ local TEXT: { [string]: string } = {
 
 	-- Reveal and the run home
 	Reveal = "%s!",
-	UpgradeGained = "+%s Lvl",
-	UpgradeEarns = "%s / s",
+	UpgradeGained = "+%s",
+	UpgradeDone = "LEVEL UP!",
+	UpgradeEarns = "%s Ryo / s",
 	ChaseWarn = "is after you!",
 	ChaseRun = "RUN HOME!",
 	ChaseRunFrom = "before %s catches you",
