@@ -1,8 +1,10 @@
 --!strict
--- The Speed Store window: the player's run speed, the next level and its price, and a list of
--- every zone's enemy with whether the player gets away from it. Run speed is what decides if a
--- shinobi from a zone can be brought home, so the list is the reason to buy. An enemy speeds up
--- towards the far end of its zone, so a zone can be safe on its near side only.
+-- The Youth Training Ground window (World/TrainingGround), the shop "speed": the player's speed
+-- stage (Config/SpeedStages) and run speed, the next level and its price, how far it is to the
+-- next stage, and a list of every zone's enemy with whether the player gets away from it. Run
+-- speed is what decides if a shinobi from a zone can be brought home, so the list is the reason
+-- to buy. An enemy speeds up towards the far end of its zone, so a zone can be safe on its near
+-- side only.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +12,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Remotes = require("../Remotes")
+local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local Store = require("../Store")
 local Strings = require("../Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -62,6 +65,7 @@ function SpeedStore.build(): Ui.Window
 		Position = UDim2.fromOffset(12, 0),
 		Size = UDim2.new(1, -170, 1, 0),
 		TextSize = 16,
+		RichText = true,
 	})
 	local buy = Ui.button(offer, {
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -124,8 +128,10 @@ function SpeedStore.build(): Ui.Window
 		local level = state.speedLevel
 		local maxLevel = Tuning.Speed.maxLevel
 		local speed = Economy.walkSpeed(level)
-		speedLabel.Text = Strings.get("ShopSpeedNow", speed)
-		levelLabel.Text = Strings.get("ShopSpeedLevel", level, maxLevel)
+		local stage = SpeedStages.at(level)
+		speedLabel.Text = stage.name
+		speedLabel.TextColor3 = if stage.gate > 0 then Color3.fromHex(stage.color) else Ui.GOLD
+		levelLabel.Text = Strings.get("ShopSpeedLevel", speed, level, maxLevel)
 		fill.Size = UDim2.fromScale(level / maxLevel, 1)
 
 		if level >= maxLevel then
@@ -134,7 +140,17 @@ function SpeedStore.build(): Ui.Window
 			buy.BackgroundColor3 = Ui.GRAY
 		else
 			local price = Economy.speedPrice(level)
-			offerLabel.Text = Strings.get("ShopSpeedNext", speed, Economy.walkSpeed(level + 1))
+			local text = Strings.get("ShopSpeedNext", speed, Economy.walkSpeed(level + 1))
+			-- Under it, how far the next stage is; in its color when the next level reaches it.
+			local following = SpeedStages.after(level)
+			if following then
+				local left = following.level - level
+				local hex = following.color
+				text ..= if left == 1
+					then `\n<font color="{hex}">{Strings.get("ShopSpeedOpens", following.name)}</font>`
+					else "\n" .. Strings.get("ShopSpeedToStage", following.name, left)
+			end
+			offerLabel.Text = text
 			buy.Text = Strings.get("ShopPrice", price)
 			buy.BackgroundColor3 = if state.ryo >= price then Ui.GREEN else Ui.GRAY
 		end

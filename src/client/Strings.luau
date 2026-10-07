@@ -85,10 +85,14 @@ local TEXT: { [string]: string } = {
 	ShopInUse = "In use",
 	ShopOwned = "Owned",
 	ShopSpeedTitle = "Youth Training Ground",
-	ShopSpeedNow = "Run speed %s",
-	ShopSpeedLevel = "Level %s of %s",
+	ShopSpeedLevel = "Speed %s  |  level %s of %s",
 	ShopSpeedNext = "Next level: run speed %s -> %s",
-	ShopSpeedMaxed = "Run speed is fully upgraded",
+	ShopSpeedOpens = "Next level: %s!",
+	ShopSpeedToStage = "%s in %s levels",
+	ShopSpeedMaxed = "All Eight Gates are open",
+	-- On the scroll that names a new speed stage, under its name.
+	StageGateOpened = "Gate %s of %s is open!  Run speed %s",
+	StageReached = "A new stage of training!  Run speed %s",
 	-- What Might Duy says when the training ground is opened, one at random.
 	DuyHello1 = "Youth is all about running! Pick up the pace!",
 	DuyHello2 = "Strap on those weights and run until the sun goes down!",
@@ -165,6 +169,7 @@ local TEXT: { [string]: string } = {
 	NotYourDojo = "This is not your dojo.",
 	Merged = "Merged into %s!",
 	FloorBuilt = "Your dojo grew! Floor %s is open.",
+	GateOpenedBy = "%s opened the %s!",
 	Sold = "Sold %s for %s Ryo.",
 	SoldMany = "Sold %s shinobi for %s Ryo.",
 }

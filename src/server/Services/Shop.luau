@@ -1,8 +1,10 @@
 --!strict
--- The market's three shops. Tenten's Ninja Tools sells kunai, the Speed Store sells run speed,
--- and the Sell stall buys shinobi out of the inventory. The windows live on the client; the
--- server only accepts a request from a player who is actually standing at that shop's counter.
+-- The market's three shops. Tenten's Ninja Tools (the shop "tenten") sells kunai, the Youth
+-- Training Ground (the shop "speed") sells run speed, and the Mission Desk (the shop "sell")
+-- buys shinobi out of the inventory. The windows live on the client; the server only accepts a
+-- request from a player who is actually standing at that shop's counter.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
@@ -12,6 +14,8 @@ local Inventory = require("./Inventory")
 local Loadout = require("./Loadout")
 local Market = require("../World/Market")
 local Remotes = require("../Remotes")
+local SpeedLook = require("./SpeedLook")
+local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local State = require("./State")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 
@@ -54,12 +58,27 @@ local function buy(player: Player, item: unknown)
 			data.speedLevel < Tuning.Speed.maxLevel
 			and pay(player, data, Economy.speedPrice(data.speedLevel))
 		then
+			local before = SpeedStages.at(data.speedLevel)
 			data.speedLevel += 1
 			local character = player.Character
 			local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 			-- A frozen player (mid-throw) gets the new speed when they are released.
 			if humanoid and humanoid.WalkSpeed > 0 then
 				humanoid.WalkSpeed = Economy.walkSpeed(data.speedLevel)
+			end
+			-- A new stage changes the runner's look, and a Gate opening is news for everyone.
+			local stage = SpeedStages.at(data.speedLevel)
+			if stage ~= before then
+				if character then
+					SpeedLook.apply(character, data.speedLevel)
+				end
+				if stage.gate > 0 then
+					for _, other in Players:GetPlayers() do
+						if other ~= player then
+							State.notify(other, "GateOpenedBy", player.DisplayName, stage.name)
+						end
+					end
+				end
 			end
 		end
 	end

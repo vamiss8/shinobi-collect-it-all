@@ -146,7 +146,8 @@ return {
 	-- for about four more levels at its near edge, and the far end of the lane for all but
 	-- the last of the forty. Prices grow as the kunai's do, thirty-five times a zone, so the
 	-- four levels a zone asks for stay the same small share of what its two kunai cost: run
-	-- speed is to be there by the time the Chakra is (see `lune run sim`).
+	-- speed is to be there by the time the Chakra is (see `lune run sim`). Config/SpeedStages
+	-- names the levels: laps, training weights, then the Eight Gates, the last at the top level.
 	Speed = {
 		base = 16, -- Roblox default WalkSpeed
 		perLevel = 1,

@@ -25,6 +25,7 @@ local specs: { [string]: Spec } = {
 	Roll = require("../tests/Roll.spec"),
 	Roster = require("../tests/Roster.spec"),
 	Saves = require("../tests/Saves.spec"),
+	SpeedStages = require("../tests/SpeedStages.spec"),
 	ZoneArt = require("../tests/ZoneArt.spec"),
 	ZoneBuild = require("../tests/ZoneBuild.spec"),
 }
