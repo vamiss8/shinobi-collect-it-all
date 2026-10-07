@@ -9,6 +9,7 @@ local specs: { [string]: Spec } = {
 	Boosts = require("../tests/Boosts.spec"),
 	Catalog = require("../tests/Catalog.spec"),
 	Chase = require("../tests/Chase.spec"),
+	DojoHall = require("../tests/DojoHall.spec"),
 	DojoPlan = require("../tests/DojoPlan.spec"),
 	Economy = require("../tests/Economy.spec"),
 	Focus = require("../tests/Focus.spec"),

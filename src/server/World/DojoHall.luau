@@ -8,10 +8,11 @@
 -- (setFloors). Each floor, with the flight of stairs that leads to it, is a folder of its own
 -- that is only in the world while the floor stands.
 --
--- Floors, walls, pillars, the roof and the ramps under the stairs are solid. Steps, railings,
--- lanterns and the rest are only for show: nothing collides with them and the camera never
--- zooms in because of them. Invisible walls along the railings keep players from walking off
--- an edge by accident; a deliberate jump still clears them.
+-- Floors, walls, pillars, the roof, the small roofs round the upper floors and the ramps under
+-- the stairs are solid. Steps, railings, lanterns and the rest are only for show: nothing
+-- collides with them and the camera never zooms in because of them. Invisible walls along the
+-- railings keep players from walking off an edge by accident; a deliberate jump still clears
+-- them.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -544,15 +545,16 @@ local function buildFront(ctx: Ctx, floor: number)
 		hidden(block(ctx, "RailGuard", V(a, y, z - 0.2), V(b, y + GUARD, z + 0.2), LACQUER))
 	end
 
-	-- A smaller roof along the side walls and the back wall, at this floor's level.
+	-- A smaller roof along the side walls and the back wall, at this floor's level. It is
+	-- solid: it can be reached from the end of a landing, and whoever steps onto it stands on it.
 	for _, side in { -1, 1 } do
 		local zFrom, zTo = FRONT - 0.5, BACK - WALL
 		local zMid = (zFrom + zTo) / 2
 		local a, b = V(side * HALF, y + 1.5, zMid), V(side * (HALF + 2.8), y - 0.1, zMid)
-		decor(plank(ctx, "Eave", a, b, zTo - zFrom, 0.7, -0.35, TILES, TILED))
+		plank(ctx, "Eave", a, b, zTo - zFrom, 0.7, -0.35, TILES, TILED)
 	end
 	local a, b = V(0, y + 1.5, BACK), V(0, y - 0.1, BACK + 2.8)
-	decor(plank(ctx, "Eave", a, b, 2 * HALF + 0.6, 0.7, -0.35, TILES, TILED))
+	plank(ctx, "Eave", a, b, 2 * HALF + 0.6, 0.7, -0.35, TILES, TILED)
 end
 
 -- A lattice screen in the bays of the ground floor that the first flight passes low in front
