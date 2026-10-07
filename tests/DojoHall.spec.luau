@@ -39,6 +39,31 @@ return {
 		T.eq(eaves, 3 * 2 * PlazaPlan.DOJOS)
 	end,
 
+	-- A player who has got onto the roof stands on what is there, and walks through none of it.
+	["what stands on the roof is solid"] = function()
+		local solid = {
+			Ridge = 1,
+			RidgeEnd = 2,
+			RidgeLog = 3,
+			Gable = 4,
+			Tank = 1,
+			TankStand = 1,
+			TankLeg = 4,
+			TankLid = 1,
+			TankBand = 2,
+		}
+		local counted: { [string]: number } = {}
+		for _, part in parts() do
+			if solid[part.Name] then
+				counted[part.Name] = (counted[part.Name] or 0) + 1
+				T.ok(part.CanCollide, `{where(part)} is walked through`)
+			end
+		end
+		for name, each in solid do
+			T.eq(counted[name], each * PlazaPlan.DOJOS, `how many pieces named {name}`)
+		end
+	end,
+
 	-- Two flat sides in one plane, one over the other, flicker as the camera moves. A hall is
 	-- held to this where it shows: small overlaps deep under its roof are let be.
 	["nothing of a hall flickers where it is seen"] = function()

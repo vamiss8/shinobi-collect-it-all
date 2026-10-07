@@ -8,9 +8,10 @@
 -- (setFloors). Each floor, with the flight of stairs that leads to it, is a folder of its own
 -- that is only in the world while the floor stands.
 --
--- Floors, walls, pillars, the roof, the small roofs round the upper floors and the ramps under
--- the stairs are solid. Steps, railings, lanterns and the rest are only for show: nothing
--- collides with them and the camera never zooms in because of them. Invisible walls along the
+-- Floors, walls, pillars, the roof with its ridge, gables and water tank, the small roofs round
+-- the upper floors and the ramps under the stairs are solid. Steps, railings, lanterns and the
+-- rest are only for show: nothing collides with them and the camera never zooms in because of
+-- them. Invisible walls along the
 -- railings keep players from walking off an edge by accident; a deliberate jump still clears
 -- them.
 
@@ -669,7 +670,7 @@ local function buildRoof(ctx: Ctx)
 		local rise = (MID - breakZ) * dir * HIGH_SLOPE
 		for _, side in { -1, 1 } do
 			local x = side * (HALF - WALL / 2)
-			decor(wedge(ctx, "Gable", x, breakZ, MID, TOP, rise, PLASTER, Enum.Material.Plaster))
+			wedge(ctx, "Gable", x, breakZ, MID, TOP, rise, PLASTER, Enum.Material.Plaster)
 			local edge = side * (EAVE_SIDE + 0.25)
 			-- The boards lap over one another where the slope breaks and at the ridge, so no two
 			-- that meet are of one thickness: their outer sides would lie in one plane and
@@ -691,16 +692,18 @@ local function buildRoof(ctx: Ctx)
 
 	local ridgeA = V(-EAVE_SIDE - 0.6, RIDGE_Y - 0.4, MID - 1.1)
 	local ridgeB = V(EAVE_SIDE + 0.6, RIDGE_Y + 1.2, MID + 1.1)
-	decor(block(ctx, "Ridge", ridgeA, ridgeB, RIDGE, Enum.Material.Slate))
+	-- What stands on the roof is solid, like the roof: the ridge, the logs across it and the
+	-- water tank can be stood on and are not walked through.
+	block(ctx, "Ridge", ridgeA, ridgeB, RIDGE, Enum.Material.Slate)
 	for _, side in { -1, 1 } do
 		local x = side * (EAVE_SIDE + 1)
 		local a, b = V(x - 0.7, RIDGE_Y - 0.6, MID - 1.3), V(x + 0.7, RIDGE_Y + 2.2, MID + 1.3)
-		decor(block(ctx, "RidgeEnd", a, b, RIDGE, Enum.Material.Slate))
+		block(ctx, "RidgeEnd", a, b, RIDGE, Enum.Material.Slate)
 	end
 	-- Short logs laid across the ridge.
 	for _, x in { -20, -8, 4 } do
 		local y = RIDGE_Y + 1.7
-		decor(rod(ctx, "RidgeLog", V(x, y, MID - 2.4), V(x, y, MID + 2.4), 1, TIMBER, WOOD))
+		rod(ctx, "RidgeLog", V(x, y, MID - 2.4), V(x, y, MID + 2.4), 1, TIMBER, WOOD)
 	end
 
 	-- The water tank, on legs that stand on the roof either side of the ridge.
@@ -708,20 +711,20 @@ local function buildRoof(ctx: Ctx)
 	local base = RIDGE_Y + 1.2
 	local stand = V(3.5, 0, 3.5)
 	local center = V(tankX, base, MID)
-	decor(block(ctx, "TankStand", center - stand, center + stand + V(0, 0.5, 0), TIMBER, PLANKS))
+	block(ctx, "TankStand", center - stand, center + stand + V(0, 0.5, 0), TIMBER, PLANKS)
 	local foot = RIDGE_Y - 3 * HIGH_SLOPE - 0.4
 	for _, dx in { -3, 3 } do
 		for _, dz in { -3, 3 } do
 			local leg = V(tankX + dx, foot, MID + dz)
 			local top = V(leg.X, base, leg.Z)
-			decor(block(ctx, "TankLeg", leg - V(0.3, 0, 0.3), top + V(0.3, 0, 0.3), TIMBER, WOOD))
+			block(ctx, "TankLeg", leg - V(0.3, 0, 0.3), top + V(0.3, 0, 0.3), TIMBER, WOOD)
 		end
 	end
-	decor(column(ctx, "Tank", V(tankX, base + 0.5, MID), 5.2, 5.6, TANK, WOOD))
+	column(ctx, "Tank", V(tankX, base + 0.5, MID), 5.2, 5.6, TANK, WOOD)
 	for _, y in { base + 1.2, base + 4.6 } do
-		decor(column(ctx, "TankBand", V(tankX, y, MID), 0.4, 5.8, IRON, Enum.Material.Metal))
+		column(ctx, "TankBand", V(tankX, y, MID), 0.4, 5.8, IRON, Enum.Material.Metal)
 	end
-	decor(column(ctx, "TankLid", V(tankX, base + 5.7, MID), 0.45, 6, TIMBER, WOOD))
+	column(ctx, "TankLid", V(tankX, base + 5.7, MID), 0.45, 6, TIMBER, WOOD)
 
 	-- A small lantern in each bay along the beam over the top floor, but those in the middle.
 	local beam = TOP - SLAB - HEADER
