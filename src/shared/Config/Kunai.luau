@@ -1,5 +1,5 @@
 --!strict
--- Kunai sold at the Chakra Store, bought in order. The best one owned is the one thrown: it
+-- Kunai sold at Tenten's Ninja Tools, bought in order. The best one owned is the one thrown: it
 -- sets how the throw looks (color, glow, trail) and how much Chakra one rep of training gives
 -- (a meditation tick pays a share of a rep, a ring press several). There are two for every
 -- zone after the first: every second one triples the Chakra, the one between is halfway there.

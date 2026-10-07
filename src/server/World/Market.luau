@@ -1,8 +1,9 @@
 --!strict
--- The market: three stalls round the fountain in the middle of the plaza (Logic/PlazaPlan says
--- where), each a counter under a tiered roof with its wares laid out on top. Walking up to a
--- counter and using its prompt opens that shop's window on the client (the prompt's attribute
--- says which). The server only needs to know whether a player is standing at a stall when they
+-- The market, round the fountain in the middle of the plaza (Logic/PlazaPlan says where):
+-- Tenten's Ninja Tools on the lane's side of it (World/TentenShop), and two stalls behind,
+-- each a counter under a tiered roof with its wares laid out on top. Walking up to a counter
+-- and using its prompt opens that shop's window on the client (the prompt's attribute says
+-- which). The server only needs to know whether a player is standing at a counter when they
 -- ask to buy or sell there.
 --
 -- Built from plain parts in Hub coordinates; call start() after Hub.start().
@@ -11,14 +12,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
-local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hub = require("./Hub")
 local Net = require(ReplicatedStorage.Shared.Net)
 local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
+local TentenShop = require("./TentenShop")
 
 local Market = {}
 
--- A player this close to a stall's counter may buy or sell there, studs.
+-- A player this close to a shop's counter may buy or sell there, studs.
 local RANGE = 18
 
 local WOOD = Color3.fromRGB(121, 85, 61)
@@ -36,6 +37,14 @@ type Stall = {
 
 local counters: { [string]: Part } = {}
 
+-- Puts the prompt that opens shop `id` on its counter, usable from `reach` studs away.
+local function open(counter: Part, id: string, title: string, reach: number)
+	local prompt = Build.prompt(counter, "Open", title)
+	prompt.MaxActivationDistance = reach
+	prompt:SetAttribute(Net.SHOP_ATTRIBUTE, id)
+	counters[id] = counter
+end
+
 -- A small decorative part that nothing collides with.
 local function prop(
 	folder: Folder,
@@ -52,35 +61,6 @@ local function prop(
 end
 
 local STALLS: { Stall } = {
-	{
-		id = "chakra",
-		title = "CHAKRA STORE",
-		color = Color3.fromRGB(79, 195, 247),
-		-- A row of kunai, cheapest to dearest, and a glowing orb of chakra.
-		wares = function(folder, top)
-			local shown = { 2, 5, 9 }
-			for i, index in shown do
-				local kunai = Catalog.kunai[math.min(index, #Catalog.kunai)]
-				local lying = CFrame.new(top + Vector3.new((i - 2) * 1.6, 0.15, -1.2))
-					* CFrame.Angles(0, math.rad(25), 0)
-				prop(
-					folder,
-					Vector3.new(0.3, 0.3, 2.6),
-					lying,
-					Color3.fromHex(kunai.color),
-					if kunai.glow then Enum.Material.Neon else Enum.Material.Metal
-				)
-			end
-			local orb = prop(
-				folder,
-				Vector3.new(1.6, 1.6, 1.6),
-				CFrame.new(top + Vector3.new(0, 1, 1.4)),
-				Color3.fromRGB(79, 195, 247),
-				Enum.Material.Neon
-			)
-			orb.Shape = Enum.PartType.Ball
-		end,
-	},
 	{
 		id = "speed",
 		title = "SPEED STORE",
@@ -222,13 +202,11 @@ local function build(folder: Folder, stall: Stall)
 	)
 	Build.label(cap, stall.title, 3.4, Vector2.new(18, 4))
 
-	local prompt = Build.prompt(counter, "Open", stall.title)
-	prompt.MaxActivationDistance = 12
-	prompt:SetAttribute(Net.SHOP_ATTRIBUTE, stall.id)
-	counters[stall.id] = counter
+	open(counter, stall.id, stall.title, 12)
 end
 
--- Whether the player is standing at the given stall ("chakra", "speed" or "sell").
+-- Whether the player is standing at the counter of the given shop ("tenten", "speed" or
+-- "sell").
 function Market.playerAt(player: Player, stallId: string): boolean
 	local counter = counters[stallId]
 	local character = player.Character
@@ -242,6 +220,7 @@ end
 function Market.start()
 	local folder = Instance.new("Folder")
 	folder.Name = "Market"
+	open(TentenShop.build(folder), "tenten", "Tenten's Ninja Tools", TentenShop.REACH)
 	for _, stall in STALLS do
 		build(folder, stall)
 	end

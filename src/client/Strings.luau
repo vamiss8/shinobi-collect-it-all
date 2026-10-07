@@ -68,9 +68,14 @@ local TEXT: { [string]: string } = {
 	CardBase = "Base: %s/s",
 
 	-- Market stores
-	ShopChakraTitle = "Chakra Store",
-	ShopChakraHint = "A better kunai gives more Chakra from every kind of training and changes "
+	ShopTentenTitle = "Tenten's Ninja Tools",
+	ShopTentenHint = "A better kunai gives more Chakra from every kind of training and changes "
 		.. "how your throw looks. They are bought in order.",
+	-- What Tenten says when her shop is opened, one at random.
+	TentenHello1 = "Welcome to my shop! Every kunai here flies true.",
+	TentenHello2 = "A better kunai makes every rep of training count for more!",
+	TentenHello3 = "Kunai, shuriken, scrolls... if it's sharp, I sell it!",
+	TentenHello4 = "One at a time! Master each blade before the next.",
 	ShopKunaiChakra = "+%s Chakra per rep",
 	ShopKunaiGain = "x%s training",
 	ShopYourKunai = "YOUR KUNAI",

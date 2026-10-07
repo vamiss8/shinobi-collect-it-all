@@ -14,6 +14,7 @@ local roblox = require("@lune/roblox")
 local Catalog = require("../src/shared/Config/Catalog")
 local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Looks = require("../src/shared/Config/ZoneArt")
+local Net = require("../src/shared/Net")
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local Signs = require("../src/shared/Logic/Signs")
 local Tuning = require("../src/shared/Config/Tuning")
@@ -143,7 +144,22 @@ local replicated = {
 			PlazaPlan = marker(PlazaPlan),
 			Signs = marker(Signs),
 		},
-		View = { Particles = marker(particles) },
+		Net = marker(Net),
+		View = {
+			Particles = marker(particles),
+			-- Figures and supplied models are not built here: a shop's keeper is anything that
+			-- can be stood somewhere, and no kunai has a model.
+			Figure = marker({
+				keeper = function(): any
+					return { PivotTo = function() end }
+				end,
+			}),
+			KunaiModel = marker({
+				supplied = function(): any
+					return nil
+				end,
+			}),
+		},
 	},
 }
 
@@ -543,6 +559,21 @@ function Zones.plaza(): any
 	end)
 	run(fs.readFile("src/server/World/Plaza.luau"), "Plaza", world).start()
 	return workspace:FindFirstChild("Plaza")
+end
+
+-- Builds Tenten's shop (src/server/World/TentenShop) where the plaza's plan stands it, and
+-- returns the folder it is in.
+function Zones.shop(): any
+	local world = environment(function(path: string): any
+		if path == "./Hub" then
+			return hub
+		end
+		error(`the zone harness does not know {path}`)
+	end)
+	local shop = run(fs.readFile("src/server/World/TentenShop.luau"), "TentenShop", world)
+	local parent = roblox.Instance.new("Folder")
+	shop.build(parent)
+	return parent
 end
 
 -- Builds the six dojos (src/server/World/DojoHall) where World/Plots stands them, each with

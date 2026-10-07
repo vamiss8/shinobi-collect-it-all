@@ -61,7 +61,7 @@ return {
 	end,
 
 	["the stalls stand round the fountain with room to pass everywhere"] = function()
-		local ids = { "chakra", "speed", "sell" }
+		local ids = { "speed", "sell" }
 		for _, id in ids do
 			local spot = PlazaPlan.stalls[id]
 			T.ok(spot ~= nil, `no place for the {id} stall`)
@@ -74,18 +74,39 @@ return {
 				PlazaPlan.HALF_WIDTH - math.abs(spot.side) - PlazaPlan.STALL_HALF >= 2 * PASSAGE,
 				`room between the {id} stall and the dojos`
 			)
+			T.ok(spot.along < PlazaPlan.FOUNTAIN.along, `the {id} stall is behind the fountain`)
 		end
-		for a = 1, #ids do
-			for b = a + 1, #ids do
-				local apart = distance(PlazaPlan.stalls[ids[a]], PlazaPlan.stalls[ids[b]])
-				T.ok(
-					apart - 2 * PlazaPlan.STALL_HALF >= PASSAGE,
-					`{ids[a]} and {ids[b]} keep apart`
-				)
-			end
+		local apart = distance(PlazaPlan.stalls.speed, PlazaPlan.stalls.sell)
+		T.ok(apart - 2 * PlazaPlan.STALL_HALF >= PASSAGE, "the two stalls keep apart")
+		local count = 0
+		for _ in PlazaPlan.stalls do
+			count += 1
 		end
-		T.eq(PlazaPlan.stalls.chakra.side, 0, "the Chakra Store stands on the way to the lane")
-		T.ok(PlazaPlan.stalls.chakra.along > PlazaPlan.FOUNTAIN.along, "on the lane's side")
+		T.eq(count, 2, "the third shop is Tenten's, and no stall")
+	end,
+
+	["Tenten's shop stands on the middle line between the fountain and the lane"] = function()
+		local shop = PlazaPlan.SHOP
+		T.eq(shop.side, 0, "on the plaza's middle line")
+		local front = shop.along - PlazaPlan.SHOP_FRONT
+		local back = shop.along + PlazaPlan.SHOP_DEPTH
+		T.ok(front > PlazaPlan.FOUNTAIN.along, "on the lane's side of the fountain")
+		T.ok(
+			front - (PlazaPlan.FOUNTAIN.along + PlazaPlan.FOUNTAIN_RADIUS) >= PASSAGE,
+			"room to stand at its counter, clear of the fountain"
+		)
+		T.ok(back <= -PlazaPlan.FRONT_GAP - PASSAGE, "room to pass between it and the lane")
+		T.ok(
+			PlazaPlan.HALF_WIDTH - PlazaPlan.SHOP_HALF >= 4 * PASSAGE,
+			"plenty of room to walk round it on either side"
+		)
+		for id, stall in PlazaPlan.stalls do
+			-- A stall is behind the fountain, the shop before it.
+			T.ok(
+				front - stall.along - PlazaPlan.STALL_HALF >= PASSAGE,
+				`the shop keeps clear of the {id} stall`
+			)
+		end
 	end,
 
 	["every owner appears on open paving in front of their own dojo"] = function()
@@ -108,6 +129,10 @@ return {
 					`spawn {index} is clear of the {id} stall`
 				)
 			end
+			T.ok(
+				math.abs(spawn.side - PlazaPlan.SHOP.side) >= PlazaPlan.SHOP_HALF + PASSAGE,
+				`spawn {index} is clear of Tenten's shop`
+			)
 		end
 	end,
 }

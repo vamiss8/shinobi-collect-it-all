@@ -1,7 +1,8 @@
 --!strict
--- The Chakra Store window: the kunai in use at the top, with how close the next one is, and
--- under it every kunai, cheapest first. They are bought in order, and the newest one owned is
--- the one in use: it sets how much Chakra training gives and how the throw looks.
+-- The window of Tenten's Ninja Tools (World/TentenShop): the kunai in use at the top, with how
+-- close the next one is, and under it every kunai, cheapest first. They are bought in order,
+-- and the newest one owned is the one in use: it sets how much Chakra training gives and how the
+-- throw looks.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -12,7 +13,7 @@ local Store = require("../Store")
 local Strings = require("../Strings")
 local Ui = require("../Ui")
 
-local ChakraStore = {}
+local TentenShop = {}
 
 local HINT_HEIGHT = 48
 local HEADER_HEIGHT = 128
@@ -55,9 +56,9 @@ local function plate(parent: Instance, kunai: Catalog.Kunai, at: UDim2, side: nu
 	return frame
 end
 
-function ChakraStore.build(): Ui.Window
-	local window = Ui.window("ChakraStore", Vector2.new(900, 740))
-	window.title.Text = Strings.get("ShopChakraTitle")
+function TentenShop.build(): Ui.Window
+	local window = Ui.window("TentenShop", Vector2.new(900, 740))
+	window.title.Text = Strings.get("ShopTentenTitle")
 	local body = window.body
 
 	Ui.text(body, {
@@ -66,7 +67,7 @@ function ChakraStore.build(): Ui.Window
 		TextColor3 = Ui.MUTED,
 		TextWrapped = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = Strings.get("ShopChakraHint"),
+		Text = Strings.get("ShopTentenHint"),
 	})
 
 	-- The kunai in use on the left, the way to the next one on the right.
@@ -264,4 +265,4 @@ function ChakraStore.build(): Ui.Window
 	return window
 end
 
-return ChakraStore
+return TentenShop

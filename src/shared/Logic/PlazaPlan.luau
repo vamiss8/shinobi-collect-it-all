@@ -1,7 +1,8 @@
 --!strict
 -- Where everything stands on the square behind the start of the lane, where players appear: a
--- paved plaza with a fountain in its middle, the market's three stalls round the fountain, and
--- the six dojos along its two long sides, three a side, facing each other across it. The
+-- paved plaza with a fountain in its middle, the market round the fountain (a shop on the
+-- lane's side of it, two stalls behind), and the six dojos along its two long sides, three a
+-- side, facing each other across it. The
 -- numbers are kept here, apart from the parts built from them (World/Plots, World/Plaza,
 -- World/Market, ZoneArt/home), so that the specs can check the layout without Roblox.
 --
@@ -64,9 +65,9 @@ end
 PlazaPlan.FOUNTAIN = { along = -PlazaPlan.DEPTH / 2, side = 0 } :: Spot
 PlazaPlan.FOUNTAIN_RADIUS = 18
 
--- The market's stalls stand round the fountain, a third of a turn apart, this far from its
--- middle: the Chakra Store on the side of the lane, the other two behind. A stall's roof
--- reaches STALL_HALF from its middle.
+-- The market's two stalls stand behind the fountain as seen from the lane, a third of a turn
+-- either side of the plaza's middle line and this far from the fountain's middle. A stall's
+-- roof reaches STALL_HALF from its middle.
 PlazaPlan.STALL_RING = 36
 PlazaPlan.STALL_HALF = 5.5
 local function stall(turn: number): Spot
@@ -77,9 +78,18 @@ local function stall(turn: number): Spot
 	}
 end
 PlazaPlan.stalls = {
-	chakra = stall(0),
 	speed = stall(-120),
 	sell = stall(120),
 } :: { [string]: Spot }
+
+-- Tenten's Ninja Tools, the shop that sells kunai (World/TentenShop), stands on the plaza's
+-- middle line where the third stall stood, between the fountain and the lane: its open front
+-- to the fountain, its back, with a target on it, to the throwing strip. SHOP is the middle of
+-- its front line. With its porch and its eaves it reaches SHOP_FRONT before that line, towards
+-- the fountain, SHOP_DEPTH behind it, towards the lane, and SHOP_HALF to either side.
+PlazaPlan.SHOP = { along = -72, side = 0 } :: Spot
+PlazaPlan.SHOP_FRONT = 3
+PlazaPlan.SHOP_DEPTH = 14
+PlazaPlan.SHOP_HALF = 12.5
 
 return PlazaPlan

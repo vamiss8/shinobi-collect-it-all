@@ -249,6 +249,16 @@ function Figure.enemy(zone: Catalog.Zone): Model
 	return model
 end
 
+-- Builds a shopkeeper standing at the world origin, pivot at their feet, with their name over
+-- their head: the model supplied under `id` (as for a shinobi), or a placeholder in `color`.
+function Figure.keeper(id: string, name: string, color: Color3): Model
+	local model = supplied(id, UNIT_HEIGHT) or placeholderUnit(color)
+	model.Name = name
+	Build.label(topAnchor(model, UNIT_HEIGHT), name, 1, Vector2.new(7, 1.8))
+	untouchable(model)
+	return model
+end
+
 -- Carries the figure above a character's head. The whole figure hangs from the character's
 -- root on one joint, so that it can be turned as one piece: every client turns the joint to
 -- make the figure face its own camera (client/Carried finds it by its tag). Until a client

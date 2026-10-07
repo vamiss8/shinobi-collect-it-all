@@ -40,6 +40,9 @@ Net.Events = {
 
 -- Attribute on a stall's ProximityPrompt naming the shop window it opens on the client.
 Net.SHOP_ATTRIBUTE = "Shop"
+-- Name of the model of a shop's keeper, next to the counter that carries the prompt (both in
+-- the shop's folder). The client puts a chat bubble over the keeper when the shop is opened.
+Net.KEEPER = "Keeper"
 -- The folder in Workspace holding the shared part of the world, and its attribute with the
 -- world position where the lane starts.
 Net.HUB_FOLDER = "Hub"

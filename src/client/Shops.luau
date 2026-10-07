@@ -1,29 +1,56 @@
 --!strict
--- Opens the market's shop windows. Using a stall's prompt opens that stall's window; walking
--- away closes it. The windows themselves live in Stores/ and only send intents ("buy", "sell"):
--- the server checks prices and that the player really is at the stall.
+-- Opens the market's shop windows. Using a counter's prompt opens that shop's window, and a shop
+-- with a keeper greets the player with a chat bubble over the keeper; walking away closes the
+-- window. The windows themselves live in Stores/ and only send intents ("buy", "sell"): the
+-- server checks prices and that the player really is at the counter.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TextChatService = game:GetService("TextChatService")
 
-local ChakraStore = require("./Stores/ChakraStore")
 local Net = require(ReplicatedStorage.Shared.Net)
 local SellStall = require("./Stores/SellStall")
 local SpeedStore = require("./Stores/SpeedStore")
+local Strings = require("./Strings")
+local TentenShop = require("./Stores/TentenShop")
 local Ui = require("./Ui")
 
 local Shops = {}
 
--- A window closes once the player is this far from its stall, studs. Keep it below the range
+-- A window closes once the player is this far from its counter, studs. Keep it below the range
 -- the server accepts requests from (World/Market).
 local CLOSE_DISTANCE = 16
+
+-- What a shop's keeper may say when the shop is opened, by shop: keys of client/Strings.
+local GREETINGS: { [string]: { string } } = {
+	tenten = { "TentenHello1", "TentenHello2", "TentenHello3", "TentenHello4" },
+}
+
+local rng = Random.new()
+
+-- A chat bubble over the keeper of the shop whose counter is `counter`, if it has one. Only
+-- this player sees it.
+local function greet(kind: string, counter: BasePart)
+	local lines = GREETINGS[kind]
+	local shop = counter.Parent
+	local keeper = if shop then shop:FindFirstChild(Net.KEEPER) else nil
+	local head = if keeper then keeper:FindFirstChild("TagAnchor") else nil
+	if not lines or not head then
+		return
+	end
+	local line = Strings.get(lines[rng:NextInteger(1, #lines)])
+	-- Fails where bubble chat is off; the greeting is only a nicety.
+	pcall(function()
+		TextChatService:DisplayBubble(head, line)
+	end)
+end
 
 function Shops.start()
 	-- Keyed by the value of the stall prompt's shop attribute.
 	local windows: { [string]: Ui.Window } = {
-		chakra = ChakraStore.build(),
+		tenten = TentenShop.build(),
 		speed = SpeedStore.build(),
 		sell = SellStall.build(),
 	}
@@ -40,6 +67,7 @@ function Shops.start()
 			openWindow = window
 			counter = parent
 			window.open()
+			greet(kind :: string, parent)
 		end
 	end)
 

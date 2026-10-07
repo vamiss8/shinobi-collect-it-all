@@ -1,7 +1,7 @@
 --!strict
--- The market's three stalls. The Chakra Store sells kunai, the Speed Store sells run speed, and
--- the Sell stall buys shinobi out of the inventory. The windows live on the client; the server
--- only accepts a request from a player who is actually standing at that stall.
+-- The market's three shops. Tenten's Ninja Tools sells kunai, the Speed Store sells run speed,
+-- and the Sell stall buys shinobi out of the inventory. The windows live on the client; the
+-- server only accepts a request from a player who is actually standing at that shop's counter.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -17,9 +17,9 @@ local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 
 local Shop = {}
 
--- Which stall sells which item.
+-- Which shop sells which item.
 local STALL_OF = {
-	kunai = "chakra",
+	kunai = "tenten",
 	speed = "speed",
 }
 
