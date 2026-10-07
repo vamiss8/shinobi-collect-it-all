@@ -16,6 +16,7 @@ Ui.PANEL = Color3.fromRGB(28, 22, 20)
 Ui.CARD = Color3.fromRGB(48, 38, 33)
 Ui.EDGE = Color3.fromRGB(124, 88, 64)
 Ui.PARCHMENT = Color3.fromRGB(236, 220, 188)
+Ui.INK = Color3.fromRGB(58, 40, 30)
 Ui.SEAL = Color3.fromRGB(198, 40, 40)
 Ui.WHITE = Color3.new(1, 1, 1)
 Ui.MUTED = Color3.fromRGB(190, 178, 162)
@@ -195,6 +196,62 @@ function Ui.scroll(parent: Instance, properties: { [string]: any }): ScrollingFr
 		frame[name] = value
 	end
 	return frame
+end
+
+-- The rollers of a scroll and the lighter knobs on their ends.
+local ROLLER = Color3.fromRGB(93, 64, 55)
+local ROLLER_END = Color3.fromRGB(141, 98, 72)
+
+-- A scroll to write on: parchment between two wooden rollers, with a round seal on its left.
+-- Every message of the game is written on one, in ink (Ui.INK). A message's color goes to the
+-- scroll's outline (`edge`) and to its seal, never to the words.
+export type Parchment = { frame: Frame, edge: UIStroke, seal: Frame }
+
+function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize: number): Parchment
+	local frame = Ui.make("Frame", {
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, parent)
+	for name, value in properties do
+		frame[name] = value
+	end
+	Ui.corner(frame, 4)
+	local edge = Ui.stroke(frame, Ui.EDGE, 3)
+
+	-- The rollers stand a little taller than the parchment, with a lighter knob on each end.
+	for _, side in { 0, 1 } do
+		local roller = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(side, 0.5),
+			Size = UDim2.new(0, 24, 1, 22),
+			BackgroundColor3 = ROLLER,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		}, frame)
+		Ui.corner(roller, 12)
+		for _, tip in { 0, 1 } do
+			local knob = Ui.make("Frame", {
+				AnchorPoint = Vector2.new(0.5, tip),
+				Position = UDim2.fromScale(0.5, tip),
+				Size = UDim2.fromOffset(14, 9),
+				BackgroundColor3 = ROLLER_END,
+				BorderSizePixel = 0,
+				ZIndex = 3,
+			}, roller)
+			Ui.corner(knob, 4)
+		end
+	end
+
+	local seal = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 28, 0.5, 0),
+		Size = UDim2.fromOffset(sealSize, sealSize),
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, frame)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
+	Ui.stroke(seal, Ui.INK, 2)
+	return { frame = frame, edge = edge, seal = seal }
 end
 
 -- A round badge with a letter in it, standing in for an icon.

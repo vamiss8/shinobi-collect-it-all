@@ -28,10 +28,6 @@ local RYO_HEIGHT = 80
 local CHAKRA_HEIGHT = 144
 local READOUT_GAP = 10
 
-local INK = Color3.fromRGB(58, 40, 30)
-local ROLLER = Color3.fromRGB(93, 64, 55)
-local ROLLER_END = Color3.fromRGB(141, 98, 72)
-
 -- The scroll messages are written on: the parchment, its words, and the two things that take
 -- a message's color, the outline and the seal.
 type Scroll = { frame: Frame, words: TextLabel, edge: UIStroke, seal: Frame }
@@ -160,65 +156,27 @@ end
 -- Builds the message scroll: parchment between two wooden rollers, with a seal on the left
 -- that takes the message's color.
 local function buildScroll(parent: Instance): Scroll
-	local frame = Ui.make("Frame", {
+	local paper = Ui.parchment(parent, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 20),
 		Size = UDim2.new(0.55, 0, 0, 86),
-		BackgroundColor3 = Ui.PARCHMENT,
-		BorderSizePixel = 0,
 		Visible = false,
-	}, parent)
+	}, 40)
 	Ui.make("UISizeConstraint", {
 		MinSize = Vector2.new(560, 86),
 		MaxSize = Vector2.new(1150, 86),
-	}, frame)
-	Ui.corner(frame, 4)
-	local edge = Ui.stroke(frame, Ui.EDGE, 3)
+	}, paper.frame)
 
-	-- The rollers stand a little taller than the parchment, with a lighter knob on each end.
-	for _, side in { 0, 1 } do
-		local roller = Ui.make("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(side, 0.5),
-			Size = UDim2.new(0, 24, 1, 22),
-			BackgroundColor3 = ROLLER,
-			BorderSizePixel = 0,
-			ZIndex = 2,
-		}, frame)
-		Ui.corner(roller, 12)
-		for _, tip in { 0, 1 } do
-			local knob = Ui.make("Frame", {
-				AnchorPoint = Vector2.new(0.5, tip),
-				Position = UDim2.fromScale(0.5, tip),
-				Size = UDim2.fromOffset(14, 9),
-				BackgroundColor3 = ROLLER_END,
-				BorderSizePixel = 0,
-				ZIndex = 3,
-			}, roller)
-			Ui.corner(knob, 4)
-		end
-	end
-
-	local seal = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 28, 0.5, 0),
-		Size = UDim2.fromOffset(40, 40),
-		BackgroundColor3 = Ui.SEAL,
-		BorderSizePixel = 0,
-	}, frame)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
-	Ui.stroke(seal, INK, 2)
-
-	local words = Ui.text(frame, {
+	local words = Ui.text(paper.frame, {
 		Position = UDim2.fromOffset(82, 8),
 		Size = UDim2.new(1, -110, 1, -16),
 		TextScaled = true,
-		TextColor3 = INK,
+		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 44 }, words)
 
-	return { frame = frame, words = words, edge = edge, seal = seal }
+	return { frame = paper.frame, words = words, edge = paper.edge, seal = paper.seal }
 end
 
 function Hud.start()

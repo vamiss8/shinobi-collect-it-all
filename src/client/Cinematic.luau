@@ -85,8 +85,17 @@ type Stage = {
 	introFrom: number?, -- os.clock() time the enemy intro began
 }
 
--- The words over the look at the enemy: its name, and a line under it.
-type Banner = { frame: Frame, name: TextLabel, line: TextLabel, scale: UIScale }
+-- The scroll over the look at the enemy: its name, a line under it, and what takes the
+-- scroll's color.
+type Banner = {
+	frame: Frame,
+	name: TextLabel,
+	line: TextLabel,
+	scale: UIScale,
+	edge: UIStroke,
+	seal: Frame,
+	mark: TextLabel, -- what the seal is stamped with
+}
 
 local localPlayer = Players.LocalPlayer
 local rng = Random.new()
@@ -105,8 +114,10 @@ local function behind(at: Vector3, down: Vector3): CFrame
 	)
 end
 
--- Shows the banner with these words, springing up, or hides it when given none.
-local function announce(name: string?, line: string?, color: Color3?)
+-- Shows the banner with these words, springing up, or hides it when given none. `color` goes
+-- to its outline and its seal; `stamp` is the color of the mark on the seal, the parchment's
+-- own unless the seal is too pale for that.
+local function announce(name: string?, line: string?, color: Color3?, stamp: Color3?)
 	local shown = banner
 	if not shown then
 		return
@@ -117,8 +128,10 @@ local function announce(name: string?, line: string?, color: Color3?)
 		return
 	end
 	shown.name.Text = name
-	shown.name.TextColor3 = color or Ui.RED
 	shown.line.Text = line or ""
+	shown.edge.Color = color or Ui.SEAL
+	shown.seal.BackgroundColor3 = color or Ui.SEAL
+	shown.mark.TextColor3 = stamp or Ui.PARCHMENT
 	shown.frame.Visible = true
 	shown.scale.Scale = 0.6
 	TweenService:Create(
@@ -414,10 +427,10 @@ end
 local function narrate(mine: Stage)
 	local zone = Catalog.zoneById[mine.reveal.zone]
 	local enemy = if zone then zone.enemy.name else mine.reveal.zone
-	announce(string.upper(enemy), Strings.get("ChaseWarn"), Ui.RED)
+	announce(string.upper(enemy), Strings.get("ChaseWarn"), Ui.SEAL)
 	task.wait(math.max(mine.reveal.intro - SWING_SECONDS, 0.1))
 	if stage == mine then
-		announce(Strings.get("ChaseRun"), Strings.get("ChaseRunFrom", enemy), Ui.GOLD)
+		announce(Strings.get("ChaseRun"), Strings.get("ChaseRunFrom", enemy), Ui.GOLD, Ui.INK)
 	end
 end
 
@@ -508,38 +521,63 @@ local function fly(flight: Net.Flight)
 	end)
 end
 
--- The banner of the intro: the enemy's name large in red, a line under it, both outlined so
--- that they read over any zone. It hangs under the scroll that messages are written on.
+-- The banner of the intro: a scroll like the one messages are written on, larger and hung
+-- under it, with the enemy's name in ink and a line under the name. What it says in color it
+-- says with its outline and its seal, as every message does. (It was red and white lettering
+-- straight on the picture at first, which was nothing like the rest of the game.)
 local function buildBanner(): Banner
 	local screen = Ui.screen("Chase", 16)
-	local frame = Ui.make("Frame", {
+	local paper = Ui.parchment(screen, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 132),
-		Size = UDim2.fromOffset(1000, 170),
-		BackgroundTransparency = 1,
+		Position = UDim2.new(0.5, 0, 0, 128),
+		Size = UDim2.fromOffset(840, 148),
 		Visible = false,
-	}, screen)
-	local scale: UIScale = Ui.make("UIScale", {}, frame)
-	local name = Ui.text(frame, {
-		Size = UDim2.new(1, 0, 0, 104),
-		TextScaled = true,
-		TextColor3 = Ui.RED,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Ui.PANEL,
-	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 92 }, name)
-	local line = Ui.text(frame, {
-		Position = UDim2.fromOffset(0, 108),
-		Size = UDim2.new(1, 0, 0, 50),
+	}, 76)
+	paper.edge.Thickness = 4
+	local scale: UIScale = Ui.make("UIScale", {}, paper.frame)
+	-- The seal is stamped with a mark of warning.
+	local mark = Ui.text(paper.seal, {
+		Size = UDim2.fromScale(1, 1),
 		TextScaled = true,
 		TextColor3 = Ui.PARCHMENT,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Ui.PANEL,
+		Text = "!",
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 40 }, line)
-	return { frame = frame, name = name, line = line, scale = scale }
+	local name = Ui.text(paper.frame, {
+		Position = UDim2.fromOffset(122, 6),
+		Size = UDim2.new(1, -160, 0, 88),
+		TextScaled = true,
+		TextColor3 = Ui.INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 76 }, name)
+	-- A drawn line between the name and what is said of it.
+	Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 42, 0, 94),
+		Size = UDim2.new(1, -220, 0, 3),
+		BackgroundColor3 = Ui.INK,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+	}, paper.frame)
+	local line = Ui.text(paper.frame, {
+		Position = UDim2.fromOffset(122, 98),
+		Size = UDim2.new(1, -160, 0, 44),
+		TextScaled = true,
+		TextColor3 = Ui.INK,
+		TextTransparency = 0.2,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 36 }, line)
+	return {
+		frame = paper.frame,
+		name = name,
+		line = line,
+		scale = scale,
+		edge = paper.edge,
+		seal = paper.seal,
+		mark = mark,
+	}
 end
 
 function Cinematic.start()
