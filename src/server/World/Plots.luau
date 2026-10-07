@@ -70,17 +70,17 @@ local SEAL = 0.25 -- thickness of the seal
 -- the pad.
 local CONSOLE_SLOPE = math.rad(40) -- how far the board is tipped up from lying flat
 local CONSOLE_GAP = MAT_MARGIN -- between the seal's edge and the board's top edge
-local CONSOLE_WIDTH = 5.4
+local CONSOLE_WIDTH = 7 -- as wide as the pad's seal
 -- From its foot up the slope; it reaches DojoPlan.CONSOLE_DEPTH into the aisle.
 local CONSOLE_LENGTH = (DojoPlan.CONSOLE_DEPTH - CONSOLE_GAP) / math.cos(CONSOLE_SLOPE)
 local CONSOLE_MARGIN = 0.15 -- bare board around the buttons
 local BUTTON_GAP = 0.1
-local SMALL_BUTTON = 0.95 -- how far up the slope the two small buttons reach
+local SMALL_BUTTON = 1.3 -- how far up the slope the two small buttons reach
 local SLAB = 0.25 -- thickness of the board and of a button
 -- A button's face: how finely it is drawn, pixels to a stud, and how wide a rim of the slab
 -- shows round the parchment set into it, pixels.
 local FACE_PIXELS = 100
-local FACE_RIM = 7
+local FACE_RIM = 6
 local UP = Vector3.new(0, 1, 0)
 
 local STONE = Color3.fromRGB(99, 95, 98)
@@ -211,14 +211,14 @@ local function buildConsole(
 				part = part,
 				gui = gui,
 				paper = paper,
-				title = writing(paper, 8, 2, wide - 16, tall * 0.54),
-				detail = writing(paper, 8, tall * 0.54, wide - 16, tall * 0.42),
+				title = writing(paper, 6, 0, wide - 12, tall * 0.56),
+				detail = writing(paper, 6, tall * 0.54, wide - 12, tall * 0.44),
 			}
 		end
 		-- The wide button: the seal on the left, the words beside it.
-		local sealSize = tall - 22
+		local sealSize = tall - 20
 		local seal = Instance.new("Frame")
-		seal.Position = UDim2.fromOffset(16, 11)
+		seal.Position = UDim2.fromOffset(14, 10)
 		seal.Size = UDim2.fromOffset(sealSize, sealSize)
 		seal.BackgroundColor3 = LACQUER
 		seal.BorderSizePixel = 0
@@ -233,13 +233,13 @@ local function buildConsole(
 		local mark =
 			writing(seal, sealSize * 0.12, sealSize * 0.18, sealSize * 0.76, sealSize * 0.64)
 		mark.TextColor3 = PARCHMENT
-		local beside = sealSize + 32
+		local beside = sealSize + 26
 		return {
 			part = part,
 			gui = gui,
 			paper = paper,
-			title = writing(paper, beside, 4, wide - beside - 14, tall * 0.56),
-			detail = writing(paper, beside, tall * 0.58, wide - beside - 14, tall * 0.34),
+			title = writing(paper, beside, 0, wide - beside - 10, tall * 0.6),
+			detail = writing(paper, beside, tall * 0.57, wide - beside - 10, tall * 0.4),
 			seal = seal,
 			mark = mark,
 		}

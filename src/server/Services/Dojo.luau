@@ -128,12 +128,8 @@ local function drawConsole(pad: Plots.Pad, data: Data.Data?, isOpen: boolean)
 	end
 	local affordable = Economy.affordableUpgrades(unit, data.ryo)
 	drawButton(buttons.one, "LEVEL UP", `{Format.short(onePrice)} Ryo`, data.ryo >= onePrice, "+1")
-	drawButton(
-		buttons.ten,
-		`+{tenLevels} Lvl`,
-		`{Format.short(tenPrice)} Ryo`,
-		data.ryo >= tenPrice
-	)
+	-- The small buttons say the price without the word: there is room for larger figures so.
+	drawButton(buttons.ten, `+{tenLevels} Lvl`, Format.short(tenPrice), data.ryo >= tenPrice)
 	drawButton(
 		buttons.max,
 		"MAX",

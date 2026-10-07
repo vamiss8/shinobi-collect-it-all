@@ -37,7 +37,9 @@ DojoPlan.PAD_SIZE = 7
 DojoPlan.PAD_PITCH = 11 -- from the center of one pad to the next along a row
 DojoPlan.FRONT_ROW = 13 -- z of the front row's centers
 DojoPlan.BACK_ROW = 37 -- z of the back row's centers
-DojoPlan.CONSOLE_DEPTH = 2.8 -- how far a console reaches into the aisle from its pad's edge
+-- How far a console reaches into the aisle from its pad's edge. As far as the aisle lets it:
+-- the writing on a console is as large as its board is long.
+DojoPlan.CONSOLE_DEPTH = 3.4
 
 -- The staircase. Each flight climbs one storey in `STEPS` steps. The steps are only for show:
 -- World/DojoHall lays a smooth, invisible ramp along each flight, which characters walk up
