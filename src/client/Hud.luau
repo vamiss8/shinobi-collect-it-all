@@ -305,11 +305,6 @@ function Hud.start()
 		Hud.toast(Strings.get(key, ...))
 	end)
 
-	Remotes.RunStart.OnClientEvent:Connect(function(run: Net.RunStart)
-		local title = Catalog.unitTitle(run.character, run.mutation, 1)
-		Hud.toast(Strings.get("RunStart", title, enemyName(run.zone)), Hud.rankColor(run.character))
-	end)
-
 	Remotes.RunEnd.OnClientEvent:Connect(function(run: Net.RunEnd)
 		local title = Catalog.unitTitle(run.character, run.mutation, 1)
 		if not run.escaped then

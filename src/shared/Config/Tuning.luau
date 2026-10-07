@@ -70,7 +70,10 @@ return {
 	Chase = {
 		rollSeconds = 2.6, -- the roulette of shinobi where the kunai landed
 		holdSeconds = 0.9, -- the rolled shinobi stays on screen
-		introSeconds = 1.4, -- the camera shows the enemy; the player cannot move yet
+		-- The camera shows the enemy and says who it is, then swings back behind the player;
+		-- the player cannot move yet. Long enough to read a name: at 1.4 the run began
+		-- almost as the roulette stopped.
+		introSeconds = 3,
 		enemyGap = 35, -- the enemy appears this many studs farther down the lane
 		enemyDelay = 0.4, -- head start once the player can move, seconds
 		catchRadius = 5, -- studs

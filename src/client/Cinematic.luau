@@ -4,10 +4,11 @@
 -- Every client draws every kunai. For the local player's own throw this module also takes the
 -- camera away from them and stages the reveal on the schedule the server sent:
 --   flight  the camera chases the kunai
---   roll    it holds on the landing spot while shinobi flick past, slowing down, until the
---           roulette stops on the one that was rolled
---   hold    the result stays on screen
---   intro   once the server has teleported the player there, the camera turns to the zone's enemy
+--   roll    it holds on the landing spot while shinobi flick past a few steps beyond the
+--           kunai, slowing down, until the roulette stops on the one that was rolled
+--   hold    the camera moves in on the result
+--   intro   once the server has teleported the player there, the camera flies past them at the
+--           zone's enemy while a banner names it, then swings back behind the player
 -- Then control comes back with the camera behind the player, looking the way home.
 --
 -- A kunai is a real model when one has been supplied (see View/KunaiModel), and a plain blade
@@ -27,8 +28,10 @@ local Hud = require("./Hud")
 local KunaiEffects = require(ReplicatedStorage.Shared.View.KunaiEffects)
 local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local Remotes = require("./Remotes")
 local Strings = require("./Strings")
+local Ui = require("./Ui")
 
 local Cinematic = {}
 
@@ -36,6 +39,18 @@ local RENDER_STEP = "CinematicCamera"
 -- The roulette starts this fast and slows by this factor with every shinobi shown.
 local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
+-- The roulette stands this far past the kunai, studs: the kunai is then seen in front of the
+-- shinobi's feet. On the very spot, the shinobi stood over the kunai and hid it.
+local ROLL_BEYOND = 5
+-- Each shinobi of the roulette springs up to its size in this long; the one it stops on takes
+-- longer about it and ends larger than life.
+local POP_SECONDS = 0.12
+local RESULT_POP_SECONDS = 0.38
+local RESULT_SIZE = 1.18
+-- The last stretch of the intro, in which the camera swings back behind the player, and how
+-- long the banner's last words stay up once the player is running.
+local SWING_SECONDS = 0.7
+local RUN_WORDS_SECONDS = 1.6
 -- If the run has not started this long after it should have, the camera is given back anyway.
 local FAILSAFE_SECONDS = 4
 -- A landed kunai sticks in the ground leaning this steeply forward, with this share of its
@@ -44,18 +59,70 @@ local FAILSAFE_SECONDS = 4
 local STUCK_PITCH = math.rad(65)
 local BURIED = 0.25
 
+-- What flies up round the shinobi the roulette stops on.
+local BURST: Particles.Layer = {
+	texture = Particles.SPARKLE,
+	rate = 0,
+	life = { 0.6, 1.1 },
+	speed = { 10, 18 },
+	spread = 60,
+	size = { 1.1, 0.2 },
+	lift = -16,
+	spin = 180,
+	glow = 0.8,
+	fade = 0.05,
+}
+
 type Stage = {
 	reveal: Net.Reveal,
 	startedAt: number,
 	down: Vector3, -- unit vector pointing down the lane, away from home
+	shownAt: number?, -- os.clock() time the roulette stopped on its result
 	introFrom: number?, -- os.clock() time the enemy intro began
 }
+
+-- The words over the look at the enemy: its name, and a line under it.
+type Banner = { frame: Frame, name: TextLabel, line: TextLabel, scale: UIScale }
 
 local localPlayer = Players.LocalPlayer
 local rng = Random.new()
 
 local stage: Stage? = nil
 local myKunai: BasePart? = nil
+local banner: Banner? = nil
+local announced = 0 -- counts what the banner has been told, so that a late order can be dropped
+
+-- Where the camera stands when control comes back: behind a player who stands on the landing
+-- spot `at`, looking home.
+local function behind(at: Vector3, down: Vector3): CFrame
+	return CFrame.lookAt(
+		at + down * 14 + Vector3.new(0, 7, 0),
+		at - down * 30 + Vector3.new(0, 2, 0)
+	)
+end
+
+-- Shows the banner with these words, springing up, or hides it when given none.
+local function announce(name: string?, line: string?, color: Color3?)
+	local shown = banner
+	if not shown then
+		return
+	end
+	announced += 1
+	if not name then
+		shown.frame.Visible = false
+		return
+	end
+	shown.name.Text = name
+	shown.name.TextColor3 = color or Ui.RED
+	shown.line.Text = line or ""
+	shown.frame.Visible = true
+	shown.scale.Scale = 0.6
+	TweenService:Create(
+		shown.scale,
+		TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Scale = 1 }
+	):Play()
+end
 
 -- Ends the staged camera and hands it back to the player. With `behindPlayer` it is first put
 -- behind the character looking home, and the default camera carries on from that direction.
@@ -66,6 +133,17 @@ local function release(behindPlayer: boolean)
 	end
 	stage = nil
 	RunService:UnbindFromRenderStep(RENDER_STEP)
+	if behindPlayer then
+		-- The banner's last words stay for the first steps of the run.
+		local order = announced
+		task.delay(RUN_WORDS_SECONDS, function()
+			if announced == order then
+				announce(nil)
+			end
+		end)
+	else
+		announce(nil)
+	end
 
 	local camera = Workspace.CurrentCamera
 	if not camera then
@@ -76,11 +154,7 @@ local function release(behindPlayer: boolean)
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 
 	if behindPlayer and root and root:IsA("BasePart") then
-		local at = root.Position
-		camera.CFrame = CFrame.lookAt(
-			at + ended.down * 14 + Vector3.new(0, 7, 0),
-			at - ended.down * 30 + Vector3.new(0, 2, 0)
-		)
+		camera.CFrame = behind(root.Position, ended.down)
 	end
 	camera.CameraType = Enum.CameraType.Custom
 	if humanoid then
@@ -99,58 +173,120 @@ local function stepCamera(dt: number)
 	local down = current.down
 	local now = os.clock()
 	local kunai = myKunai
+	local spot = reveal.at + down * ROLL_BEYOND
 
 	local target: CFrame
 	local stiffness: number
 	if current.introFrom then
-		if now - current.introFrom >= reveal.intro then
+		local since = now - current.introFrom
+		local look = math.max(reveal.intro - SWING_SECONDS, 0.1)
+		if since >= reveal.intro then
 			release(true)
 			return
+		elseif since >= look then
+			-- Back to where control returns, so that the hand-over is not a cut.
+			target = behind(reveal.at, down)
+			stiffness = 7
+		else
+			-- From over the player's shoulder past them towards the enemy.
+			local share = since / look
+			local eye = reveal.at + down * (-9 + 27 * share) + Vector3.new(0, 9 - 3 * share, 0)
+			target = CFrame.lookAt(eye, reveal.enemyAt + Vector3.new(0, 5.5, 0))
+			stiffness = 5
 		end
-		local eye = reveal.at - down * 12 + Vector3.new(0, 10, 0)
-		target = CFrame.lookAt(eye, reveal.enemyAt + Vector3.new(0, 5, 0))
-		stiffness = 6
 	elseif now - current.startedAt < reveal.flight and kunai and kunai.Parent then
 		local at = kunai.Position
 		target = CFrame.lookAt(at - down * 22 + Vector3.new(0, 10, 0), at)
 		stiffness = 14
+	elseif current.shownAt then
+		-- The roulette has stopped: closer to the one it stopped on.
+		local eye = reveal.at - down * 8 + Vector3.new(0, 6.5, 0)
+		target = CFrame.lookAt(eye, spot + Vector3.new(0, 3, 0))
+		stiffness = 5
 	else
 		local eye = reveal.at - down * 15 + Vector3.new(0, 8, 0)
-		target = CFrame.lookAt(eye, reveal.at + Vector3.new(0, 3, 0))
+		target = CFrame.lookAt(eye, reveal.at + down * (ROLL_BEYOND / 2) + Vector3.new(0, 3, 0))
 		stiffness = 6
 	end
 	-- Exponential smoothing: the same feel at any frame rate.
 	camera.CFrame = camera.CFrame:Lerp(target, 1 - math.exp(-stiffness * dt))
 end
 
--- A burst of light in the rank's color when the roulette stops.
-local function flash(at: Vector3, color: Color3)
-	local ball = Instance.new("Part")
-	ball.Shape = Enum.PartType.Ball
-	ball.Anchored = true
-	ball.CanCollide = false
-	ball.CanQuery = false
-	ball.CastShadow = false
-	ball.Material = Enum.Material.Neon
-	ball.Color = color
-	ball.Transparency = 0.2
-	ball.Size = Vector3.new(2, 2, 2)
-	ball.Position = at + Vector3.new(0, 3, 0)
-	ball.Parent = Workspace
+-- A piece of light for the reveal: seen, never touched, and gone after `seconds`.
+local function glow(shape: Enum.PartType, size: Vector3, cframe: CFrame, color: Color3): Part
+	local part = Instance.new("Part")
+	part.Shape = shape
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Size = size
+	part.CFrame = cframe
+	part.Parent = Workspace
+	return part
+end
 
+local function fade(part: Part, seconds: number, goal: { [string]: any })
 	local tween = TweenService:Create(
-		ball,
-		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Size = Vector3.new(18, 18, 18), Transparency = 1 }
+		part,
+		TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		goal
 	)
 	tween.Completed:Once(function()
-		ball:Destroy()
+		part:Destroy()
 	end)
 	tween:Play()
 end
 
--- Shows shinobi the zone can drop one after another where the kunai landed, ever slower, and
--- stops on the one the server rolled. The decoys are picked here; they are only for show.
+-- What happens in the rank's color when the roulette stops: a burst of light, a pillar of it
+-- that thins away upwards, and sparks thrown up round the shinobi.
+local function celebrate(at: Vector3, color: Color3)
+	local ball =
+		glow(Enum.PartType.Ball, Vector3.new(2, 2, 2), CFrame.new(at + Vector3.new(0, 3, 0)), color)
+	ball.Transparency = 0.2
+	fade(ball, 0.5, { Size = Vector3.new(18, 18, 18), Transparency = 1 })
+
+	-- A cylinder lies along its X axis; this stands it up.
+	local upright = CFrame.new(at + Vector3.new(0, 22, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	local pillar = glow(Enum.PartType.Cylinder, Vector3.new(44, 3, 3), upright, color)
+	pillar.Transparency = 0.5
+	fade(pillar, 0.8, { Size = Vector3.new(44, 0.2, 0.2), Transparency = 1 })
+
+	local source = glow(
+		Enum.PartType.Block,
+		Vector3.new(3, 0.2, 3),
+		CFrame.new(at + Vector3.new(0, 0.6, 0)),
+		color
+	)
+	source.Transparency = 1
+	local sparks = Particles.emitter(BURST, color)
+	sparks.Parent = source
+	sparks:Emit(40)
+	task.delay(2, function()
+		source:Destroy()
+	end)
+end
+
+-- How large a shinobi of the roulette is drawn `t` of the way through springing up (0..1):
+-- quickly to its size and no further.
+local function spring(t: number): number
+	return 0.82 + 0.18 * (1 - (1 - t) ^ 3)
+end
+
+-- The same for the one the roulette stops on: from small, past its size and back to it.
+local function leap(t: number): number
+	local s = 1.70158
+	local back = 1 + (s + 1) * (t - 1) ^ 3 + s * (t - 1) ^ 2
+	return 0.6 + 0.4 * back
+end
+
+-- Shows shinobi the zone can drop one after another a few steps past where the kunai landed,
+-- ever slower, and stops on the one the server rolled. Each springs up as it appears, over a
+-- disc of light in its rank's color that beats with the roulette. The decoys are picked here;
+-- they are only for show.
 local function roulette(mine: Stage)
 	local reveal = mine.reveal
 	task.wait(reveal.flight)
@@ -177,14 +313,52 @@ local function roulette(mine: Stage)
 		table.insert(pool, reveal.character)
 	end
 
-	-- Standing on the landing spot, facing home, which is also towards the camera.
-	local standing = CFrame.lookAt(reveal.at, reveal.at - mine.down)
+	-- Standing past the kunai, facing home, which is also towards the camera.
+	local spot = reveal.at + mine.down * ROLL_BEYOND
+	local standing = CFrame.lookAt(spot, spot - mine.down)
+	-- A cylinder lies along its X axis; this lays the disc flat.
+	local flat = CFrame.new(spot + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	local disc = glow(Enum.PartType.Cylinder, Vector3.new(0.2, 7, 7), flat, Ui.WHITE)
+	disc.Transparency = 0.5
+	local function beat(color: Color3, seconds: number, wide: number)
+		disc.Color = color
+		disc.Size = Vector3.new(0.2, 5.6, 5.6)
+		disc.Transparency = 0.15
+		TweenService:Create(
+			disc,
+			TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = Vector3.new(0.2, wide, wide), Transparency = 0.55 }
+		):Play()
+	end
+
+	-- The shinobi on show, the size it was built at, and how it is springing up.
 	local figure: Model? = nil
-	local function show(unit: Economy.Unit)
+	local builtAt, bornAt = 1, 0
+	local grow, seconds, full = spring, POP_SECONDS, 1
+	local settled = false
+	local springing = RunService.RenderStepped:Connect(function()
+		local shown = figure
+		if not shown or settled then
+			return
+		end
+		local t = (os.clock() - bornAt) / seconds
+		if t < 1 then
+			shown:ScaleTo(builtAt * full * grow(t))
+		else
+			shown:ScaleTo(builtAt * full)
+			settled = true
+		end
+	end)
+	local function show(unit: Economy.Unit, result: boolean)
 		if figure then
 			figure:Destroy()
 		end
 		local built = Figure.build(unit)
+		builtAt, bornAt, settled = built:GetScale(), os.clock(), false
+		if result then
+			grow, seconds, full = leap, RESULT_POP_SECONDS, RESULT_SIZE
+		end
+		built:ScaleTo(builtAt * full * grow(0))
 		built:PivotTo(standing)
 		built.Parent = Workspace
 		figure = built
@@ -193,7 +367,8 @@ local function roulette(mine: Stage)
 	local elapsed, interval = 0, ROLL_FIRST_INTERVAL
 	while stage == mine and elapsed + interval < reveal.roll do
 		local decoy = pool[rng:NextInteger(1, #pool)]
-		show({ character = decoy, mutation = Catalog.NONE, level = 1 })
+		show({ character = decoy, mutation = Catalog.NONE, level = 1 }, false)
+		beat(Hud.rankColor(decoy), math.min(interval, 0.3), 7.4)
 		task.wait(interval)
 		elapsed += interval
 		interval *= ROLL_SLOWDOWN
@@ -204,8 +379,10 @@ local function roulette(mine: Stage)
 
 	if stage == mine then
 		local color = Hud.rankColor(reveal.character)
-		show({ character = reveal.character, mutation = reveal.mutation, level = 1 })
-		flash(reveal.at, color)
+		show({ character = reveal.character, mutation = reveal.mutation, level = 1 }, true)
+		mine.shownAt = os.clock()
+		beat(color, 0.6, 10)
+		celebrate(spot, color)
 		local title = Catalog.unitTitle(reveal.character, reveal.mutation, 1)
 		Hud.toast(Strings.get("Reveal", title), color)
 
@@ -216,8 +393,22 @@ local function roulette(mine: Stage)
 			task.wait()
 		end
 	end
+	springing:Disconnect()
+	disc:Destroy()
 	if figure then
 		figure:Destroy()
+	end
+end
+
+-- Names the enemy over the look at it, and for the last stretch of the intro, as the camera
+-- swings back, says what to do about it.
+local function narrate(mine: Stage)
+	local zone = Catalog.zoneById[mine.reveal.zone]
+	local enemy = if zone then zone.enemy.name else mine.reveal.zone
+	announce(string.upper(enemy), Strings.get("ChaseWarn"), Ui.RED)
+	task.wait(math.max(mine.reveal.intro - SWING_SECONDS, 0.1))
+	if stage == mine then
+		announce(Strings.get("ChaseRun"), Strings.get("ChaseRunFrom", enemy), Ui.GOLD)
 	end
 end
 
@@ -298,7 +489,43 @@ local function fly(flight: Net.Flight)
 	end)
 end
 
+-- The banner of the intro: the enemy's name large in red, a line under it, both outlined so
+-- that they read over any zone. It hangs under the scroll that messages are written on.
+local function buildBanner(): Banner
+	local screen = Ui.screen("Chase", 16)
+	local frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 132),
+		Size = UDim2.fromOffset(1000, 170),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, screen)
+	local scale: UIScale = Ui.make("UIScale", {}, frame)
+	local name = Ui.text(frame, {
+		Size = UDim2.new(1, 0, 0, 104),
+		TextScaled = true,
+		TextColor3 = Ui.RED,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextStrokeTransparency = 0,
+		TextStrokeColor3 = Ui.PANEL,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 92 }, name)
+	local line = Ui.text(frame, {
+		Position = UDim2.fromOffset(0, 108),
+		Size = UDim2.new(1, 0, 0, 50),
+		TextScaled = true,
+		TextColor3 = Ui.PARCHMENT,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextStrokeTransparency = 0,
+		TextStrokeColor3 = Ui.PANEL,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 40 }, line)
+	return { frame = frame, name = name, line = line, scale = scale }
+end
+
 function Cinematic.start()
+	banner = buildBanner()
+
 	-- The supplied models are fetched ahead of time, in the background: the roulette swaps
 	-- figures many times a second, and one whose mesh is still on its way shows as nothing.
 	task.spawn(function()
@@ -314,8 +541,10 @@ function Cinematic.start()
 	Remotes.Reveal.OnClientEvent:Connect(begin)
 
 	Remotes.RunStart.OnClientEvent:Connect(function()
-		if stage then
-			stage.introFrom = os.clock()
+		local current = stage
+		if current then
+			current.introFrom = os.clock()
+			task.spawn(narrate, current)
 		end
 	end)
 
