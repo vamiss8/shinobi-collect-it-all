@@ -38,6 +38,7 @@ export type Pad = {
 	prompt: ProximityPrompt, -- place, take, swap, merge, or unlock the pad
 	console: Part, -- the board between the pad and the aisle that the upgrade buttons sit on
 	buttons: { one: Button, ten: Button, max: Button }, -- +1 level, +10, as many as affordable
+	trim: { BasePart }, -- the rest of the console: its scroll, rods and stand
 	stand: CFrame, -- where a shinobi on the pad stands, facing the plaza
 	tag: TextLabel, -- floats over a pad that is not open yet: its price, or the game pass
 	tagGui: BillboardGui,
@@ -61,7 +62,8 @@ local MAT = 0.3 -- height of the mat
 local MAT_MARGIN = 0.6 -- how far the mat reaches past the seal on each side
 local SEAL = 0.25 -- thickness of the seal
 
--- The upgrade console: a board leaning back towards its pad, as wide as most of the pad.
+-- The upgrade console: a board on a stand, leaning back towards its pad, as wide as most of
+-- the pad.
 local CONSOLE_SLOPE = math.rad(40) -- how far the board is tipped up from lying flat
 local CONSOLE_GAP = MAT_MARGIN -- between the seal's edge and the board's top edge
 local CONSOLE_WIDTH = 5.4
@@ -76,22 +78,32 @@ local UP = Vector3.new(0, 1, 0)
 local STONE = Color3.fromRGB(99, 95, 98)
 local BOARD = Color3.fromRGB(62, 44, 36)
 local BUTTON = Color3.fromRGB(105, 102, 98)
+local STAND = Color3.fromRGB(93, 64, 55)
+local PARCHMENT = Color3.fromRGB(236, 220, 188)
+local INK = Color3.fromRGB(40, 30, 24)
+local LACQUER = Color3.fromRGB(183, 40, 32)
+local GOLD = Color3.fromRGB(255, 202, 40)
 local FENCE = Color3.fromRGB(93, 64, 55)
 local FENCE_HEIGHT = 4
 
 -- Builds the upgrade console of the pad whose seal's top is centered on `top`, on the side
--- `facing` (a level unit vector, towards the aisle). The wide button on top buys one level; under it
--- two small ones buy ten and as many as the Ryo allows. They are plain parts marked with
--- attributes: the client finds the one under the pointer and reports a press
--- (client/Consoles). A ClickDetector would do it without client code, but it swaps the mouse
--- cursor for a large hand while hovered. The buttons start out hidden: Services/Dojo shows and
--- labels them.
+-- `facing` (a level unit vector, towards the aisle): a scroll of buttons unrolled on a small
+-- slanted stand. The wide button on top buys one level; under it two small ones buy ten and as
+-- many as the Ryo allows. They are plain parts marked with attributes: the client finds the one
+-- under the pointer and reports a press (client/Consoles). A ClickDetector would do it without
+-- client code, but it swaps the mouse cursor for a large hand while hovered. Everything starts
+-- out hidden: Services/Dojo shows the console and labels its buttons.
+--
+-- Returns the board, the buttons, and the rest of the furniture, which is shown and hidden with
+-- the board. The stand is finished on every side: its back, a red plaque with a gilded seal,
+-- is what is seen of a front row's console from the street. (It was a bare board at first,
+-- black from behind.) None of it is solid: a console stands at the edge of the aisle.
 local function buildConsole(
 	folder: Folder,
 	padIndex: number,
 	top: Vector3,
 	facing: Vector3
-): (Part, { one: Button, ten: Button, max: Button })
+): (Part, { one: Button, ten: Button, max: Button }, { BasePart })
 	-- `up` runs up the board, towards the pad; `out` is the way its face looks; `right` is the
 	-- right hand of a player who stands in the aisle and reads it.
 	local up = UP * math.sin(CONSOLE_SLOPE) - facing * math.cos(CONSOLE_SLOPE)
@@ -99,17 +111,42 @@ local function buildConsole(
 	local right = UP:Cross(facing)
 	local floor = Vector3.new(top.X, top.Y - MAT - SEAL, top.Z)
 	local foot = floor + facing * (DojoPlan.PAD_SIZE / 2 + DojoPlan.CONSOLE_DEPTH)
+	local trim: { BasePart } = {}
 
 	-- A slab lying on the board: `along` is how far up the slope its middle is, `across` how
 	-- far to the reader's right, `lift` how far its middle stands off the board's surface.
-	local function slab(name: string, size: Vector2, along: number, across: number, lift: number)
+	local function slab(
+		name: string,
+		size: Vector2,
+		along: number,
+		across: number,
+		lift: number,
+		thick: number?
+	)
 		local center = foot + up * along + right * across + out * lift
-		local part = Build.part(folder, name, Vector3.new(size.X, size.Y, SLAB), center, BUTTON)
+		local part =
+			Build.part(folder, name, Vector3.new(size.X, size.Y, thick or SLAB), center, BUTTON)
 		-- A part's front face looks where its CFrame looks, and text on it reads upright.
 		part.CFrame = CFrame.lookAt(center, center + out)
 		part.CanCollide = false
 		part.Transparency = 1
 		return part
+	end
+
+	-- A piece of the furniture: seen, never touched, and shown and hidden with the board.
+	local function furnish<T>(piece: T, color: Color3, material: Enum.Material?): T
+		local part = (piece :: any) :: BasePart
+		part.Color = color
+		part.Material = material or Enum.Material.SmoothPlastic
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Transparency = 1
+		part.Parent = folder
+		table.insert(trim, part)
+		return piece
 	end
 
 	local function button(kind: string, size: Vector2, along: number, across: number): Button
@@ -131,6 +168,53 @@ local function buildConsole(
 	board.Color = BOARD
 	board.Material = Enum.Material.Wood
 
+	-- The scroll on the board: parchment to its edges, and on it a field of ink that the
+	-- buttons stand on, which shows between them and round them as a drawn line.
+	local sheet = Vector2.new(CONSOLE_WIDTH - 0.24, CONSOLE_LENGTH - 0.24)
+	furnish(slab("ConsoleScroll", sheet, CONSOLE_LENGTH / 2, 0, 0.03, 0.06), PARCHMENT)
+	local field = Vector2.new(
+		CONSOLE_WIDTH - 2 * CONSOLE_MARGIN + 0.1,
+		CONSOLE_LENGTH - 2 * CONSOLE_MARGIN + 0.1
+	)
+	furnish(slab("ConsoleInk", field, CONSOLE_LENGTH / 2, 0, 0.05, 0.1), INK)
+	-- Its two rods, along the board's upper and lower edges.
+	for _, along in { 0, CONSOLE_LENGTH } do
+		local rod = Instance.new("Part")
+		rod.Name = "ConsoleRod"
+		rod.Shape = Enum.PartType.Cylinder
+		rod.Size = Vector3.new(CONSOLE_WIDTH + 0.4, 0.34, 0.34)
+		-- A cylinder lies along its X axis: across the board.
+		rod.CFrame = CFrame.fromMatrix(foot + up * along + out * 0.02, right, out)
+		furnish(rod, LACQUER, Enum.Material.Wood)
+	end
+
+	-- The stand: a wedge of wood under the board, sloped as the board is, and on its upright
+	-- back, which looks at the pad, a red plaque with a round gilded seal.
+	local under = SLAB + 0.02 -- how far under the board's face the stand's slope lies
+	local height = CONSOLE_LENGTH * math.sin(CONSOLE_SLOPE) - under / math.cos(CONSOLE_SLOPE)
+	local depth = height / math.tan(CONSOLE_SLOPE)
+	local back = foot - facing * (CONSOLE_LENGTH * math.cos(CONSOLE_SLOPE))
+	local stand = Instance.new("WedgePart")
+	stand.Name = "ConsoleStand"
+	stand.Size = Vector3.new(CONSOLE_WIDTH - 0.4, height, depth)
+	-- A wedge's tall side is its back: it looks the way the console's reader does.
+	local middle = back + facing * (depth / 2) + UP * (height / 2)
+	stand.CFrame = CFrame.lookAt(middle, middle + facing)
+	furnish(stand, STAND, Enum.Material.Wood)
+
+	local plaqueAt = back - facing * 0.05 + UP * (height / 2)
+	local plaque = Instance.new("Part")
+	plaque.Name = "ConsolePlaque"
+	plaque.Size = Vector3.new(CONSOLE_WIDTH - 1, height - 0.4, 0.1)
+	plaque.CFrame = CFrame.lookAt(plaqueAt, plaqueAt - facing)
+	furnish(plaque, LACQUER, Enum.Material.Wood)
+	local seal = Instance.new("Part")
+	seal.Name = "ConsoleSeal"
+	seal.Shape = Enum.PartType.Cylinder
+	seal.Size = Vector3.new(0.08, 0.7, 0.7)
+	seal.CFrame = CFrame.fromMatrix(plaqueAt - facing * 0.08, facing, UP)
+	furnish(seal, GOLD, Enum.Material.Metal)
+
 	local inner = CONSOLE_WIDTH - 2 * CONSOLE_MARGIN
 	local small = Vector2.new((inner - BUTTON_GAP) / 2, SMALL_BUTTON)
 	local big = Vector2.new(inner, CONSOLE_LENGTH - 2 * CONSOLE_MARGIN - BUTTON_GAP - SMALL_BUTTON)
@@ -143,7 +227,8 @@ local function buildConsole(
 			one = button("one", big, bigAlong, 0),
 			ten = button("ten", small, smallAlong, -offset),
 			max = button("max", small, smallAlong, offset),
-		}
+		},
+		trim
 end
 
 -- One pad of a dojo: the mat, the seal with its prompt, the console and the price tag.
@@ -179,7 +264,7 @@ local function buildPad(folder: Folder, frame: DojoHall.Frame, padIndex: number)
 
 	local facing = frame.inward * spot.facing
 	local top = floor + Vector3.new(0, MAT + SEAL, 0)
-	local console, buttons = buildConsole(folder, padIndex, top, facing)
+	local console, buttons, trim = buildConsole(folder, padIndex, top, facing)
 
 	local tag, tagGui = Build.label(seal, "", 4.5, Vector2.new(9, 3.6))
 	tagGui.MaxDistance = 150
@@ -191,6 +276,7 @@ local function buildPad(folder: Folder, frame: DojoHall.Frame, padIndex: number)
 		prompt = prompt,
 		console = console,
 		buttons = buttons,
+		trim = trim,
 		-- Every shinobi looks out of the dojo, at the plaza, whichever row it stands in. (Each
 		-- used to face the aisle: the front row, the one a new player fills first, stood with
 		-- its back to the plaza and its face to the back wall.)

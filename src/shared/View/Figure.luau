@@ -25,6 +25,12 @@ local Figure = {}
 
 local UNIT_HEIGHT = 4.8
 local ENEMY_HEIGHT = 9.3
+-- A figure's tag: how tall a line of it is, how wide the tag, and how far over the figure's
+-- head its lower edge floats, all in studs.
+local TAG_LINE = 1.3
+local TAG_WIDTH = 13
+local TAG_GAP = 0.4
+local TAG_ANCHOR = "TagAnchor"
 local SKIN = Color3.fromRGB(255, 219, 172)
 
 function Figure.title(unit: Economy.Unit): string
@@ -142,7 +148,7 @@ end
 local function topAnchor(model: Model, height: number): Part
 	local anchor = Build.part(
 		model,
-		"TagAnchor",
+		TAG_ANCHOR,
 		Vector3.new(0.2, 0.2, 0.2),
 		Vector3.new(0, height, 0),
 		Color3.new(1, 1, 1)
@@ -177,11 +183,33 @@ function Figure.build(unit: Economy.Unit): Model
 
 	-- The tag grows upwards with its line count; its bottom edge stays just above the head.
 	local text, lineCount = tag(unit)
-	local height = 1.3 * lineCount
-	Build.label(topAnchor(model, UNIT_HEIGHT), text, 0.4 + height / 2, Vector2.new(13, height))
+	local height = TAG_LINE * lineCount
+	Build.label(
+		topAnchor(model, UNIT_HEIGHT),
+		text,
+		TAG_GAP + height / 2,
+		Vector2.new(TAG_WIDTH, height)
+	)
 
 	untouchable(model)
 	return model
+end
+
+-- Rewrites the tag of a figure that is already standing, for a unit that has changed but is
+-- the same shinobi: after an upgrade its level and income read differently. The figure itself
+-- is left alone; built anew it would be gone for a moment.
+function Figure.retag(figure: Model, unit: Economy.Unit)
+	figure.Name = Figure.title(unit)
+	local anchor = figure:FindFirstChild(TAG_ANCHOR)
+	local gui = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
+	local label = if gui then gui:FindFirstChildOfClass("TextLabel") else nil
+	if gui and label then
+		local text, lineCount = tag(unit)
+		local height = TAG_LINE * lineCount
+		gui.Size = UDim2.fromScale(TAG_WIDTH, height)
+		gui.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
+		label.Text = text
+	end
 end
 
 -- Builds a zone's enemy standing at the world origin, pivot at its feet.

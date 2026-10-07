@@ -31,6 +31,7 @@ Net.Events = {
 	RingResult = "RingResult", -- server -> client: RingResult; its `next` ring starts on receipt
 	Buy = "Buy", -- client -> server: "kunai" | "speed"
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
+	Upgraded = "Upgraded", -- server -> all clients: Upgraded, a shinobi on a pad was levelled up
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
 	Notify = "Notify", -- server -> client: a key from client/Strings plus format arguments
 	Offline = "Offline", -- server -> client: Offline, once, when a returning player's save loads
@@ -143,6 +144,13 @@ export type RunEnd = {
 	zone: string,
 	isNew: boolean, -- first time this character + mutation pair was found
 	reward: number, -- Ryo: discovery reward on an escape, consolation when caught
+}
+
+-- A shinobi standing on a pad has been levelled up at its console. Every client plays it.
+export type Upgraded = {
+	figure: Model?, -- the shinobi on the pad
+	levels: number, -- how many levels were bought at once
+	income: number, -- what it earns now, Ryo a second
 }
 
 -- What the dojo earned while the player was away. The Ryo wait to be collected: the server

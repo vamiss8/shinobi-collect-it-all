@@ -31,6 +31,7 @@ return {
 	RingResult = event(Net.Events.RingResult),
 	Buy = event(Net.Events.Buy),
 	Upgrade = event(Net.Events.Upgrade),
+	Upgraded = event(Net.Events.Upgraded),
 	Sell = event(Net.Events.Sell),
 	Notify = event(Net.Events.Notify),
 	Offline = event(Net.Events.Offline),

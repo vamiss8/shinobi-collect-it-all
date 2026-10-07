@@ -73,6 +73,10 @@ end
 -- costs nothing, so this is also run for every pad whenever the owner's Ryo changes.
 local function drawConsole(pad: Plots.Pad, data: Data.Data?, isOpen: boolean)
 	local buttons = pad.buttons
+	local hidden = if data and isOpen then 0 else 1
+	for _, piece in pad.trim do
+		piece.Transparency = hidden
+	end
 	if not data or not isOpen then
 		pad.console.Transparency = 1
 		for _, button in { buttons.one, buttons.ten, buttons.max } do
@@ -311,9 +315,24 @@ local function upgradePad(player: Player, plot: Plots.Plot, pad: Plots.Pad, leve
 	end
 
 	data.ryo -= price
-	data.units[unitId] = Economy.upgraded(unit, bought)
-	drawPad(plot, pad, data)
+	local upgraded = Economy.upgraded(unit, bought)
+	data.units[unitId] = upgraded
+	-- The shinobi stays where it stands and only its tag is rewritten: built anew, as the
+	-- whole pad used to be on every level, it was gone for a moment each time.
+	local figure = pad.figure
+	if figure then
+		Figure.retag(figure, upgraded)
+		pad.prompt.ObjectText = Figure.title(upgraded)
+	else
+		drawPad(plot, pad, data)
+	end
 	drawConsoles(player, data)
+	local payload: Net.Upgraded = {
+		figure = pad.figure,
+		levels = bought,
+		income = Economy.unitIncome(upgraded),
+	}
+	Remotes.Upgraded:FireAllClients(payload)
 	State.push(player)
 end
 

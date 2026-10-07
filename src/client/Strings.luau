@@ -117,6 +117,8 @@ local TEXT: { [string]: string } = {
 
 	-- Reveal and the run home
 	Reveal = "%s!",
+	UpgradeGained = "+%s Lvl",
+	UpgradeEarns = "%s / s",
 	RunStart = "%s!  Run home from %s!",
 	RunEscaped = "Escaped!  %s is yours.",
 	RunEscapedNew = "NEW!  %s is yours  |  +%s Ryo",
