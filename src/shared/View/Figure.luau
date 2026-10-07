@@ -5,9 +5,14 @@
 -- one, put a Model (or a single MeshPart) into ReplicatedStorage.Models (in Studio) named after
 -- the character's id from Config/Characters, e.g. "kakashi", or "enemy_" plus a zone id from
 -- Config/Zones for that zone's enemy. It is cloned, scaled to a standard height and stood on
--- its feet; nothing else in the game needs to change. A model that turns out to stand with its
--- back to the viewer is turned around by giving it a boolean attribute "Flip" set to true; if
--- they all do, the same attribute on the Models folder turns every one of them.
+-- its feet; nothing else in the game needs to change.
+--
+-- Which way a model faces: a model is taken to face +Z, as one imported from a glTF file does
+-- (glTF's front is +Z; a part's front in Roblox, the way its frame looks, is -Z), and is
+-- turned about so that it looks the way the game stands it. One that then stands with its back
+-- to the viewer, because it was made facing the other way, is turned once more by giving it a
+-- boolean attribute "Flip" set to true; the same attribute on the Models folder does that to
+-- every one of them.
 -- The placeholder is a block body in the rank's color with a head.
 --
 -- Shared because the server stands figures on pads and the client rolls them in the reveal.
@@ -111,9 +116,13 @@ local function supplied(name: string, height: number): Model?
 	model:ScaleTo(model:GetScale() * height / size.Y)
 	local box = model:GetBoundingBox()
 	local feet = CFrame.new(box.Position - Vector3.new(0, height / 2, 0))
-	-- The folder's attribute turns every figure around; a figure's own turns it once more.
-	local allTurned = folder ~= nil and folder:GetAttribute(Net.FLIP_ATTRIBUTE) == true
-	if allTurned ~= (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true) then
+	-- An imported model faces +Z, and a figure is stood by its pivot, whose front is -Z: so it
+	-- is turned about. (Not turned, every one of the fifty stood with its back to whatever it
+	-- was meant to face: the roulette's camera, the aisle of the dojo, its own portrait.) The
+	-- attribute marks a model that faces the other way and must be left as it is: the folder's
+	-- marks them all, and a model's own then marks that one back.
+	local allMarked = folder ~= nil and folder:GetAttribute(Net.FLIP_ATTRIBUTE) == true
+	if allMarked == (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true) then
 		feet *= CFrame.Angles(0, math.pi, 0)
 	end
 	model.WorldPivot = feet
