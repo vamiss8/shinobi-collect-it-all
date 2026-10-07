@@ -1,7 +1,7 @@
 --!strict
 -- The shared part of the placeholder world, built once at startup: the lane with its zones, the
 -- throwing strip across its start, and the walls that keep players on it. Everyone throws from
--- the same strip. The dojos along the street belong to World/Plots, the stalls to World/Market.
+-- the same strip. The dojos along the street belong to World/Plots, the shops to World/Market.
 --
 -- Hub-local coordinates, used for everything in the world: x is distance down the lane (0 is
 -- where the lane starts; the street and the dojos are at negative x), y is height above the

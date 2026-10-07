@@ -65,31 +65,110 @@ end
 PlazaPlan.FOUNTAIN = { along = -PlazaPlan.DEPTH / 2, side = 0 } :: Spot
 PlazaPlan.FOUNTAIN_RADIUS = 18
 
--- The market's two stalls stand behind the fountain as seen from the lane, a third of a turn
--- either side of the plaza's middle line and this far from the fountain's middle. A stall's
--- roof reaches STALL_HALF from its middle.
-PlazaPlan.STALL_RING = 36
-PlazaPlan.STALL_HALF = 5.5
-local function stall(turn: number): Spot
+-- The market's three shops stand round the fountain, a third of a turn apart, their open
+-- fronts to it: Tenten's Ninja Tools (the shop "tenten", which sells kunai) on the side of the
+-- lane, the Mission Desk (the shop "sell") and the Youth Training Ground (the shop "speed")
+-- behind. The first two are houses (World/ShopHouse), the third an open yard on as much ground
+-- (World/TrainingGround). A shop's spot is the middle of its front, SHOP_RING from the
+-- fountain's middle; from the line of its front it reaches SHOP.half to either side, SHOP.front
+-- out towards the fountain (a porch, eaves) and SHOP.back away from it.
+PlazaPlan.SHOP_RING = 34.5
+PlazaPlan.SHOP = { half = 11.8, front = 3, back = 14 }
+local function round(turn: number): Spot
 	local angle = math.rad(turn)
 	return {
-		along = PlazaPlan.FOUNTAIN.along + PlazaPlan.STALL_RING * math.cos(angle),
-		side = PlazaPlan.STALL_RING * math.sin(angle),
+		along = PlazaPlan.FOUNTAIN.along + PlazaPlan.SHOP_RING * math.cos(angle),
+		side = PlazaPlan.FOUNTAIN.side + PlazaPlan.SHOP_RING * math.sin(angle),
 	}
 end
-PlazaPlan.stalls = {
-	speed = stall(-120),
-	sell = stall(120),
+PlazaPlan.shops = {
+	tenten = round(0),
+	sell = round(120),
+	speed = round(-120),
 } :: { [string]: Spot }
 
--- Tenten's Ninja Tools, the shop that sells kunai (World/TentenShop), stands on the plaza's
--- middle line where the third stall stood, between the fountain and the lane: its open front
--- to the fountain, its back, with a target on it, to the throwing strip. SHOP is the middle of
--- its front line. With its porch and its eaves it reaches SHOP_FRONT before that line, towards
--- the fountain, SHOP_DEPTH behind it, towards the lane, and SHOP_HALF to either side.
-PlazaPlan.SHOP = { along = -72, side = 0 } :: Spot
-PlazaPlan.SHOP_FRONT = 3
-PlazaPlan.SHOP_DEPTH = 14
-PlazaPlan.SHOP_HALF = 12.5
+-- Which way a shop looks out of its front, as a step along and a step across: at the fountain.
+function PlazaPlan.facing(shop: Spot): Spot
+	local along = PlazaPlan.FOUNTAIN.along - shop.along
+	local side = PlazaPlan.FOUNTAIN.side - shop.side
+	local length = math.sqrt(along * along + side * side)
+	return { along = along / length, side = side / length }
+end
+
+-- The four corners of the ground a shop covers, in order round it.
+function PlazaPlan.shopCorners(shop: Spot): { Spot }
+	local out = PlazaPlan.facing(shop)
+	local across = { along = -out.side, side = out.along }
+	local size = PlazaPlan.SHOP
+	local corners = {}
+	for _, corner in
+		{
+			{ size.front, -size.half },
+			{ size.front, size.half },
+			{ -size.back, size.half },
+			{ -size.back, -size.half },
+		}
+	do
+		local depth, reach = corner[1], corner[2]
+		table.insert(corners, {
+			along = shop.along + out.along * depth + across.along * reach,
+			side = shop.side + out.side * depth + across.side * reach,
+		})
+	end
+	return corners
+end
+
+-- Whether a line square to `axis` keeps the two pieces of ground on either side of it.
+local function separates(axis: Spot, a: { Spot }, b: { Spot }): boolean
+	local function span(corners: { Spot }): (number, number)
+		local low, high = math.huge, -math.huge
+		for _, corner in corners do
+			local d = corner.along * axis.along + corner.side * axis.side
+			low, high = math.min(low, d), math.max(high, d)
+		end
+		return low, high
+	end
+	local aLow, aHigh = span(a)
+	local bLow, bHigh = span(b)
+	return aHigh < bLow or bHigh < aLow
+end
+
+-- How far a point is from the edge from `p` to `q`.
+local function fromEdge(point: Spot, p: Spot, q: Spot): number
+	local dx, dz = q.along - p.along, q.side - p.side
+	local length = dx * dx + dz * dz
+	local t = if length > 0
+		then math.clamp(((point.along - p.along) * dx + (point.side - p.side) * dz) / length, 0, 1)
+		else 0
+	local x, z = p.along + dx * t - point.along, p.side + dz * t - point.side
+	return math.sqrt(x * x + z * z)
+end
+
+-- How far apart two pieces of ground are, each given by its corners in order round it (and
+-- neither of them hollow), studs: 0 when they touch or overlap.
+function PlazaPlan.apart(a: { Spot }, b: { Spot }): number
+	local overlap = true
+	for _, corners in { a, b } do
+		for i, p in corners do
+			local q = corners[i % #corners + 1]
+			if separates({ along = q.side - p.side, side = p.along - q.along }, a, b) then
+				overlap = false
+			end
+		end
+	end
+	if overlap then
+		return 0
+	end
+	local nearest = math.huge
+	for _, pair in { { a, b }, { b, a } } do
+		local points, edges = pair[1], pair[2]
+		for _, point in points do
+			for i, p in edges do
+				nearest = math.min(nearest, fromEdge(point, p, edges[i % #edges + 1]))
+			end
+		end
+	end
+	return nearest
+end
 
 return PlazaPlan

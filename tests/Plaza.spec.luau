@@ -45,14 +45,14 @@ local function hallParts(): { any }
 	return list
 end
 
--- Tenten's shop, which stands on the plaza but is built by a module of its own.
-local shop: any = nil
-local function shopParts(): { any }
-	if not shop then
-		shop = Zones.shop()
+-- The market's three shops, which stand on the plaza but are built by modules of their own.
+local market: any = nil
+local function marketParts(): { any }
+	if not market then
+		market = Zones.market()
 	end
 	local list = {}
-	for _, item in shop:GetDescendants() do
+	for _, item in market:GetDescendants() do
 		if item:IsA("BasePart") then
 			table.insert(list, item)
 		end
@@ -87,8 +87,8 @@ return {
 
 	-- The village's lanterns burn low by day and bright by night (client Lanterns), which a
 	-- client can only do to the ones the server marked.
-	["every lantern of the plaza, the shop and the dojos is one the evening lights"] = function()
-		local places = { plaza = parts(), shop = shopParts(), dojos = hallParts() }
+	["every lantern of the plaza, the shops and the dojos is one the evening lights"] = function()
+		local places = { plaza = parts(), market = marketParts(), dojos = hallParts() }
 		for place, list in places do
 			local lanterns = 0
 			for _, part in list do
@@ -160,64 +160,24 @@ return {
 		end
 	end,
 
-	["the stalls' places are left free"] = function()
-		local reach = PlazaPlan.STALL_HALF + 1
-		for id, spot in PlazaPlan.stalls do
+	["the shops' places are left free"] = function()
+		for id, shop in PlazaPlan.shops do
+			local corners = PlazaPlan.shopCorners(shop)
 			for _, part in parts() do
-				local taken = standsIn(
-					part,
-					spot.along - reach,
-					spot.along + reach,
-					spot.side - reach,
-					spot.side + reach
-				)
-				T.ok(not taken, `{where(part)} stands in the place of the {id} stall`)
+				local low, high = Zones.bounds(part)
+				if high.Y > FLAT then
+					local box = {
+						{ along = low.X, side = low.Z },
+						{ along = high.X, side = low.Z },
+						{ along = high.X, side = high.Z },
+						{ along = low.X, side = high.Z },
+					}
+					T.ok(
+						PlazaPlan.apart(box, corners) >= 1,
+						`{where(part)} stands in the place of the {id} shop`
+					)
+				end
 			end
-		end
-	end,
-
-	["Tenten's shop keeps to its place, and its place is kept free for it"] = function()
-		local spot = PlazaPlan.SHOP
-		local fromX, toX = spot.along - PlazaPlan.SHOP_FRONT, spot.along + PlazaPlan.SHOP_DEPTH
-		local fromZ, toZ = spot.side - PlazaPlan.SHOP_HALF, spot.side + PlazaPlan.SHOP_HALF
-		local pieces = shopParts()
-		T.ok(#pieces >= 150, `the shop is only {#pieces} parts`)
-		local counter = false
-		for _, part in pieces do
-			local low, high = Zones.bounds(part)
-			T.ok(part.Anchored, `{where(part)} of the shop is not anchored`)
-			T.ok(
-				low.X >= fromX and high.X <= toX and low.Z >= fromZ and high.Z <= toZ,
-				`{where(part)} of the shop stands outside its place`
-			)
-			T.ok(low.Y >= -0.01, `{where(part)} of the shop is under the paving`)
-			if part.Name == "Counter" then
-				counter = true
-				T.ok(part.CanCollide, "the counter is not solid")
-				-- The counter is behind the front line, and its prompt is used from before it.
-				T.ok(low.X >= spot.along, "the counter stands out in front of the shop")
-			end
-		end
-		T.ok(counter, "the shop has no counter")
-		for _, part in parts() do
-			local taken = standsIn(part, fromX, toX, fromZ, toZ)
-			T.ok(not taken, `{where(part)} stands in the place of Tenten's shop`)
-		end
-	end,
-
-	-- Two flat sides in one plane, one over the other, flicker as the camera moves. The shop is
-	-- held to this where it shows; the crossed blades of a shuriken are let be.
-	["nothing of Tenten's shop flickers where it is seen"] = function()
-		for _, fight in Zones.fights(shopParts()) do
-			T.ok(
-				fight.area < 0.1,
-				string.format(
-					"%s and %s share a plane over %.2f square studs",
-					where(fight.first),
-					where(fight.second),
-					fight.area
-				)
-			)
 		end
 	end,
 
@@ -261,9 +221,9 @@ return {
 			end
 		end
 		T.ok(rim >= 16, `the rim is only {rim} pieces`)
-		-- Nothing else that is solid crowds the walk round it, out to where the stalls stand.
+		-- Nothing else that is solid crowds the walk round it, out to where the shops stand.
 		local reach = PlazaPlan.FOUNTAIN_RADIUS
-		local clear = PlazaPlan.STALL_RING - PlazaPlan.STALL_HALF
+		local clear = PlazaPlan.SHOP_RING - PlazaPlan.SHOP.front
 		for _, part in parts() do
 			if part.CanCollide then
 				local low, high = Zones.bounds(part)

@@ -60,53 +60,63 @@ return {
 		)
 	end,
 
-	["the stalls stand round the fountain with room to pass everywhere"] = function()
-		local ids = { "speed", "sell" }
-		for _, id in ids do
-			local spot = PlazaPlan.stalls[id]
-			T.ok(spot ~= nil, `no place for the {id} stall`)
-			T.near(distance(spot, PlazaPlan.FOUNTAIN), PlazaPlan.STALL_RING, EPS, `{id} ring`)
+	["the shops stand round the fountain with room to pass everywhere"] = function()
+		local shops: { [string]: { PlazaPlan.Spot } } = {}
+		for _, id in { "tenten", "speed", "sell" } do
+			local shop = PlazaPlan.shops[id]
+			T.ok(shop ~= nil, `no place for the {id} shop`)
+			T.near(distance(shop, PlazaPlan.FOUNTAIN), PlazaPlan.SHOP_RING, EPS, `{id} ring`)
+			local out = PlazaPlan.facing(shop)
+			local toFountain = {
+				along = PlazaPlan.FOUNTAIN.along - shop.along,
+				side = PlazaPlan.FOUNTAIN.side - shop.side,
+			}
 			T.ok(
-				PlazaPlan.STALL_RING - PlazaPlan.STALL_HALF - PlazaPlan.FOUNTAIN_RADIUS >= PASSAGE,
-				`room between the {id} stall and the fountain`
+				out.along * toFountain.along + out.side * toFountain.side > 0,
+				`the {id} shop faces the fountain`
 			)
-			T.ok(
-				PlazaPlan.HALF_WIDTH - math.abs(spot.side) - PlazaPlan.STALL_HALF >= 2 * PASSAGE,
-				`room between the {id} stall and the dojos`
-			)
-			T.ok(spot.along < PlazaPlan.FOUNTAIN.along, `the {id} stall is behind the fountain`)
+			shops[id] = PlazaPlan.shopCorners(shop)
 		end
-		local apart = distance(PlazaPlan.stalls.speed, PlazaPlan.stalls.sell)
-		T.ok(apart - 2 * PlazaPlan.STALL_HALF >= PASSAGE, "the two stalls keep apart")
-		local count = 0
-		for _ in PlazaPlan.stalls do
-			count += 1
+		T.ok(
+			PlazaPlan.SHOP_RING - PlazaPlan.SHOP.front - PlazaPlan.FOUNTAIN_RADIUS >= PASSAGE,
+			"room between the shops and the fountain"
+		)
+		for id, corners in shops do
+			for _, corner in corners do
+				T.ok(
+					PlazaPlan.HALF_WIDTH - math.abs(corner.side) >= 2 * PASSAGE,
+					`room between the {id} shop and the dojos`
+				)
+			end
+			for other, theirs in shops do
+				if other > id then
+					T.ok(PlazaPlan.apart(corners, theirs) >= PASSAGE, `{id} and {other} keep apart`)
+				end
+			end
 		end
-		T.eq(count, 2, "the third shop is Tenten's, and no stall")
+		local tenten = PlazaPlan.shops.tenten
+		T.eq(tenten.side, 0, "Tenten's shop stands on the way to the lane")
+		T.ok(tenten.along > PlazaPlan.FOUNTAIN.along, "on the lane's side")
 	end,
 
-	["Tenten's shop stands on the middle line between the fountain and the lane"] = function()
-		local shop = PlazaPlan.SHOP
-		T.eq(shop.side, 0, "on the plaza's middle line")
-		local front = shop.along - PlazaPlan.SHOP_FRONT
-		local back = shop.along + PlazaPlan.SHOP_DEPTH
-		T.ok(front > PlazaPlan.FOUNTAIN.along, "on the lane's side of the fountain")
-		T.ok(
-			front - (PlazaPlan.FOUNTAIN.along + PlazaPlan.FOUNTAIN_RADIUS) >= PASSAGE,
-			"room to stand at its counter, clear of the fountain"
-		)
-		T.ok(back <= -PlazaPlan.FRONT_GAP - PASSAGE, "room to pass between it and the lane")
-		T.ok(
-			PlazaPlan.HALF_WIDTH - PlazaPlan.SHOP_HALF >= 4 * PASSAGE,
-			"plenty of room to walk round it on either side"
-		)
-		for id, stall in PlazaPlan.stalls do
-			-- A stall is behind the fountain, the shop before it.
-			T.ok(
-				front - stall.along - PlazaPlan.STALL_HALF >= PASSAGE,
-				`the shop keeps clear of the {id} stall`
-			)
+	["the measure of how far apart two pieces of ground are"] = function()
+		local function square(along: number, side: number, half: number): { PlazaPlan.Spot }
+			return {
+				{ along = along - half, side = side - half },
+				{ along = along + half, side = side - half },
+				{ along = along + half, side = side + half },
+				{ along = along - half, side = side + half },
+			}
 		end
+		T.near(PlazaPlan.apart(square(0, 0, 1), square(5, 0, 1)), 3, EPS, "side by side")
+		T.near(PlazaPlan.apart(square(0, 0, 1), square(4, 4, 1)), math.sqrt(8), EPS, "corners")
+		T.eq(PlazaPlan.apart(square(0, 0, 1), square(1, 1, 1)), 0, "overlapping")
+		T.eq(PlazaPlan.apart(square(0, 0, 3), square(0, 0, 1)), 0, "one inside the other")
+		local corners = PlazaPlan.shopCorners(PlazaPlan.shops.sell)
+		local width = distance(corners[1], corners[2])
+		local depth = distance(corners[2], corners[3])
+		T.near(width, 2 * PlazaPlan.SHOP.half, 1e-6, "a shop is as wide as the plan says")
+		T.near(depth, PlazaPlan.SHOP.front + PlazaPlan.SHOP.back, 1e-6, "and as deep")
 	end,
 
 	["every owner appears on open paving in front of their own dojo"] = function()
@@ -123,16 +133,13 @@ return {
 				distance(spawn, PlazaPlan.FOUNTAIN) >= PlazaPlan.FOUNTAIN_RADIUS + PASSAGE,
 				`spawn {index} is clear of the fountain`
 			)
-			for id, stall in PlazaPlan.stalls do
+			for id, shop in PlazaPlan.shops do
+				local corners = PlazaPlan.shopCorners(shop)
 				T.ok(
-					distance(spawn, stall) >= PlazaPlan.STALL_HALF + PASSAGE,
-					`spawn {index} is clear of the {id} stall`
+					PlazaPlan.apart({ spawn }, corners) >= PASSAGE,
+					`spawn {index} is clear of the {id} shop`
 				)
 			end
-			T.ok(
-				math.abs(spawn.side - PlazaPlan.SHOP.side) >= PlazaPlan.SHOP_HALF + PASSAGE,
-				`spawn {index} is clear of Tenten's shop`
-			)
 		end
 	end,
 }

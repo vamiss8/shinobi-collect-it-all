@@ -137,6 +137,9 @@ local function marker(value: any): any
 	return key
 end
 
+-- The shopkeepers the market's builders have stood in their shops, in order.
+local stood: { any } = {}
+
 local replicated = {
 	Shared = {
 		Config = { Catalog = marker(Catalog), ZoneArt = marker(Looks), Tuning = marker(Tuning) },
@@ -148,11 +151,17 @@ local replicated = {
 		Net = marker(Net),
 		View = {
 			Particles = marker(particles),
-			-- Figures and supplied models are not built here: a shop's keeper is anything that
-			-- can be stood somewhere, and no kunai has a model.
+			-- Figures and supplied models are not built here. A shop's keeper is a stand-in
+			-- that notes where it was stood (Lune's Models cannot be moved as a whole), and no
+			-- kunai has a model.
 			Figure = marker({
-				keeper = function(): any
-					return { PivotTo = function() end }
+				keeper = function(keeper: any): any
+					local stand = { id = keeper.id, Name = keeper.name, at = nil :: any }
+					function stand.PivotTo(self: any, frame: any)
+						self.at = frame
+					end
+					table.insert(stood, stand)
+					return stand
 				end,
 			}),
 			KunaiModel = marker({
@@ -578,19 +587,30 @@ function Zones.plaza(): any
 	return workspace:FindFirstChild("Plaza")
 end
 
--- Builds Tenten's shop (src/server/World/TentenShop) where the plaza's plan stands it, and
--- returns the folder it is in.
-function Zones.shop(): any
-	local world = environment(function(path: string): any
+-- Builds the market round the fountain (src/server/World/Market) and returns the folder it put
+-- into the world, with the keepers it stood in the shops.
+function Zones.market(): (any, { any })
+	table.clear(stood)
+	local world: { [string]: any }
+	local workspace: any
+	local loaded: { [string]: any } = {}
+	world, workspace = environment(function(path: string): any
 		if path == "./Hub" then
 			return hub
 		end
+		local name = string.match(path, "^%./(%w+)$")
+		local shops =
+			{ ShopHouse = true, TentenShop = true, MissionDesk = true, TrainingGround = true }
+		if name and shops[name] then
+			if loaded[name] == nil then
+				loaded[name] = run(fs.readFile(`src/server/World/{name}.luau`), name, world)
+			end
+			return loaded[name]
+		end
 		error(`the zone harness does not know {path}`)
 	end)
-	local shop = run(fs.readFile("src/server/World/TentenShop.luau"), "TentenShop", world)
-	local parent = roblox.Instance.new("Folder")
-	shop.build(parent)
-	return parent
+	run(fs.readFile("src/server/World/Market.luau"), "Market", world).start()
+	return workspace:FindFirstChild(Net.MARKET_FOLDER), table.clone(stood)
 end
 
 -- Builds the six dojos (src/server/World/DojoHall) where World/Plots stands them, each with

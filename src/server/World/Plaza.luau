@@ -5,7 +5,7 @@
 -- posts; down each side of the plaza, cherry trees that shed their petals; before every
 -- dojo, a pair of stone lanterns and planters of shrubs; at the back, a red gate; and in the
 -- plaza's four quarters a notice board, a training corner, a well and a small shrine.
--- Logic/PlazaPlan says where things stand; the dojos are World/Plots's and the stalls
+-- Logic/PlazaPlan says where things stand; the dojos are World/Plots's and the shops
 -- World/Market's.
 --
 -- Unlike the zones' scenery (World/ZoneArt) this is ground that players walk on: the paving,
@@ -1056,21 +1056,6 @@ local function shrine(folder: Folder, base: Vector3, face: number)
 	)
 end
 
--- Barrels and a crate set down beside a stall, at `base`.
-local function goods(folder: Folder, base: Vector3)
-	local wood = Enum.Material.Wood
-	column(folder, "Barrel", base, 2.6, 2.2, WOOD, wood)
-	column(folder, "Barrel", base + Vector3.new(2.3, 0, 1.2), 2.6, 2.2, BARK, wood)
-	Build.part(
-		folder,
-		"Crate",
-		Vector3.new(2.4, 2.4, 2.4),
-		base + Vector3.new(0.6, 1.2, -2.5),
-		PALE_WOOD,
-		Enum.Material.WoodPlanks
-	)
-end
-
 function Plaza.start()
 	local folder = Instance.new("Folder")
 	folder.Name = "Plaza"
@@ -1081,7 +1066,7 @@ function Plaza.start()
 
 	local fountain = PlazaPlan.FOUNTAIN
 	local center = Hub.at(fountain.along, 0, fountain.side)
-	-- Round the fountain: benches between the stalls, facing the water and clear of both
+	-- Round the fountain: benches between the shops, facing the water and clear of both
 	-- paths, and four lit lanterns on posts.
 	for _, turn in { 60, 150, 210, 300 } do
 		local out = heading(math.rad(turn))
@@ -1143,24 +1128,6 @@ function Plaza.start()
 	trainingCorner(folder, Hub.at(near - 2, 0, 30), 1)
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
-
-	-- Goods set down beside each stall: on whichever side of it lies farther from both paths.
-	for _, spot in PlazaPlan.stalls do
-		local away = Vector3.new(spot.along - fountain.along, 0, spot.side - fountain.side).Unit
-		local beside = UP:Cross(away)
-		local best: Vector3? = nil
-		local clear = -1
-		for _, way in { 1, -1 } do
-			local at = Vector3.new(spot.along, 0, spot.side) + beside * way * 11 + away * 1.5
-			local off = math.min(math.abs(at.Z - fountain.side), math.abs(at.X - fountain.along))
-			if off > clear then
-				best, clear = at, off
-			end
-		end
-		if best then
-			goods(folder, Hub.at(best.X, 0, best.Z))
-		end
-	end
 
 	folder.Parent = Workspace
 end

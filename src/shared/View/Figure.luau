@@ -42,6 +42,8 @@ local TAG_ANCHOR = "TagAnchor"
 Figure.CARRY_HEIGHT = 3.5
 -- How tall a shinobi's figure stands.
 Figure.HEIGHT = UNIT_HEIGHT
+-- Name of the part at the top of a figure's head that its tag hangs from.
+Figure.TAG_ANCHOR = TAG_ANCHOR
 local SKIN = Color3.fromRGB(255, 219, 172)
 
 function Figure.title(unit: Economy.Unit): string
@@ -80,7 +82,7 @@ end
 
 -- A supplied model by name, made safe to show: frozen in place, untouchable, scripts removed,
 -- scaled to `height` and with its pivot at its feet. Nil if no such model was supplied.
-local function supplied(name: string, height: number): Model?
+local function supplied(name: string, height: number, facesFront: boolean?): Model?
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	local template = if folder then folder:FindFirstChild(name) else nil
 	local model: Model
@@ -120,9 +122,12 @@ local function supplied(name: string, height: number): Model?
 	-- is turned about. (Not turned, every one of the fifty stood with its back to whatever it
 	-- was meant to face: the roulette's camera, the aisle of the dojo, its own portrait.) The
 	-- attribute marks a model that faces the other way and must be left as it is: the folder's
-	-- marks them all, and a model's own then marks that one back.
+	-- marks them all, and a model's own then marks that one back. A kind of model known to be
+	-- made facing -Z (`facesFront`) starts from the other side: left as it is, and turned about
+	-- when marked.
 	local allMarked = folder ~= nil and folder:GetAttribute(Net.FLIP_ATTRIBUTE) == true
-	if allMarked == (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true) then
+	local marked = allMarked ~= (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true)
+	if marked == (facesFront == true) then
 		feet *= CFrame.Angles(0, math.pi, 0)
 	end
 	model.WorldPivot = feet
@@ -130,13 +135,17 @@ local function supplied(name: string, height: number): Model?
 	return model
 end
 
--- The stand-in for a shinobi without a model: a block body in the rank's color and a head.
-local function placeholderUnit(color: Color3): Model
+-- The stand-in for a shinobi without a model: a block body in the rank's color and a head,
+-- `scale` times the usual size.
+local function placeholderUnit(color: Color3, scale: number?): Model
+	local s = scale or 1
 	local model = Instance.new("Model")
-	local body = Build.part(model, "Body", Vector3.new(2, 3, 1.2), Vector3.new(0, 1.5, 0), color)
-	body.PivotOffset = CFrame.new(0, -1.5, 0)
+	local body =
+		Build.part(model, "Body", Vector3.new(2, 3, 1.2) * s, Vector3.new(0, 1.5 * s, 0), color)
+	body.PivotOffset = CFrame.new(0, -1.5 * s, 0)
 	model.PrimaryPart = body
-	local head = Build.part(model, "Head", Vector3.new(1.8, 1.8, 1.8), Vector3.new(0, 3.9, 0), SKIN)
+	local head =
+		Build.part(model, "Head", Vector3.new(1.8, 1.8, 1.8) * s, Vector3.new(0, 3.9 * s, 0), SKIN)
 	head.Shape = Enum.PartType.Ball
 	return model
 end
@@ -249,12 +258,21 @@ function Figure.enemy(zone: Catalog.Zone): Model
 	return model
 end
 
--- Builds a shopkeeper standing at the world origin, pivot at their feet, with their name over
--- their head: the model supplied under `id` (as for a shinobi), or a placeholder in `color`.
-function Figure.keeper(id: string, name: string, color: Color3): Model
-	local model = supplied(id, UNIT_HEIGHT) or placeholderUnit(color)
+-- Builds a shopkeeper (Config/Keepers) standing at the world origin, pivot at their feet,
+-- with their name over their head: the model supplied under their id (as for a shinobi), or a
+-- placeholder in their color. The client puts the keeper's chat bubbles on the part named
+-- Figure.TAG_ANCHOR, at the top of the head.
+function Figure.keeper(keeper: Catalog.Keeper): Model
+	local tall = keeper.height
+	local name = keeper.name
+	-- The keepers' models were made facing -Z, a figure's own front (read out of the five
+	-- files: the nose of each lies on that side), where the shinobi's face +Z.
+	local model = supplied(keeper.id, tall, true)
+		or placeholderUnit(Color3.fromHex(keeper.color), tall / UNIT_HEIGHT)
 	model.Name = name
-	Build.label(topAnchor(model, UNIT_HEIGHT), name, 1, Vector2.new(7, 1.8))
+	-- A small keeper gets a smaller name, but never too small to read.
+	local scale = math.max(tall / UNIT_HEIGHT, 0.6)
+	Build.label(topAnchor(model, tall), name, scale, Vector2.new(7, 1.8) * scale)
 	untouchable(model)
 	return model
 end

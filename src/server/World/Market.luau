@@ -1,10 +1,11 @@
 --!strict
--- The market, round the fountain in the middle of the plaza (Logic/PlazaPlan says where):
--- Tenten's Ninja Tools on the lane's side of it (World/TentenShop), and two stalls behind,
--- each a counter under a tiered roof with its wares laid out on top. Walking up to a counter
--- and using its prompt opens that shop's window on the client (the prompt's attribute says
--- which). The server only needs to know whether a player is standing at a counter when they
--- ask to buy or sell there.
+-- The market: three shops round the fountain in the middle of the plaza (Logic/PlazaPlan says
+-- where), each with its open front to the fountain. Tenten's Ninja Tools (World/TentenShop)
+-- sells kunai and the Mission Desk (World/MissionDesk) buys shinobi, both in houses; the Youth
+-- Training Ground (World/TrainingGround), an open yard, sells run speed. Walking up to a
+-- counter and using its prompt opens that shop's window on the client (the prompt's attribute
+-- says which). The server only needs to know whether a player is standing at a counter when
+-- they ask to buy or sell there.
 --
 -- Built from plain parts in Hub coordinates; call start() after Hub.start().
 
@@ -13,203 +14,40 @@ local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
 local Hub = require("./Hub")
+local MissionDesk = require("./MissionDesk")
 local Net = require(ReplicatedStorage.Shared.Net)
 local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
+local ShopHouse = require("./ShopHouse")
 local TentenShop = require("./TentenShop")
+local TrainingGround = require("./TrainingGround")
 
 local Market = {}
 
 -- A player this close to a shop's counter may buy or sell there, studs.
 local RANGE = 18
 
-local WOOD = Color3.fromRGB(121, 85, 61)
-local DARK_WOOD = Color3.fromRGB(78, 52, 46)
-local PALE_WOOD = Color3.fromRGB(188, 158, 130)
-local GOLD = Color3.fromRGB(255, 202, 40)
-
-type Stall = {
-	id: string, -- also the shop window the prompt opens, and its place in PlazaPlan.stalls
-	title: string,
-	color: Color3,
-	-- Lays the stall's wares on the counter, whose top is centered on `top`.
-	wares: (folder: Folder, top: Vector3) -> (),
+-- Each shop: what builds it on its place (the middle of its front on the ground, looking out at
+-- the fountain) and returns its counter, and what its prompt says.
+local SHOPS: { { id: string, title: string, build: (folder: Folder, place: CFrame) -> Part } } = {
+	{ id = "tenten", title = "Tenten's Ninja Tools", build = TentenShop.build },
+	{ id = "sell", title = "Mission Desk", build = MissionDesk.build },
+	{ id = "speed", title = "Youth Training Ground", build = TrainingGround.build },
 }
 
 local counters: { [string]: Part } = {}
 
--- Puts the prompt that opens shop `id` on its counter, usable from `reach` studs away.
-local function open(counter: Part, id: string, title: string, reach: number)
-	local prompt = Build.prompt(counter, "Open", title)
-	prompt.MaxActivationDistance = reach
-	prompt:SetAttribute(Net.SHOP_ATTRIBUTE, id)
-	counters[id] = counter
+-- Where a shop stands: the middle of its front on the ground, looking at the fountain.
+local function place(id: string): CFrame
+	local shop = PlazaPlan.shops[id]
+	local out = PlazaPlan.facing(shop)
+	local front = Hub.at(shop.along, 0, shop.side)
+	return CFrame.lookAt(front, front + Vector3.new(out.along, 0, out.side))
 end
 
--- A small decorative part that nothing collides with.
-local function prop(
-	folder: Folder,
-	size: Vector3,
-	cframe: CFrame,
-	color: Color3,
-	material: Enum.Material
-): Part
-	local part = Build.part(folder, "Ware", size, cframe.Position, color, material)
-	part.CFrame = cframe
-	part.CanCollide = false
-	part.CanQuery = false
-	return part
-end
-
-local STALLS: { Stall } = {
-	{
-		id = "speed",
-		title = "SPEED STORE",
-		color = GOLD,
-		-- A pair of sandals and a stack of scrolls.
-		wares = function(folder, top)
-			for _, side in { -1, 1 } do
-				prop(
-					folder,
-					Vector3.new(0.9, 0.35, 2.2),
-					CFrame.new(top + Vector3.new(side * 0.7 - 1.4, 0.18, -1)),
-					DARK_WOOD,
-					Enum.Material.Wood
-				)
-			end
-			for i = 1, 3 do
-				-- A cylinder part lies along its X axis, which is how a scroll should lie.
-				local scroll = prop(
-					folder,
-					Vector3.new(2.4, 0.7, 0.7),
-					CFrame.new(top + Vector3.new(1.3, 0.35 + (i - 1) * 0.02, i * 0.8 - 0.6)),
-					if i == 2 then GOLD else Color3.fromRGB(245, 245, 245),
-					Enum.Material.Fabric
-				)
-				scroll.Shape = Enum.PartType.Cylinder
-			end
-		end,
-	},
-	{
-		id = "sell",
-		title = "SELL",
-		color = Color3.fromRGB(229, 57, 53),
-		-- A money chest and a stack of coins.
-		wares = function(folder, top)
-			prop(
-				folder,
-				Vector3.new(2.8, 1.6, 1.9),
-				CFrame.new(top + Vector3.new(-1, 0.8, 0)),
-				DARK_WOOD,
-				Enum.Material.Wood
-			)
-			prop(
-				folder,
-				Vector3.new(2.9, 0.3, 2),
-				CFrame.new(top + Vector3.new(-1, 1.2, 0)),
-				GOLD,
-				Enum.Material.Metal
-			)
-			for i = 1, 4 do
-				-- Coins: flat cylinders stood on end, hence the turn.
-				local coin = prop(
-					folder,
-					Vector3.new(0.25, 1.2, 1.2),
-					CFrame.new(top + Vector3.new(1.6, 0.13 + (i - 1) * 0.25, 0.4))
-						* CFrame.Angles(0, 0, math.rad(90)),
-					GOLD,
-					Enum.Material.Metal
-				)
-				coin.Shape = Enum.PartType.Cylinder
-			end
-		end,
-	},
-}
-
-local function build(folder: Folder, stall: Stall)
-	local spot = PlazaPlan.stalls[stall.id]
-	local base = Hub.at(spot.along, 0, spot.side)
-	local function at(x: number, y: number, z: number): Vector3
-		return base + Vector3.new(x, y, z)
-	end
-
-	local counter = Build.part(
-		folder,
-		`Counter_{stall.id}`,
-		Vector3.new(7, 3.2, 7),
-		at(0, 1.6, 0),
-		WOOD,
-		Enum.Material.WoodPlanks
-	)
-	Build.part(
-		folder,
-		"CounterTop",
-		Vector3.new(7.8, 0.4, 7.8),
-		at(0, 3.4, 0),
-		PALE_WOOD,
-		Enum.Material.Wood
-	)
-	stall.wares(folder, at(0, 3.6, 0))
-
-	-- Four posts carry a two-tier roof in the shop's color, with a lantern at each corner.
-	for _, x in { -3.6, 3.6 } do
-		for _, z in { -3.6, 3.6 } do
-			Build.part(
-				folder,
-				"Post",
-				Vector3.new(0.7, 10, 0.7),
-				at(x, 5, z),
-				DARK_WOOD,
-				Enum.Material.Wood
-			)
-			local lantern = Build.part(
-				folder,
-				"Lantern",
-				Vector3.new(0.9, 0.9, 0.9),
-				at(x * 1.25, 9.3, z * 1.25),
-				stall.color,
-				Enum.Material.Neon
-			)
-			lantern.Shape = Enum.PartType.Ball
-			lantern.CanCollide = false
-			lantern:AddTag(Net.LANTERN_TAG)
-			-- It hangs from the roof on a cord, not in the air.
-			local cord = Build.part(
-				folder,
-				"LanternCord",
-				Vector3.new(0.14, 0.4, 0.14),
-				at(x * 1.25, 9.9, z * 1.25),
-				DARK_WOOD,
-				Enum.Material.Wood
-			)
-			cord.CanCollide = false
-			cord.CanQuery = false
-		end
-	end
-	Build.part(
-		folder,
-		"Roof",
-		Vector3.new(11, 0.7, 11),
-		at(0, 10.35, 0),
-		stall.color,
-		Enum.Material.Fabric
-	)
-	local cap = Build.part(
-		folder,
-		"RoofCap",
-		Vector3.new(6.5, 0.7, 6.5),
-		at(0, 11.05, 0),
-		stall.color:Lerp(Color3.new(0, 0, 0), 0.3),
-		Enum.Material.Fabric
-	)
-	Build.label(cap, stall.title, 3.4, Vector2.new(18, 4))
-
-	open(counter, stall.id, stall.title, 12)
-end
-
--- Whether the player is standing at the counter of the given shop ("tenten", "speed" or
--- "sell").
-function Market.playerAt(player: Player, stallId: string): boolean
-	local counter = counters[stallId]
+-- Whether the player is standing at the counter of the given shop: "tenten" (Tenten's Ninja
+-- Tools), "speed" (the Youth Training Ground) or "sell" (the Mission Desk).
+function Market.playerAt(player: Player, shopId: string): boolean
+	local counter = counters[shopId]
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 	if not counter or not root or not root:IsA("BasePart") then
@@ -220,10 +58,14 @@ end
 
 function Market.start()
 	local folder = Instance.new("Folder")
-	folder.Name = "Market"
-	open(TentenShop.build(folder), "tenten", "Tenten's Ninja Tools", TentenShop.REACH)
-	for _, stall in STALLS do
-		build(folder, stall)
+	folder.Name = Net.MARKET_FOLDER
+	for _, shop in SHOPS do
+		local counter = shop.build(folder, place(shop.id))
+		local prompt = Build.prompt(counter, "Open", shop.title)
+		-- From anywhere in front of the counter, but not from beside the shop.
+		prompt.MaxActivationDistance = ShopHouse.REACH
+		prompt:SetAttribute(Net.SHOP_ATTRIBUTE, shop.id)
+		counters[shop.id] = counter
 	end
 	folder.Parent = Workspace
 end

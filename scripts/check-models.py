@@ -30,7 +30,7 @@ MODEL_FILES = {".glb", ".gltf", ".fbx", ".obj"}
 # Roblox refuses a single mesh with more triangles than this.
 MESH_LIMIT = 20_000
 # Above these a model is worth making lighter: there can be over a hundred shinobi in view.
-HEAVY = {"shinobi": 12_000, "enemy": 20_000, "kunai": 3_000}
+HEAVY = {"shinobi": 12_000, "enemy": 20_000, "kunai": 3_000, "keeper": 12_000}
 # Roblox shrinks textures to this many pixels a side.
 TEXTURE_LIMIT = 1024
 # The same rules the game applies at start-up (server World/Showroom).
@@ -71,6 +71,9 @@ def expected_models():
     kunai = (CONFIG / "Kunai.luau").read_text(encoding="utf-8")
     for match in re.finditer(r'kunai\(\s*"([a-z0-9_]+)",\s*"([^"]+)"', kunai):
         models["kunai_" + match.group(1)] = ("kunai", match.group(2))
+    keepers = (CONFIG / "Keepers.luau").read_text(encoding="utf-8")
+    for match in re.finditer(r'\{\s*id = "([a-z0-9_]+)",\s*name = "([^"]+)",\s*height', keepers):
+        models[match.group(1)] = ("keeper", match.group(2))
     return models
 
 
@@ -453,7 +456,8 @@ def main():
         broken += len(problems)
 
     print("\nSUMMARY")
-    for kind, title in (("shinobi", "shinobi"), ("enemy", "enemies"), ("kunai", "kunai")):
+    kinds = (("shinobi", "shinobi"), ("enemy", "enemies"), ("kunai", "kunai"), ("keeper", "shopkeepers"))
+    for kind, title in kinds:
         wanted = [m for m, (k, _) in models.items() if k == kind]
         missing = [m for m in wanted if m not in taken]
         print(f"  {title}: {len(wanted) - len(missing)}/{len(wanted)}")

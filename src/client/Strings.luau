@@ -84,11 +84,16 @@ local TEXT: { [string]: string } = {
 	ShopAllKunai = "You own every kunai!",
 	ShopInUse = "In use",
 	ShopOwned = "Owned",
-	ShopSpeedTitle = "Speed Store",
+	ShopSpeedTitle = "Youth Training Ground",
 	ShopSpeedNow = "Run speed %s",
 	ShopSpeedLevel = "Level %s of %s",
 	ShopSpeedNext = "Next level: run speed %s -> %s",
 	ShopSpeedMaxed = "Run speed is fully upgraded",
+	-- What Might Duy says when the training ground is opened, one at random.
+	DuyHello1 = "Youth is all about running! Pick up the pace!",
+	DuyHello2 = "Strap on those weights and run until the sun goes down!",
+	DuyHello3 = "Even a genin can open the Gates with enough hard work!",
+	DuyHello4 = "Your youth is burning bright today!",
 	ShopSpeedEnemies = "Who you can outrun",
 	ShopSpeedEnemy = "%s (%s-%s)  |  %s",
 	ShopSpeedSafe = "you get away",
@@ -97,9 +102,14 @@ local TEXT: { [string]: string } = {
 	ShopMax = "MAX",
 	ShopPrice = "%s Ryo",
 
-	-- Sell stall
-	SellTitle = "Sell Shinobi",
-	SellHint = "Click a shinobi to sell it.",
+	-- Mission Desk, where shinobi are sold
+	SellTitle = "Mission Desk",
+	SellHint = "Shizune pays Ryo for every shinobi you hand in. Click one to sell it.",
+	-- What Shizune says when the desk is opened, one at random.
+	MissionHello1 = "Welcome to the Mission Desk! Shinobi are always needed out there.",
+	MissionHello2 = "Every shinobi you hand in earns you Ryo.",
+	MissionHello3 = "Tonton, those are mission reports, not snacks!",
+	MissionHello4 = "Lady Tsunade wants all of these missions filled by tonight...",
 	SellEmpty = "Nothing to sell. Shinobi on pads have to be taken off first.",
 	SellAll = "Sell all",
 	SellAllConfirm = "Sell %s for %s Ryo?",

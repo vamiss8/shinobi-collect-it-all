@@ -164,7 +164,7 @@ Notices.back = pinned({
 	{
 		kind = "note",
 		title = "TOO SLOW?",
-		body = "The Speed Store is by the fountain.",
+		body = "Might Duy trains runners by the fountain.",
 	},
 })
 

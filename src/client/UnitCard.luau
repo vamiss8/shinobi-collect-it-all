@@ -1,5 +1,5 @@
 --!strict
--- A card describing one shinobi, used by the inventory, the sell stall and the Bingo Book. A
+-- A card describing one shinobi, used by the inventory, the Mission Desk and the Bingo Book. A
 -- card for a unit the player has not found yet is a black silhouette that only gives away its
 -- shape and its income. An upgraded unit's card also shows its base income, what it earned at level 1: that
 -- is the number to compare two shinobi by, since a level can be bought for either.

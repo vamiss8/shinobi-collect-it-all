@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
 
+local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Net = require(ReplicatedStorage.Shared.Net)
 local SellStall = require("./Stores/SellStall")
 local SpeedStore = require("./Stores/SpeedStore")
@@ -26,6 +27,8 @@ local CLOSE_DISTANCE = 16
 -- What a shop's keeper may say when the shop is opened, by shop: keys of client/Strings.
 local GREETINGS: { [string]: { string } } = {
 	tenten = { "TentenHello1", "TentenHello2", "TentenHello3", "TentenHello4" },
+	sell = { "MissionHello1", "MissionHello2", "MissionHello3", "MissionHello4" },
+	speed = { "DuyHello1", "DuyHello2", "DuyHello3", "DuyHello4" },
 }
 
 local rng = Random.new()
@@ -36,7 +39,7 @@ local function greet(kind: string, counter: BasePart)
 	local lines = GREETINGS[kind]
 	local shop = counter.Parent
 	local keeper = if shop then shop:FindFirstChild(Net.KEEPER) else nil
-	local head = if keeper then keeper:FindFirstChild("TagAnchor") else nil
+	local head = if keeper then keeper:FindFirstChild(Figure.TAG_ANCHOR) else nil
 	if not lines or not head then
 		return
 	end
@@ -48,14 +51,14 @@ local function greet(kind: string, counter: BasePart)
 end
 
 function Shops.start()
-	-- Keyed by the value of the stall prompt's shop attribute.
+	-- Keyed by the value of the counter prompt's shop attribute.
 	local windows: { [string]: Ui.Window } = {
 		tenten = TentenShop.build(),
 		speed = SpeedStore.build(),
 		sell = SellStall.build(),
 	}
 
-	-- The window that was opened from a stall, and that stall's counter.
+	-- The window that was opened from a counter, and that counter.
 	local openWindow: Ui.Window? = nil
 	local counter: BasePart? = nil
 

@@ -3,7 +3,7 @@
 -- them up to be looked over.
 --
 -- The check runs at every start and prints to the Output window: how many of the shinobi,
--- enemies and kunai have a model, which are missing, which names it does not know, and which
+-- enemies, kunai and shopkeepers have a model, which are missing, which names it does not know, and which
 -- models look wrong (lying on their side, not long and thin for a kunai).
 --
 -- The showroom is for after an import: in a Studio test, with the boolean attribute "Showroom"
@@ -47,7 +47,7 @@ local ENEMY_SIDE = -25
 local FIRST_SHINOBI = -13
 local SHINOBI_GAP = 9.5
 
-type Kind = "shinobi" | "enemy" | "kunai"
+type Kind = "shinobi" | "enemy" | "kunai" | "keeper"
 
 -- A name as it would be without capitals, spaces and punctuation, to guess what a misnamed
 -- model was meant to be.
@@ -82,6 +82,9 @@ local function check(): Instance?
 	for _, kunai in Catalog.kunai do
 		expect(Net.KUNAI_MODEL .. kunai.id, "kunai")
 	end
+	for _, keeper in Catalog.keepers do
+		expect(keeper.id, "keeper")
+	end
 
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	if not folder then
@@ -97,8 +100,8 @@ local function check(): Instance?
 	end
 
 	local have: { [string]: boolean } = {}
-	local found = { shinobi = 0, enemy = 0, kunai = 0 }
-	local total = { shinobi = 0, enemy = 0, kunai = 0 }
+	local found = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0 }
+	local total = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0 }
 	for _, kind in expected do
 		total[kind] += 1
 	end
@@ -145,7 +148,7 @@ local function check(): Instance?
 
 	print(
 		`[Models] shinobi {found.shinobi}/{total.shinobi}, enemies {found.enemy}/{total.enemy},`
-			.. ` kunai {found.kunai}/{total.kunai}`
+			.. ` kunai {found.kunai}/{total.kunai}, shopkeepers {found.keeper}/{total.keeper}`
 	)
 	-- The details are for whoever is importing; a live server's log does not need them.
 	if not RunService:IsStudio() then

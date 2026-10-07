@@ -1,7 +1,8 @@
 --!strict
--- The Sell stall window: every shinobi in the inventory with what the stall pays for it. A
--- click sells one; "Sell all" sells the lot and asks to be clicked twice, since it cannot be
--- undone. Shinobi standing on pads are not listed: they have to be taken off first.
+-- The Mission Desk window (World/MissionDesk), the shop "sell": every shinobi in the inventory
+-- with what the desk pays for it. A click sells one; "Sell all" sells the lot and asks to be
+-- clicked twice, since it cannot be undone. Shinobi standing on pads are not listed: they have
+-- to be taken off first.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

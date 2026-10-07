@@ -2,6 +2,7 @@
 -- Lookup indexes over the static config, built once when first required.
 
 local Characters = require("./Characters")
+local Keepers = require("./Keepers")
 local KunaiList = require("./Kunai")
 local Mutations = require("./Mutations")
 local Potions = require("./Potions")
@@ -11,6 +12,7 @@ local Tuning = require("./Tuning")
 local Zones = require("./Zones")
 
 export type Character = Characters.Character
+export type Keeper = Keepers.Keeper
 export type Kunai = KunaiList.Kunai
 export type Mutation = Mutations.Mutation
 export type Potion = Potions.Potion
@@ -28,6 +30,8 @@ Catalog.mutations = Mutations
 Catalog.zones = Zones
 Catalog.kunai = KunaiList
 Catalog.potions = Potions
+-- The market's shopkeepers, who are not shinobi to collect.
+Catalog.keepers = Keepers
 -- Characters that left the roster -> who took their place (see Logic/Roster).
 Catalog.replaced = Replaced
 
@@ -38,6 +42,11 @@ Catalog.mutationById = {} :: { [string]: Mutation }
 Catalog.potionById = {} :: { [string]: Potion }
 Catalog.zoneById = {} :: { [string]: Zone }
 Catalog.zoneOrder = {} :: { [string]: number }
+Catalog.keeperById = {} :: { [string]: Keeper }
+
+for _, keeper in Keepers do
+	Catalog.keeperById[keeper.id] = keeper
+end
 
 for i, rank in Ranks do
 	Catalog.rankOrder[rank.id] = i

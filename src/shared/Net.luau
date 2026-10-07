@@ -43,6 +43,13 @@ Net.SHOP_ATTRIBUTE = "Shop"
 -- Name of the model of a shop's keeper, next to the counter that carries the prompt (both in
 -- the shop's folder). The client puts a chat bubble over the keeper when the shop is opened.
 Net.KEEPER = "Keeper"
+-- The folder in Workspace holding the market's shops (World/Market).
+Net.MARKET_FOLDER = "Market"
+-- The eight lanterns on the gate of the Youth Training Ground (World/TrainingGround) are named
+-- so, each with a number attribute saying which of the Eight Gates it stands for. Each client
+-- lights as many as its own player has opened (client/GateLanterns).
+Net.GATE_LANTERN = "GateLantern"
+Net.GATE_ATTRIBUTE = "Gate"
 -- The folder in Workspace holding the shared part of the world, and its attribute with the
 -- world position where the lane starts.
 Net.HUB_FOLDER = "Hub"
