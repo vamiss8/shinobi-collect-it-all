@@ -366,6 +366,18 @@ return {
 		T.ok(lanterns >= 48, `only {lanterns} pieces of lantern`)
 	end,
 
+	["the gate at the back is solid, its beams as well as its pillars"] = function()
+		local pieces = 0
+		for _, part in parts() do
+			if string.sub(part.Name, 1, 4) == "Gate" then
+				pieces += 1
+				T.ok(part.CanCollide, `{where(part)} is passed through`)
+			end
+		end
+		-- Two pillars on two feet, two beams and a cap.
+		T.eq(pieces, 7)
+	end,
+
 	["a stone lantern is solid from its foot to its knob"] = function()
 		local pieces = 0
 		for _, part in parts() do

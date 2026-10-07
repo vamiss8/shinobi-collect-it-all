@@ -841,29 +841,10 @@ local function buildGate(folder: Folder)
 			Enum.Material.Slate
 		)
 	end
-	show(
-		Build.part(
-			folder,
-			"GateBeam",
-			Vector3.new(2.2, 1.6, 34),
-			Hub.at(along, 17.2, 0),
-			LACQUER,
-			wood
-		)
-	)
-	show(
-		Build.part(folder, "GateCap", Vector3.new(3, 0.6, 37), Hub.at(along, 18.3, 0), TIMBER, wood)
-	)
-	show(
-		Build.part(
-			folder,
-			"GateTie",
-			Vector3.new(1.4, 1.2, 29),
-			Hub.at(along, 13, 0),
-			LACQUER,
-			wood
-		)
-	)
+	-- The beams are solid like the pillars: whoever gets up there stands on them.
+	Build.part(folder, "GateBeam", Vector3.new(2.2, 1.6, 34), Hub.at(along, 17.2, 0), LACQUER, wood)
+	Build.part(folder, "GateCap", Vector3.new(3, 0.6, 37), Hub.at(along, 18.3, 0), TIMBER, wood)
+	Build.part(folder, "GateTie", Vector3.new(1.4, 1.2, 29), Hub.at(along, 13, 0), LACQUER, wood)
 end
 
 -- The notice board: a board between two posts under a little roof, with papers pinned all
