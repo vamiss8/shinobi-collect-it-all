@@ -4,28 +4,40 @@
 -- home, and returns to the village's morning at the dojos. It is local to each player:
 -- lighting is not shared between clients.
 --
+-- The light is set by where the camera is, every frame: near the line between two places it
+-- is the two mixed (Logic/Crossing), and what is on screen closes on that quickly. Nothing
+-- waits for a line to be crossed and then takes its time.
+--
 -- Only numbers are changed here, on Lighting, its Atmosphere and its effects. The place's Sky,
 -- and with it the moon, is never touched.
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
-local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Crossing = require(ReplicatedStorage.Shared.Logic.Crossing)
 local Looks = require(ReplicatedStorage.Shared.Config.ZoneArt)
 local Net = require(ReplicatedStorage.Shared.Net)
 
 local Mood = {}
 
 -- Where the camera is when it is behind the lane's start: the dojos, the market, the strip.
-Mood.HOME = "home"
+Mood.HOME = Crossing.HOME
 -- The name of the effect the weather flashes its lightning through (client Weather). It is of
 -- the class the zones' colors are graded with, and the two must not be taken for each other.
 Mood.LIGHTNING = "Lightning"
 
-local CHECK_SECONDS = 0.3
-local SHIFT_SECONDS = 1.5
+-- How fast the light on screen closes on the light of where the camera is: this share of what
+-- is left of the way, every second, as a rate. A camera that walks or runs is followed all but
+-- exactly; one that flies down the lane behind a kunai, through a zone in half a second, is
+-- followed smoothly instead of in flashes, and the light has settled a moment after it lands.
+local FOLLOW = 6
+-- Closer to where it is going than this, the light is put there and left alone.
+local SETTLED = 0.002
+
+-- A look as two rows, numbers and colors, in the order they are written out below.
+type Row = { numbers: { number }, colors: { Color3 } }
 
 type Listener = (place: string) -> ()
 
@@ -56,6 +68,67 @@ local function effect(className: string): any
 	return made
 end
 
+local function row(look: Looks.Light): Row
+	return {
+		numbers = {
+			look.clock,
+			look.brightness,
+			look.exposure,
+			look.density,
+			look.haze,
+			look.glare,
+			look.offset,
+			look.saturation,
+			look.contrast,
+			look.lift,
+			look.bloom,
+			look.bloomSize,
+			look.bloomThreshold,
+			look.rays,
+			look.raysSpread,
+		},
+		colors = {
+			Color3.fromHex(look.ambient),
+			Color3.fromHex(look.outdoor),
+			Color3.fromHex(look.air),
+			Color3.fromHex(look.decay),
+			Color3.fromHex(look.tint),
+		},
+	}
+end
+
+-- `share` of the way from one row to another.
+local function between(from: Row, to: Row, share: number): Row
+	local numbers, colors = table.create(#from.numbers), table.create(#from.colors)
+	for i, value in from.numbers do
+		numbers[i] = value + (to.numbers[i] - value) * share
+	end
+	for i, color in from.colors do
+		colors[i] = color:Lerp(to.colors[i], share)
+	end
+	return { numbers = numbers, colors = colors }
+end
+
+-- How far apart two rows are, by the one thing that differs most. Hours and bloom sizes run
+-- into the tens while most of the rest stays under one, hence the scale.
+local function apart(a: Row, b: Row): number
+	local most = 0
+	for i, value in a.numbers do
+		local scale = math.max(math.abs(value), math.abs(b.numbers[i]), 1)
+		most = math.max(most, math.abs(value - b.numbers[i]) / scale)
+	end
+	for i, color in a.colors do
+		local other = b.colors[i]
+		most = math.max(
+			most,
+			math.abs(color.R - other.R),
+			math.abs(color.G - other.G),
+			math.abs(color.B - other.B)
+		)
+	end
+	return most
+end
+
 function Mood.start()
 	task.spawn(function()
 		-- The server builds the world at startup, but this script may run first.
@@ -69,60 +142,75 @@ function Mood.start()
 		local bloom: BloomEffect = effect("BloomEffect")
 		local rays: SunRaysEffect = effect("SunRaysEffect")
 		local grade: ColorCorrectionEffect = effect("ColorCorrectionEffect")
-		local shift =
-			TweenInfo.new(SHIFT_SECONDS, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 
-		local function put(look: Looks.Light)
-			TweenService:Create(Lighting, shift, {
-				ClockTime = look.clock,
-				Brightness = look.brightness,
-				ExposureCompensation = look.exposure,
-				Ambient = Color3.fromHex(look.ambient),
-				OutdoorAmbient = Color3.fromHex(look.outdoor),
-			}):Play()
-			TweenService:Create(atmosphere, shift, {
-				Color = Color3.fromHex(look.air),
-				Decay = Color3.fromHex(look.decay),
-				Density = look.density,
-				Haze = look.haze,
-				Glare = look.glare,
-				Offset = look.offset,
-			}):Play()
-			TweenService:Create(grade, shift, {
-				TintColor = Color3.fromHex(look.tint),
-				Saturation = look.saturation,
-				Contrast = look.contrast,
-				Brightness = look.lift,
-			}):Play()
-			TweenService:Create(bloom, shift, {
-				Intensity = look.bloom,
-				Size = look.bloomSize,
-				Threshold = look.bloomThreshold,
-			}):Play()
-			TweenService:Create(rays, shift, {
-				Intensity = look.rays,
-				Spread = look.raysSpread,
-			}):Play()
+		local rows: { [string]: Row } = { [Mood.HOME] = row(Looks.home) }
+		for id, art in Looks.zones do
+			rows[id] = row(art.light)
 		end
 
-		while true do
+		local function put(look: Row)
+			local n, c = look.numbers, look.colors
+			Lighting.ClockTime = n[1]
+			Lighting.Brightness = n[2]
+			Lighting.ExposureCompensation = n[3]
+			Lighting.Ambient = c[1]
+			Lighting.OutdoorAmbient = c[2]
+			atmosphere.Color = c[3]
+			atmosphere.Decay = c[4]
+			atmosphere.Density = n[4]
+			atmosphere.Haze = n[5]
+			atmosphere.Glare = n[6]
+			atmosphere.Offset = n[7]
+			grade.TintColor = c[5]
+			grade.Saturation = n[8]
+			grade.Contrast = n[9]
+			grade.Brightness = n[10]
+			bloom.Intensity = n[11]
+			bloom.Size = n[12]
+			bloom.Threshold = n[13]
+			rays.Intensity = n[14]
+			rays.Spread = n[15]
+		end
+
+		-- What is on screen, and whether it is where it is going: then nothing is written until
+		-- the camera's place asks for another light.
+		local shown: Row? = nil
+		local settled = false
+		local lastFrom, lastTo, lastShare = "", "", -1
+
+		RunService.RenderStepped:Connect(function(dt)
 			-- Where the camera is along the lane decides the mood; behind the lane's start is home.
 			local camera = Workspace.CurrentCamera
 			local along = if camera then camera.CFrame.Position.X - origin.X else -1
-			local place = if along < 0 then Mood.HOME else Catalog.zoneAt(along).id
-			if place ~= current then
-				local art = Looks.zones[place]
-				local look = if place == Mood.HOME then Looks.home elseif art then art.light else nil
-				if look then
-					current = place
-					put(look)
-					for _, fn in listeners do
-						task.spawn(fn, place)
-					end
+
+			local place = Crossing.place(along)
+			if place ~= current and rows[place] then
+				current = place
+				for _, fn in listeners do
+					task.spawn(fn, place)
 				end
 			end
-			task.wait(CHECK_SECONDS)
-		end
+
+			local from, to, share = Crossing.mix(along)
+			local first, second = rows[from], rows[to]
+			if not first or not second then
+				return
+			end
+			if settled and from == lastFrom and to == lastTo and share == lastShare then
+				return
+			end
+			lastFrom, lastTo, lastShare = from, to, share
+
+			local wanted = if share == 0 then first else between(first, second, share)
+			-- The first light of a session is put on at once: there is nothing to come from.
+			local now = if shown then between(shown, wanted, 1 - math.exp(-FOLLOW * dt)) else wanted
+			settled = apart(now, wanted) < SETTLED
+			if settled then
+				now = wanted
+			end
+			shown = now
+			put(now)
+		end)
 	end)
 end
 
