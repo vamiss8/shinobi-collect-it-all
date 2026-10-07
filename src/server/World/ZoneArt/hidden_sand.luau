@@ -195,9 +195,10 @@ return function(scene: Kit.Scene)
 				sandstone,
 				pick(-8, 8)
 			)
+			-- Every other band stands a little farther out than its neighbors, which it laps over.
 			Kit.box(
 				scene,
-				Vector3.new(31, 5, 27),
+				Vector3.new(31, 5, 27 + (i % 2) * 0.8),
 				at(x, height * pick(0.3, 0.7), side * 178),
 				c.strata,
 				sandstone
@@ -309,7 +310,7 @@ return function(scene: Kit.Scene)
 			)
 			Kit.box(
 				scene,
-				Vector3.new(23, 5, 30),
+				Vector3.new(23 + (i % 2) * 0.8, 5, 30),
 				at(10, height * pick(0.3, 0.7), z),
 				c.strata,
 				sandstone

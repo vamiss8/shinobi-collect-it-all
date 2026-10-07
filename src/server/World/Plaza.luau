@@ -331,17 +331,21 @@ local function buildFountain(folder: Folder)
 	local reach = PlazaPlan.FOUNTAIN_RADIUS
 	local slate = Enum.Material.Slate
 
-	-- The basin's wall: straight pieces set round a circle, each under a wider capstone.
+	-- The basin's wall: straight pieces set round a circle, each under a wider capstone. The
+	-- pieces lap over one another at the corners, so every other capstone is cut thicker, a
+	-- little above its neighbors and a little below: with their tops level, two stones of the
+	-- same grain lay in one plane at every corner, and the corners flickered.
 	local chord = 2 * reach * math.tan(math.pi / RIM_SEGMENTS)
 	for i = 0, RIM_SEGMENTS - 1 do
 		local angle = i * 2 * math.pi / RIM_SEGMENTS
 		local base = center + heading(angle) * (reach - RIM / 2)
+		local proud = (i % 2) * 0.07
 		block(folder, "Rim", Vector3.new(RIM, RIM_HEIGHT, chord + 0.3), base, angle, STONE, slate)
 		block(
 			folder,
 			"RimCap",
-			Vector3.new(RIM + 0.9, 0.5, chord + 0.5),
-			base + UP * RIM_HEIGHT,
+			Vector3.new(RIM + 0.9, 0.5 + 2 * proud, chord + 0.5),
+			base + UP * (RIM_HEIGHT - proud),
 			angle,
 			STONE_DARK,
 			slate

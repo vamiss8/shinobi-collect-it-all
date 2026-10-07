@@ -394,6 +394,9 @@ local function inside(part: any, point: any): boolean
 	return true
 end
 
+-- Materials with no grain: a piece of one looks the same whichever way it is turned.
+local PLAIN = { SmoothPlastic = true, Neon = true, Plastic = true }
+
 export type Fight = {
 	first: any,
 	second: any,
@@ -402,7 +405,8 @@ export type Fight = {
 }
 
 -- Pairs of parts that would flicker: each has a flat side in the same plane as the other's,
--- looking the same way, one over the other, and the two do not look alike. Which of two such
+-- looking the same way, one over the other, and the two do not look alike (two pieces of the
+-- same stone count as unlike: the grain of one does not carry on into the other). Which of two such
 -- sides is drawn changes from pixel to pixel and from frame to frame as the camera moves
 -- (z-fighting). Only what can be seen counts: not what lies at or under the ground, and not
 -- what a third part covers. Areas are measured by sampling.
@@ -452,9 +456,12 @@ function Zones.fights(parts: { any }): { Fight }
 					break
 				end
 				local a, b = face.part, other.part
+				-- Two pieces of one plain color cannot be told apart where they overlap. Two of
+				-- one grained material can: each carries the grain its own way.
 				local alike = a.Color == b.Color
 					and a.Material == b.Material
 					and a.Transparency == b.Transparency
+					and PLAIN[a.Material.Name] == true
 				if a ~= b and not alike then
 					-- Sample the smaller of the two and count what lies on the other.
 					local small, large = face, other

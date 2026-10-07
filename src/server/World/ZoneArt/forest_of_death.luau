@@ -29,7 +29,7 @@ return function(scene: Kit.Scene)
 		for _, side in { -1, 1 } do
 			Kit.box(scene, Vector3.new(2, 26, 2), at(0, 0, side * 34), c.fence, metal)
 		end
-		Kit.rod(scene, at(0, 25, -35), at(0, 25, 35), 1.6, c.fence, metal)
+		Kit.rod(scene, at(0, 25, -35.3), at(0, 25, 35.3), 1.6, c.fence, metal)
 		Kit.box(scene, Vector3.new(0.4, 4, 18), at(0, 19.5, 0), c.sign, wood)
 		Kit.box(scene, Vector3.new(0.5, 1, 12), at(0, 21, 0), c.signMark)
 	end)

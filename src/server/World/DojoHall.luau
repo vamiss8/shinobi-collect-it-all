@@ -449,10 +449,13 @@ local function buildFlight(ctx: Ctx, flight: DojoPlan.Flight)
 		decor(block(ctx, "Step", a, b, STEP_WOOD, PLANKS))
 	end
 
-	for _, z in { NEAR + STRINGER / 2, FAR - STRINGER / 2 } do
+	-- A stringer stands a hair out past the landing it runs up to: flush with the landing's
+	-- side, the two flickered where they met.
+	local proud = 0.06
+	for _, z in { NEAR + STRINGER / 2 - proud, FAR - STRINGER / 2 + proud } do
 		local a = V(flight.from, flight.low + NOSING, z)
 		local b = V(flight.to, flight.high + NOSING, z)
-		decor(plank(ctx, "Stringer", a, b, STRINGER, 1.8, -0.9, TIMBER, WOOD))
+		decor(plank(ctx, "Stringer", a, b, STRINGER + 2 * proud, 1.8, -0.9, TIMBER, WOOD))
 	end
 end
 
@@ -668,10 +671,16 @@ local function buildRoof(ctx: Ctx)
 			local x = side * (HALF - WALL / 2)
 			decor(wedge(ctx, "Gable", x, breakZ, MID, TOP, rise, PLASTER, Enum.Material.Plaster))
 			local edge = side * (EAVE_SIDE + 0.25)
-			for _, segment in { { eave, lowEnd }, { highStart, ridge } } do
-				local a = V(edge, segment[1].Y, segment[1].Z)
-				local b = V(edge, segment[2].Y, segment[2].Z)
-				decor(plank(ctx, "Bargeboard", a, b, 0.5, 1.6, -0.4, LACQUER, WOOD))
+			-- The boards lap over one another where the slope breaks and at the ridge, so no two
+			-- that meet are of one thickness: their outer sides would lie in one plane and
+			-- flicker. Each keeps its inner side against the end of the roof.
+			local steep = if dir > 0 then 0.58 else 0.66
+			for index, segment in { { eave, lowEnd }, { highStart, ridge } } do
+				local thick = if index == 1 then 0.5 else steep
+				local out = side * (EAVE_SIDE + thick / 2)
+				local a = V(out, segment[1].Y, segment[1].Z)
+				local b = V(out, segment[2].Y, segment[2].Z)
+				decor(plank(ctx, "Bargeboard", a, b, thick, 1.6, -0.4, LACQUER, WOOD))
 			end
 			-- The bargeboards of the steep part run on past the ridge and cross over it.
 			local over = V(edge, RIDGE_Y + 0.4 + 4 * HIGH_SLOPE, MID + dir * 4)
@@ -736,11 +745,11 @@ local function buildSign(ctx: Ctx): TextLabel
 	local trim = 0.25
 	local metal = Enum.Material.Metal
 	for _, y in { y0, y1 } do
-		local a, b = V(-w - trim, y - trim / 2, z - 0.3), V(w + trim, y + trim / 2, z + 0.2)
+		local a, b = V(-w - trim, y - trim / 2, z - 0.3), V(w + trim, y + trim / 2, z + 0.3)
 		decor(block(ctx, "NameBoardTrim", a, b, GOLD, metal))
 	end
 	for _, x in { -w, w } do
-		local a, b = V(x - trim / 2, y0, z - 0.3), V(x + trim / 2, y1, z + 0.2)
+		local a, b = V(x - trim / 2, y0, z - 0.3), V(x + trim / 2, y1, z + 0.3)
 		decor(block(ctx, "NameBoardTrim", a, b, GOLD, metal))
 	end
 	local postZ = z + 0.5

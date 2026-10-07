@@ -336,7 +336,7 @@ return function(scene: Kit.Scene)
 					wood
 				)
 			end
-			Kit.box(scene, Vector3.new(5.6, 0.3, 0.4), rack + Vector3.new(0, 4, 0), c.pole, wood)
+			Kit.box(scene, Vector3.new(5.6, 0.3, 0.5), rack + Vector3.new(0, 4, 0), c.pole, wood)
 			for spear = -1, 1 do
 				Kit.rod(
 					scene,

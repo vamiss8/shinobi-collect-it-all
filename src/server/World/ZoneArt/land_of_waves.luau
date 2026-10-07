@@ -155,11 +155,12 @@ return function(scene: Kit.Scene)
 		Kit.light(scene, lantern, c.foam, 16, 0.8)
 	end
 
-	-- Rowing boats lying on the water.
-	for _ = 1, 7 do
+	-- Rowing boats lying on the water, each riding a hair higher than the one before: two that
+	-- come to lie against each other must not have their decks in one plane.
+	for boat = 1, 7 do
 		local side = if pick(0, 1) < 0.5 then -1 else 1
 		local turn = pick(0, 180)
-		local where = CFrame.new(at(pick(8, 112), 0.5, side * pick(54, 150)))
+		local where = CFrame.new(at(pick(8, 112), 0.5 + boat * 0.03, side * pick(54, 150)))
 			* CFrame.Angles(0, math.rad(turn), 0)
 		Kit.block(scene, Vector3.new(9, 1, 3), where, c.boat, planks)
 		for _, z in { -1.6, 1.6 } do

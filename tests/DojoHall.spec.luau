@@ -39,6 +39,29 @@ return {
 		T.eq(eaves, 3 * 2 * PlazaPlan.DOJOS)
 	end,
 
+	-- Two flat sides in one plane, one over the other, flicker as the camera moves. A hall is
+	-- held to this where it shows: small overlaps deep under its roof are let be.
+	["nothing of a hall flickers where it is seen"] = function()
+		parts()
+		local hall = {}
+		for _, item in halls:FindFirstChild("Dojo1"):GetDescendants() do
+			if item:IsA("BasePart") then
+				table.insert(hall, item)
+			end
+		end
+		for _, fight in Zones.fights(hall) do
+			T.ok(
+				fight.area < 0.5,
+				string.format(
+					"%s and %s share a plane over %.2f square studs",
+					where(fight.first),
+					where(fight.second),
+					fight.area
+				)
+			)
+		end
+	end,
+
 	["the roof and the floors are solid"] = function()
 		local roofs, floors = 0, 0
 		for _, part in parts() do
