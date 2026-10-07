@@ -453,16 +453,21 @@ ZoneArt.zones = {
 
 	-- A cave under the earth: black rock, red light and bowls of black flame.
 	akatsuki_lair = {
+		-- The rock is dark, not black: in a cave nothing is lit but by the air's own light
+		-- and the fires, and near-black rock under them was a black screen.
 		palette = {
-			rock = "#2C2426",
-			rockDark = "#1C1718",
-			rockRed = "#3A2224",
-			-- The mountain the cave is in, seen from outside: paler than the rock within, so
-			-- that it is not a black shape against the sand.
+			rock = "#6A5A5E",
+			rockDark = "#52464A",
+			rockRed = "#7C4A4E",
+			-- The mountain the cave is in, seen from outside under its neighbors' daylight:
+			-- pale enough not to be a black shape against the sand.
 			crag = "#514547",
 			cragDark = "#3F3537",
 			bowl = "#3B3436",
 			ember = "#E53935",
+			-- What the fires light the cave with: warmer and paler than the embers, so that
+			-- what it falls on shows in its own colors and not only in red.
+			firelight = "#FF8A66",
 			flame = "#0D0D0D",
 			banner = "#141214",
 			cloud = "#B71C1C",
@@ -470,21 +475,28 @@ ZoneArt.zones = {
 			boneDark = "#655E56",
 			crystal = "#FF5252",
 		},
-		ground = { color = "#2E2426", material = "Slate" },
-		lane = { color = "#3A2B2D", material = "Slate" },
+		ground = { color = "#4C3E41", material = "Slate" },
+		lane = { color = "#62504F", material = "Slate" },
 		sign = { color = "#141214", material = "Fabric" },
+		-- Under a roof the sun and the sky's light do not reach: what is seen is seen by the
+		-- indoor ambient light, the fires and the exposure. All three are set high for a cave,
+		-- because at the first try (ambient at a twelfth of white, thick dark-red air, the
+		-- contrast turned up) the owner saw "very dark, nothing to be seen, all of it black".
+		-- It is still the dimmest zone, and red; it is no longer a dark one.
 		light = light({
 			clock = 20.5,
-			brightness = 0.6,
-			ambient = "#1E0E10",
-			outdoor = "#37181A",
-			air = "#3C1418",
-			decay = "#280A0E",
-			density = 0.55,
-			haze = 2,
-			tint = "#FFCDC8",
-			saturation = -0.2,
-			contrast = 0.2,
+			brightness = 1.5,
+			exposure = 0.5,
+			ambient = "#A08890",
+			outdoor = "#8C747C",
+			air = "#74484E",
+			decay = "#4C2C32",
+			density = 0.3,
+			haze = 1,
+			tint = "#FFE2DE",
+			saturation = -0.05,
+			contrast = 0.05,
+			lift = 0.03,
 			bloom = 1.6,
 			bloomSize = 30,
 			bloomThreshold = 1.2,

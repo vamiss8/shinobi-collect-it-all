@@ -124,17 +124,33 @@ return {
 		end
 	end,
 
-	-- A zone that is too dark to see is a broken zone, as Hidden Rain was at first. Whatever
-	-- the hour, enough ambient light has to reach what stands outdoors. The cave is lit by its
-	-- fires and is meant to be dark.
+	-- A zone that is too dark to see is a broken zone, as Hidden Rain was at first and the
+	-- cave after it. Whatever the hour, enough ambient light has to reach what stands outdoors.
 	["no zone is left in the dark"] = function()
-		local DARK = { akatsuki_lair = true }
 		for id, art in ZoneArt.zones do
-			if not DARK[id] then
-				local bright = brightness(art.light.outdoor)
-				T.ok(bright >= 0.26, `{id}: outdoor ambient is only {bright} of white`)
-			end
+			local bright = brightness(art.light.outdoor)
+			T.ok(bright >= 0.26, `{id}: outdoor ambient is only {bright} of white`)
 		end
+	end,
+
+	-- The cave is under a roof, where neither the sun nor the sky's light comes: it is seen by
+	-- the indoor ambient light alone, and by its fires. So that light is strong there, and the
+	-- rock it falls on is dark but not black; the air is thin enough to see the far wall.
+	["the cave is lit from within"] = function()
+		local art = ZoneArt.zones.akatsuki_lair
+		local look = art.light
+		T.ok(brightness(look.ambient) >= 0.5, `indoor ambient is {brightness(look.ambient)}`)
+		T.ok(look.exposure >= 0.3, `exposure is {look.exposure}`)
+		T.ok(look.density <= 0.35, `the air's density is {look.density}`)
+		T.ok(brightness(look.air) >= 0.25, "the air itself is dark, and so is all that is far")
+		T.ok(look.contrast <= 0.1, "contrast turned up makes the dark darker")
+		for _, name in { "rock", "rockDark", "rockRed" } do
+			local bright = brightness(art.palette[name])
+			T.ok(bright >= 0.28, `{name} is {bright} of white: black under any light`)
+		end
+		T.ok(brightness(art.ground.color) >= 0.24, "the ground is black")
+		T.ok(art.lane ~= nil and brightness(art.lane.color) >= 0.3, "the lane is black")
+		T.ok(brightness(art.palette.firelight) >= 0.6, "the fires give too little light")
 	end,
 
 	-- The owner's reference: the last zone is lit as it was on 2026-10-06 and is not to drift.

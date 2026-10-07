@@ -1,8 +1,8 @@
 --!strict
 -- Akatsuki Lair: a cave under the earth. Rock walls close in on both sides and a vault hangs
--- far overhead with stalactites; bowls of black flame burn along the lane and give the only
--- light, red and dim; black banners hang by the walls, red crystal grows in the cracks, and at
--- the far end two great stone hands rise out of the floor.
+-- far overhead with stalactites; bowls of black flame burn along the lane and throw a warm
+-- light right across it; black banners hang by the walls, red crystal grows in the cracks, and
+-- at the far end two great stone hands rise out of the floor.
 --
 -- The vault is kept above Kit.CLEAR: a kunai flies high, and the camera with it.
 --
@@ -146,7 +146,9 @@ return function(scene: Kit.Scene)
 		)
 	end
 
-	-- Bowls of black flame along the lane, five to a side. Each lights a red pool around it.
+	-- Bowls of black flame along the lane, five to a side. Each lights the lane from its own
+	-- wall to past the middle: they stand 35 studs out, and with a reach of 26 they lit a
+	-- red pool at the foot of each wall and left the lane itself in the dark.
 	for i = 0, 9 do
 		local side = if i % 2 == 0 then -1 else 1
 		local base = at(18 + i * 21, 0, side * 35)
@@ -155,7 +157,7 @@ return function(scene: Kit.Scene)
 			Kit.pillar(scene, 1, 4.6, base + Vector3.new(0, 4.6, 0), c.bowl, Enum.Material.Metal)
 		Kit.emit(bowl, BLACK_FLAME, c.flame)
 		Kit.emit(bowl, RED_EDGE, c.ember)
-		Kit.light(scene, bowl, c.ember, 26, 1.1)
+		Kit.light(scene, bowl, c.firelight, 48, 2.2)
 	end
 
 	-- Black banners by the walls, each with red blots like clouds.
