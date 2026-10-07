@@ -1,7 +1,7 @@
 --!strict
 -- A card describing one shinobi, used by the inventory, the sell stall and the Bingo Book. A
 -- card for a unit the player has not found yet is a black silhouette that only gives away its
--- income. An upgraded unit's card also shows its base income, what it earned at level 1: that
+-- shape and its income. An upgraded unit's card also shows its base income, what it earned at level 1: that
 -- is the number to compare two shinobi by, since a level can be bought for either.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -38,17 +38,20 @@ function UnitCard.build(
 	})
 	Ui.stroke(card, if known then rankColor else Ui.EDGE, 3)
 
-	-- The character's portrait (a drawn stand-in until it has a picture), an empty square
-	-- while unknown.
+	-- The character's portrait: a photograph of its model (a drawn stand-in while it has
+	-- none), and only its black outline while unknown.
 	local portrait = Ui.make("Frame", {
-		Position = UDim2.fromOffset(10, 10),
-		Size = UDim2.fromOffset(56, 56),
-		BackgroundColor3 = if known then Ui.PANEL else Color3.fromRGB(24, 24, 24),
+		Position = UDim2.fromOffset(8, 8),
+		Size = UDim2.fromOffset(62, 62),
+		BackgroundColor3 = if known then Ui.PANEL else Color3.fromRGB(44, 40, 38),
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 	}, card)
 	Ui.corner(portrait, 6)
 	if known then
 		Icons.shinobi(portrait, unit.character, rankColor)
+	else
+		Icons.shadow(portrait, unit.character)
 	end
 
 	-- The name takes two lines when it has to: "Rock Lee (Drunken Fist)" does not fit in one.

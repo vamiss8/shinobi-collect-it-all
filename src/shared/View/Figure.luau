@@ -35,6 +35,8 @@ local TAG_ANCHOR = "TagAnchor"
 
 -- How high over a carrier's root a carried figure's feet are.
 Figure.CARRY_HEIGHT = 3.5
+-- How tall a shinobi's figure stands.
+Figure.HEIGHT = UNIT_HEIGHT
 local SKIN = Color3.fromRGB(255, 219, 172)
 
 function Figure.title(unit: Economy.Unit): string
@@ -214,6 +216,13 @@ function Figure.retag(figure: Model, unit: Economy.Unit)
 		gui.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
 		label.Text = text
 	end
+end
+
+-- A character's supplied model and nothing else: no tag, no aura. It stands at the world's
+-- origin with its feet on it, Figure.HEIGHT tall, its face to -Z. Nil when no model has been
+-- supplied for the character. For portraits (client/Portrait).
+function Figure.bare(characterId: string): Model?
+	return supplied(characterId, UNIT_HEIGHT)
 end
 
 -- Builds a zone's enemy standing at the world origin, pivot at its feet.

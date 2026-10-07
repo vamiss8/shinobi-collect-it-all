@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require("./Art")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Portrait = require("./Portrait")
 local Ui = require("./Ui")
 
 local Icons = {}
@@ -213,14 +214,23 @@ function Icons.focus(holder: Instance)
 	overlay(holder, Art.icons.focus)
 end
 
--- The portrait of a character: a small shinobi in the given color with a forehead protector,
--- or the character's picture if Art has one.
+-- The portrait of a character: a photograph of its own model when it has one (see Portrait),
+-- and until then a small drawn shinobi in the given color with a forehead protector. The
+-- character's picture takes the place of either if Art has one.
 function Icons.shinobi(holder: Instance, characterId: string, color: Color3)
-	shape(holder, 0.26, 0.46, 0.48, 0.48, color, 0.18)
-	shape(holder, 0.31, 0.08, 0.38, 0.38, SKIN, 0.5)
-	shape(holder, 0.31, 0.18, 0.38, 0.08, NIGHT, 0)
-	shape(holder, 0.43, 0.17, 0.14, 0.10, STEEL, 0.2)
+	if not Portrait.show(holder, characterId) then
+		shape(holder, 0.26, 0.46, 0.48, 0.48, color, 0.18)
+		shape(holder, 0.31, 0.08, 0.38, 0.38, SKIN, 0.5)
+		shape(holder, 0.31, 0.18, 0.38, 0.08, NIGHT, 0)
+		shape(holder, 0.43, 0.17, 0.14, 0.10, STEEL, 0.2)
+	end
 	overlay(holder, Art.portraits[characterId])
+end
+
+-- The outline of a character that has not been found yet: its model's shape in black. Draws
+-- nothing for a character without a model.
+function Icons.shadow(holder: Instance, characterId: string)
+	Portrait.show(holder, characterId, true)
 end
 
 local kunaiById: { [string]: Catalog.Kunai } = {}
