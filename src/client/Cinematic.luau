@@ -12,6 +12,15 @@
 --           back behind the player
 -- Then control comes back with the camera behind the player, looking the way home.
 --
+-- THE RUNNER DOES NOT SET OFF BEFORE THE CAMERA IS THEIRS. The server gives the run speed back
+-- on its own clock, which is this client's but for the network: the speed could arrive some
+-- frames before the camera was handed over. With a movement key already down the runner was
+-- then off while the camera still swung to where they had stood, and the hand-over was a
+-- jerk. So from the teleport to the hand-over this client holds its own character still: a
+-- speed that arrives early is put by and given at the hand-over. The keys are never taken
+-- away, so one held down all through the look at the enemy simply starts the run the moment
+-- the camera is back.
+--
 -- A kunai is a real model when one has been supplied (see View/KunaiModel), and a plain blade
 -- otherwise.
 
@@ -56,6 +65,13 @@ local ENEMY_CLOSE_UP = 18
 -- long the banner's last words stay up once the player is running.
 local SWING_SECONDS = 0.7
 local RUN_WORDS_SECONDS = 1.6
+-- The game's own camera looks at a point this far over the middle of a character, and the
+-- staged one comes to rest looking down at it by this many degrees. A player who had the
+-- camera in the character's eyes, or farther off than this, gets a distance from here.
+local FOCUS_OVER_ROOT = 1.5
+local LOOK_DOWN = 10
+local USUAL_ZOOM = 12.5
+local FARTHEST_ZOOM = 30
 -- If the run has not started this long after it should have, the camera is given back anyway.
 local FAILSAFE_SECONDS = 4
 -- A landed kunai sticks in the ground leaning this steeply forward, with this share of its
@@ -85,6 +101,14 @@ type Stage = {
 	aside: Vector3, -- unit vector across the lane, from the landing spot towards its middle
 	shownAt: number?, -- os.clock() time the roulette stopped on its result
 	introFrom: number?, -- os.clock() time the enemy intro began
+	zoom: number, -- how far behind the character the player had the camera before the throw
+}
+
+-- A character held still for the look at the enemy.
+type Held = {
+	humanoid: Humanoid,
+	granted: number?, -- the run speed the server gave while the hold was on
+	turns: boolean, -- whether the character turned by itself before it
 }
 
 -- The scroll over the look at the enemy: its name, a line under it, and what takes the
@@ -103,17 +127,65 @@ local localPlayer = Players.LocalPlayer
 local rng = Random.new()
 
 local stage: Stage? = nil
+local held: Held? = nil
 local myKunai: BasePart? = nil
 local banner: Banner? = nil
 local announced = 0 -- counts what the banner has been told, so that a late order can be dropped
 
--- Where the camera stands when control comes back: behind a player who stands on the landing
--- spot `at`, looking home.
-local function behind(at: Vector3, down: Vector3): CFrame
-	return CFrame.lookAt(
-		at + down * 14 + Vector3.new(0, 7, 0),
-		at - down * 30 + Vector3.new(0, 2, 0)
-	)
+-- Where the camera stands when control comes back: behind the character whose middle is at
+-- `root`, looking home and a little down. It is where the game's own camera puts itself the
+-- moment it is given the camera, which looks at a point a stud and a half over a character's
+-- middle from as far back as the player has it set: so the hand-over is not a cut.
+local function behind(root: Vector3, down: Vector3, zoom: number): CFrame
+	local focus = root + Vector3.new(0, FOCUS_OVER_ROOT, 0)
+	local tilt = math.rad(LOOK_DOWN)
+	local look = -down * math.cos(tilt) - Vector3.yAxis * math.sin(tilt)
+	return CFrame.lookAt(focus - look * zoom, focus)
+end
+
+-- The middle of the local player's character, or if there is none, where it would be for a
+-- character standing on `ground`.
+local function rootAt(ground: Vector3): Vector3
+	local character = localPlayer.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	return if root and root:IsA("BasePart") then root.Position else ground + Vector3.new(0, 3, 0)
+end
+
+-- Holds the local player's character where it stands until `letGo`: it does not walk, whatever
+-- the keys say and whatever speed the server sends, and it does not turn to face the way the
+-- keys point, which during the look at the enemy is away from home.
+local function holdStill()
+	local character = localPlayer.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if humanoid and not held then
+		held = { humanoid = humanoid, granted = nil, turns = humanoid.AutoRotate }
+		humanoid.AutoRotate = false
+	end
+end
+
+-- Keeps a held character's speed at nothing, putting by whatever the server has sent. Run
+-- before every step of the physics, so that a speed that arrives early moves nobody.
+local function keepStill()
+	local holding = held
+	if holding and holding.humanoid.WalkSpeed ~= 0 then
+		holding.granted = holding.humanoid.WalkSpeed
+		holding.humanoid.WalkSpeed = 0
+	end
+end
+
+-- Ends the hold. A run speed the server gave meanwhile is given now; one still on its way
+-- arrives as it always did.
+local function letGo()
+	local holding = held
+	if holding then
+		-- One that arrived since the last step is put by like any other, and then given.
+		keepStill()
+		held = nil
+		holding.humanoid.AutoRotate = holding.turns
+		if holding.granted then
+			holding.humanoid.WalkSpeed = holding.granted
+		end
+	end
 end
 
 -- Shows the banner with these words, springing up, or hides it when given none. `color` goes
@@ -152,6 +224,22 @@ local function release(behindPlayer: boolean)
 	end
 	stage = nil
 	RunService:UnbindFromRenderStep(RENDER_STEP)
+
+	-- The camera first, in the same frame: the character is let go once it is in place.
+	local camera = Workspace.CurrentCamera
+	if camera then
+		if behindPlayer then
+			camera.CFrame = behind(rootAt(ended.reveal.at), ended.down, ended.zoom)
+		end
+		camera.CameraType = Enum.CameraType.Custom
+		local character = localPlayer.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		if humanoid then
+			camera.CameraSubject = humanoid
+		end
+	end
+	letGo()
+
 	if behindPlayer then
 		-- The banner's last words stay for the first steps of the run.
 		local order = announced
@@ -162,22 +250,6 @@ local function release(behindPlayer: boolean)
 		end)
 	else
 		announce(nil)
-	end
-
-	local camera = Workspace.CurrentCamera
-	if not camera then
-		return
-	end
-	local character = localPlayer.Character
-	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
-
-	if behindPlayer and root and root:IsA("BasePart") then
-		camera.CFrame = behind(root.Position, ended.down)
-	end
-	camera.CameraType = Enum.CameraType.Custom
-	if humanoid then
-		camera.CameraSubject = humanoid
 	end
 end
 
@@ -204,7 +276,7 @@ local function stepCamera(dt: number)
 			return
 		elseif since >= look then
 			-- Back to where control returns, so that the hand-over is not a cut.
-			target = behind(reveal.at, down)
+			target = behind(rootAt(reveal.at), down, current.zoom)
 			stiffness = 7
 		else
 			-- From behind the player's shoulder past them towards the enemy, well to one
@@ -458,11 +530,15 @@ local function begin(reveal: Net.Reveal)
 	if typeof(origin) == "Vector3" and (reveal.at - origin):Dot(across) > 0 then
 		across = -across
 	end
+	-- How far back the player has the camera, measured while it is still theirs. One who
+	-- plays from the character's own eyes gets the usual distance for the swing back.
+	local zoom = (camera.CFrame.Position - camera.Focus.Position).Magnitude
 	local mine: Stage = {
 		reveal = reveal,
 		startedAt = os.clock(),
 		down = down,
 		aside = across,
+		zoom = if zoom >= 2 then math.min(zoom, FARTHEST_ZOOM) else USUAL_ZOOM,
 	}
 	stage = mine
 	camera.CameraType = Enum.CameraType.Scriptable
@@ -607,9 +683,11 @@ function Cinematic.start()
 		local current = stage
 		if current then
 			current.introFrom = os.clock()
+			holdStill()
 			task.spawn(narrate, current)
 		end
 	end)
+	RunService.PreSimulation:Connect(keepStill)
 
 	-- Normally the intro ends the staging on its own; these cover a run that ended early and a
 	-- character that died in the middle of it.
