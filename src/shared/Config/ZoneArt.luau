@@ -580,8 +580,10 @@ ZoneArt.zones = {
 			outdoor = "#9696A5",
 			air = "#80808E",
 			decay = "#6E6C80",
-			density = 0.74,
-			haze = 9,
+			-- Thick enough to hide where the cubes end, and no thicker: at 0.74 and a haze
+			-- of 9 the owner asked for less fog.
+			density = 0.42,
+			haze = 4,
 			tint = "#E8E2FF",
 			saturation = -0.8,
 			contrast = 0.05,
