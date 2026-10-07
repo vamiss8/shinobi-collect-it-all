@@ -41,10 +41,16 @@ local CAN_PAY = Color3.fromRGB(129, 230, 135)
 local CANNOT_PAY = Color3.fromRGB(255, 112, 102)
 local PASS_TEXT = Color3.fromRGB(225, 170, 255)
 
+-- A console button that would buy something: a gilt slab round bright parchment, ink for what
+-- it does, red for what it costs, a red seal. One that would not: all of it gone gray.
 local BUTTON_ON = Color3.fromRGB(255, 200, 48)
 local BUTTON_OFF = Color3.fromRGB(105, 102, 98)
+local PAPER_ON = Color3.fromRGB(236, 220, 188)
+local PAPER_OFF = Color3.fromRGB(178, 170, 156)
 local INK = Color3.fromRGB(40, 30, 24)
-local FADED = Color3.fromRGB(176, 171, 164)
+local PRICE = Color3.fromRGB(150, 40, 30)
+local SEAL = Color3.fromRGB(183, 40, 32)
+local FADED = Color3.fromRGB(112, 104, 96)
 -- A press is accepted from a little farther than the client lets one through, so a player who
 -- is walking away as they click is not turned down.
 local PRESS_SLACK = 4
@@ -58,14 +64,29 @@ local LEVELS = { one = 1, ten = 10 }
 type Press = { plot: Plots.Plot, pad: Plots.Pad, part: Part, levels: number? }
 local presses: { [Instance]: Press } = {}
 
--- Shows one console button with its text, yellow and pressable or gray and dead.
-local function drawButton(button: Plots.Button, text: string, enabled: boolean)
+-- Shows one console button, bright and pressable or gray and dead: `title` is what it does,
+-- `detail` what it costs or how much it buys, `mark` what the wide button's seal is stamped
+-- with.
+local function drawButton(
+	button: Plots.Button,
+	title: string,
+	detail: string,
+	enabled: boolean,
+	mark: string?
+)
 	button.part.Transparency = 0
 	button.part.Color = if enabled then BUTTON_ON else BUTTON_OFF
 	button.part:SetAttribute(Net.ACTIVE_ATTRIBUTE, enabled)
 	button.gui.Enabled = true
-	button.label.Text = text
-	button.label.TextColor3 = if enabled then INK else FADED
+	button.paper.BackgroundColor3 = if enabled then PAPER_ON else PAPER_OFF
+	button.title.Text = title
+	button.title.TextColor3 = if enabled then INK else FADED
+	button.detail.Text = detail
+	button.detail.TextColor3 = if enabled then PRICE else FADED
+	if button.seal and button.mark then
+		button.seal.BackgroundColor3 = if enabled then SEAL else FADED
+		button.mark.Text = mark or ""
+	end
 end
 
 -- Redraws a pad's upgrade console. It is there for every unlocked pad of an owned dojo, gray
@@ -91,26 +112,32 @@ local function drawConsole(pad: Plots.Pad, data: Data.Data?, isOpen: boolean)
 	local unitId = data.pads[tostring(pad.index)]
 	local unit = if unitId then data.units[unitId] else nil
 	if not unit then
-		drawButton(buttons.one, "+1 Lvl", false)
-		drawButton(buttons.ten, "+10 Lvl", false)
-		drawButton(buttons.max, "MAX", false)
+		drawButton(buttons.one, "LEVEL UP", "", false, "+1")
+		drawButton(buttons.ten, "+10 Lvl", "", false)
+		drawButton(buttons.max, "MAX", "", false)
 		return
 	end
 
 	local onePrice, oneLevels = Economy.upgradesPrice(unit, LEVELS.one)
 	local tenPrice, tenLevels = Economy.upgradesPrice(unit, LEVELS.ten)
 	if oneLevels == 0 or onePrice <= 0 then
-		drawButton(buttons.one, "TOP LEVEL", false)
-		drawButton(buttons.ten, "+10 Lvl", false)
-		drawButton(buttons.max, "MAX", false)
+		drawButton(buttons.one, "TOP LEVEL", "", false, "MAX")
+		drawButton(buttons.ten, "+10 Lvl", "", false)
+		drawButton(buttons.max, "MAX", "", false)
 		return
 	end
 	local affordable = Economy.affordableUpgrades(unit, data.ryo)
-	drawButton(buttons.one, `+1 Lvl\n{Format.short(onePrice)} Ryo`, data.ryo >= onePrice)
-	drawButton(buttons.ten, `+{tenLevels} Lvl\n{Format.short(tenPrice)}`, data.ryo >= tenPrice)
+	drawButton(buttons.one, "LEVEL UP", `{Format.short(onePrice)} Ryo`, data.ryo >= onePrice, "+1")
+	drawButton(
+		buttons.ten,
+		`+{tenLevels} Lvl`,
+		`{Format.short(tenPrice)} Ryo`,
+		data.ryo >= tenPrice
+	)
 	drawButton(
 		buttons.max,
-		if affordable > 0 then `MAX\n+{affordable} Lvl` else "MAX",
+		"MAX",
+		if affordable > 0 then `+{affordable} Lvl` else "",
 		affordable > 0
 	)
 end

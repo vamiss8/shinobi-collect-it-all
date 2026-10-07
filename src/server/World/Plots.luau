@@ -28,8 +28,12 @@ local Plots = {}
 -- One button of a pad's upgrade console: a slab to click or tap, with its text on its face.
 export type Button = {
 	part: Part,
-	label: TextLabel,
 	gui: SurfaceGui,
+	paper: Frame, -- the sheet of parchment set into the slab, which the words are written on
+	title: TextLabel, -- what the button does
+	detail: TextLabel, -- what it costs, or how much it buys
+	seal: Frame?, -- the round seal on the wide button
+	mark: TextLabel?, -- and what is stamped on it
 }
 
 export type Pad = {
@@ -73,6 +77,10 @@ local CONSOLE_MARGIN = 0.15 -- bare board around the buttons
 local BUTTON_GAP = 0.1
 local SMALL_BUTTON = 0.95 -- how far up the slope the two small buttons reach
 local SLAB = 0.25 -- thickness of the board and of a button
+-- A button's face: how finely it is drawn, pixels to a stud, and how wide a rim of the slab
+-- shows round the parchment set into it, pixels.
+local FACE_PIXELS = 100
+local FACE_RIM = 7
 local UP = Vector3.new(0, 1, 0)
 
 local STONE = Color3.fromRGB(99, 95, 98)
@@ -149,13 +157,92 @@ local function buildConsole(
 		return piece
 	end
 
+	-- A line of writing on a button's parchment, in a box given in pixels: in the game's
+	-- brush, as large as fits.
+	local function writing(parent: Instance, x: number, y: number, width: number, height: number)
+		local label = Instance.new("TextLabel")
+		label.Position = UDim2.fromOffset(x, y)
+		label.Size = UDim2.fromOffset(width, height)
+		label.BackgroundTransparency = 1
+		label.BorderSizePixel = 0
+		label.Font = Enum.Font.PermanentMarker
+		label.TextScaled = true
+		label.TextColor3 = INK
+		label.Text = ""
+		label.Parent = parent
+		return label
+	end
+
+	-- A button: a slab whose own color shows as a rim round a sheet of parchment set into its
+	-- face, with what it does written on the sheet in ink and what it costs under that. The
+	-- wide one carries a round seal as well, stamped with the level it adds. Services/Dojo
+	-- writes the words and gives slab, sheet and seal their colors.
 	local function button(kind: string, size: Vector2, along: number, across: number): Button
 		local part = slab(`Upgrade_{kind}_{padIndex}`, size, along, across, SLAB / 2)
 		part:SetAttribute(Net.UPGRADE_ATTRIBUTE, kind)
 		part:SetAttribute(Net.ACTIVE_ATTRIBUTE, false)
-		local label, gui = Build.faceLabel(part, Enum.NormalId.Front, "")
+
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = FACE_PIXELS
+		gui.LightInfluence = 0
 		gui.Enabled = false
-		return { part = part, label = label, gui = gui }
+		gui.Parent = part
+
+		local wide = size.X * FACE_PIXELS - 2 * FACE_RIM
+		local tall = size.Y * FACE_PIXELS - 2 * FACE_RIM
+		local paper = Instance.new("Frame")
+		paper.Position = UDim2.fromOffset(FACE_RIM, FACE_RIM)
+		paper.Size = UDim2.fromOffset(wide, tall)
+		paper.BackgroundColor3 = PARCHMENT
+		paper.BorderSizePixel = 0
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = paper
+		local line = Instance.new("UIStroke")
+		line.Color = INK
+		line.Thickness = 3
+		line.Parent = paper
+		paper.Parent = gui
+
+		if kind ~= "one" then
+			return {
+				part = part,
+				gui = gui,
+				paper = paper,
+				title = writing(paper, 8, 2, wide - 16, tall * 0.54),
+				detail = writing(paper, 8, tall * 0.54, wide - 16, tall * 0.42),
+			}
+		end
+		-- The wide button: the seal on the left, the words beside it.
+		local sealSize = tall - 22
+		local seal = Instance.new("Frame")
+		seal.Position = UDim2.fromOffset(16, 11)
+		seal.Size = UDim2.fromOffset(sealSize, sealSize)
+		seal.BackgroundColor3 = LACQUER
+		seal.BorderSizePixel = 0
+		local round = Instance.new("UICorner")
+		round.CornerRadius = UDim.new(0.5, 0)
+		round.Parent = seal
+		local ring = Instance.new("UIStroke")
+		ring.Color = INK
+		ring.Thickness = 3
+		ring.Parent = seal
+		seal.Parent = paper
+		local mark =
+			writing(seal, sealSize * 0.12, sealSize * 0.18, sealSize * 0.76, sealSize * 0.64)
+		mark.TextColor3 = PARCHMENT
+		local beside = sealSize + 32
+		return {
+			part = part,
+			gui = gui,
+			paper = paper,
+			title = writing(paper, beside, 4, wide - beside - 14, tall * 0.56),
+			detail = writing(paper, beside, tall * 0.58, wide - beside - 14, tall * 0.34),
+			seal = seal,
+			mark = mark,
+		}
 	end
 
 	local board = slab(
@@ -177,15 +264,25 @@ local function buildConsole(
 		CONSOLE_LENGTH - 2 * CONSOLE_MARGIN + 0.1
 	)
 	furnish(slab("ConsoleInk", field, CONSOLE_LENGTH / 2, 0, 0.05, 0.1), INK)
-	-- Its two rods, along the board's upper and lower edges.
+	-- Its two rods, along the board's upper and lower edges, a gilt knob on each end.
 	for _, along in { 0, CONSOLE_LENGTH } do
+		local middle = foot + up * along + out * 0.02
 		local rod = Instance.new("Part")
 		rod.Name = "ConsoleRod"
 		rod.Shape = Enum.PartType.Cylinder
 		rod.Size = Vector3.new(CONSOLE_WIDTH + 0.4, 0.34, 0.34)
 		-- A cylinder lies along its X axis: across the board.
-		rod.CFrame = CFrame.fromMatrix(foot + up * along + out * 0.02, right, out)
+		rod.CFrame = CFrame.fromMatrix(middle, right, out)
 		furnish(rod, LACQUER, Enum.Material.Wood)
+		for _, side in { -1, 1 } do
+			local knob = Instance.new("Part")
+			knob.Name = "ConsoleKnob"
+			knob.Shape = Enum.PartType.Cylinder
+			knob.Size = Vector3.new(0.16, 0.46, 0.46)
+			knob.CFrame =
+				CFrame.fromMatrix(middle + right * side * (CONSOLE_WIDTH / 2 + 0.26), right, out)
+			furnish(knob, GOLD, Enum.Material.Metal)
+		end
 	end
 
 	-- The stand: a wedge of wood under the board, sloped as the board is, and on its upright
