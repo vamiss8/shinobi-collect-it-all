@@ -13,8 +13,10 @@
 -- model yet is there as a placeholder. A number attribute "Kunai" on the folder hands the
 -- tester the kunai at that place in the store, to throw one they have not bought; a number
 -- attribute "Speed" gives them that many levels of run speed, so that every speed stage can
--- be tried on their own character at the Youth Training Ground. None of it ever happens on a
--- live server.
+-- be tried on their own character at the Youth Training Ground; and with a boolean attribute
+-- "Auras" the showroom's shinobi wear the mutations in turn, none first and then from the
+-- commonest to the rarest, so that every aura and every lettering of a name can be looked over
+-- without rolling for it. None of it ever happens on a live server.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -173,7 +175,16 @@ local function check(): Instance?
 end
 
 -- Stands every figure and kunai on the lane.
-local function parade()
+local function parade(auras: boolean)
+	-- What the shinobi wear, one after another, when their auras are to be looked over.
+	local worn = { Catalog.NONE }
+	for _, mutation in Catalog.mutations do
+		if not mutation.event then
+			table.insert(worn, mutation.id)
+		end
+	end
+	local stood = 0
+
 	local hall = Instance.new("Folder")
 	hall.Name = "Showroom"
 	-- Towards the throwing strip, where whoever is looking stands.
@@ -197,7 +208,9 @@ local function parade()
 		end
 		stand(Figure.enemy(zone), ENEMY_SIDE)
 		for place, character in Catalog.charactersByRank[zone.rank] do
-			local unit = { character = character.id, mutation = Catalog.NONE, level = 1 }
+			local mutation = if auras then worn[stood % #worn + 1] else Catalog.NONE
+			stood += 1
+			local unit = { character = character.id, mutation = mutation, level = 1 }
 			stand(Figure.build(unit), FIRST_SHINOBI + (place - 1) * SHINOBI_GAP)
 		end
 	end
@@ -237,11 +250,11 @@ local function parade()
 	)
 end
 
--- Whether the showroom was asked for. Forgiving about how the attribute was put in: any
+-- Whether a switch was set on the folder. Forgiving about how the attribute was put in: any
 -- capitals, a ticked box or the word "true", and on a model in the folder as well as on the
 -- folder itself, which is where a first try tends to leave it.
-local function wanted(folder: Instance): boolean
-	local asked = string.lower(Net.SHOWROOM_ATTRIBUTE)
+local function wanted(folder: Instance, switch: string): boolean
+	local asked = string.lower(switch)
 	local places = folder:GetChildren()
 	table.insert(places, folder)
 	for _, place in places do
@@ -281,8 +294,8 @@ function Showroom.start()
 		print(`[Models] this test has {level} levels of run speed`)
 	end
 
-	if wanted(folder) then
-		parade()
+	if wanted(folder, Net.SHOWROOM_ATTRIBUTE) then
+		parade(wanted(folder, Net.TEST_AURAS_ATTRIBUTE))
 	else
 		print(
 			`[Models] showroom is off. To stand every model on the lane: stop the test, select`
