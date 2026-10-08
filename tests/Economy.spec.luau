@@ -1,5 +1,6 @@
 --!strict
 local Catalog = require("../src/shared/Config/Catalog")
+local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Economy = require("../src/shared/Logic/Economy")
 local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
@@ -32,14 +33,15 @@ return {
 		end
 		T.ok(before < Tuning.Upgrade.tallest, "the last level stands past the bound")
 		T.ok(before > Tuning.Upgrade.tallest - 0.01, "the last level stands well short of it")
-		-- Ten levels are seen: a twentieth of the height or more.
-		T.ok(Economy.growth(10) >= 1.05, `ten levels add {Economy.growth(10) - 1}`)
-		-- A floor of the dojo is 14 studs: the tallest shinobi, 4.8 studs grown, with a tag
-		-- of five lines of 1.3 studs over a gap of 0.4, stays under the next floor.
-		T.ok(
-			4.8 * Tuning.Upgrade.tallest + 0.4 + 5 * 1.3 < 14,
-			"a grown shinobi's tag is in the ceiling"
-		)
+		-- Ten levels are plainly seen, the owner's word: an eighth of the height or more.
+		T.ok(Economy.growth(10) >= 1.125, `ten levels add {Economy.growth(10) - 1}`)
+		-- And there is a bound, the dojo's: a floor is 14 studs from the next and a stud
+		-- thick. Under it stand the tallest shinobi, 4.8 studs grown, and over a gap of 0.4
+		-- its tag of five lines, which View/Figure writes lower over a tall one, though never
+		-- under 0.8 of a stud a line.
+		local under = DojoPlan.STOREY - DojoPlan.SLAB - 0.5
+		local line = (under - 4.8 * Tuning.Upgrade.tallest - 0.4) / 5
+		T.ok(line >= 0.8, `the tallest shinobi leaves its tag lines of {line} studs`)
 	end,
 
 	["income multiplies base, mutation and merge level"] = function()

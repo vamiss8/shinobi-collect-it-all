@@ -44,6 +44,13 @@ local TAG_LINE = 1.3
 local TAG_WIDTH = 13
 local TAG_GAP = 0.4
 local TAG_ANCHOR = "TagAnchor"
+-- A figure with its tag stands under this, studs: a floor of the dojo is fourteen from the
+-- next and a stud thick, and the pads are a little off the floor. The lines of a tall
+-- figure's tag are written lower to keep to it, but no lower than TAG_LINE_LEAST.
+local HEADROOM = 12.5
+local TAG_LINE_LEAST = 0.8
+-- Attribute on a figure: how many times its size it was built for show (1 for most).
+local SHOWN = "Shown"
 
 -- How high over a carrier's root a carried figure's feet are.
 Figure.CARRY_HEIGHT = 3.5
@@ -105,9 +112,12 @@ end
 -- be written in several colors but lettered only as a whole.) The board grows upwards with its
 -- lines: its lower edge stays just above the head. A line with lettering of its own is marked
 -- for the clients, each of which draws it (client Lettering).
-local function write(board: BillboardGui, lines: { Line })
+local function write(board: BillboardGui, lines: { Line }, tall: number)
 	board:ClearAllChildren()
-	local height = TAG_LINE * #lines
+	-- Over a tall figure the lines are lower, so that figure and tag still stand under a
+	-- ceiling; never so low that they cannot be read.
+	local each = math.clamp((HEADROOM - tall - TAG_GAP) / #lines, TAG_LINE_LEAST, TAG_LINE)
+	local height = each * #lines
 	board.Size = UDim2.fromScale(TAG_WIDTH, height)
 	board.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
 	for index, line in lines do
@@ -305,19 +315,21 @@ function Figure.build(unit: Economy.Unit, show: number?): Model
 		Aura.legend(model, unit.character, UNIT_HEIGHT)
 	end
 
+	local shown = show or 1
+	local growth = Economy.growth(unit.upgrade)
 	local board = Instance.new("BillboardGui")
 	board.MaxDistance = 400
-	write(board, tag(unit))
+	write(board, tag(unit), UNIT_HEIGHT * shown * growth)
 	board.Parent = topAnchor(model, UNIT_HEIGHT)
 
 	untouchable(model)
 
 	-- Last, so that the aura and the tag's anchor grow with it. The size it is built at is
 	-- left on it, with how much it has grown: whoever changes its size goes by the two.
-	local built = model:GetScale() * (show or 1)
-	local growth = Economy.growth(unit.upgrade)
+	local built = model:GetScale() * shown
 	model:SetAttribute(Net.BUILT_ATTRIBUTE, built)
 	model:SetAttribute(Net.GROWTH_ATTRIBUTE, growth)
+	model:SetAttribute(SHOWN, shown)
 	model:ScaleTo(built * growth)
 	return model
 end
@@ -329,15 +341,17 @@ function Figure.retag(figure: Model, unit: Economy.Unit)
 	figure.Name = Figure.title(unit)
 	-- It grows where it stands, about its feet.
 	local built = figure:GetAttribute(Net.BUILT_ATTRIBUTE)
+	local shown = figure:GetAttribute(SHOWN)
+	local growth = Economy.growth(unit.upgrade)
 	if typeof(built) == "number" then
-		local growth = Economy.growth(unit.upgrade)
 		figure:SetAttribute(Net.GROWTH_ATTRIBUTE, growth)
 		figure:ScaleTo(built * growth)
 	end
 	local anchor = figure:FindFirstChild(TAG_ANCHOR)
 	local board = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
 	if board then
-		write(board, tag(unit))
+		local tall = UNIT_HEIGHT * growth * (if typeof(shown) == "number" then shown else 1)
+		write(board, tag(unit), tall)
 	end
 end
 
