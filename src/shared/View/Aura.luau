@@ -554,6 +554,388 @@ local LOOKS: { [string]: Look } = {
 -- Every mutation's aura by its id, for whoever wants to count what is in them.
 Aura.looks = LOOKS
 
+-- THE LEGENDARY SHINOBI (Config/Legends) HAVE AURAS OF THEIR OWN, each richer than any
+-- mutation's: they are what Robux buy, and are to be known from across the plaza. Each is a
+-- shape of its own again, with the plain round particles the mutations' auras are made of:
+-- Tsunade green light rising through petals coming down, Tobirama a fountain thrown up and
+-- falling back into its own mist, Hagoromo a pillar of white light out of white fire with
+-- gold and violet drawn in to it. The colors are theirs: a legendary shinobi has no mutation
+-- to take one from.
+
+-- Tsunade: the green light of her healing, rising off her.
+local TSUNADE_HEAL: Layer = {
+	texture = SPARKLE,
+	rate = 12,
+	life = { 1.4, 2 },
+	speed = { 1.4, 2.4 },
+	spread = 20,
+	size = { 1.1, 0.3 },
+	lift = 0.8,
+	spin = 80,
+	glow = 0.6,
+	bright = 3,
+	fade = 0.05,
+	color = "#69F0AE",
+}
+-- Tsunade: petals coming down through it, turning.
+local TSUNADE_PETALS: Layer = {
+	texture = SPARKLE,
+	rate = 6,
+	life = { 2, 2.8 },
+	speed = { 0.5, 1 },
+	down = true,
+	spread = 55,
+	size = { 0.9, 0.5 },
+	lift = -0.6,
+	spin = 200,
+	glow = 0.4,
+	bright = 2.2,
+	fade = 0.05,
+	color = "#F8BBD0",
+}
+-- Tsunade: the mark on her brow let go, flaring violet about her.
+local TSUNADE_SEAL: Layer = {
+	texture = SPARKLE,
+	rate = 2,
+	life = { 0.5, 0.7 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 0.4, 2.8, 0.4 },
+	lift = 0,
+	spin = 60,
+	glow = 0.8,
+	bright = 4,
+	fade = 0,
+	color = "#CE93D8",
+}
+-- Tsunade: a wide green glow on the ground.
+local TSUNADE_GLOW: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.3, 0.6 },
+	spread = 88,
+	size = { 3, 5 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.4,
+	fade = 0.5,
+	color = "#B9F6CA",
+}
+-- Tsunade: a rose haze low about her feet.
+local TSUNADE_HAZE: Layer = {
+	texture = SMOKE,
+	rate = 4,
+	life = { 1.6, 2.2 },
+	speed = { 0.4, 0.9 },
+	spread = 70,
+	size = { 2, 3.4 },
+	lift = 0.3,
+	spin = 20,
+	glow = 0.4,
+	bright = 1.6,
+	fade = 0.6,
+	color = "#F48FB1",
+}
+-- Tsunade: beads of light springing up off the ground and dropping back.
+local TSUNADE_BEADS: Layer = {
+	texture = SPARKLE,
+	rate = 8,
+	life = { 0.8, 1.1 },
+	speed = { 5, 7 },
+	spread = 30,
+	size = { 0.8, 0.3 },
+	lift = -11,
+	spin = 160,
+	glow = 0.6,
+	bright = 3.2,
+	fade = 0,
+	color = "#B9F6CA",
+}
+-- Tsunade: green drawn in to her from all round.
+local TSUNADE_PULL: Layer = {
+	texture = SPARKLE,
+	rate = 8,
+	life = { 1, 1.2 },
+	speed = { 2.4, 2.8 },
+	from = "shell",
+	inward = true,
+	spread = 0,
+	size = { 1, 0.2 },
+	lift = 0,
+	spin = 120,
+	glow = 0.6,
+	bright = 3,
+	fade = 0,
+	color = "#00E676",
+}
+-- Tobirama: a column of spray going up round him.
+local WATER_COLUMN: Layer = {
+	texture = SMOKE,
+	rate = 10,
+	life = { 0.8, 1.2 },
+	speed = { 3.5, 5 },
+	spread = 12,
+	size = { 2, 3.2 },
+	lift = 1,
+	spin = 40,
+	glow = 0.35,
+	bright = 1.8,
+	fade = 0.45,
+	color = "#4FC3F7",
+}
+-- Tobirama: drops thrown up out of the ground, arcing over and falling back: a fountain.
+local WATER_FOUNTAIN: Layer = {
+	texture = SPARKLE,
+	rate = 16,
+	life = { 0.9, 1.3 },
+	speed = { 8, 11 },
+	spread = 26,
+	size = { 1, 0.4 },
+	lift = -17,
+	spin = 160,
+	glow = 0.5,
+	bright = 3,
+	fade = 0,
+	color = "#E1F5FE",
+}
+-- Tobirama: the mist it all falls back into.
+local WATER_MIST: Layer = {
+	texture = SMOKE,
+	rate = 4,
+	life = { 2, 2.8 },
+	speed = { 0.4, 0.8 },
+	spread = 85,
+	size = { 3, 5.5 },
+	lift = 0,
+	spin = 12,
+	glow = 0.3,
+	bright = 1.6,
+	fade = 0.55,
+	color = "#E1F5FE",
+}
+-- Tobirama: bubbles rising slowly, swelling and gone.
+local WATER_BUBBLES: Layer = {
+	texture = SPARKLE,
+	rate = 7,
+	life = { 1.6, 2.2 },
+	speed = { 0.8, 1.4 },
+	spread = 30,
+	size = { 0.4, 1.2, 0.2 },
+	lift = 0.6,
+	spin = 30,
+	glow = 0.5,
+	bright = 2.6,
+	fade = 0.1,
+	color = "#80D8FF",
+}
+-- Tobirama: spray flung outward off him, every way.
+local WATER_SPRAY: Layer = {
+	texture = SPARKLE,
+	rate = 9,
+	life = { 0.6, 0.8 },
+	speed = { 3.4, 4.4 },
+	from = "shell",
+	spread = 0,
+	size = { 0.9, 0.2 },
+	lift = -3,
+	spin = 120,
+	glow = 0.5,
+	bright = 3,
+	fade = 0,
+	color = "#40C4FF",
+}
+-- Tobirama: light caught in the water, flashing white.
+local WATER_GLINTS: Layer = {
+	texture = SPARKLE,
+	rate = 3,
+	life = { 0.4, 0.6 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 0.4, 2.6, 0.4 },
+	lift = 0,
+	spin = 60,
+	glow = 0.8,
+	bright = 4,
+	fade = 0,
+	color = "#FFFFFF",
+}
+-- Tobirama: a deep blue glow on the ground under the fountain.
+local WATER_POOL: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.6, 2.2 },
+	speed = { 0.2, 0.4 },
+	spread = 88,
+	size = { 2.8, 4.4 },
+	lift = 0,
+	spin = 15,
+	glow = 0.6,
+	bright = 2.2,
+	fade = 0.5,
+	color = "#0288D1",
+}
+-- Hagoromo: white fire up the whole body.
+local SAGE_WHITE_FLAME: Layer = {
+	texture = FIRE,
+	rate = 18,
+	life = { 0.8, 1.2 },
+	speed = { 3, 4.5 },
+	spread = 14,
+	size = { 2.8, 0.6 },
+	lift = 2,
+	spin = 30,
+	glow = 0.6,
+	bright = 3,
+	fade = 0.15,
+	color = "#FFF8E1",
+}
+-- Hagoromo: specks of the dark his orbs are made of, drifting up through it.
+local SAGE_DARK: Layer = {
+	texture = SMOKE,
+	rate = 6,
+	life = { 1.4, 2 },
+	speed = { 1, 1.8 },
+	spread = 40,
+	size = { 1.2, 0.5 },
+	lift = 0.4,
+	spin = 60,
+	glow = 0,
+	fade = 0.2,
+	color = "#14101C",
+}
+-- Hagoromo: great stars flaring white round him.
+local SAGE_FLARES: Layer = {
+	texture = SPARKLE,
+	rate = 3,
+	life = { 0.4, 0.6 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 0.4, 3.4, 0.4 },
+	lift = 0,
+	spin = 60,
+	glow = 0.8,
+	bright = 4,
+	fade = 0,
+	color = "#FFFFFF",
+}
+-- Hagoromo: a pillar of light straight up out of the ground.
+local SAGE_BEAM: Layer = {
+	texture = SPARKLE,
+	rate = 14,
+	life = { 0.9, 1.2 },
+	speed = { 9, 11 },
+	spread = 3,
+	size = { 1.7, 0.6 },
+	lift = 0,
+	spin = 200,
+	glow = 0.7,
+	bright = 4,
+	fade = 0,
+	color = "#FFFDE7",
+}
+-- Hagoromo: a wide gold glow on the ground.
+local SAGE_GLORY: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.3, 0.6 },
+	spread = 88,
+	size = { 3.2, 5.4 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.6,
+	fade = 0.5,
+	color = "#FFE082",
+}
+-- Hagoromo: the violet of the Rinnegan pooled under the gold.
+local SAGE_VIOLET: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.6, 2.2 },
+	speed = { 0.3, 0.7 },
+	spread = 80,
+	size = { 2.2, 3.6 },
+	lift = 0.2,
+	spin = 20,
+	glow = 0.5,
+	bright = 2,
+	fade = 0.6,
+	color = "#B388FF",
+}
+-- Hagoromo: gold drawn in to him from all round.
+local SAGE_GATHER: Layer = {
+	texture = SPARKLE,
+	rate = 9,
+	life = { 1, 1.2 },
+	speed = { 2.4, 2.8 },
+	from = "shell",
+	inward = true,
+	spread = 0,
+	size = { 1.1, 0.2 },
+	lift = 0,
+	spin = 120,
+	glow = 0.6,
+	bright = 3,
+	fade = 0,
+	color = "#FFD54F",
+}
+-- Hagoromo: and violet with it, slower.
+local SAGE_DRAW: Layer = {
+	texture = SPARKLE,
+	rate = 6,
+	life = { 1.3, 1.6 },
+	speed = { 1.8, 2.2 },
+	from = "shell",
+	inward = true,
+	spread = 0,
+	size = { 0.9, 0.2 },
+	lift = 0,
+	spin = 120,
+	glow = 0.6,
+	bright = 3,
+	fade = 0,
+	color = "#B388FF",
+}
+
+-- A legendary shinobi's aura with the color its light is.
+export type Legend = { look: Look, color: string }
+
+local LEGENDS: { [string]: Legend } = {
+	tsunade = {
+		color = "#69F0AE",
+		look = {
+			body = { TSUNADE_HEAL, TSUNADE_PETALS, TSUNADE_SEAL },
+			ground = { TSUNADE_GLOW, TSUNADE_HAZE, TSUNADE_BEADS },
+			around = { TSUNADE_PULL },
+			light = 1.4,
+		},
+	},
+	tobirama = {
+		color = "#40C4FF",
+		look = {
+			body = { WATER_COLUMN, WATER_BUBBLES, WATER_GLINTS },
+			ground = { WATER_FOUNTAIN, WATER_MIST, WATER_POOL },
+			around = { WATER_SPRAY },
+			light = 1.5,
+		},
+	},
+	hagoromo = {
+		color = "#FFE082",
+		look = {
+			body = { SAGE_WHITE_FLAME, SAGE_DARK, SAGE_FLARES },
+			ground = { SAGE_BEAM, SAGE_GLORY, SAGE_VIOLET },
+			around = { SAGE_GATHER, SAGE_DRAW },
+			light = 1.8,
+		},
+	},
+}
+
+-- Every legendary shinobi's aura by its id.
+Aura.legends = LEGENDS
+
 -- How wide the ball is that an aura's particles are drawn in from, studs: wide enough to be
 -- seen streaking in, not so wide that it reaches into the shinobi on the next pad.
 local AROUND = 6
@@ -562,13 +944,10 @@ local AROUND = 6
 local GROUND = 3.4
 local GROUND_HEIGHT = 0.35
 
--- Wraps a figure standing at the world origin, `height` studs tall, in its mutation's aura. The
--- particles come out of unseen parts round the body, which belong to the model and move with
--- it.
-function Aura.attach(model: Model, mutation: Catalog.Mutation, height: number)
-	local color = Color3.fromHex(mutation.color)
-	local look = LOOKS[mutation.id] or DEFAULT
-
+-- Wraps a figure standing at the world origin, `height` studs tall, in an aura whose light and
+-- unnamed colors are `color`. The particles come out of unseen parts round the body, which
+-- belong to the model and move with it.
+local function wrap(model: Model, look: Look, color: Color3, height: number)
 	local function host(name: string, size: Vector3, middle: Vector3, layers: { Layer }?): Part?
 		if not layers then
 			return nil
@@ -597,6 +976,20 @@ function Aura.attach(model: Model, mutation: Catalog.Mutation, height: number)
 	light.Brightness = look.light or 0.9
 	light.Shadows = false
 	light.Parent = body
+end
+
+-- Wraps a figure in its mutation's aura.
+function Aura.attach(model: Model, mutation: Catalog.Mutation, height: number)
+	wrap(model, LOOKS[mutation.id] or DEFAULT, Color3.fromHex(mutation.color), height)
+end
+
+-- Wraps the figure of a legendary shinobi in the aura that is its own; one that has none is
+-- left as it is.
+function Aura.legend(model: Model, legendId: string, height: number)
+	local legend = LEGENDS[legendId]
+	if legend then
+		wrap(model, legend.look, Color3.fromHex(legend.color), height)
+	end
 end
 
 return Aura
