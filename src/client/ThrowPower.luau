@@ -68,9 +68,18 @@ function ThrowPower.attach(pill: Frame): Frame
 	Ui.stroke(popup, Ui.BLUE, 2)
 	Ui.padding(popup, 12)
 	Ui.text(popup, {
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, -40, 0, 28),
 		TextSize = 24,
 		Text = Strings.get("ThrowTitle"),
+	})
+	-- How it is shut was anyone's guess (the row it opened from shuts it): so it has a cross
+	-- in its corner like a window, and the row says "Close" while it is open.
+	local shut = Ui.button(popup, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(30, 30),
+		BackgroundColor3 = Ui.SEAL,
+		Text = "X",
 	})
 	-- The amount is a box to type in: clicking it clears it for a number.
 	local amountBox: TextBox = Ui.make("TextBox", {
@@ -181,9 +190,11 @@ function ThrowPower.attach(pill: Frame): Frame
 		local isFull = chosen <= 0 or chosen >= total
 		local used = if isFull then total else chosen
 
-		row.Text = if isFull
-			then Strings.get("ThrowButtonFull", total)
+		row.Text = if popup.Visible
+			then Strings.get("ThrowClose")
+			elseif isFull then Strings.get("ThrowButtonFull", total)
 			else Strings.get("ThrowButton", used, total)
+		row.BackgroundColor3 = if popup.Visible then Ui.SEAL else Ui.CARD
 		-- Not while it is being typed in.
 		if not amountBox:IsFocused() then
 			amountBox.Text = if isFull
@@ -297,7 +308,7 @@ function ThrowPower.attach(pill: Frame): Frame
 	end)
 	-- It rises out of the readout it belongs to, rather than being there all at once.
 	local rise: UIScale = Ui.make("UIScale", {}, popup)
-	row.Activated:Connect(function()
+	local function toggle()
 		popup.Visible = not popup.Visible
 		if popup.Visible then
 			rise.Scale = 0.86
@@ -307,7 +318,10 @@ function ThrowPower.attach(pill: Frame): Frame
 				{ Scale = 1 }
 			):Play()
 		end
-	end)
+		redraw()
+	end
+	row.Activated:Connect(toggle)
+	shut.Activated:Connect(toggle)
 
 	Store.onChange(function(state)
 		local confirmed = state.throwChakra == unconfirmed

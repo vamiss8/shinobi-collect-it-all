@@ -29,6 +29,7 @@ local TEXT: { [string]: string } = {
 	ThrowReachDeep = "Perfect lands in %s  |  mutation luck x%s",
 	ThrowReachDanger = "%s: the enemy there outruns you!",
 	ThrowMax = "Use all",
+	ThrowClose = "Close",
 	ThrowHint = "Use less Chakra to land in a nearer zone. Click the number to type one.",
 	ThrowType = "3000, 3K, 1.5M...",
 	ThrowTypeHint = "click to type",
@@ -224,6 +225,7 @@ local TEXT: { [string]: string } = {
 
 	-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
 	LegendYours = "YOURS",
+	LegendPrice = "%s ROBUX",
 	LegendOwned = "%s is already yours.",
 	LegendSoon = "%s is not for sale yet. Soon!",
 	LegendJoined = "%s has joined you! Find them in your Inventory.",
