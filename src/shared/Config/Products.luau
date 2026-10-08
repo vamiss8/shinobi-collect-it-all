@@ -25,9 +25,9 @@ local GamePasses: { GamePass } = {
 	{ key = "AutoKick", name = "Auto Kick", assetId = 0 },
 	{ key = "ExtraPads", name = "+4 Pads", assetId = 0 },
 	-- The legendary shinobi (Config/Legends), a pass each: bought once, kept for good.
-	{ key = "LegendTsunade", name = "Tsunade", assetId = 0 },
-	{ key = "LegendTobirama", name = "Tobirama", assetId = 0 },
-	{ key = "LegendHagoromo", name = "Hagoromo", assetId = 0 },
+	{ key = "LegendTsunade", name = "Tsunade", assetId = 2022434275 },
+	{ key = "LegendTobirama", name = "Tobirama", assetId = 2022398273 },
+	{ key = "LegendHagoromo", name = "Hagoromo", assetId = 2023364274 },
 }
 
 local Products: { Product } = {

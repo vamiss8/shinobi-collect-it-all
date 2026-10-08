@@ -56,6 +56,7 @@ return {
 			T.ok(Catalog.isLegend(legend.id))
 		end
 		T.ok(not Catalog.isLegend("kakashi"))
+		T.eq(Catalog.legendPass("kakashi"), 0, "a pass for a shinobi that is thrown for")
 		T.eq(Catalog.rankOf("kakashi"), Catalog.ranks[2])
 		T.eq(Catalog.rankOf("nobody"), nil)
 	end,
@@ -72,6 +73,16 @@ return {
 		T.eq(Catalog.rankOrder[Catalog.legendRank.id], nil, "the legendary rank is a zone's")
 		local last = Catalog.ranks[#Catalog.ranks]
 		T.eq(Catalog.nextRank(last.id), nil, "the last zone drops a rank above its own")
+	end,
+
+	["each legendary shinobi is sold by a pass of its own"] = function()
+		local seen: { [number]: string } = {}
+		for _, legend in Catalog.legends do
+			local pass = Catalog.legendPass(legend.id)
+			T.ok(pass > 0, `{legend.name} has no pass to be bought with`)
+			T.ok(seen[pass] == nil, `{legend.name} shares its pass with {seen[pass]}`)
+			seen[pass] = legend.name
+		end
 	end,
 
 	-- The owner's bound on what Robux buy: "not better than SSS in any case".

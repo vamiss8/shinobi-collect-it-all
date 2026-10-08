@@ -27,7 +27,6 @@ local Hub = require("../World/Hub")
 local Inventory = require("./Inventory")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Plaza = require("../World/Plaza")
-local Products = require(ReplicatedStorage.Shared.Config.Products)
 local State = require("./State")
 
 local Legends = {}
@@ -53,14 +52,10 @@ local REACH = 13
 local passOf: { [string]: number } = {}
 local legendOfPass: { [number]: Catalog.Legend } = {}
 for _, legend in Catalog.legends do
-	passOf[legend.id] = 0
-	for _, pass in Products.GamePasses do
-		if pass.key == legend.pass then
-			passOf[legend.id] = pass.assetId
-			if pass.assetId > 0 then
-				legendOfPass[pass.assetId] = legend
-			end
-		end
+	local pass = Catalog.legendPass(legend.id)
+	passOf[legend.id] = pass
+	if pass > 0 then
+		legendOfPass[pass] = legend
 	end
 end
 
@@ -211,7 +206,9 @@ local function priceTag(folder: Instance, stand: Part, legend: Catalog.Legend, o
 end
 
 -- Reads each pass's price off Roblox and writes it on its tag. The call can fail and is tried
--- again: a tag without a price sells nothing.
+-- again: a tag without a price sells nothing. This is the price as the server is told it, the
+-- one the pass was given; a client that is told another for its own player (Roblox prices by
+-- region when the owner lets it) writes that over this (client LegendShow).
 local function priceTags()
 	for _, legend in Catalog.legends do
 		local pass = passOf[legend.id]

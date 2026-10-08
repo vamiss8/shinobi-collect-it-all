@@ -107,6 +107,18 @@ function Catalog.isLegend(characterId: string): boolean
 	return Catalog.legendById[characterId] ~= nil
 end
 
+-- The id of the game pass that sells a legendary shinobi; 0 for one whose pass is not made
+-- yet, and for anyone else.
+function Catalog.legendPass(characterId: string): number
+	local legend = Catalog.legendById[characterId]
+	for _, pass in Products.GamePasses do
+		if legend and pass.key == legend.pass then
+			return pass.assetId
+		end
+	end
+	return 0
+end
+
 -- The zone a scroll landing at `distance` studs falls into.
 function Catalog.zoneAt(distance: number): Zone
 	local found = Zones[1]
