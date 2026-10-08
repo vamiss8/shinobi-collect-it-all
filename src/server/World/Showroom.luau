@@ -9,9 +9,12 @@
 -- The showroom is for after an import: in a Studio test, with the boolean attribute "Showroom"
 -- set to true on the Models folder, every shinobi and enemy is stood on the lane, a row per
 -- zone, facing the throwing strip, with the kunai hung in the air in front of them, each with
--- its effects. Whoever has no model yet is there as a placeholder. A number attribute "Kunai"
--- on the folder hands the tester the kunai at that place in the store, to throw one they have
--- not bought. None of it ever happens on a live server.
+-- its effects, and the market's shopkeepers in a row of their own in front. Whoever has no
+-- model yet is there as a placeholder. A number attribute "Kunai" on the folder hands the
+-- tester the kunai at that place in the store, to throw one they have not bought; a number
+-- attribute "Speed" gives them that many levels of run speed, so that every speed stage can
+-- be tried on their own character at the Youth Training Ground. None of it ever happens on a
+-- live server.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -176,12 +179,21 @@ local function parade()
 	-- Towards the throwing strip, where whoever is looking stands.
 	local home = Vector3.new(-1, 0, 0)
 
+	local function standAt(figure: Model, x: number, z: number)
+		local at = Hub.at(x, 0, z)
+		figure:PivotTo(CFrame.lookAt(at, at + home))
+		figure.Parent = hall
+	end
+
+	-- The shopkeepers in the front row, where the shinobi's columns are.
+	for place, keeper in Catalog.keepers do
+		standAt(Figure.keeper(keeper), FIRST_ROW, FIRST_SHINOBI + (place - 1) * SHINOBI_GAP)
+	end
+
 	for row, zone in Catalog.zones do
-		local x = FIRST_ROW + (row - 1) * ROW_GAP
+		local x = FIRST_ROW + row * ROW_GAP
 		local function stand(figure: Model, z: number)
-			local at = Hub.at(x, 0, z)
-			figure:PivotTo(CFrame.lookAt(at, at + home))
-			figure.Parent = hall
+			standAt(figure, x, z)
 		end
 		stand(Figure.enemy(zone), ENEMY_SIDE)
 		for place, character in Catalog.charactersByRank[zone.rank] do
@@ -219,8 +231,9 @@ local function parade()
 	hall.Parent = Workspace
 	print(
 		"[Models] showroom is up: stand on the throwing strip and look down the lane. The kunai"
-			.. " hang in the air right past it, the figures stand in rows behind them. Shift+P is"
-			.. " the free camera for a closer look"
+			.. " hang in the air right past it, the shopkeepers stand in the first row behind"
+			.. " them and the shinobi with their enemies in the rows after, a zone to a row."
+			.. " Shift+P is the free camera for a closer look"
 	)
 end
 
@@ -255,6 +268,17 @@ function Showroom.start()
 			data.kunai = place
 		end)
 		print(`[Models] this test throws kunai {place}, {Catalog.kunai[place].id}`)
+	end
+	-- The run speed to test with: every speed stage up to it can then be worn at the Youth
+	-- Training Ground.
+	local testSpeed = folder:GetAttribute(Net.TEST_SPEED_ATTRIBUTE)
+	if typeof(testSpeed) == "number" then
+		local level = math.clamp(math.floor(testSpeed), 0, Tuning.Speed.maxLevel)
+		Data.onLoaded(function(_, data)
+			data.speedLevel = level
+			data.runAt = -1
+		end)
+		print(`[Models] this test has {level} levels of run speed`)
 	end
 
 	if wanted(folder) then
