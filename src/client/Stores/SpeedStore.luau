@@ -419,7 +419,8 @@ function SpeedStore.build(): Ui.Window
 			end
 			progress.Visible = true
 			progressFill.Size = UDim2.fromScale(share, 1)
-			progressFill.BackgroundColor3 = if share >= 1 then Ui.GREEN else Ui.GOLD
+			-- Gold whether full or not: green is the button that buys, right beside it.
+			progressFill.BackgroundColor3 = Ui.GOLD
 			progressText.Text = Strings.get("ShopNextProgress", math.min(state.ryo, price), price)
 			buy.Text = Strings.get("ShopPrice", price)
 			buy.BackgroundColor3 = if state.ryo >= price then Ui.GREEN else Ui.GRAY
