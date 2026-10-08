@@ -117,8 +117,9 @@ local function runAt(player: Player, level: unknown)
 	State.push(player)
 end
 
--- Sells the named units out of the inventory. Units standing on a pad are not for sale: they
--- have to be taken off first.
+-- Sends the named units out of the inventory on their last mission, which is a sale: the desk
+-- pays for each and it does not come back. Units standing on a pad are not sent: they have to
+-- be taken off first.
 local function sell(player: Player, unitIds: unknown)
 	local data = Data.get(player)
 	if not data or typeof(unitIds) ~= "table" or not Market.playerAt(player, "sell") then

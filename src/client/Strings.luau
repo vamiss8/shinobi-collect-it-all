@@ -136,18 +136,20 @@ local TEXT: { [string]: string } = {
 	ShopMax = "MAX",
 	ShopPrice = "%s Ryo",
 
-	-- Mission Desk, where shinobi are sold
+	-- The Mission Desk. A shinobi handed in here is sent on its last mission: it does not come
+	-- back, and the desk pays its reward. (It is a sale by another name: the keys say "Sell".)
 	SellTitle = "Mission Desk",
-	SellHint = "Shizune pays Ryo for every shinobi you hand in. Click one to sell it.",
+	SellHint = "Send a shinobi on its last mission: it will not come back, and Shizune pays "
+		.. "you its reward. Click one to send it.",
 	-- What Shizune says when the desk is opened, one at random.
 	MissionHello1 = "Welcome to the Mission Desk! Shinobi are always needed out there.",
 	MissionHello2 = "Every shinobi you hand in earns you Ryo.",
 	MissionHello3 = "Tonton, those are mission reports, not snacks!",
 	MissionHello4 = "Lady Tsunade wants all of these missions filled by tonight...",
-	SellEmpty = "Nothing to sell. Shinobi on pads have to be taken off first.",
-	SellAll = "Sell all",
-	SellAllConfirm = "Sell %s for %s Ryo?",
-	SellPrice = "Sell: %s",
+	SellEmpty = "Nobody to send. Shinobi on pads have to be taken off first.",
+	SellAll = "Send all",
+	SellAllConfirm = "Send %s for %s Ryo?",
+	SellPrice = "Reward: %s",
 
 	-- Throw
 	KickHint = "Click, tap or press Space to throw!",
@@ -200,8 +202,8 @@ local TEXT: { [string]: string } = {
 	Merged = "Merged into %s!",
 	FloorBuilt = "Your dojo grew! Floor %s is open.",
 	GateOpenedBy = "%s opened the %s!",
-	Sold = "Sold %s for %s Ryo.",
-	SoldMany = "Sold %s shinobi for %s Ryo.",
+	Sold = "%s left on a last mission. Reward: %s Ryo.",
+	SoldMany = "%s shinobi left on their last mission. Reward: %s Ryo.",
 }
 
 -- Fills the template named `key`. An unknown key is shown as-is, so a typo is easy to spot.

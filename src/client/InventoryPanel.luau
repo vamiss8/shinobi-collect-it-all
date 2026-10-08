@@ -1,6 +1,6 @@
 --!strict
 -- The inventory window: every shinobi the player owns that is not standing on a pad. Clicking
--- one makes the character carry it, which is what pads and the selling stall act on; clicking
+-- one makes the character carry it, which is what pads and the Mission Desk act on; clicking
 -- the carried one again, or "Put away", frees the hands.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

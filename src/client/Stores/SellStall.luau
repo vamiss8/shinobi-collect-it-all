@@ -1,8 +1,9 @@
 --!strict
 -- The Mission Desk window (World/MissionDesk), the shop "sell": every shinobi in the inventory
--- with what the desk pays for it. A click sells one; "Sell all" sells the lot and asks to be
--- clicked twice, since it cannot be undone. Shinobi standing on pads are not listed: they have
--- to be taken off first.
+-- with the reward the desk pays for sending it on its last mission. That is a sale by another
+-- name, and the code calls it one: the shinobi is gone and the Ryo is paid. A click sends one;
+-- "Send all" sends the lot and asks to be clicked twice, since it cannot be undone. Shinobi
+-- standing on pads are not listed: they have to be taken off first.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -16,7 +17,7 @@ local UnitCard = require("../UnitCard")
 
 local SellStall = {}
 
--- How long "Sell all" stays armed after the first click, seconds.
+-- How long "Send all" stays armed after the first click, seconds.
 local CONFIRM_SECONDS = 3
 
 function SellStall.build(): Ui.Window
