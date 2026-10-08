@@ -148,13 +148,13 @@ local LAVA_FLAMES: Layer = {
 }
 local LAVA_EMBERS: Layer = {
 	texture = SPARKLE,
-	rate = 16,
+	rate = 20,
 	life = { 0.7, 1.2 },
-	speed = { 5, 8 },
+	speed = { 7, 11 },
 	spread = 25,
 	streak = 1.2,
 	size = { 0.75, 0.2 },
-	lift = -6,
+	lift = -12,
 	spin = 0,
 	glow = 0.6,
 	bright = 3,
@@ -217,33 +217,6 @@ local STORM_CRACKLE: Layer = {
 	bright = 3,
 	fade = 0,
 }
-local RINNEGAN_MOTES: Layer = {
-	texture = SPARKLE,
-	rate = 6,
-	life = { 2.5, 3.5 },
-	speed = { 0.3, 0.8 },
-	spread = 180,
-	size = { 0.9, 0.3 },
-	lift = 0,
-	spin = 120,
-	glow = 0.6,
-	bright = 2.5,
-	fade = 0.05,
-}
-local RINNEGAN_HAZE: Layer = {
-	texture = SMOKE,
-	rate = 3,
-	life = { 2, 3 },
-	speed = { 0.3, 0.7 },
-	spread = 180,
-	size = { 2, 3.5 },
-	lift = 0.2,
-	spin = 15,
-	glow = 0.3,
-	bright = 1.3,
-	fade = 0.75,
-	color = "#4527A0",
-}
 local RINNEGAN_RINGS: Layer = {
 	texture = SMOKE,
 	rate = 1.4,
@@ -260,7 +233,7 @@ local RINNEGAN_RINGS: Layer = {
 }
 local RINNEGAN_PULL: Layer = {
 	texture = SPARKLE,
-	rate = 18,
+	rate = 24,
 	life = { 0.9, 1.2 },
 	speed = { 2.4, 3 },
 	from = "shell",
@@ -402,6 +375,88 @@ local FESTIVAL_LEAVES: Layer = {
 	fade = 0.05,
 }
 
+-- Storm: bolts striking straight down through the figure.
+local STORM_BOLTS: Layer = {
+	texture = SPARKLE,
+	rate = 8,
+	life = { 0.12, 0.2 },
+	speed = { 20, 28 },
+	down = true,
+	spread = 8,
+	streak = 3,
+	size = { 1.6, 0.5 },
+	lift = 0,
+	spin = 0,
+	glow = 0.7,
+	bright = 4,
+	fade = 0,
+	color = "#EDE7F6",
+}
+-- Rinnegan: rings climbing the figure one over another, feet to head.
+local RINNEGAN_CLIMB: Layer = {
+	texture = SMOKE,
+	rate = 2.5,
+	life = { 1.6, 2 },
+	speed = { 2.1, 2.4 },
+	spread = 0,
+	flat = true,
+	size = { 4.2, 3.4 },
+	lift = 0,
+	spin = 0,
+	glow = 0.6,
+	bright = 2.4,
+	fade = 0.4,
+}
+-- Rinnegan: and now the push, a shell of force going out from it.
+local RINNEGAN_PUSH: Layer = {
+	texture = SMOKE,
+	rate = 6,
+	life = { 0.4, 0.6 },
+	speed = { 3, 4 },
+	from = "shell",
+	spread = 0,
+	size = { 1, 2.6 },
+	lift = 0,
+	spin = 20,
+	glow = 0.4,
+	bright = 1.6,
+	fade = 0.6,
+	color = "#4527A0",
+}
+-- Rinnegan: dark specks held still at its heart, where all is drawn to.
+local RINNEGAN_CORE: Layer = {
+	texture = SPARKLE,
+	rate = 6,
+	life = { 0.8, 1.2 },
+	speed = { 0, 0.2 },
+	from = "ball",
+	inward = true,
+	spread = 180,
+	size = { 0.3, 1.1, 0.3 },
+	lift = 0,
+	spin = 200,
+	glow = 0.2,
+	fade = 0.05,
+	color = "#1A0F33",
+}
+-- Six Paths: rays of light shot out of the figure every way.
+local SAGE_RAYS: Layer = {
+	texture = SPARKLE,
+	rate = 20,
+	life = { 0.2, 0.3 },
+	speed = { 12, 18 },
+	spread = 180,
+	streak = 3,
+	size = { 1.3, 0.3 },
+	lift = 0,
+	spin = 0,
+	drag = 3,
+	glow = 0.7,
+	bright = 4,
+	fade = 0,
+	color = "#FFF8E1",
+}
+
 local LOOKS: { [string]: Look } = {
 	-- Blue motes of Chakra drifting up.
 	chakra = {
@@ -423,25 +478,27 @@ local LOOKS: { [string]: Look } = {
 		ground = { LAVA_POOL, LAVA_FLAMES, LAVA_EMBERS },
 		light = 1.1,
 	},
-	-- Arcs cracking off the body every way, a flash of lightning now and again, sparks running
-	-- out over the ground, and a charged haze.
+	-- Bolts strike down through the figure, arcs crack off it every way, sparks run out over
+	-- the ground, and now and again all of it flashes white in a charged haze.
 	storm = {
-		body = { STORM_ARCS, STORM_FLASH, STORM_HAZE },
+		body = { STORM_BOLTS, STORM_ARCS, STORM_FLASH, STORM_HAZE },
 		ground = { STORM_CRACKLE },
 		light = 1.2,
 	},
-	-- The pull of the Rinnegan: motes streak in to the figure from all round, rings spread out
-	-- on the ground under it one after another, and others hang in a deep violet haze.
+	-- The pull and the push of the Rinnegan. Nothing of it drifts: rings climb the figure from
+	-- its feet, others spread out over the ground, motes streak in to it from all round while a
+	-- shell of force goes out, and dark specks hang at its heart.
 	rinnegan = {
-		body = { RINNEGAN_MOTES, RINNEGAN_HAZE },
-		ground = { RINNEGAN_RINGS },
-		around = { RINNEGAN_PULL },
+		body = { RINNEGAN_CORE },
+		ground = { RINNEGAN_CLIMB, RINNEGAN_RINGS },
+		around = { RINNEGAN_PULL, RINNEGAN_PUSH },
 		light = 1.2,
 	},
-	-- The Sage of Six Paths: a cloak of black flame over a core of pale gold, darts of light
-	-- rising out of the ground, gold drawn in from all round, and a halo spreading underfoot.
+	-- The Sage of Six Paths, the most of all: a cloak of black flame over a core of pale gold,
+	-- rays shot out of it every way, darts of light rising out of the ground, gold drawn in
+	-- from all round, and a halo spreading underfoot.
 	six_paths = {
-		body = { SAGE_BLACK_FLAME, SAGE_GOLD_FLAME },
+		body = { SAGE_BLACK_FLAME, SAGE_GOLD_FLAME, SAGE_RAYS },
 		ground = { SAGE_DARTS, SAGE_HALO },
 		around = { SAGE_PULL },
 		light = 1.4,
