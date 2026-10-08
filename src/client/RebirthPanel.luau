@@ -10,6 +10,7 @@
 -- Everything here is large and short: the owner found the first window small and wordy.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Hud = require("./Hud")
@@ -29,6 +30,12 @@ local RebirthPanel = {}
 -- How long the button stays armed after its first press, seconds: a rebirth cannot be undone,
 -- so it is pressed twice.
 local ARMED_SECONDS = 4
+-- The mark on the tile, when a rebirth comes within reach: it rocks to one side and the other
+-- this many times, this far, each swing this long, and then stands still. Enough to be
+-- noticed once; nothing that goes on nagging a player who is not after a rebirth.
+local NUDGES = 3
+local NUDGE_DEGREES = 22
+local NUDGE_SECONDS = 0.13
 -- What a rebirth pays, in the order of its cards: the caption, the color of the numbers, and
 -- the multiplier `count` rebirths give.
 local PAYS: { { caption: string, color: Color3, of: (count: number) -> number } } = {
@@ -101,6 +108,33 @@ function RebirthPanel.start()
 	tile.Activated:Connect(window.toggle)
 	local tileEdge = tile:FindFirstChildOfClass("UIStroke")
 	mark.Text = "!"
+	-- Rocks the mark, and grows it for as long as it rocks. Counted, so that one set off
+	-- while another is still going takes over from it.
+	local grown: UIScale = Ui.make("UIScale", {}, mark)
+	local nudged = 0
+	local function nudge()
+		nudged += 1
+		local mine = nudged
+		local swing =
+			TweenInfo.new(NUDGE_SECONDS, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+		task.spawn(function()
+			TweenService:Create(grown, swing, { Scale = 1.4 }):Play()
+			for _ = 1, NUDGES do
+				for _, side in { -1, 1 } do
+					if nudged ~= mine then
+						return
+					end
+					TweenService:Create(mark, swing, { Rotation = side * NUDGE_DEGREES }):Play()
+					task.wait(NUDGE_SECONDS)
+				end
+			end
+			if nudged == mine then
+				TweenService:Create(mark, swing, { Rotation = 0 }):Play()
+				TweenService:Create(grown, swing, { Scale = 1 }):Play()
+			end
+		end)
+	end
+	local wasReady = false
 
 	-- All the ranks, from the one every player starts with.
 	local list = Ui.panel(body, {
@@ -135,7 +169,7 @@ function RebirthPanel.start()
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	Ui.padding(scroll.seal, 12)
-	local title = Ui.text(scroll.frame, {
+	local title = Ui.text(scroll.page, {
 		Position = UDim2.fromOffset(124, 8),
 		Size = UDim2.new(1, -154, 0, 64),
 		TextScaled = true,
@@ -143,7 +177,7 @@ function RebirthPanel.start()
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 56 }, title)
-	local now = Ui.text(scroll.frame, {
+	local now = Ui.text(scroll.page, {
 		Position = UDim2.fromOffset(124, 74),
 		Size = UDim2.new(1, -154, 0, 38),
 		TextScaled = true,
@@ -247,6 +281,10 @@ function RebirthPanel.start()
 		local ready = Rebirth.ready(state.chakra, done)
 
 		mark.Visible = ready
+		if ready and not wasReady then
+			nudge()
+		end
+		wasReady = ready
 		if tileEdge then
 			tileEdge.Color = if ready then Ui.GOLD else Ui.EDGE
 		end
