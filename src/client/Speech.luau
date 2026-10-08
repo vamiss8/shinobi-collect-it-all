@@ -23,8 +23,11 @@ local Speech = {}
 local SIZE = Vector2.new(20, 7.2)
 -- The red sheet shows this far round the parchment, studs.
 local EDGE = 0.24
--- It is not drawn for a player farther off than this, studs.
-local FAR = 80
+-- It is not drawn for a camera farther off than this, studs. Whoever shows it takes it down
+-- sooner, by how far the player is (client Shops); this is for a camera zoomed a long way out.
+local FAR = 60
+-- How long it takes to shrink away when hidden, seconds.
+local CLOSE_SECONDS = 0.14
 
 export type Scroll = {
 	-- Shows the scroll with these words, springing up.
@@ -109,8 +112,11 @@ function Speech.build(counter: BasePart, lift: number, mark: string): Scroll
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 
+	-- Counts showings and hidings, so that a scroll shrinking away does not shut a newer one.
+	local turn = 0
 	return {
 		say = function(words: string, more: string)
+			turn += 1
 			title.Text = words
 			line.Text = more
 			board.Enabled = true
@@ -122,7 +128,21 @@ function Speech.build(counter: BasePart, lift: number, mark: string): Scroll
 			):Play()
 		end,
 		hide = function()
-			board.Enabled = false
+			if not board.Enabled then
+				return
+			end
+			turn += 1
+			local mine = turn
+			TweenService:Create(
+				scale,
+				TweenInfo.new(CLOSE_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Scale = 0.5 }
+			):Play()
+			task.delay(CLOSE_SECONDS, function()
+				if turn == mine then
+					board.Enabled = false
+				end
+			end)
 		end,
 	}
 end

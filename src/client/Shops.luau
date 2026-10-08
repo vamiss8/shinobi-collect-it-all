@@ -5,9 +5,14 @@
 --
 -- A shop's keeper speaks to whoever comes up to the counter, before the shop is opened: a
 -- scroll over the counter (client Speech) says what the shop is for and, under it, something
--- of the keeper's own. It is said once for each time the player comes up, stays a few seconds
--- and goes when the shop is opened: a window covers the middle of the screen, and words said
--- at the opening were said behind it.
+-- of the keeper's own. It is said once for each time the player comes up, and goes after a few
+-- seconds, or as soon as the player walks off, or when the shop is opened: a window covers the
+-- middle of the screen, and words said at the opening were said behind it.
+--
+-- When a scroll goes is decided in one place, the loop that watches the player's distance. It
+-- first went by a timer of its own and by how far the camera was, and the owner found it up
+-- for as long as he stood at a counter, over the lanterns of the training ground's gate, and
+-- still up, too small to read, a long way off.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -28,11 +33,12 @@ local Shops = {}
 -- A window closes once the player is this far from its counter, studs. Keep it below the range
 -- the server accepts requests from (World/Market).
 local CLOSE_DISTANCE = 16
--- A keeper speaks to a player who comes this near the counter, and is ready to speak again once
--- they have gone this far off, studs. What is said stays up this long, seconds.
+-- A keeper speaks to a player who comes this near the counter, studs. What is said stays up
+-- for SPEAK_SECONDS, or until the player is SPEAK_UNTIL studs off, where it can still just be
+-- read; from there on the keeper is ready to speak again.
 local SPEAK_WITHIN = 22
-local SPEAK_AGAIN = 34
-local SPEAK_SECONDS = 8
+local SPEAK_UNTIL = 28
+local SPEAK_SECONDS = 5
 -- How high over the middle of a counter the middle of the keeper's words hangs, studs: the
 -- scroll's foot is then just over the keeper's head (a keeper's crown is 4.6 over the middle
 -- of the counter, the scroll is 7.2 tall), and the scroll itself before the shop's eaves.
@@ -70,7 +76,7 @@ type Keeper = {
 	scroll: Speech.Scroll,
 	spoken: boolean, -- since the player last came up
 	times: number, -- the keeper has spoken to this player
-	said: number, -- counts what was said, so that an old timer does not hide newer words
+	hideAt: number?, -- while the words are up: when they go, on os.clock
 }
 
 local rng = Random.new()
@@ -103,7 +109,7 @@ function Shops.start()
 				scroll = Speech.build(at, SPEECH_LIFT, talk.mark),
 				spoken = false,
 				times = 0,
-				said = 0,
+				hideAt = nil,
 			})
 		end
 	end
@@ -120,7 +126,7 @@ function Shops.start()
 
 	local function hush()
 		for _, keeper in keepers do
-			keeper.said += 1
+			keeper.hideAt = nil
 			keeper.scroll.hide()
 		end
 	end
@@ -128,17 +134,12 @@ function Shops.start()
 	local function speak(keeper: Keeper)
 		local talk = TALK[keeper.kind]
 		keeper.times += 1
-		keeper.said += 1
-		local mine = keeper.said
+		-- Set before anything is shown, so that whatever is shown is sure to be taken down.
+		keeper.hideAt = os.clock() + SPEAK_SECONDS
 		local key = if keeper.times == 1
 			then talk.lines[1]
 			else talk.lines[rng:NextInteger(1, #talk.lines)]
 		keeper.scroll.say(Strings.get(talk.pitch), Strings.get(key))
-		task.delay(SPEAK_SECONDS, function()
-			if keeper.said == mine then
-				keeper.scroll.hide()
-			end
-		end)
 	end
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt)
@@ -176,11 +177,17 @@ function Shops.start()
 			return
 		end
 		sinceCheck = 0
+		local now = os.clock()
 		for _, keeper in keepers do
 			local far = if position
 				then (position - keeper.counter.Position).Magnitude
 				else math.huge
-			if far > SPEAK_AGAIN then
+			local hideAt = keeper.hideAt
+			if hideAt and (now >= hideAt or far > SPEAK_UNTIL) then
+				keeper.hideAt = nil
+				keeper.scroll.hide()
+			end
+			if far > SPEAK_UNTIL then
 				keeper.spoken = false
 			elseif far <= SPEAK_WITHIN and not keeper.spoken and not openWindow then
 				keeper.spoken = true
