@@ -6,11 +6,42 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
 local Stats = require("./Stats")
 
 local State = {}
+
+-- What every player sees of every other in Roblox's list of players, by its own rule: values
+-- in a folder named "leaderstats" under the Player, a column each, in this order.
+local BOARD = "leaderstats"
+local BOARD_REBIRTHS = "Rebirths"
+local BOARD_INCOME = "Ryo/s"
+
+-- One column of the list of players for this player, made if it is not there yet.
+local function column(player: Player, name: string): IntValue
+	local found = player:FindFirstChild(BOARD)
+	local board: Instance = found or Instance.new("Folder")
+	if not found then
+		board.Name = BOARD
+		board.Parent = player
+	end
+	local value = board:FindFirstChild(name)
+	if value and value:IsA("IntValue") then
+		return value
+	end
+	local made = Instance.new("IntValue")
+	made.Name = name
+	made.Parent = board
+	return made
+end
+
+-- Puts the player's rebirths and what their dojo earns a second on the list of players.
+local function post(player: Player, rebirths: number, income: number)
+	column(player, BOARD_REBIRTHS).Value = rebirths
+	column(player, BOARD_INCOME).Value = math.floor(income)
+end
 
 -- Sends the player a fresh snapshot. Call after anything in their save changes.
 function State.push(player: Player)
@@ -18,6 +49,7 @@ function State.push(player: Player)
 	if not data then
 		return
 	end
+	post(player, Rebirth.done(data.rebirths), Stats.income(data))
 	local session = Session.of(player)
 	local snapshot: Net.Snapshot = {
 		ryo = data.ryo,
