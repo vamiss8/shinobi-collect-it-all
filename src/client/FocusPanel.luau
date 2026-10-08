@@ -20,6 +20,8 @@ local FocusPanel = {}
 -- Diameter of the closing ring when it appears and when it has closed all the way, pixels.
 local OPEN = 190
 local CLOSED = 26
+-- The board the rings are drawn on is this wide, pixels.
+local BOARD = OPEN + 64
 -- If the server has not answered a press after this long, the ring starts moving again anyway.
 local ANSWER_TIMEOUT = 1.5
 
@@ -48,39 +50,85 @@ local function ring(parent: Instance, diameter: number, color: Color3, thickness
 end
 
 function FocusPanel.start()
+	-- In the style of the game: a dark board, a scroll across its top with the hint in ink, and
+	-- under it a round sheet of parchment the rings are drawn on. The target is a band of ink,
+	-- the ring that closes on it is seal red, and the verdict is ink on a slip of parchment
+	-- whose outline takes the grade's color.
 	local screen = Ui.screen("Focus", 14)
 	local holder = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -132),
-		Size = UDim2.fromOffset(OPEN + 20, OPEN + 50),
-		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(BOARD, BOARD + 96),
+		BackgroundColor3 = Ui.PANEL,
+		BackgroundTransparency = 0.08,
+		BorderSizePixel = 0,
 		Visible = false,
 	}, screen)
+	Ui.corner(holder, 14)
+	Ui.stroke(holder, Ui.EDGE, 3)
 
-	Ui.text(holder, {
-		Size = UDim2.new(1, 0, 0, 24),
-		Font = Ui.BRUSH,
-		TextSize = 20,
+	local hint = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 10),
+		Size = UDim2.new(1, -28, 0, 36),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, holder)
+	Ui.corner(hint, 4)
+	Ui.stroke(hint, Ui.EDGE, 2)
+	Ui.text(hint, {
+		Size = UDim2.fromScale(1, 1),
+		TextScaled = true,
+		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.4,
 		Text = Strings.get("FocusHint"),
 	})
-	local arena = Ui.make("Frame", {
-		Position = UDim2.fromOffset(0, 30),
-		Size = UDim2.new(1, 0, 1, -30),
-		BackgroundTransparency = 1,
-	}, holder)
+	Ui.padding(hint, 5)
 
-	local target = ring(arena, OPEN, GRADE_COLORS.Perfect, 5)
-	local closing = ring(arena, OPEN, Ui.WHITE, 3)
-	local result = Ui.text(arena, {
+	local arena = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 54),
+		Size = UDim2.fromOffset(OPEN + 24, OPEN + 24),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, holder)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, arena)
+	Ui.stroke(arena, Ui.EDGE, 4)
+	-- Faint rings of ink, as on a target painted by hand, and a red seal at the heart of it.
+	for _, share in { 0.75, 0.5, 0.25 } do
+		local guide = ring(arena, OPEN * share, Ui.INK, 1)
+		local line = guide:FindFirstChildOfClass("UIStroke")
+		if line then
+			line.Transparency = 0.78
+		end
+	end
+	local heart = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(OPEN, 40),
-		Font = Ui.BRUSH,
-		TextSize = 22,
+		Size = UDim2.fromOffset(14, 14),
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, arena)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, heart)
+
+	local target = ring(arena, OPEN, Ui.INK, 8)
+	local closing = ring(arena, OPEN, Ui.SEAL, 4)
+
+	local slip = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(1, -28, 0, 40),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+		Visible = false,
+	}, holder)
+	Ui.corner(slip, 4)
+	local slipEdge = Ui.stroke(slip, Ui.EDGE, 3)
+	local result = Ui.text(slip, {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 24,
+		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.3,
 	})
 
 	local period = Tuning.Training.ringPeriodMax
@@ -101,7 +149,7 @@ function FocusPanel.start()
 	end
 
 	Remotes.Ring.OnClientEvent:Connect(function(round: Net.RingRound)
-		result.Text = ""
+		slip.Visible = false
 		begin(round)
 	end)
 
@@ -109,7 +157,9 @@ function FocusPanel.start()
 		result.Text = if hit.gain > 0
 			then Strings.get("FocusHit", hit.grade, hit.gain)
 			else Strings.get("FocusMiss")
-		result.TextColor3 = GRADE_COLORS[hit.grade] or Ui.WHITE
+		-- The grade's color goes to the slip's outline; the words stay ink.
+		slipEdge.Color = GRADE_COLORS[hit.grade] or Ui.EDGE
+		slip.Visible = true
 		begin(hit.next)
 	end)
 
