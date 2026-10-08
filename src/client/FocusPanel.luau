@@ -2,9 +2,18 @@
 -- Chakra control, the active way to train. A ring closes in on a fixed target ring; the player
 -- clicks or taps as the two meet. The server grades the press by its own clock (the same way it
 -- grades a throw) and its answer starts the next ring.
+--
+-- It is drawn in the style of the game: a dark board with a gilt line inside its edge, a scroll
+-- across the top with the hint in ink, and under it a round sheet of parchment like a target
+-- painted by hand, ticked round its rim, with Chakra gathering blue at its heart under a red
+-- seal. The two rings are strokes of a brush, heavier on one side than the other and turning
+-- as a hand would have drawn them: the target in ink, the one that closes on it in seal red.
+-- A press is answered on the sheet itself, by a ring of the grade's color going out from the
+-- target, and in words, ink on a slip whose outline and seal take that color.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Focus = require(ReplicatedStorage.Shared.Logic.Focus)
@@ -18,12 +27,23 @@ local Ui = require("./Ui")
 local FocusPanel = {}
 
 -- Diameter of the closing ring when it appears and when it has closed all the way, pixels.
-local OPEN = 190
-local CLOSED = 26
--- The board the rings are drawn on is this wide, pixels.
-local BOARD = OPEN + 64
+local OPEN = 200
+local CLOSED = 28
+-- The sheet the rings are drawn on, and the board it lies on.
+local SHEET = OPEN + 34
+local BOARD = Vector2.new(SHEET + 56, SHEET + 150)
 -- If the server has not answered a press after this long, the ring starts moving again anyway.
 local ANSWER_TIMEOUT = 1.5
+-- How fast the two brush strokes turn, degrees a second, and how long the Chakra at the heart
+-- of the sheet takes to swell and sink again, seconds.
+local TARGET_TURNS = 14
+local CLOSING_TURNS = -150
+local BREATH = 2.4
+-- A hit sends a ring this much wider than the target out from it, over this many seconds.
+local BURST_GROWS = 70
+local BURST_SECONDS = 0.38
+-- Ticks round the rim of the sheet; every sixth is longer and red.
+local TICKS = 24
 
 local GRADE_COLORS: { [string]: Color3 } = {
 	Perfect = Color3.fromRGB(255, 202, 40),
@@ -36,97 +56,157 @@ local function diameterAt(phase: number): number
 	return OPEN + (CLOSED - OPEN) * phase
 end
 
--- An empty circle drawn with an outline.
-local function ring(parent: Instance, diameter: number, color: Color3, thickness: number): Frame
+-- A filled circle in the middle of `parent`.
+local function disc(parent: Instance, diameter: number, color: Color3): Frame
 	local frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(diameter, diameter),
-		BackgroundTransparency = 1,
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
 	}, parent)
 	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
-	Ui.stroke(frame, color, thickness)
 	return frame
 end
 
+-- An empty circle drawn with an outline. Returns the circle and its outline.
+local function ring(
+	parent: Instance,
+	diameter: number,
+	color: Color3,
+	thickness: number
+): (Frame, UIStroke)
+	local frame = disc(parent, diameter, color)
+	frame.BackgroundTransparency = 1
+	return frame, Ui.stroke(frame, color, thickness)
+end
+
+-- Makes an outline a stroke of the brush: full on one side and thinning out to `thin` on the
+-- other. Returns the gradient that does it, which is turned to turn the stroke.
+local function brushed(outline: UIStroke, thin: number): UIGradient
+	return Ui.make("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.6, 0.05),
+			NumberSequenceKeypoint.new(1, thin),
+		}),
+	}, outline)
+end
+
 function FocusPanel.start()
-	-- In the style of the game: a dark board, a scroll across its top with the hint in ink, and
-	-- under it a round sheet of parchment the rings are drawn on. The target is a band of ink,
-	-- the ring that closes on it is seal red, and the verdict is ink on a slip of parchment
-	-- whose outline takes the grade's color.
 	local screen = Ui.screen("Focus", 14)
 	local holder = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -132),
-		Size = UDim2.fromOffset(BOARD, BOARD + 96),
+		Size = UDim2.fromOffset(BOARD.X, BOARD.Y),
 		BackgroundColor3 = Ui.PANEL,
-		BackgroundTransparency = 0.08,
+		BackgroundTransparency = 0.06,
 		BorderSizePixel = 0,
 		Visible = false,
 	}, screen)
-	Ui.corner(holder, 14)
+	Ui.corner(holder, 16)
 	Ui.stroke(holder, Ui.EDGE, 3)
-
-	local hint = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 10),
-		Size = UDim2.new(1, -28, 0, 36),
-		BackgroundColor3 = Ui.PARCHMENT,
-		BorderSizePixel = 0,
+	-- A gilt line inside the board's edge.
+	local gilt = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -14, 1, -14),
+		BackgroundTransparency = 1,
 	}, holder)
-	Ui.corner(hint, 4)
-	Ui.stroke(hint, Ui.EDGE, 2)
-	Ui.text(hint, {
-		Size = UDim2.fromScale(1, 1),
+	Ui.corner(gilt, 11)
+	Ui.stroke(gilt, Ui.GOLD, 1).Transparency = 0.5
+
+	-- The hint: a scroll with its rollers, a seal marked "ki", and the words in ink.
+	local scroll = Ui.parchment(holder, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 22),
+		Size = UDim2.new(1, -64, 0, 40),
+	}, 26)
+	Ui.text(scroll.seal, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.72, 0.72),
+		TextScaled = true,
+		TextColor3 = Ui.PARCHMENT,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = "気",
+	})
+	Ui.text(scroll.frame, {
+		Position = UDim2.fromOffset(62, 5),
+		Size = UDim2.new(1, -82, 1, -10),
 		TextScaled = true,
 		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = Strings.get("FocusHint"),
 	})
-	Ui.padding(hint, 5)
 
-	local arena = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 54),
-		Size = UDim2.fromOffset(OPEN + 24, OPEN + 24),
-		BackgroundColor3 = Ui.PARCHMENT,
-		BorderSizePixel = 0,
-	}, holder)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, arena)
+	-- The sheet: parchment, ticked round its rim like the face of an instrument.
+	local arena = disc(holder, SHEET, Ui.PARCHMENT)
+	arena.AnchorPoint = Vector2.new(0.5, 0)
+	arena.Position = UDim2.new(0.5, 0, 0, 78)
 	Ui.stroke(arena, Ui.EDGE, 4)
-	-- Faint rings of ink, as on a target painted by hand, and a red seal at the heart of it.
-	for _, share in { 0.75, 0.5, 0.25 } do
-		local guide = ring(arena, OPEN * share, Ui.INK, 1)
-		local line = guide:FindFirstChildOfClass("UIStroke")
-		if line then
-			line.Transparency = 0.78
-		end
+	for index = 0, TICKS - 1 do
+		local angle = index / TICKS * 2 * math.pi
+		local long = index % 6 == 0
+		local reach = SHEET / 2 - (if long then 10 else 8)
+		Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, math.cos(angle) * reach, 0.5, math.sin(angle) * reach),
+			Size = UDim2.fromOffset(if long then 3 else 2, if long then 12 else 7),
+			Rotation = math.deg(angle) + 90,
+			BackgroundColor3 = if long then Ui.SEAL else Ui.INK,
+			BackgroundTransparency = if long then 0 else 0.45,
+			BorderSizePixel = 0,
+		}, arena)
 	end
-	local heart = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(14, 14),
-		BackgroundColor3 = Ui.SEAL,
-		BorderSizePixel = 0,
-	}, arena)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, heart)
+	-- Faint rings of ink, as a hand would rule them before painting.
+	for _, share in { 0.75, 0.5, 0.25 } do
+		local _, line = ring(arena, OPEN * share, Ui.INK, 1)
+		line.Transparency = 0.8
+	end
+	-- Chakra gathering at the heart of the sheet: two washes of blue that swell and sink.
+	local haze = disc(arena, CLOSED + 46, Ui.BLUE)
+	haze.BackgroundTransparency = 0.82
+	local wash = disc(arena, CLOSED + 18, Ui.BLUE)
+	wash.BackgroundTransparency = 0.6
 
-	local target = ring(arena, OPEN, Ui.INK, 8)
-	local closing = ring(arena, OPEN, Ui.SEAL, 4)
+	local target, targetLine = ring(arena, OPEN, Ui.INK, 9)
+	local targetBrush = brushed(targetLine, 0.6)
+	local closing, closingLine = ring(arena, OPEN, Ui.SEAL, 5)
+	local closingBrush = brushed(closingLine, 0.55)
 
+	local heart = disc(arena, 18, Ui.SEAL)
+	Ui.stroke(heart, Ui.INK, 2)
+	local heartScale: UIScale = Ui.make("UIScale", {}, heart)
+
+	-- What a hit sends out from the target: two rings, the second for a Perfect only.
+	local bursts: { { frame: Frame, line: UIStroke } } = {}
+	for _ = 1, 2 do
+		local frame, line = ring(arena, OPEN, Ui.GOLD, 6)
+		frame.Visible = false
+		table.insert(bursts, { frame = frame, line = line })
+	end
+
+	-- The verdict: ink on a slip, the grade's color on its outline and its seal.
 	local slip = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -28, 0, 40),
+		Position = UDim2.new(0.5, 0, 1, -18),
+		Size = UDim2.new(1, -72, 0, 42),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
 		Visible = false,
 	}, holder)
-	Ui.corner(slip, 4)
+	Ui.corner(slip, 5)
 	local slipEdge = Ui.stroke(slip, Ui.EDGE, 3)
+	local slipScale: UIScale = Ui.make("UIScale", {}, slip)
+	local slipSeal = disc(slip, 22, Ui.SEAL)
+	slipSeal.AnchorPoint = Vector2.new(0, 0.5)
+	slipSeal.Position = UDim2.new(0, 10, 0.5, 0)
+	Ui.stroke(slipSeal, Ui.INK, 2)
 	local result = Ui.text(slip, {
-		Size = UDim2.fromScale(1, 1),
-		TextSize = 24,
+		Position = UDim2.fromOffset(38, 0),
+		Size = UDim2.new(1, -48, 1, 0),
+		TextSize = 25,
 		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
@@ -148,26 +228,81 @@ function FocusPanel.start()
 		pressedAt = nil
 	end
 
+	-- Answers a press on the sheet: a ring of the grade's color goes out from where the target
+	-- was and fades, a second after it for a Perfect, and the seal at the heart jumps.
+	local function answer(grade: string, color: Color3, hit: boolean)
+		local from = target.Size.X.Offset
+		for index, burst in bursts do
+			local shown = hit and (index == 1 or grade == "Perfect")
+			burst.frame.Visible = shown
+			if shown then
+				local style = TweenInfo.new(
+					BURST_SECONDS,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.Out,
+					0,
+					false,
+					(index - 1) * 0.09
+				)
+				burst.frame.Size = UDim2.fromOffset(from, from)
+				burst.line.Color = color
+				burst.line.Transparency = 0
+				local wide = from + BURST_GROWS
+				TweenService:Create(burst.frame, style, { Size = UDim2.fromOffset(wide, wide) })
+					:Play()
+				TweenService:Create(burst.line, style, { Transparency = 1 }):Play()
+			end
+		end
+		heartScale.Scale = if hit then 1.7 else 0.7
+		TweenService:Create(
+			heartScale,
+			TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		):Play()
+	end
+
 	Remotes.Ring.OnClientEvent:Connect(function(round: Net.RingRound)
 		slip.Visible = false
 		begin(round)
 	end)
 
 	Remotes.RingResult.OnClientEvent:Connect(function(hit: Net.RingResult)
+		local color = GRADE_COLORS[hit.grade] or Ui.EDGE
+		answer(hit.grade, color, hit.gain > 0)
 		result.Text = if hit.gain > 0
 			then Strings.get("FocusHit", hit.grade, hit.gain)
 			else Strings.get("FocusMiss")
-		-- The grade's color goes to the slip's outline; the words stay ink.
-		slipEdge.Color = GRADE_COLORS[hit.grade] or Ui.EDGE
+		-- The grade's color goes to the slip's outline and its seal; the words stay ink.
+		slipEdge.Color = color
+		slipSeal.BackgroundColor3 = color
 		slip.Visible = true
+		slipScale.Scale = 0.7
+		TweenService:Create(
+			slipScale,
+			TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		):Play()
 		begin(hit.next)
 	end)
 
 	RunService.RenderStepped:Connect(function()
-		if not holder.Visible or not hasRound then
+		if not holder.Visible then
 			return
 		end
 		local now = os.clock()
+		-- The sheet is alive whether or not a ring is on its way: the strokes turn and the
+		-- Chakra at its heart breathes.
+		targetBrush.Rotation = (now * TARGET_TURNS) % 360
+		closingBrush.Rotation = (now * CLOSING_TURNS) % 360
+		local breath = 0.5 + 0.5 * math.sin(now / BREATH * 2 * math.pi)
+		local wide = CLOSED + 14 + 10 * breath
+		wash.Size = UDim2.fromOffset(wide, wide)
+		wash.BackgroundTransparency = 0.66 - 0.14 * breath
+		haze.Size = UDim2.fromOffset(wide + 26, wide + 26)
+
+		if not hasRound then
+			return
+		end
 		if pressedAt then
 			if now - pressedAt < ANSWER_TIMEOUT then
 				return
