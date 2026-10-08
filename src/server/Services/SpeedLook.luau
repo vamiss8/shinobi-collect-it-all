@@ -66,7 +66,7 @@ local DUST: Particles.Layer = {
 }
 local MOTES: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 13,
+	rate = 11,
 	life = { 1, 1.6 },
 	speed = { 2, 3.5 },
 	locked = true,
@@ -81,7 +81,7 @@ local MOTES: Particles.Layer = {
 -- Flame up to the knees and over.
 local FLAME: Particles.Layer = {
 	texture = Particles.FIRE,
-	rate = 32,
+	rate = 27,
 	life = { 0.5, 0.9 },
 	speed = { 4, 7 },
 	locked = true,
@@ -95,7 +95,7 @@ local FLAME: Particles.Layer = {
 }
 local SPARKS: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 29,
+	rate = 24,
 	life = { 0.2, 0.45 },
 	speed = { 10, 18 },
 	locked = true,
@@ -109,7 +109,7 @@ local SPARKS: Particles.Layer = {
 }
 local FAN: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 48,
+	rate = 40,
 	life = { 0.35, 0.7 },
 	speed = { 10, 16 },
 	back = true,
@@ -123,7 +123,7 @@ local FAN: Particles.Layer = {
 }
 local BURST: Particles.Layer = {
 	texture = Particles.SMOKE,
-	rate = 40,
+	rate = 34,
 	life = { 0.4, 0.8 },
 	speed = { 6, 10 },
 	spread = 85,
@@ -136,7 +136,7 @@ local BURST: Particles.Layer = {
 }
 local EMBERS: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 18,
+	rate = 15,
 	life = { 1.4, 2.2 },
 	speed = { 3, 5 },
 	spread = 40,
@@ -248,7 +248,7 @@ end
 local function steam(root: BasePart, color: Color3, gate: number)
 	emit(root, root, "SpeedLookSteam", {
 		texture = Particles.SMOKE,
-		rate = 5 + gate * 2.8,
+		rate = 4 + gate * 2.4,
 		life = { 0.8, 1.4 },
 		speed = { 2, 3.5 },
 		locked = true,

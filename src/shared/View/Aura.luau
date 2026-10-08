@@ -49,277 +49,398 @@ local MOTES: Layer = {
 local DEFAULT: Look = { body = { MOTES } }
 
 -- The layers of the auras, each named for what it is; LOOKS below says which go where.
-
-local KURAMA_FLAMES: Layer = {
+--
+-- NO DARTS (`streak`) IN AN AURA. The first rework had them in every rare aura, as arcs, bolts
+-- and rays, and in the game they came out as flat lines flickering and jumping about, which
+-- was the middle of every aura and made them all look alike (owner, 2026-10-08). An aura is
+-- told by its shape and by which way it moves, with plain round particles: down, up in a
+-- column, inward, flashing, or straight up in a pillar.
+-- Chakra: blue motes drifting up, slowly.
+local CHAKRA_MOTES: Layer = {
+	texture = SPARKLE,
+	rate = 10,
+	life = { 1.6, 2.4 },
+	speed = { 1, 2 },
+	spread = 25,
+	size = { 0.8, 0.25 },
+	lift = 0.5,
+	spin = 60,
+	glow = 0.6,
+	bright = 2.5,
+	fade = 0.1,
+}
+-- Chakra: a soft blue glow breathing round the feet.
+local CHAKRA_GLOW: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.6, 2.2 },
+	speed = { 0.2, 0.5 },
+	spread = 70,
+	size = { 1.6, 3 },
+	lift = 0.2,
+	spin = 15,
+	glow = 0.5,
+	bright = 1.8,
+	fade = 0.7,
+}
+-- Kurama: the fox's cloak, tall orange flames up the whole body.
+local KURAMA_CLOAK: Layer = {
 	texture = FIRE,
-	rate = 22,
-	life = { 0.7, 1.2 },
-	speed = { 2.5, 4 },
-	spread = 18,
-	size = { 1.6, 0.4 },
+	rate = 24,
+	life = { 0.7, 1.1 },
+	speed = { 3, 4.5 },
+	spread = 16,
+	size = { 2.2, 0.5 },
 	lift = 2,
 	spin = 30,
-	glow = 0.9,
-	fade = 0.25,
+	glow = 0.5,
+	bright = 2.4,
+	fade = 0.15,
 }
+-- Kurama: embers floating up off the flames.
+local KURAMA_EMBERS: Layer = {
+	texture = SPARKLE,
+	rate = 6,
+	life = { 1.2, 1.8 },
+	speed = { 2, 3.5 },
+	spread = 35,
+	size = { 0.7, 0.2 },
+	lift = 1,
+	spin = 120,
+	glow = 0.6,
+	bright = 3,
+	fade = 0.05,
+	color = "#FFE082",
+}
+-- Ice: thick snow coming down round the figure, the only aura that falls.
 local ICE_SNOW: Layer = {
 	texture = SPARKLE,
-	rate = 12,
-	life = { 2, 3 },
-	speed = { 0.6, 1.2 },
+	rate = 16,
+	life = { 1.8, 2.6 },
+	speed = { 1.2, 2 },
 	down = true,
-	spread = 40,
-	size = { 0.75, 0.3 },
-	lift = -0.5,
+	spread = 35,
+	size = { 0.9, 0.5 },
+	lift = -0.8,
 	spin = 90,
-	glow = 0.5,
-	bright = 2,
+	glow = 0.4,
+	bright = 2.2,
 	fade = 0.05,
+	color = "#FFFFFF",
 }
+-- Ice: a wide white fog lying on the ground.
+local ICE_FOG: Layer = {
+	texture = SMOKE,
+	rate = 6,
+	life = { 2.4, 3.2 },
+	speed = { 0.6, 1.2 },
+	spread = 88,
+	size = { 2.4, 4.6 },
+	lift = -0.2,
+	spin = 15,
+	glow = 0.3,
+	bright = 1.5,
+	fade = 0.45,
+	color = "#E1F5FE",
+}
+-- Ice: big glints flaring and gone.
 local ICE_GLINTS: Layer = {
 	texture = SPARKLE,
 	rate = 3,
-	life = { 0.25, 0.45 },
+	life = { 0.3, 0.5 },
 	speed = { 0, 0.2 },
 	spread = 180,
-	size = { 0.2, 1.9, 0.2 },
+	size = { 0.3, 2.4, 0.3 },
 	lift = 0,
 	spin = 40,
 	glow = 0.8,
 	bright = 3.5,
 	fade = 0,
-	color = "#FFFFFF",
 }
-local ICE_MIST: Layer = {
+-- Lava: a tall column of black smoke, seen before anything else of it.
+local LAVA_COLUMN: Layer = {
 	texture = SMOKE,
-	rate = 5,
-	life = { 2.2, 3 },
-	speed = { 0.3, 0.8 },
-	spread = 80,
-	size = { 2, 3.6 },
-	lift = 0.1,
-	spin = 15,
-	glow = 0.3,
-	bright = 1.3,
-	fade = 0.6,
-	color = "#E1F5FE",
-}
-local LAVA_SMOKE: Layer = {
-	texture = SMOKE,
-	rate = 4,
-	life = { 1.8, 2.6 },
-	speed = { 1, 1.8 },
-	spread = 20,
-	size = { 1.4, 3.2 },
-	lift = 0.5,
+	rate = 7,
+	life = { 2, 2.8 },
+	speed = { 2.2, 3.2 },
+	spread = 10,
+	size = { 1.8, 4 },
+	lift = 0.6,
 	spin = 20,
 	glow = 0,
 	lit = true,
-	fade = 0.6,
-	color = "#3E2723",
+	fade = 0.3,
+	color = "#1E1410",
 }
-local LAVA_POOL: Layer = {
+-- Lava: low fire all round the feet.
+local LAVA_FIRE: Layer = {
 	texture = FIRE,
-	rate = 6,
-	life = { 1.2, 1.8 },
-	speed = { 0.3, 0.5 },
-	spread = 0,
-	flat = true,
-	size = { 2.2, 4.4 },
-	lift = 0,
-	spin = 25,
-	glow = 0.6,
-	bright = 2.5,
-	fade = 0.25,
-	color = "#FF6D00",
-}
-local LAVA_FLAMES: Layer = {
-	texture = FIRE,
-	rate = 12,
-	life = { 0.6, 1 },
-	speed = { 2, 3.5 },
-	spread = 20,
-	size = { 1.8, 0.4 },
-	lift = 1.5,
+	rate = 16,
+	life = { 0.5, 0.9 },
+	speed = { 1.5, 2.5 },
+	spread = 45,
+	size = { 2.4, 0.6 },
+	lift = 1,
 	spin = 30,
 	glow = 0.5,
-	bright = 2.2,
-	fade = 0.15,
+	bright = 2.5,
+	fade = 0.1,
 }
-local LAVA_EMBERS: Layer = {
+-- Lava: glowing blobs lobbed up out of it, arcing over and dropping back.
+local LAVA_BLOBS: Layer = {
 	texture = SPARKLE,
-	rate = 20,
-	life = { 0.7, 1.2 },
-	speed = { 7, 11 },
-	spread = 25,
-	streak = 1.2,
-	size = { 0.75, 0.2 },
-	lift = -12,
-	spin = 0,
-	glow = 0.6,
-	bright = 3,
-	fade = 0,
-	color = "#FFAB40",
-}
-local STORM_ARCS: Layer = {
-	texture = SPARKLE,
-	rate = 34,
-	life = { 0.12, 0.28 },
-	speed = { 9, 16 },
-	spread = 180,
-	streak = 2.5,
-	size = { 1.1, 0.3 },
-	lift = 0,
-	spin = 0,
-	glow = 0.6,
+	rate = 9,
+	life = { 1, 1.4 },
+	speed = { 9, 12 },
+	spread = 22,
+	size = { 1.3, 0.9 },
+	lift = -18,
+	spin = 200,
+	glow = 0.5,
 	bright = 3.5,
 	fade = 0,
-	color = "#B388FF",
+	color = "#FFC400",
 }
+-- Lava: the red glow of the pool underfoot.
+local LAVA_GLOW: Layer = {
+	texture = SMOKE,
+	rate = 4,
+	life = { 1.2, 1.8 },
+	speed = { 0.2, 0.4 },
+	spread = 85,
+	size = { 2.6, 3.6 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.6,
+	fade = 0.5,
+	color = "#FF3D00",
+}
+-- Storm: a dark thundercloud wrapped round the figure.
+local STORM_CLOUD: Layer = {
+	texture = SMOKE,
+	rate = 7,
+	life = { 1.5, 2.1 },
+	speed = { 0.4, 1 },
+	spread = 180,
+	size = { 2.4, 3.8 },
+	lift = 0,
+	spin = 40,
+	glow = 0,
+	lit = true,
+	fade = 0.4,
+	color = "#2A1F4A",
+}
+-- Storm: the cloud lit from inside, a great white flash several times a second.
 local STORM_FLASH: Layer = {
 	texture = SPARKLE,
-	rate = 1.6,
-	life = { 0.08, 0.14 },
+	rate = 3.5,
+	life = { 0.07, 0.13 },
 	speed = { 0, 0.1 },
 	spread = 180,
-	size = { 4.5, 6 },
+	size = { 6, 8 },
 	lift = 0,
 	spin = 0,
 	glow = 0.9,
-	bright = 4,
-	fade = 0.25,
-	color = "#EDE7F6",
+	bright = 5,
+	fade = 0.15,
+	color = "#F3E5F5",
 }
-local STORM_HAZE: Layer = {
-	texture = SMOKE,
-	rate = 4,
-	life = { 1.4, 2 },
-	speed = { 0.4, 0.9 },
-	spread = 180,
-	size = { 1.6, 3 },
-	lift = 0,
-	spin = 30,
-	glow = 0.3,
-	bright = 1.4,
-	fade = 0.7,
-}
-local STORM_CRACKLE: Layer = {
+-- Storm: violet sparks bursting out of it and gone at once.
+local STORM_SPARKS: Layer = {
 	texture = SPARKLE,
-	rate = 12,
-	life = { 0.2, 0.4 },
-	speed = { 5, 9 },
-	spread = 85,
-	streak = 2,
-	size = { 0.8, 0.2 },
+	rate = 30,
+	life = { 0.2, 0.35 },
+	speed = { 10, 16 },
+	spread = 180,
+	size = { 1.2, 0.3 },
 	lift = 0,
-	spin = 0,
+	spin = 400,
+	drag = 4,
+	glow = 0.6,
+	bright = 3.5,
+	fade = 0,
+}
+-- Storm: sparks skittering out over the ground.
+local STORM_GROUND: Layer = {
+	texture = SPARKLE,
+	rate = 10,
+	life = { 0.25, 0.4 },
+	speed = { 7, 11 },
+	spread = 88,
+	size = { 0.9, 0.3 },
+	lift = -4,
+	spin = 300,
+	glow = 0.6,
+	bright = 3,
+	fade = 0,
+	color = "#B388FF",
+}
+-- Rinnegan: big violet motes flying in to the figure from all round it.
+local RINNEGAN_PULL: Layer = {
+	texture = SPARKLE,
+	rate = 24,
+	life = { 0.9, 1.1 },
+	speed = { 2.6, 3 },
+	from = "shell",
+	inward = true,
+	spread = 0,
+	size = { 1.3, 0.2 },
+	lift = 0,
+	spin = 120,
 	glow = 0.6,
 	bright = 3,
 	fade = 0,
 }
-local RINNEGAN_RINGS: Layer = {
+-- Rinnegan: a violet veil closing in with them.
+local RINNEGAN_VEIL: Layer = {
 	texture = SMOKE,
-	rate = 1.4,
-	life = { 1.6, 2 },
-	speed = { 0.2, 0.3 },
-	spread = 0,
-	flat = true,
-	size = { 0.6, 7 },
-	lift = 0,
-	spin = 10,
-	glow = 0.5,
-	bright = 2,
-	fade = 0.45,
-}
-local RINNEGAN_PULL: Layer = {
-	texture = SPARKLE,
-	rate = 24,
-	life = { 0.9, 1.2 },
-	speed = { 2.4, 3 },
+	rate = 5,
+	life = { 0.9, 1.1 },
+	speed = { 2.2, 2.6 },
 	from = "shell",
 	inward = true,
 	spread = 0,
-	streak = 1.6,
-	size = { 0.9, 0.2 },
+	size = { 3, 1 },
 	lift = 0,
-	spin = 0,
-	glow = 0.6,
-	bright = 3,
-	fade = 0.05,
+	spin = 20,
+	glow = 0.4,
+	bright = 1.6,
+	fade = 0.6,
 }
+-- Rinnegan: a dark heart they vanish into.
+local RINNEGAN_CORE: Layer = {
+	texture = SMOKE,
+	rate = 5,
+	life = { 0.8, 1.2 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 2.2, 1.2 },
+	lift = 0,
+	spin = 60,
+	glow = 0,
+	fade = 0.25,
+	color = "#12081F",
+}
+-- Rinnegan: pale rings of light opening slowly in the dark.
+local RINNEGAN_EYES: Layer = {
+	texture = SPARKLE,
+	rate = 2,
+	life = { 1, 1.4 },
+	speed = { 0, 0.1 },
+	spread = 180,
+	size = { 0.4, 3, 0.4 },
+	lift = 0,
+	spin = 30,
+	glow = 0.7,
+	bright = 3,
+	fade = 0.1,
+	color = "#EDE7F6",
+}
+-- Rinnegan: violet light pooled on the ground under it.
+local RINNEGAN_FLOOR: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.2, 0.4 },
+	spread = 88,
+	size = { 2.8, 4.2 },
+	lift = 0,
+	spin = 15,
+	glow = 0.6,
+	bright = 2.2,
+	fade = 0.55,
+}
+-- Six Paths: a pillar of white-gold light going straight up, far over the head.
+local SAGE_PILLAR: Layer = {
+	texture = SPARKLE,
+	rate = 16,
+	life = { 0.9, 1.2 },
+	speed = { 9, 11 },
+	spread = 3,
+	size = { 1.6, 0.6 },
+	lift = 0,
+	spin = 200,
+	glow = 0.7,
+	bright = 4,
+	fade = 0,
+	color = "#FFF8E1",
+}
+-- Six Paths: black fire up the whole body.
 local SAGE_BLACK_FLAME: Layer = {
 	texture = FIRE,
-	rate = 18,
-	life = { 0.8, 1.3 },
+	rate = 16,
+	life = { 0.8, 1.2 },
 	speed = { 2.5, 4 },
 	spread = 16,
-	size = { 2.4, 0.6 },
+	size = { 2.6, 0.6 },
 	lift = 2,
 	spin = 30,
 	glow = 0,
-	fade = 0.2,
-	color = "#141218",
+	fade = 0.15,
+	color = "#0E0A14",
 }
+-- Six Paths: and gold fire at its heart.
 local SAGE_GOLD_FLAME: Layer = {
 	texture = FIRE,
 	rate = 10,
 	life = { 0.6, 1 },
 	speed = { 2, 3.2 },
-	spread = 14,
-	size = { 1.5, 0.3 },
+	spread = 12,
+	size = { 1.6, 0.3 },
 	lift = 1.5,
 	spin = 30,
 	glow = 0.5,
 	bright = 3,
 	fade = 0.1,
-	color = "#FFE9A8",
+	color = "#FFD54F",
 }
-local SAGE_DARTS: Layer = {
-	texture = SPARKLE,
-	rate = 14,
-	life = { 0.5, 0.8 },
-	speed = { 5, 7 },
-	spread = 6,
-	streak = 3,
-	size = { 0.9, 0.2 },
-	lift = 0,
-	spin = 0,
-	glow = 0.6,
-	bright = 3.5,
-	fade = 0,
-	color = "#FFF3C4",
-}
-local SAGE_HALO: Layer = {
-	texture = SMOKE,
-	rate = 1,
-	life = { 1.8, 2.2 },
-	speed = { 0.2, 0.3 },
-	spread = 0,
-	flat = true,
-	size = { 0.8, 8 },
-	lift = 0,
-	spin = 10,
-	glow = 0.6,
-	bright = 2.2,
-	fade = 0.5,
-	color = "#FFE082",
-}
+-- Six Paths: gold drawn in from all round, as the Rinnegan draws violet.
 local SAGE_PULL: Layer = {
 	texture = SPARKLE,
-	rate = 12,
-	life = { 1, 1.3 },
-	speed = { 2.2, 2.8 },
+	rate = 10,
+	life = { 1, 1.2 },
+	speed = { 2.4, 2.8 },
 	from = "shell",
 	inward = true,
 	spread = 0,
-	streak = 1.4,
-	size = { 0.8, 0.2 },
+	size = { 1.1, 0.2 },
 	lift = 0,
-	spin = 0,
+	spin = 120,
 	glow = 0.6,
 	bright = 3,
-	fade = 0.05,
+	fade = 0,
 	color = "#FFD54F",
+}
+-- Six Paths: a wide gold glow on the ground.
+local SAGE_HALO: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.3, 0.6 },
+	spread = 88,
+	size = { 3, 5 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.6,
+	fade = 0.5,
+	color = "#FFE082",
+}
+-- Six Paths: great stars flaring white round it.
+local SAGE_STARS: Layer = {
+	texture = SPARKLE,
+	rate = 3,
+	life = { 0.4, 0.6 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 0.4, 3.2, 0.4 },
+	lift = 0,
+	spin = 60,
+	glow = 0.8,
+	bright = 4,
+	fade = 0,
+	color = "#FFFFFF",
 }
 local MOON_MIST: Layer = {
 	texture = SMOKE,
@@ -375,133 +496,44 @@ local FESTIVAL_LEAVES: Layer = {
 	fade = 0.05,
 }
 
--- Storm: bolts striking straight down through the figure.
-local STORM_BOLTS: Layer = {
-	texture = SPARKLE,
-	rate = 8,
-	life = { 0.12, 0.2 },
-	speed = { 20, 28 },
-	down = true,
-	spread = 8,
-	streak = 3,
-	size = { 1.6, 0.5 },
-	lift = 0,
-	spin = 0,
-	glow = 0.7,
-	bright = 4,
-	fade = 0,
-	color = "#EDE7F6",
-}
--- Rinnegan: rings climbing the figure one over another, feet to head.
-local RINNEGAN_CLIMB: Layer = {
-	texture = SMOKE,
-	rate = 2.5,
-	life = { 1.6, 2 },
-	speed = { 2.1, 2.4 },
-	spread = 0,
-	flat = true,
-	size = { 4.2, 3.4 },
-	lift = 0,
-	spin = 0,
-	glow = 0.6,
-	bright = 2.4,
-	fade = 0.4,
-}
--- Rinnegan: and now the push, a shell of force going out from it.
-local RINNEGAN_PUSH: Layer = {
-	texture = SMOKE,
-	rate = 6,
-	life = { 0.4, 0.6 },
-	speed = { 3, 4 },
-	from = "shell",
-	spread = 0,
-	size = { 1, 2.6 },
-	lift = 0,
-	spin = 20,
-	glow = 0.4,
-	bright = 1.6,
-	fade = 0.6,
-	color = "#4527A0",
-}
--- Rinnegan: dark specks held still at its heart, where all is drawn to.
-local RINNEGAN_CORE: Layer = {
-	texture = SPARKLE,
-	rate = 6,
-	life = { 0.8, 1.2 },
-	speed = { 0, 0.2 },
-	from = "ball",
-	inward = true,
-	spread = 180,
-	size = { 0.3, 1.1, 0.3 },
-	lift = 0,
-	spin = 200,
-	glow = 0.2,
-	fade = 0.05,
-	color = "#1A0F33",
-}
--- Six Paths: rays of light shot out of the figure every way.
-local SAGE_RAYS: Layer = {
-	texture = SPARKLE,
-	rate = 20,
-	life = { 0.2, 0.3 },
-	speed = { 12, 18 },
-	spread = 180,
-	streak = 3,
-	size = { 1.3, 0.3 },
-	lift = 0,
-	spin = 0,
-	drag = 3,
-	glow = 0.7,
-	bright = 4,
-	fade = 0,
-	color = "#FFF8E1",
-}
-
 local LOOKS: { [string]: Look } = {
-	-- Blue motes of Chakra drifting up.
+	-- Each is a shape of its own, to be told from far off: Chakra a calm blue drift, Kurama a
+	-- cloak of orange flame, Ice snow coming down on white fog, Lava a black column of smoke
+	-- with blobs lobbed out of it, Storm a dark cloud that flashes white, Rinnegan everything
+	-- flying inward to a dark heart, Six Paths a pillar of light out of black fire.
 	chakra = {
-		body = { MOTES },
+		body = { CHAKRA_MOTES },
+		ground = { CHAKRA_GLOW },
 	},
-	-- The fox's cloak: flames licking upwards.
 	kurama = {
-		body = { KURAMA_FLAMES },
+		body = { KURAMA_CLOAK, KURAMA_EMBERS },
+		light = 1,
 	},
-	-- Snow sinking round the figure, glints of ice popping in the air, cold mist on the ground.
 	ice = {
 		body = { ICE_SNOW, ICE_GLINTS },
-		ground = { ICE_MIST },
+		ground = { ICE_FOG },
 	},
-	-- A pool of molten rock under the feet, flames out of it, embers thrown up that fall back,
-	-- and dark smoke over it all.
 	lava = {
-		body = { LAVA_SMOKE },
-		ground = { LAVA_POOL, LAVA_FLAMES, LAVA_EMBERS },
+		body = { LAVA_COLUMN },
+		ground = { LAVA_FIRE, LAVA_BLOBS, LAVA_GLOW },
 		light = 1.1,
 	},
-	-- Bolts strike down through the figure, arcs crack off it every way, sparks run out over
-	-- the ground, and now and again all of it flashes white in a charged haze.
 	storm = {
-		body = { STORM_BOLTS, STORM_ARCS, STORM_FLASH, STORM_HAZE },
-		ground = { STORM_CRACKLE },
+		body = { STORM_CLOUD, STORM_FLASH, STORM_SPARKS },
+		ground = { STORM_GROUND },
 		light = 1.2,
 	},
-	-- The pull and the push of the Rinnegan. Nothing of it drifts: rings climb the figure from
-	-- its feet, others spread out over the ground, motes streak in to it from all round while a
-	-- shell of force goes out, and dark specks hang at its heart.
 	rinnegan = {
-		body = { RINNEGAN_CORE },
-		ground = { RINNEGAN_CLIMB, RINNEGAN_RINGS },
-		around = { RINNEGAN_PULL, RINNEGAN_PUSH },
+		body = { RINNEGAN_CORE, RINNEGAN_EYES },
+		ground = { RINNEGAN_FLOOR },
+		around = { RINNEGAN_PULL, RINNEGAN_VEIL },
 		light = 1.2,
 	},
-	-- The Sage of Six Paths, the most of all: a cloak of black flame over a core of pale gold,
-	-- rays shot out of it every way, darts of light rising out of the ground, gold drawn in
-	-- from all round, and a halo spreading underfoot.
 	six_paths = {
-		body = { SAGE_BLACK_FLAME, SAGE_GOLD_FLAME, SAGE_RAYS },
-		ground = { SAGE_DARTS, SAGE_HALO },
+		body = { SAGE_BLACK_FLAME, SAGE_GOLD_FLAME, SAGE_STARS },
+		ground = { SAGE_PILLAR, SAGE_HALO },
 		around = { SAGE_PULL },
-		light = 1.4,
+		light = 1.5,
 	},
 	-- A red mist with sparks in it, under glints of a red moon.
 	tsukuyomi = {
