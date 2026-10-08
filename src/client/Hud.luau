@@ -28,17 +28,19 @@ local RYO_HEIGHT = 80
 local CHAKRA_HEIGHT = 144
 local READOUT_GAP = 10
 
--- The scroll messages are written on: the parchment, its words, and the two things that take
--- a message's color, the outline and the seal.
-type Scroll = { frame: Frame, words: TextLabel, edge: UIStroke, seal: Frame }
+-- The scroll messages are written on: the parchment and its words. A message's color goes to
+-- the parchment's outline and seal.
+type Scroll = { paper: Ui.Parchment, words: TextLabel }
 
 local scroll: Scroll? = nil
 local messageToken = 0
 local sideColumn: Frame? = nil
 local leftColumn: Frame? = nil
 
--- Shows a message on the scroll at the top of the screen for a few seconds. A newer one
--- replaces it. The words are always ink on parchment; `color` goes to the seal and the outline.
+-- Shows a message on the scroll at the top of the screen for a few seconds: the scroll unrolls
+-- with it and rolls up again after. A newer message takes its place, the scroll shutting for
+-- a moment while the words change. The words are always ink on parchment; `color` goes to the
+-- seal and the outline.
 function Hud.toast(text: string, color: Color3?)
 	local shown = scroll
 	if not shown then
@@ -46,13 +48,14 @@ function Hud.toast(text: string, color: Color3?)
 	end
 	messageToken += 1
 	local token = messageToken
-	shown.words.Text = text
-	shown.edge.Color = color or Ui.EDGE
-	shown.seal.BackgroundColor3 = color or Ui.SEAL
-	shown.frame.Visible = true
+	Ui.rewrite(shown.paper, function()
+		shown.words.Text = text
+		shown.paper.edge.Color = color or Ui.EDGE
+		shown.paper.seal.BackgroundColor3 = color or Ui.SEAL
+	end)
 	task.delay(MESSAGE_SECONDS, function()
 		if messageToken == token then
-			shown.frame.Visible = false
+			Ui.rollUp(shown.paper)
 		end
 	end)
 end
@@ -170,7 +173,7 @@ local function buildScroll(parent: Instance): Scroll
 		MaxSize = Vector2.new(1150, 86),
 	}, paper.frame)
 
-	local words = Ui.text(paper.frame, {
+	local words = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(82, 8),
 		Size = UDim2.new(1, -110, 1, -16),
 		TextScaled = true,
@@ -179,7 +182,7 @@ local function buildScroll(parent: Instance): Scroll
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 44 }, words)
 
-	return { frame = paper.frame, words = words, edge = paper.edge, seal = paper.seal }
+	return { paper = paper, words = words }
 end
 
 function Hud.start()

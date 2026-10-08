@@ -132,7 +132,7 @@ function FocusPanel.start()
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = "気",
 	})
-	Ui.text(scroll.frame, {
+	Ui.text(scroll.page, {
 		Position = UDim2.fromOffset(62, 5),
 		Size = UDim2.new(1, -82, 1, -10),
 		TextScaled = true,

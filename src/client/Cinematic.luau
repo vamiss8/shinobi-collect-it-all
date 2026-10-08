@@ -111,15 +111,12 @@ type Held = {
 	turns: boolean, -- whether the character turned by itself before it
 }
 
--- The scroll over the look at the enemy: its name, a line under it, and what takes the
--- scroll's color.
+-- The scroll over the look at the enemy: its name and a line under it. The scroll's outline
+-- and seal take its color.
 type Banner = {
-	frame: Frame,
+	paper: Ui.Parchment,
 	name: TextLabel,
 	line: TextLabel,
-	scale: UIScale,
-	edge: UIStroke,
-	seal: Frame,
 	mark: TextLabel, -- what the seal is stamped with
 }
 
@@ -188,9 +185,10 @@ local function letGo()
 	end
 end
 
--- Shows the banner with these words, springing up, or hides it when given none. `color` goes
--- to its outline and its seal; `stamp` is the color of the mark on the seal, the parchment's
--- own unless the seal is too pale for that.
+-- Shows the banner with these words, or takes it away when given none: it unrolls, shuts for
+-- a moment when its words change, and rolls up to go. `color` goes to its outline and its
+-- seal; `stamp` is the color of the mark on the seal, the parchment's own unless the seal is
+-- too pale for that.
 local function announce(name: string?, line: string?, color: Color3?, stamp: Color3?)
 	local shown = banner
 	if not shown then
@@ -198,21 +196,16 @@ local function announce(name: string?, line: string?, color: Color3?, stamp: Col
 	end
 	announced += 1
 	if not name then
-		shown.frame.Visible = false
+		Ui.rollUp(shown.paper)
 		return
 	end
-	shown.name.Text = name
-	shown.line.Text = line or ""
-	shown.edge.Color = color or Ui.SEAL
-	shown.seal.BackgroundColor3 = color or Ui.SEAL
-	shown.mark.TextColor3 = stamp or Ui.PARCHMENT
-	shown.frame.Visible = true
-	shown.scale.Scale = 0.6
-	TweenService:Create(
-		shown.scale,
-		TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Scale = 1 }
-	):Play()
+	Ui.rewrite(shown.paper, function()
+		shown.name.Text = name
+		shown.line.Text = line or ""
+		shown.paper.edge.Color = color or Ui.SEAL
+		shown.paper.seal.BackgroundColor3 = color or Ui.SEAL
+		shown.mark.TextColor3 = stamp or Ui.PARCHMENT
+	end)
 end
 
 -- Ends the staged camera and hands it back to the player. With `behindPlayer` it is first put
@@ -483,8 +476,7 @@ local function roulette(mine: Stage)
 		mine.shownAt = os.clock()
 		beat(color, 0.6, 10)
 		celebrate(spot, color)
-		local title = Catalog.unitTitle(reveal.character, reveal.mutation, 1)
-		Hud.toast(Strings.get("Reveal", title), color)
+		-- Nothing is written of who it is: they stand there, under their own tag.
 
 		-- It stays until the server teleports the player here; from then on the same shinobi
 		-- is carried over their head.
@@ -616,7 +608,6 @@ local function buildBanner(): Banner
 		Visible = false,
 	}, 76)
 	paper.edge.Thickness = 4
-	local scale: UIScale = Ui.make("UIScale", {}, paper.frame)
 	-- The seal is stamped with a mark of warning.
 	local mark = Ui.text(paper.seal, {
 		Size = UDim2.fromScale(1, 1),
@@ -625,7 +616,7 @@ local function buildBanner(): Banner
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = "!",
 	})
-	local name = Ui.text(paper.frame, {
+	local name = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(122, 6),
 		Size = UDim2.new(1, -160, 0, 88),
 		TextScaled = true,
@@ -641,8 +632,8 @@ local function buildBanner(): Banner
 		BackgroundColor3 = Ui.INK,
 		BackgroundTransparency = 0.45,
 		BorderSizePixel = 0,
-	}, paper.frame)
-	local line = Ui.text(paper.frame, {
+	}, paper.page)
+	local line = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(122, 98),
 		Size = UDim2.new(1, -160, 0, 44),
 		TextScaled = true,
@@ -651,15 +642,7 @@ local function buildBanner(): Banner
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 36 }, line)
-	return {
-		frame = paper.frame,
-		name = name,
-		line = line,
-		scale = scale,
-		edge = paper.edge,
-		seal = paper.seal,
-		mark = mark,
-	}
+	return { paper = paper, name = name, line = line, mark = mark }
 end
 
 function Cinematic.start()

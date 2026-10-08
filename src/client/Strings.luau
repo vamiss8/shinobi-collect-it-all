@@ -168,7 +168,8 @@ local TEXT: { [string]: string } = {
 	RebirthHolds = "x%s",
 	-- What a rebirth takes and what it leaves, a line each: the first word in color.
 	RebirthLoses = '<font color="#EF5350">RESETS</font>   Chakra · shinobi · Ryo · run speed',
-	RebirthKeeps = '<font color="#66BB6A">STAYS</font>   kunai · dojo floors · Bingo Book',
+	RebirthKeeps = '<font color="#66BB6A">STAYS</font>   kunai · dojo floors · Bingo Book'
+		.. " · legendary shinobi",
 	RebirthDo = "REBIRTH",
 	RebirthNeed = "Need %s more Chakra",
 	RebirthSure = "Press again to confirm",
@@ -190,8 +191,7 @@ local TEXT: { [string]: string } = {
 	KickSage = "SAGE THROW!  ",
 	KickLucky = "x%s LUCK!  ",
 
-	-- Reveal and the run home
-	Reveal = "%s!",
+	-- The run home
 	UpgradeGained = "+%s",
 	UpgradeDone = "LEVEL UP!",
 	UpgradeEarns = "%s Ryo / s",
@@ -217,6 +217,17 @@ local TEXT: { [string]: string } = {
 	FocusHint = "Click as the rings meet",
 	FocusHit = "%s  +%s",
 	FocusMiss = "Miss",
+
+	-- The list of players (client PlayerList): how many are here, and what a dojo earns.
+	PlayersTitle = "SHINOBI  %s",
+	PlayersIncome = "%s/s",
+
+	-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
+	LegendYours = "YOURS",
+	LegendOwned = "%s is already yours.",
+	LegendSoon = "%s is not for sale yet. Soon!",
+	LegendJoined = "%s has joined you! Find them in your Inventory.",
+	LegendBy = "%s has %s at their side!",
 
 	-- Notifications sent by the server
 	NothingHeld = "Pick a shinobi in your Inventory first.",

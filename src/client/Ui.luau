@@ -2,6 +2,7 @@
 -- Helpers for building the UI from code.
 
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Ui = {}
@@ -205,20 +206,126 @@ local ROLLER_END = Color3.fromRGB(141, 98, 72)
 -- A scroll to write on: parchment between two wooden rollers, with a round seal on its left.
 -- Every message of the game is written on one, in ink (Ui.INK). A message's color goes to the
 -- scroll's outline (`edge`) and to its seal, never to the words.
-export type Parchment = { frame: Frame, edge: UIStroke, seal: Frame }
+--
+-- `frame` is where the scroll is: its place, its size, whether it is there at all. `page` is
+-- what the words go on. Between them is the sheet, which is as wide as the scroll is unrolled
+-- and hides the rest of the page: a scroll can be rolled out from its middle and rolled up
+-- again (Ui.unroll, Ui.rollUp, Ui.rewrite), its rollers going with the sheet's two ends while
+-- the words stay where they are written. One that is never rolled simply stands open.
+export type Parchment = {
+	frame: Frame,
+	page: Frame,
+	edge: UIStroke,
+	seal: Frame,
+	sheet: Frame,
+	rollers: { Frame },
+	opened: NumberValue, -- how far it is unrolled, ROLLED..1
+	turn: number, -- counts its rollings, so that an old one does not finish a newer one's work
+}
+
+-- How far open a rolled-up scroll is, as a share of its width: its two rollers side by side.
+local ROLLED = 0.05
+-- How long a scroll takes to unroll and to roll up, seconds: slow enough to be watched, quick
+-- enough not to be waited for. And how long it takes to shut for a change of words.
+local UNROLL_SECONDS = 0.44
+local ROLL_UP_SECONDS = 0.34
+local SHUT_SECONDS = 0.2
+
+-- Lays a scroll out as one unrolled this far.
+local function spread(paper: Parchment, open: number)
+	local wide = math.clamp(open, ROLLED, 1)
+	paper.sheet.Size = UDim2.fromScale(wide, 1)
+	-- The page keeps the size of the whole scroll whatever the sheet's.
+	paper.page.Size = UDim2.fromScale(1 / wide, 1)
+	paper.rollers[1].Position = UDim2.fromScale(0.5 - wide / 2, 0.5)
+	paper.rollers[2].Position = UDim2.fromScale(0.5 + wide / 2, 0.5)
+end
+
+-- Rolls a scroll to `open` in `seconds`, and then does `after`, unless it was rolled again
+-- meanwhile.
+local function roll(
+	paper: Parchment,
+	open: number,
+	seconds: number,
+	direction: Enum.EasingDirection,
+	after: (() -> ())?
+)
+	paper.turn += 1
+	local mine = paper.turn
+	TweenService:Create(
+		paper.opened,
+		TweenInfo.new(seconds, Enum.EasingStyle.Quart, direction),
+		{ Value = open }
+	):Play()
+	if after then
+		task.delay(seconds, function()
+			if paper.turn == mine then
+				after()
+			end
+		end)
+	end
+end
+
+-- Brings a scroll up: it appears rolled, its rollers together, and unrolls from its middle.
+function Ui.unroll(paper: Parchment)
+	if not paper.frame.Visible then
+		paper.opened.Value = ROLLED
+		paper.frame.Visible = true
+	end
+	roll(paper, 1, UNROLL_SECONDS, Enum.EasingDirection.Out)
+end
+
+-- Takes a scroll away: it rolls up to its middle and is gone.
+function Ui.rollUp(paper: Parchment)
+	if not paper.frame.Visible then
+		return
+	end
+	roll(paper, ROLLED, ROLL_UP_SECONDS, Enum.EasingDirection.In, function()
+		paper.frame.Visible = false
+	end)
+end
+
+-- Has a scroll say something new: `write` puts the words on it. One that is up shuts first,
+-- so that the words change out of sight, and opens again; one that is away just unrolls.
+function Ui.rewrite(paper: Parchment, write: () -> ())
+	if not paper.frame.Visible then
+		write()
+		Ui.unroll(paper)
+		return
+	end
+	roll(paper, ROLLED, SHUT_SECONDS, Enum.EasingDirection.In, function()
+		write()
+		roll(paper, 1, UNROLL_SECONDS, Enum.EasingDirection.Out)
+	end)
+end
 
 function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize: number): Parchment
 	local frame = Ui.make("Frame", {
-		BackgroundColor3 = Ui.PARCHMENT,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 	}, parent)
 	for name, value in properties do
 		frame[name] = value
 	end
-	Ui.corner(frame, 4)
-	local edge = Ui.stroke(frame, Ui.EDGE, 3)
+	local sheet = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+	}, frame)
+	Ui.corner(sheet, 4)
+	local edge = Ui.stroke(sheet, Ui.EDGE, 3)
+	local page = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+	}, sheet)
 
 	-- The rollers stand a little taller than the parchment, with a lighter knob on each end.
+	local rollers: { Frame } = {}
 	for _, side in { 0, 1 } do
 		local roller = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -229,6 +336,7 @@ function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize:
 			ZIndex = 2,
 		}, frame)
 		Ui.corner(roller, 12)
+		table.insert(rollers, roller)
 		for _, tip in { 0, 1 } do
 			local knob = Ui.make("Frame", {
 				AnchorPoint = Vector2.new(0.5, tip),
@@ -248,10 +356,25 @@ function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize:
 		Size = UDim2.fromOffset(sealSize, sealSize),
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
-	}, frame)
+	}, page)
 	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
 	Ui.stroke(seal, Ui.INK, 2)
-	return { frame = frame, edge = edge, seal = seal }
+
+	local opened: NumberValue = Ui.make("NumberValue", { Name = "Opened", Value = 1 }, frame)
+	local paper: Parchment = {
+		frame = frame,
+		page = page,
+		edge = edge,
+		seal = seal,
+		sheet = sheet,
+		rollers = rollers,
+		opened = opened,
+		turn = 0,
+	}
+	opened.Changed:Connect(function(open: number)
+		spread(paper, open)
+	end)
+	return paper
 end
 
 -- A round badge with a letter in it, standing in for an icon.

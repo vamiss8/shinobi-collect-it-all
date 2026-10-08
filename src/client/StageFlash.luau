@@ -49,14 +49,13 @@ function StageFlash.start()
 		Visible = false,
 	}, 84)
 	paper.edge.Thickness = 4
-	local scale: UIScale = Ui.make("UIScale", {}, paper.frame)
 	local mark = Ui.text(paper.seal, {
 		Size = UDim2.fromScale(1, 1),
 		TextScaled = true,
 		TextColor3 = Ui.PARCHMENT,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	local name = Ui.text(paper.frame, {
+	local name = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(130, 6),
 		Size = UDim2.new(1, -168, 0, 88),
 		TextScaled = true,
@@ -72,8 +71,8 @@ function StageFlash.start()
 		BackgroundColor3 = Ui.INK,
 		BackgroundTransparency = 0.45,
 		BorderSizePixel = 0,
-	}, paper.frame)
-	local line = Ui.text(paper.frame, {
+	}, paper.page)
+	local line = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(130, 100),
 		Size = UDim2.new(1, -168, 0, 44),
 		TextScaled = true,
@@ -93,21 +92,16 @@ function StageFlash.start()
 		TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
 			:Play()
 
-		name.Text = title
-		mark.Text = stamp
-		line.Text = words
-		paper.edge.Color = color
-		paper.seal.BackgroundColor3 = color
-		paper.frame.Visible = true
-		scale.Scale = 0.6
-		TweenService:Create(
-			scale,
-			TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-			{ Scale = 1 }
-		):Play()
+		Ui.rewrite(paper, function()
+			name.Text = title
+			mark.Text = stamp
+			line.Text = words
+			paper.edge.Color = color
+			paper.seal.BackgroundColor3 = color
+		end)
 		task.delay(HOLD_SECONDS, function()
 			if token == mine then
-				paper.frame.Visible = false
+				Ui.rollUp(paper)
 			end
 		end)
 	end
