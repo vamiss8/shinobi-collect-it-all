@@ -3,10 +3,12 @@
 -- with the reward the desk pays for sending it on its last mission. That is a sale by another
 -- name, and the code calls it one: the shinobi is gone and the Ryo is paid. A click sends one;
 -- "Send all" sends the lot and asks to be clicked twice, since it cannot be undone. Shinobi
--- standing on pads are not listed: they have to be taken off first.
+-- standing on pads are not listed: they have to be taken off first. The legendary shinobi are
+-- not listed either: the desk does not take them.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("../Remotes")
@@ -72,8 +74,10 @@ function SellStall.build(): Ui.Window
 		total = 0
 		isArmed = false
 
-		for unitId in inventory do
-			table.insert(ids, unitId)
+		for unitId, unit in inventory do
+			if not Catalog.isLegend(unit.character) then
+				table.insert(ids, unitId)
+			end
 		end
 		table.sort(ids, function(a, b)
 			local priceA = Economy.sellPrice(inventory[a])

@@ -1,4 +1,5 @@
 --!strict
+local Catalog = require("../src/shared/Config/Catalog")
 local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local T = require("./harness")
@@ -97,6 +98,50 @@ return {
 		local tenten = PlazaPlan.shops.tenten
 		T.eq(tenten.side, 0, "Tenten's shop stands on the way to the lane")
 		T.ok(tenten.along > PlazaPlan.FOUNTAIN.along, "on the lane's side")
+	end,
+
+	["a pedestal stands for every legendary shinobi, on the way to the lane, clear of all"] = function()
+		T.eq(#PlazaPlan.pedestals, #Catalog.legends, "a pedestal for each, and no more")
+		local half = PlazaPlan.PEDESTAL / 2
+		local function ground(spot: PlazaPlan.Spot): { PlazaPlan.Spot }
+			return {
+				{ along = spot.along - half, side = spot.side - half },
+				{ along = spot.along + half, side = spot.side - half },
+				{ along = spot.along + half, side = spot.side + half },
+				{ along = spot.along - half, side = spot.side + half },
+			}
+		end
+		local tenten = PlazaPlan.shops.tenten
+		for index, spot in PlazaPlan.pedestals do
+			T.ok(spot.along < -PlazaPlan.FRONT_GAP - PASSAGE, `pedestal {index} is by the lane`)
+			T.ok(spot.along > tenten.along, `pedestal {index} is behind Tenten's shop`)
+			T.ok(
+				PlazaPlan.HALF_WIDTH - math.abs(spot.side) - half >= 2 * PASSAGE,
+				`room between pedestal {index} and the dojos`
+			)
+			for id, shop in PlazaPlan.shops do
+				T.ok(
+					PlazaPlan.apart(ground(spot), PlazaPlan.shopCorners(shop)) >= PASSAGE,
+					`pedestal {index} keeps clear of the {id} shop`
+				)
+			end
+			for other, theirs in PlazaPlan.pedestals do
+				if other > index then
+					T.ok(
+						PlazaPlan.apart(ground(spot), ground(theirs)) >= PASSAGE,
+						`pedestals {index} and {other} keep apart`
+					)
+				end
+			end
+			for dojo = 1, PlazaPlan.DOJOS do
+				T.ok(
+					PlazaPlan.apart(ground(spot), { PlazaPlan.spawn(dojo) }) >= PASSAGE,
+					`pedestal {index} is clear of where the owner of dojo {dojo} appears`
+				)
+			end
+		end
+		-- The dearest is the last in the config, and stands in the middle.
+		T.eq(PlazaPlan.pedestals[#PlazaPlan.pedestals].side, 0)
 	end,
 
 	["the measure of how far apart two pieces of ground are"] = function()

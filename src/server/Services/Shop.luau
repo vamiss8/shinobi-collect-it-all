@@ -119,7 +119,7 @@ end
 
 -- Sends the named units out of the inventory on their last mission, which is a sale: the desk
 -- pays for each and it does not come back. Units standing on a pad are not sent: they have to
--- be taken off first.
+-- be taken off first. A legendary shinobi is never sent: it was paid for in Robux.
 local function sell(player: Player, unitIds: unknown)
 	local data = Data.get(player)
 	if not data or typeof(unitIds) ~= "table" or not Market.playerAt(player, "sell") then
@@ -138,7 +138,8 @@ local function sell(player: Player, unitIds: unknown)
 			break
 		end
 		local unit = if typeof(unitId) == "string" then data.units[unitId] else nil
-		if typeof(unitId) == "string" and unit and not onPad[unitId] then
+		local kept = unit ~= nil and Catalog.isLegend(unit.character)
+		if typeof(unitId) == "string" and unit and not kept and not onPad[unitId] then
 			data.units[unitId] = nil
 			if Inventory.held(player) == unitId then
 				Inventory.hold(player, nil)

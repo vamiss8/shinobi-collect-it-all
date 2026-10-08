@@ -118,6 +118,14 @@ local RANKS: { [string]: Style } = {
 		motion = "aura",
 		period = 2.6,
 	},
+	-- The legendary shinobi (Config/Legends): amber and gold in rings from the word's middle.
+	Legend = {
+		fill = { "#FFE57F", "#FFAB00", "#FFF8E1", "#FF8F00" },
+		edge = "#4A1500",
+		flare = "#FFFFFF",
+		motion = "ripple",
+		period = 3,
+	},
 }
 
 -- The ranks players hold for their rebirths (Config/Rebirths), by how many rebirths the rank

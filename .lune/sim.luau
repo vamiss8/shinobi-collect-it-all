@@ -4,6 +4,7 @@
 --   lune run sim        every profile, 40 hours of play
 --   lune run sim 10     stop after 10 hours
 --   lune run sim 40 plain   the same player never doing a rebirth, to see what rebirths change
+--   lune run sim 40 legends the player who bought the three legendary shinobi at the start
 --
 -- The game's own math is used throughout (Logic/*), so the result follows the config. What is
 -- modelled here is the player: how well they press, how they split their time and what they
@@ -54,6 +55,9 @@ local PROFILES: { Profile } = {
 local SEEDS = 5
 -- Whether the player does rebirths (Logic/Rebirth): as soon as each is offered.
 local REBIRTHS = process.args[2] ~= "plain"
+-- Whether the player owns the legendary shinobi (Config/Legends), all three from the first
+-- second: what Robux buy, at its most.
+local LEGENDS = process.args[2] == "legends"
 
 -- Time that goes on things the config does not describe, seconds.
 local RING_OVERHEAD = 0.25 -- from a press to watching the next ring
@@ -188,13 +192,15 @@ local function keep(player: Player, unit: Unit)
 		table.insert(player.pads, unit)
 		return
 	end
-	local weakest = 1
+	-- A legendary shinobi is never the one to go: it cannot be sold.
+	local weakest: number? = nil
 	for i, other in player.pads do
-		if Economy.baseIncome(other) < Economy.baseIncome(player.pads[weakest]) then
+		local least = if weakest then Economy.baseIncome(player.pads[weakest]) else math.huge
+		if not Catalog.isLegend(other.character) and Economy.baseIncome(other) < least then
 			weakest = i
 		end
 	end
-	if Economy.baseIncome(unit) > Economy.baseIncome(player.pads[weakest]) then
+	if weakest and Economy.baseIncome(unit) > Economy.baseIncome(player.pads[weakest]) then
 		player.ryo += Economy.sellPrice(player.pads[weakest])
 		player.pads[weakest] = unit
 	else
@@ -338,6 +344,11 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		padAt = {},
 		spent = { kunai = 0, speed = 0, pads = 0, upgrades = 0 },
 	}
+	if LEGENDS then
+		for _, legend in Catalog.legends do
+			table.insert(player.pads, { character = legend.id, mutation = Catalog.NONE, level = 1 })
+		end
+	end
 
 	-- A new player throws first: the strip is the first thing they walk into.
 	while player.time < hours * 3600 do
@@ -347,14 +358,20 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		pass(player, profile.trainPerThrow)
 		-- A rebirth is taken as soon as it is offered, and starts the player over as
 		-- Rebirth.apply does: no Chakra, no shinobi, no Ryo, no run speed; the kunai and the
-		-- pads bought stay.
+		-- pads bought stay, and so do the legendary shinobi with the levels bought for them.
 		while REBIRTHS and Rebirth.ready(player.chakra, player.rebirths) do
 			player.rebirths += 1
 			player.rebirthAt[player.rebirths] = player.time
 			player.chakra = Rebirth.START_CHAKRA
 			player.ryo = 0
 			player.speedLevel = 0
-			player.pads = {}
+			local kept = {}
+			for _, unit in player.pads do
+				if Catalog.isLegend(unit.character) then
+					table.insert(kept, unit)
+				end
+			end
+			player.pads = kept
 		end
 		for number, zone in Catalog.zones do
 			if not player.reached[number] and player.chakra >= zone.chakra then

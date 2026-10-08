@@ -105,6 +105,33 @@ return {
 		T.eq(save.spins, 400)
 	end,
 
+	-- The owner's word on the shinobi bought for Robux: they stay, and so do their levels.
+	["the legendary shinobi stay through a rebirth, on their pads and at their levels"] = function()
+		local first, last = Catalog.legends[1], Catalog.legends[#Catalog.legends]
+		local save = {
+			rebirths = 0,
+			chakra = 1e3,
+			ryo = 50,
+			speedLevel = 3,
+			runAt = -1,
+			units = {
+				u1 = { character = "kakashi", mutation = "none", level = 1 },
+				u2 = { character = last.id, mutation = "none", level = 1, upgrade = 7 },
+				u3 = { character = first.id, mutation = "none", level = 1 },
+				u4 = { character = "iruka", mutation = "ice", level = 2 },
+			},
+			pads = { ["1"] = "u1", ["4"] = "u2" },
+		}
+		Rebirth.apply(save)
+		T.eq(save.units.u1, nil, "a thrown-for shinobi on a pad was kept")
+		T.eq(save.units.u4, nil, "a thrown-for shinobi in the inventory was kept")
+		T.eq(save.units.u2.upgrade, 7, "a legendary shinobi lost its levels")
+		T.eq(save.pads["4"], "u2", "a legendary shinobi was taken off its pad")
+		T.eq(save.pads["1"], nil, "a pad is taken by a shinobi that is gone")
+		T.ok(save.units.u3 ~= nil, "a legendary shinobi in the inventory went")
+		T.eq(save.ryo, 0)
+	end,
+
 	["every rank has a color of its own"] = function()
 		local seen = { [string.upper(Rebirth.FIRST_COLOR)] = true }
 		for count = 1, Rebirth.count() do

@@ -53,7 +53,7 @@ local ENEMY_SIDE = -25
 local FIRST_SHINOBI = -13
 local SHINOBI_GAP = 9.5
 
-type Kind = "shinobi" | "enemy" | "kunai" | "keeper"
+type Kind = "shinobi" | "enemy" | "kunai" | "keeper" | "legend"
 
 -- A name as it would be without capitals, spaces and punctuation, to guess what a misnamed
 -- model was meant to be.
@@ -91,6 +91,9 @@ local function check(): Instance?
 	for _, keeper in Catalog.keepers do
 		expect(keeper.id, "keeper")
 	end
+	for _, legend in Catalog.legends do
+		expect(legend.id, "legend")
+	end
 
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	if not folder then
@@ -106,8 +109,8 @@ local function check(): Instance?
 	end
 
 	local have: { [string]: boolean } = {}
-	local found = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0 }
-	local total = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0 }
+	local found = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0, legend = 0 }
+	local total = { shinobi = 0, enemy = 0, kunai = 0, keeper = 0, legend = 0 }
 	for _, kind in expected do
 		total[kind] += 1
 	end
@@ -138,7 +141,8 @@ local function check(): Instance?
 		have[name] = true
 		found[kind] += 1
 
-		if kind == "shinobi" and math.max(size.X, size.Z) > size.Y * LYING then
+		local stands = kind == "shinobi" or kind == "legend"
+		if stands and math.max(size.X, size.Z) > size.Y * LYING then
 			table.insert(notes, `"{name}" is much wider than it is tall: is it lying down?`)
 		elseif kind == "kunai" then
 			local sides = { size.X, size.Y, size.Z }
@@ -154,7 +158,8 @@ local function check(): Instance?
 
 	print(
 		`[Models] shinobi {found.shinobi}/{total.shinobi}, enemies {found.enemy}/{total.enemy},`
-			.. ` kunai {found.kunai}/{total.kunai}, shopkeepers {found.keeper}/{total.keeper}`
+			.. ` kunai {found.kunai}/{total.kunai}, shopkeepers {found.keeper}/{total.keeper},`
+			.. ` legendary {found.legend}/{total.legend}`
 	)
 	-- The details are for whoever is importing; a live server's log does not need them.
 	if not RunService:IsStudio() then
@@ -197,9 +202,15 @@ local function parade(auras: boolean)
 		figure.Parent = hall
 	end
 
-	-- The shopkeepers in the front row, where the shinobi's columns are.
+	-- The shopkeepers in the front row, where the shinobi's columns are, and the legendary
+	-- shinobi on from them.
 	for place, keeper in Catalog.keepers do
 		standAt(Figure.keeper(keeper), FIRST_ROW, FIRST_SHINOBI + (place - 1) * SHINOBI_GAP)
+	end
+	for place, legend in Catalog.legends do
+		local unit = { character = legend.id, mutation = Catalog.NONE, level = 1 }
+		local column = #Catalog.keepers + place - 1
+		standAt(Figure.build(unit), FIRST_ROW, FIRST_SHINOBI + column * SHINOBI_GAP)
 	end
 
 	for row, zone in Catalog.zones do

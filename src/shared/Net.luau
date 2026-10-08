@@ -38,7 +38,26 @@ Net.Events = {
 	Notify = "Notify", -- server -> client: a key from client/Strings plus format arguments
 	Offline = "Offline", -- server -> client: Offline, once, when a returning player's save loads
 	Collect = "Collect", -- client -> server: take the offline income the Offline message offered
+	-- For the game's developers alone (server Developers). Up: a command of the developer
+	-- console and its arguments. Down: a line saying what came of it.
+	Dev = "Dev",
 }
+
+-- Attributes the server keeps on every Player for every client to read: the rebirths they have
+-- done and what their dojo earns a second. The list of players is drawn from them (client
+-- PlayerList), and the orbs of a player's rank (client RankOrbs).
+Net.PLAYER_REBIRTHS = "Rebirths"
+Net.PLAYER_INCOME = "Income"
+-- Boolean attribute on the Player of a developer: their client builds the developer console.
+-- It opens nothing by itself: the server checks who is asking on every command.
+Net.DEVELOPER_ATTRIBUTE = "Developer"
+-- The folder in Workspace with the legendary shinobi on show (Services/Legends): their figures
+-- and, for each, a price tag, a BillboardGui with the attribute below naming the shinobi and a
+-- label named LEGEND_PRICE that each client rewrites for a player who owns it. The same
+-- attribute is on the prompt that offers it.
+Net.LEGENDS_FOLDER = "Legends"
+Net.LEGEND_ATTRIBUTE = "Legend"
+Net.LEGEND_PRICE = "Price"
 
 -- Attribute on a stall's ProximityPrompt naming the shop window it opens on the client.
 Net.SHOP_ATTRIBUTE = "Shop"
@@ -120,6 +139,7 @@ export type Snapshot = {
 	speedLevel: number, -- run speed levels bought
 	runLevel: number, -- the level the player runs at: as many, or fewer if they chose so
 	rebirths: number, -- rebirths done (Logic/Rebirth)
+	legends: { string }, -- ids of the legendary shinobi the player owns (Config/Legends)
 	padsBought: number,
 	spins: number,
 	streak: number,

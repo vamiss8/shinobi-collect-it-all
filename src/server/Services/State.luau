@@ -3,6 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -13,34 +14,30 @@ local Stats = require("./Stats")
 
 local State = {}
 
--- What every player sees of every other in Roblox's list of players, by its own rule: values
--- in a folder named "leaderstats" under the Player, a column each, in this order.
-local BOARD = "leaderstats"
-local BOARD_REBIRTHS = "Rebirths"
-local BOARD_INCOME = "Ryo/s"
-
--- One column of the list of players for this player, made if it is not there yet.
-local function column(player: Player, name: string): IntValue
-	local found = player:FindFirstChild(BOARD)
-	local board: Instance = found or Instance.new("Folder")
-	if not found then
-		board.Name = BOARD
-		board.Parent = player
-	end
-	local value = board:FindFirstChild(name)
-	if value and value:IsA("IntValue") then
-		return value
-	end
-	local made = Instance.new("IntValue")
-	made.Name = name
-	made.Parent = board
-	return made
+-- Puts what every other player sees of this one where their clients can read it: the rebirths
+-- done and what the dojo earns a second, as attributes of the Player. The game's own list of
+-- players is drawn from them (client PlayerList). An attribute set to the value it has is not
+-- sent again.
+local function post(player: Player, rebirths: number, income: number)
+	player:SetAttribute(Net.PLAYER_REBIRTHS, rebirths)
+	player:SetAttribute(Net.PLAYER_INCOME, income)
 end
 
--- Puts the player's rebirths and what their dojo earns a second on the list of players.
-local function post(player: Player, rebirths: number, income: number)
-	column(player, BOARD_REBIRTHS).Value = rebirths
-	column(player, BOARD_INCOME).Value = math.floor(income)
+-- The legendary shinobi in a save, by id, in the order of the config.
+local function legends(data: Data.Data): { string }
+	local has: { [string]: boolean } = {}
+	for _, unit in data.units do
+		if Catalog.isLegend(unit.character) then
+			has[unit.character] = true
+		end
+	end
+	local owned = {}
+	for _, legend in Catalog.legends do
+		if has[legend.id] then
+			table.insert(owned, legend.id)
+		end
+	end
+	return owned
 end
 
 -- Sends the player a fresh snapshot. Call after anything in their save changes.
@@ -59,6 +56,7 @@ function State.push(player: Player)
 		speedLevel = data.speedLevel,
 		runLevel = Economy.runLevel(data.speedLevel, data.runAt),
 		rebirths = data.rebirths,
+		legends = legends(data),
 		padsBought = data.padsBought,
 		spins = data.spins,
 		streak = data.streak,

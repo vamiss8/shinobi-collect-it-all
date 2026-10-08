@@ -4,8 +4,10 @@
 local Characters = require("./Characters")
 local Keepers = require("./Keepers")
 local KunaiList = require("./Kunai")
+local Legends = require("./Legends")
 local Mutations = require("./Mutations")
 local Potions = require("./Potions")
+local Products = require("./Products")
 local Ranks = require("./Ranks")
 local Replaced = require("./Replaced")
 local Tuning = require("./Tuning")
@@ -14,6 +16,7 @@ local Zones = require("./Zones")
 export type Character = Characters.Character
 export type Keeper = Keepers.Keeper
 export type Kunai = KunaiList.Kunai
+export type Legend = Legends.Legend
 export type Mutation = Mutations.Mutation
 export type Potion = Potions.Potion
 export type Rank = Ranks.Rank
@@ -34,8 +37,16 @@ Catalog.potions = Potions
 Catalog.keepers = Keepers
 -- Characters that left the roster -> who took their place (see Logic/Roster).
 Catalog.replaced = Replaced
+-- The legendary shinobi, bought for Robux. They are not of the roster (`characters`): no zone
+-- drops them and the Bingo Book has no place for them. But whatever asks who a unit is finds
+-- one in `characterById` like any other shinobi, under a rank of its own.
+Catalog.legends = Legends
+Catalog.legendRank = { id = "Legend", name = "Legendary", color = "#FFAB00" } :: Rank
 
 Catalog.rankOrder = {} :: { [string]: number }
+-- Every rank by its id: the ranks the zones drop, and the legendary one.
+Catalog.rankById = { [Catalog.legendRank.id] = Catalog.legendRank } :: { [string]: Rank }
+Catalog.legendById = {} :: { [string]: Legend }
 Catalog.characterById = {} :: { [string]: Character }
 Catalog.charactersByRank = {} :: { [string]: { Character } }
 Catalog.mutationById = {} :: { [string]: Mutation }
@@ -50,6 +61,7 @@ end
 
 for i, rank in Ranks do
 	Catalog.rankOrder[rank.id] = i
+	Catalog.rankById[rank.id] = rank
 	Catalog.charactersByRank[rank.id] = {}
 end
 
@@ -59,6 +71,16 @@ for _, character in Characters do
 	if list then
 		table.insert(list, character)
 	end
+end
+
+for _, legend in Legends do
+	Catalog.legendById[legend.id] = legend
+	Catalog.characterById[legend.id] = {
+		id = legend.id,
+		name = legend.name,
+		rank = Catalog.legendRank.id,
+		income = legend.income,
+	}
 end
 
 for _, mutation in Mutations do
@@ -72,6 +94,17 @@ end
 
 for _, potion in Potions do
 	Catalog.potionById[potion.id] = potion
+end
+
+-- The rank of a character, of the roster or legendary; nil for an id nobody has.
+function Catalog.rankOf(characterId: string): Rank?
+	local character = Catalog.characterById[characterId]
+	return if character then Catalog.rankById[character.rank] else nil
+end
+
+-- Whether the character is one of the legendary shinobi.
+function Catalog.isLegend(characterId: string): boolean
+	return Catalog.legendById[characterId] ~= nil
 end
 
 -- The zone a scroll landing at `distance` studs falls into.
@@ -183,6 +216,17 @@ function Catalog.validate(): { string }
 	for old, new in Replaced do
 		check(not seen[old], `character {old} is listed as replaced but is still on the roster`)
 		check(seen[new] or Replaced[new] ~= nil, `{old} is replaced by unknown character {new}`)
+	end
+
+	local passes: { [string]: boolean } = {}
+	for _, pass in Products.GamePasses do
+		passes[pass.key] = true
+	end
+	for _, legend in Legends do
+		check(not seen[legend.id], `legendary shinobi {legend.id} is also on the roster`)
+		check(Replaced[legend.id] == nil, `legendary shinobi {legend.id} is listed as replaced`)
+		check(legend.income > 0, `legendary shinobi {legend.id} has no income`)
+		check(passes[legend.pass] == true, `legendary shinobi {legend.id} has no game pass`)
 	end
 
 	for _, m in Mutations do

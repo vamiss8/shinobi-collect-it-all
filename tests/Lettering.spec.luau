@@ -49,6 +49,11 @@ return {
 		T.ok(colored, "the last rank is all white")
 	end,
 
+	["the legendary shinobi's rank is lettered"] = function()
+		local key = Lettering.key("rank", Catalog.legendRank.id)
+		T.ok(key ~= nil and Lettering.style(key) ~= nil, "Legendary is written in a plain color")
+	end,
+
 	["a lettering is of several colors, legible on its outline, and comes round"] = function()
 		for _, styles in { Lettering.mutations, Lettering.ranks, Lettering.titles } do
 			for id, style in styles do

@@ -449,6 +449,38 @@ return {
 		T.ok(pieces.Training >= 6, `only {pieces.Training} pieces of training post`)
 	end,
 
+	["a pedestal stands where the plan says for every legendary shinobi, solid all over"] = function()
+		local tops: { any } = {}
+		local pieces = 0
+		for _, part in parts() do
+			if string.sub(part.Name, 1, 8) == "Pedestal" then
+				pieces += 1
+				T.ok(part.CanCollide, `{where(part)} can be walked through`)
+				if part.Name == "PedestalTop" then
+					table.insert(tops, part)
+				end
+			end
+		end
+		T.eq(#tops, #PlazaPlan.pedestals)
+		T.eq(pieces, 4 * #PlazaPlan.pedestals, "a foot, a plinth, a band and a top stone each")
+		local tallest, middle = 0, nil
+		for _, spot in PlazaPlan.pedestals do
+			local found = false
+			for _, top in tops do
+				local _, high = Zones.bounds(top)
+				local at = top.CFrame.Position
+				if math.abs(at.X - spot.along) < 0.01 and math.abs(at.Z - spot.side) < 0.01 then
+					found = true
+					if high.Y > tallest then
+						tallest, middle = high.Y, spot
+					end
+				end
+			end
+			T.ok(found, `no pedestal at {spot.along}, {spot.side}`)
+		end
+		T.ok(middle ~= nil and middle.side == 0, "the tallest pedestal is not the middle one")
+	end,
+
 	["a stone lantern is solid from its foot to its knob"] = function()
 		local pieces = 0
 		for _, part in parts() do

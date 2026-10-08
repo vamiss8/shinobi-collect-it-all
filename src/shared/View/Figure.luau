@@ -66,7 +66,7 @@ type Line = { text: string, color: string?, lettering: string? }
 -- what tells a strong unit from a weak one that was merely leveled up.
 local function tag(unit: Economy.Unit): { Line }
 	local character = Catalog.characterById[unit.character]
-	local rank = if character then Catalog.ranks[Catalog.rankOrder[character.rank]] else nil
+	local rank = Catalog.rankOf(unit.character)
 	local mutation = Catalog.mutationById[unit.mutation]
 
 	local lines: { Line } = {}
@@ -279,8 +279,7 @@ end
 -- Builds a shinobi standing at the world origin. Its pivot is at its feet, so
 -- `figure:PivotTo(cframe)` stands it on that point.
 function Figure.build(unit: Economy.Unit): Model
-	local character = Catalog.characterById[unit.character]
-	local rank = if character then Catalog.ranks[Catalog.rankOrder[character.rank]] else nil
+	local rank = Catalog.rankOf(unit.character)
 	local rankColor = if rank then Color3.fromHex(rank.color) else Color3.new(1, 1, 1)
 	local mutation = Catalog.mutationById[unit.mutation]
 

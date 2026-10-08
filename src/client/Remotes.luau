@@ -38,4 +38,5 @@ return {
 	Notify = event(Net.Events.Notify),
 	Offline = event(Net.Events.Offline),
 	Collect = event(Net.Events.Collect),
+	Dev = event(Net.Events.Dev),
 }

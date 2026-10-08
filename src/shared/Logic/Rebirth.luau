@@ -5,9 +5,16 @@
 -- over, Chakra, shinobi, Ryo and run speed (`apply` has exactly what), and what it pays is for
 -- good and grows with every rebirth.
 
+local Legends = require("../Config/Legends")
 local Rebirths = require("../Config/Rebirths")
 
 local Rebirth = {}
+
+-- The shinobi a rebirth leaves alone: the legendary ones, by character id.
+local KEPT: { [string]: boolean } = {}
+for _, legend in Legends do
+	KEPT[legend.id] = true
+end
 
 -- What a player who has done no rebirth is called, and the color it is written in.
 Rebirth.FIRST_TITLE = "Academy Student"
@@ -84,19 +91,29 @@ export type Save = {
 }
 
 -- Does a rebirth on a save, in place: one more is counted, and the player starts over. Gone
--- are their Chakra, every shinobi they own (on a pad or not), their Ryo and their run speed.
--- (Ryo goes with the rest: kept, it would buy the run speed straight back, and the way to
--- rebirth would be to sell the dojo first.) Left alone are their kunai, the pads and floors
--- they have bought, their Bingo Book, their potions and their count of throws. Whoever calls
--- this has checked that the rebirth may be done.
+-- are their Chakra, every shinobi they threw for (on a pad or not), their Ryo and their run
+-- speed. (Ryo goes with the rest: kept, it would buy the run speed straight back, and the way
+-- to rebirth would be to sell the dojo first.) Left alone are their kunai, the pads and floors
+-- they have bought, their Bingo Book, their potions and their count of throws, and the
+-- legendary shinobi (Config/Legends), which stay on their pads at the levels bought for them:
+-- they were paid for in Robux, and the first rebirths come within minutes. Whoever calls this
+-- has checked that the rebirth may be done.
 function Rebirth.apply(save: Save)
 	save.rebirths = Rebirth.done(save.rebirths) + 1
 	save.chakra = Rebirth.START_CHAKRA
 	save.ryo = 0
 	save.speedLevel = 0
 	save.runAt = -1
-	table.clear(save.units)
-	table.clear(save.pads)
+	for unitId, unit in save.units do
+		if not KEPT[unit.character] then
+			save.units[unitId] = nil
+		end
+	end
+	for pad, unitId in save.pads do
+		if not save.units[unitId] then
+			save.pads[pad] = nil
+		end
+	end
 end
 
 return Rebirth

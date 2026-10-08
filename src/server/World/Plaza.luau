@@ -3,8 +3,9 @@
 -- to the lane and another across it from dojo to dojo, and where they cross a fountain of three
 -- bowls. Round the fountain stand benches and lit lanterns; along the middle path, lantern
 -- posts; down each side of the plaza, cherry trees that shed their petals; before every
--- dojo, a pair of stone lanterns and planters of shrubs; at the back, a red gate; and in the
--- plaza's four quarters a notice board, a training corner, a well and a small shrine.
+-- dojo, a pair of stone lanterns and planters of shrubs; at the back, a red gate; in the
+-- plaza's four quarters a notice board, a training corner, a well and a small shrine; and on
+-- the way to the lane the pedestals the legendary shinobi stand on show on.
 -- Logic/PlazaPlan says where things stand; the dojos are World/Plots's and the shops
 -- World/Market's.
 --
@@ -19,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hub = require("./Hub")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Notices = require("./Notices")
@@ -26,6 +28,10 @@ local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local PlazaPlan = require(ReplicatedStorage.Shared.Logic.PlazaPlan)
 
 local Plaza = {}
+
+-- The top stone of each legendary shinobi's pedestal, by the shinobi's id (Config/Legends):
+-- whoever stands the figures on show finds where here (Services/Legends). Filled by start().
+Plaza.stands = {} :: { [string]: Part }
 
 local UP = Vector3.new(0, 1, 0)
 
@@ -848,6 +854,36 @@ local function buildGate(folder: Folder)
 	Build.part(folder, "GateTie", Vector3.new(1.4, 1.2, 29), Hub.at(along, 13, 0), LACQUER, wood)
 end
 
+-- A pedestal for a legendary shinobi to stand on show (Logic/PlazaPlan says where): a round
+-- foot of pale stone, a plinth of dark stone banded in red lacquer, and a gilt slab on top,
+-- `height` over the paving, which is what comes back. Solid all over, like everything that
+-- stands on the plaza. The band and the slab are wider than the plinth, so that no two of
+-- their sides lie in one plane.
+local function pedestal(folder: Folder, base: Vector3, height: number): Part
+	local foot, slab = 0.5, 0.4
+	column(folder, "PedestalFoot", base, foot, PlazaPlan.PEDESTAL, STONE, Enum.Material.Slate)
+	local plinth = Vector3.new(4.4, height - foot - slab, 4.4)
+	block(folder, "PedestalPlinth", plinth, base + UP * foot, 0, STONE_DARK, Enum.Material.Slate)
+	block(
+		folder,
+		"PedestalBand",
+		Vector3.new(4.7, 0.5, 4.7),
+		base + UP * (foot + plinth.Y / 2 - 0.25),
+		0,
+		LACQUER,
+		Enum.Material.Wood
+	)
+	return block(
+		folder,
+		"PedestalTop",
+		Vector3.new(5, slab, 5),
+		base + UP * (height - slab),
+		0,
+		GOLD,
+		Enum.Material.SmoothPlastic
+	)
+end
+
 -- The notice board: a board between two posts under a little roof, with papers pinned all
 -- over both of its sides. Where each paper hangs, what it says and how it is drawn is
 -- World/Notices; here they are sheets of paper, each a little askew, a pin in both upper corners.
@@ -1106,6 +1142,15 @@ function Plaza.start()
 	trainingCorner(folder, Hub.at(near - 2, 0, 30), 1)
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
+
+	-- The pedestals of the legendary shinobi, the last and dearest of them the tallest.
+	for place, legend in Catalog.legends do
+		local spot = PlazaPlan.pedestals[place]
+		if spot then
+			local height = if place == #Catalog.legends then 2.6 else 1.7
+			Plaza.stands[legend.id] = pedestal(folder, Hub.at(spot.along, 0, spot.side), height)
+		end
+	end
 
 	folder.Parent = Workspace
 end

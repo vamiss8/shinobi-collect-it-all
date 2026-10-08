@@ -29,7 +29,7 @@ function UnitCard.build(
 	footer: string?
 ): TextButton
 	local character = Catalog.characterById[unit.character]
-	local rank = if character then Catalog.ranks[Catalog.rankOrder[character.rank]] else nil
+	local rank = Catalog.rankOf(unit.character)
 	local mutation = Catalog.mutationById[unit.mutation]
 	local rankColor = if rank then Color3.fromHex(rank.color) else Ui.WHITE
 
