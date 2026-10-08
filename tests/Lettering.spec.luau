@@ -50,7 +50,7 @@ return {
 	end,
 
 	["a lettering is of several colors, legible on its outline, and comes round"] = function()
-		for _, styles in { Lettering.mutations, Lettering.ranks } do
+		for _, styles in { Lettering.mutations, Lettering.ranks, Lettering.titles } do
 			for id, style in styles do
 				T.ok(#style.fill >= 3, `{id} is of {#style.fill} colors`)
 				T.ok(

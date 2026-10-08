@@ -6,12 +6,13 @@
 local Saves = {}
 
 -- The rules a save is written under today.
-Saves.VERSION = 1
+Saves.VERSION = 2
 
 -- The fields of a save that the steps below touch.
 export type Save = {
 	version: number, -- 0 for a save from before the rules were numbered, and for a new one
 	speedLevel: number,
+	rebirths: number?,
 }
 
 -- Brings a save up to today's rules, in place, and says whether anything had to be done.
@@ -22,6 +23,13 @@ function Saves.bring(save: Save): boolean
 	if save.version < 1 then
 		save.speedLevel *= 2
 		save.version = 1
+	end
+	-- 2: a rebirth takes shinobi, Ryo and run speed with the Chakra, where for its first day
+	-- it took the Chakra alone. Rebirths done under the old rule cost next to nothing, so
+	-- they are taken back: everyone starts the ladder from its foot.
+	if save.version < 2 then
+		save.rebirths = 0
+		save.version = 2
 	end
 	return save.version ~= from
 end

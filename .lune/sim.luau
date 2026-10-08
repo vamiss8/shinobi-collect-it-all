@@ -345,11 +345,16 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		shop(player)
 		player.chakra += rate * Economy.chakraPerRep(player.kunai) * Rebirth.chakra(player.rebirths) * profile.trainPerThrow
 		pass(player, profile.trainPerThrow)
-		-- A rebirth is taken as soon as it is offered: it pays more than it costs.
+		-- A rebirth is taken as soon as it is offered, and starts the player over as
+		-- Rebirth.apply does: no Chakra, no shinobi, no Ryo, no run speed; the kunai and the
+		-- pads bought stay.
 		while REBIRTHS and Rebirth.ready(player.chakra, player.rebirths) do
 			player.rebirths += 1
 			player.rebirthAt[player.rebirths] = player.time
 			player.chakra = Rebirth.START_CHAKRA
+			player.ryo = 0
+			player.speedLevel = 0
+			player.pads = {}
 		end
 		for number, zone in Catalog.zones do
 			if not player.reached[number] and player.chakra >= zone.chakra then

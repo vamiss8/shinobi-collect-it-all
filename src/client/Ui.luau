@@ -280,6 +280,12 @@ export type Window = {
 }
 
 local windows: { Window } = {}
+local openedListeners: { () -> () } = {}
+
+-- Has `fn` called whenever a window is opened: for what has to make way for one.
+function Ui.onWindowOpened(fn: () -> ())
+	table.insert(openedListeners, fn)
+end
 
 -- A centered window with a title bar and a close button, hidden until opened. Opening one
 -- closes the others. It grows with its layer (see Ui.screen) and shrinks again if it would not
@@ -340,6 +346,9 @@ function Ui.window(name: string, size: Vector2): Window
 				end
 			end
 			frame.Visible = true
+			for _, fn in openedListeners do
+				fn()
+			end
 		end,
 		close = function()
 			frame.Visible = false

@@ -17,9 +17,10 @@ return {
 	end,
 
 	["a new save is left as it was but for the number"] = function()
-		local save = { version = 0, speedLevel = 0 }
+		local save = { version = 0, speedLevel = 0, rebirths = 0 }
 		Saves.bring(save)
 		T.eq(save.speedLevel, 0)
+		T.eq(save.rebirths, 0)
 		T.eq(save.version, Saves.VERSION)
 	end,
 
@@ -30,5 +31,16 @@ return {
 		T.eq(Saves.bring(save), false)
 		T.eq(Saves.bring(save), false)
 		T.eq(save.speedLevel, 12)
+	end,
+
+	-- Rebirths done while a rebirth took only Chakra are taken back, once.
+	["rebirths done under the first rule are taken back, and later ones are kept"] = function()
+		local save = { version = 1, speedLevel = 9, rebirths = 4 }
+		T.eq(Saves.bring(save), true)
+		T.eq(save.rebirths, 0)
+		T.eq(save.speedLevel, 9, "the run speed is not doubled a second time")
+		save.rebirths = 2
+		T.eq(Saves.bring(save), false)
+		T.eq(save.rebirths, 2)
 	end,
 }

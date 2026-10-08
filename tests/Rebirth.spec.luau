@@ -76,6 +76,46 @@ return {
 		T.eq(Rebirth.START_CHAKRA, Catalog.zones[1].chakra)
 	end,
 
+	-- The owner's rule: a rebirth starts the player over, but for what they built to last.
+	["a rebirth takes Chakra, shinobi, Ryo and run speed, and nothing else"] = function()
+		local save = {
+			rebirths = 2,
+			chakra = 3e5,
+			ryo = 7e6,
+			speedLevel = 14,
+			runAt = 9,
+			units = { u1 = { character = "kakashi" }, u2 = { character = "iruka" } },
+			pads = { ["1"] = "u1" },
+			kunai = 8,
+			padsBought = 12,
+			found = { kakashi = true },
+			spins = 400,
+		}
+		Rebirth.apply(save)
+		T.eq(save.rebirths, 3)
+		T.eq(save.chakra, Rebirth.START_CHAKRA)
+		T.eq(save.ryo, 0)
+		T.eq(save.speedLevel, 0)
+		T.eq(save.runAt, -1, "the speed chosen to run at was of levels now gone")
+		T.eq(next(save.units), nil, "a shinobi was kept")
+		T.eq(next(save.pads), nil, "a pad is still taken")
+		T.eq(save.kunai, 8, "the kunai went")
+		T.eq(save.padsBought, 12, "the floors bought went")
+		T.eq(save.found.kakashi, true, "the Bingo Book went")
+		T.eq(save.spins, 400)
+	end,
+
+	["every rank has a color of its own"] = function()
+		local seen = { [string.upper(Rebirth.FIRST_COLOR)] = true }
+		for count = 1, Rebirth.count() do
+			local color = Rebirth.color(count)
+			T.ok(string.match(color, "^#%x%x%x%x%x%x$") ~= nil, `{color} is not a color`)
+			T.ok(not seen[string.upper(color)], `{Rebirth.title(count)} shares its color`)
+			seen[string.upper(color)] = true
+		end
+		T.eq(Rebirth.color(0), Rebirth.FIRST_COLOR)
+	end,
+
 	["rebirths come into the multipliers with everything else"] = function()
 		local m = Boosts.compute({
 			passes = { DoubleRyo = true },

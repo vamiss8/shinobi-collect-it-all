@@ -396,6 +396,12 @@ local function repair(data: Data.Data)
 	end
 end
 
+-- Draws the player's dojo anew from their save: for when something other than a pad's own
+-- prompt has changed what stands on the pads (a rebirth empties them all).
+function Dojo.redraw(player: Player)
+	drawPads(player)
+end
+
 function Dojo.start()
 	Plots.forEach(function(plot)
 		for _, pad in plot.pads do

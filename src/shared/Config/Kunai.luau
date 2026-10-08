@@ -38,32 +38,31 @@ local function kunai(
 	}
 end
 
--- Prices grow about seven times a step (they grew six times until rebirths came): a rebirth
--- multiplies what a dojo earns, x2, x3, x4, and at the old prices every kunai was bought twice
--- as soon as its zone could use it. Seven times a step leaves the game with rebirths about half
--- as fast again as it was without them (`lune run sim`, and `lune run sim 40 plain` for the
--- player who does none).
+-- Prices grow about six times a step. For a day they grew seven times: rebirths then took only
+-- Chakra, a dojo multiplied by them bought every kunai twice as soon as its zone could use
+-- it, and the dearer kunai were the brake. Now that a rebirth takes the dojo and the Ryo too
+-- it is its own brake, and the prices are what they were (`lune run sim`).
 local Kunai: { Kunai } = {
 	kunai("training", "Training Kunai", 0, 1, "#8D6E63", "#BCAAA4", false),
 	kunai("iron", "Iron Kunai", 40, 2, "#78909C", "#CFD8DC", false),
-	kunai("steel", "Steel Kunai", 290, 3, "#B0BEC5", "#ECEFF1", false),
-	kunai("wire", "Wire Kunai", 2_000, 5, "#90A4AE", "#FFFFFF", false),
-	kunai("explosive_tag", "Explosive Tag Kunai", 14_000, 9, "#FF7043", "#FFAB91", true),
-	kunai("poison", "Poison Kunai", 88_000, 16, "#7B1FA2", "#CE93D8", true),
-	kunai("chakra_blade", "Chakra Blade", 600_000, 27, "#4FC3F7", "#81D4FA", true),
-	kunai("earth", "Earth Release Kunai", 4_200_000, 47, "#A1887F", "#D7CCC8", true),
-	kunai("water", "Water Release Kunai", 27_000_000, 81, "#2979FF", "#82B1FF", true),
-	kunai("wind", "Wind Release Kunai", 180_000_000, 140, "#A5D6A7", "#E8F5E9", true),
-	kunai("fire", "Fire Release Kunai", 1_200_000_000, 243, "#FF3D00", "#FFEA00", true),
-	kunai("lightning", "Lightning Release Kunai", 8_000_000_000, 420, "#7C4DFF", "#B388FF", true),
-	kunai("wood", "Wood Release Kunai", 56_000_000_000, 729, "#558B2F", "#AED581", true),
-	kunai("magnet", "Magnet Release Kunai", 400_000_000_000, 1_260, "#546E7A", "#FFD54F", true),
-	kunai("scorch", "Scorch Release Kunai", 2_800_000_000_000, 2_187, "#FF6D00", "#FFF59D", true),
-	kunai("dust", "Dust Release Kunai", 19_000_000_000_000, 3_800, "#E0F7FA", "#FFFFFF", true),
+	kunai("steel", "Steel Kunai", 250, 3, "#B0BEC5", "#ECEFF1", false),
+	kunai("wire", "Wire Kunai", 1_500, 5, "#90A4AE", "#FFFFFF", false),
+	kunai("explosive_tag", "Explosive Tag Kunai", 9_000, 9, "#FF7043", "#FFAB91", true),
+	kunai("poison", "Poison Kunai", 50_000, 16, "#7B1FA2", "#CE93D8", true),
+	kunai("chakra_blade", "Chakra Blade", 300_000, 27, "#4FC3F7", "#81D4FA", true),
+	kunai("earth", "Earth Release Kunai", 1_800_000, 47, "#A1887F", "#D7CCC8", true),
+	kunai("water", "Water Release Kunai", 10_000_000, 81, "#2979FF", "#82B1FF", true),
+	kunai("wind", "Wind Release Kunai", 60_000_000, 140, "#A5D6A7", "#E8F5E9", true),
+	kunai("fire", "Fire Release Kunai", 350_000_000, 243, "#FF3D00", "#FFEA00", true),
+	kunai("lightning", "Lightning Release Kunai", 2_000_000_000, 420, "#7C4DFF", "#B388FF", true),
+	kunai("wood", "Wood Release Kunai", 12_000_000_000, 729, "#558B2F", "#AED581", true),
+	kunai("magnet", "Magnet Release Kunai", 75_000_000_000, 1_260, "#546E7A", "#FFD54F", true),
+	kunai("scorch", "Scorch Release Kunai", 450_000_000_000, 2_187, "#FF6D00", "#FFF59D", true),
+	kunai("dust", "Dust Release Kunai", 2_700_000_000_000, 3_800, "#E0F7FA", "#FFFFFF", true),
 	kunai(
 		"black_flame",
 		"Black Flame Kunai",
-		130_000_000_000_000,
+		16_000_000_000_000,
 		6_561,
 		"#1B1B1B",
 		"#D500F9",
@@ -72,7 +71,7 @@ local Kunai: { Kunai } = {
 	kunai(
 		"thunder_god",
 		"Flying Thunder God Kunai",
-		890_000_000_000_000,
+		95_000_000_000_000,
 		11_400,
 		"#FFEB3B",
 		"#FFFFFF",
@@ -81,7 +80,7 @@ local Kunai: { Kunai } = {
 	kunai(
 		"truth_seeking",
 		"Truth-Seeking Kunai",
-		5_900_000_000_000_000,
+		550_000_000_000_000,
 		19_683,
 		"#212121",
 		"#FFD54F",

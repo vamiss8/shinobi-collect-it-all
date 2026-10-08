@@ -1,16 +1,17 @@
 --!strict
 -- What a player's rebirths are worth and what the next one asks (Config/Rebirths).
 --
--- A rebirth is offered once the player's Chakra reaches what it asks. Taking it puts their
--- Chakra back to a new player's and leaves everything else as it is: kunai, shinobi, Ryo, run
--- speed, the dojo, the Bingo Book. What it pays is for good, and grows with every rebirth.
+-- A rebirth is offered once the player's Chakra reaches what it asks. Taking it starts them
+-- over, Chakra, shinobi, Ryo and run speed (`apply` has exactly what), and what it pays is for
+-- good and grows with every rebirth.
 
 local Rebirths = require("../Config/Rebirths")
 
 local Rebirth = {}
 
--- What a player who has done no rebirth is called.
+-- What a player who has done no rebirth is called, and the color it is written in.
 Rebirth.FIRST_TITLE = "Academy Student"
+Rebirth.FIRST_COLOR = "#BDBDBD"
 -- The Chakra a rebirth leaves a player with: what a new player starts with (the save's
 -- template has the same), which is what a throw into the first zone asks.
 Rebirth.START_CHAKRA = 1
@@ -34,6 +35,12 @@ end
 function Rebirth.title(count: number?): string
 	local last = Rebirths[Rebirth.done(count)]
 	return if last then last.title else Rebirth.FIRST_TITLE
+end
+
+-- The color the rank of a player who has done `count` rebirths is written in, hex.
+function Rebirth.color(count: number?): string
+	local last = Rebirths[Rebirth.done(count)]
+	return if last then last.color else Rebirth.FIRST_COLOR
 end
 
 -- Whether a player with this much Chakra may do their next rebirth.
@@ -63,6 +70,33 @@ end
 function Rebirth.mutationLuck(count: number?): number
 	local last = Rebirths[Rebirth.done(count)]
 	return if last then last.mutationLuck else 1
+end
+
+-- The fields of a save a rebirth touches.
+export type Save = {
+	rebirths: number,
+	chakra: number,
+	ryo: number,
+	speedLevel: number,
+	runAt: number,
+	units: { [string]: any },
+	pads: { [string]: string },
+}
+
+-- Does a rebirth on a save, in place: one more is counted, and the player starts over. Gone
+-- are their Chakra, every shinobi they own (on a pad or not), their Ryo and their run speed.
+-- (Ryo goes with the rest: kept, it would buy the run speed straight back, and the way to
+-- rebirth would be to sell the dojo first.) Left alone are their kunai, the pads and floors
+-- they have bought, their Bingo Book, their potions and their count of throws. Whoever calls
+-- this has checked that the rebirth may be done.
+function Rebirth.apply(save: Save)
+	save.rebirths = Rebirth.done(save.rebirths) + 1
+	save.chakra = Rebirth.START_CHAKRA
+	save.ryo = 0
+	save.speedLevel = 0
+	save.runAt = -1
+	table.clear(save.units)
+	table.clear(save.pads)
 end
 
 return Rebirth

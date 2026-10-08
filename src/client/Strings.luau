@@ -157,20 +157,22 @@ local TEXT: { [string]: string } = {
 	-- Rebirth (client RebirthPanel): the tile, the window, and the scroll when one is done.
 	RebirthButton = "Rebirth",
 	RebirthTitle = "Rebirth",
-	RebirthStep = "Rebirth %s of %s  |  you are: %s",
-	RebirthAllDone = "Every rebirth is done",
+	RebirthRanks = "RANKS",
+	RebirthStep = "You are: %s",
+	RebirthAllDone = "The highest rank",
 	RebirthProgress = "%s / %s Chakra",
-	RebirthRyo = "Dojo income",
-	RebirthPower = "Chakra per rep",
-	RebirthLuck = "Mutation luck",
+	RebirthRyo = "Income",
+	RebirthPower = "Chakra",
+	RebirthLuck = "Mutations",
 	RebirthChange = "x%s -> x%s",
 	RebirthHolds = "x%s",
-	RebirthNote = "Your Chakra goes back to the start. Your kunai, shinobi, Ryo, run speed and "
-		.. "dojo all stay, and what a rebirth pays is yours for good.",
+	-- What a rebirth takes and what it leaves, a line each: the first word in color.
+	RebirthLoses = '<font color="#EF5350">RESETS</font>   Chakra · shinobi · Ryo · run speed',
+	RebirthKeeps = '<font color="#66BB6A">STAYS</font>   kunai · dojo floors · Bingo Book',
 	RebirthDo = "REBIRTH",
-	RebirthNeed = "%s more Chakra",
-	RebirthSure = "Press again: your Chakra goes back to the start",
-	RebirthNoMore = "No further rebirth yet",
+	RebirthNeed = "Need %s more Chakra",
+	RebirthSure = "Press again to confirm",
+	RebirthNoMore = "Top rank reached",
 	RebirthDone = "Income x%s  |  Chakra x%s  |  mutation luck x%s",
 
 	-- Throw

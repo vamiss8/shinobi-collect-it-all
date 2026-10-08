@@ -120,15 +120,54 @@ local RANKS: { [string]: Style } = {
 	},
 }
 
+-- The ranks players hold for their rebirths (Config/Rebirths), by how many rebirths the rank
+-- takes. The four highest: below them a rank is its plain color.
+local TITLES: { [string]: Style } = {
+	-- Sannin: red with a glint.
+	["7"] = {
+		fill = { "#FF7043", "#FFAB91", "#FF5722", "#FF8A65" },
+		edge = "#3E0A00",
+		flare = "#FFFFFF",
+		motion = "sheen",
+		period = 2.8,
+	},
+	-- Kage: the fire of a village's shadow, running through the word.
+	["8"] = {
+		fill = { "#FF3D00", "#FF9100", "#FFEA00", "#FF9100" },
+		edge = "#3E0A00",
+		flare = "#FFF59D",
+		motion = "flow",
+		period = 2.4,
+	},
+	-- Sage: gold in rings going out from the middle.
+	["9"] = {
+		fill = { "#FFF8E1", "#FFB300", "#FFE082", "#FF8F00" },
+		edge = "#3E2A00",
+		flare = "#FFFFFF",
+		motion = "ripple",
+		period = 2.8,
+	},
+	-- Sage of Six Paths: bone white and gold, a glint of gold, and black flame rising off it.
+	["10"] = {
+		fill = { "#FFFFFF", "#FFE082", "#FFFFFF", "#CFD8DC" },
+		edge = "#000000",
+		flare = "#FFD54F",
+		shade = "#0E0A14",
+		motion = "aura",
+		period = 2.2,
+	},
+}
+
 Lettering.mutations = MUTATIONS
 Lettering.ranks = RANKS
+Lettering.titles = TITLES
 
 local SEPARATOR = ":"
 
 -- The key of the lettering a mutation's or a rank's name is written in, or nil when it is
 -- written in its plain color. The key is what a label is marked with for the client to find.
-function Lettering.key(kind: "mutation" | "rank", id: string): string?
-	local styles = if kind == "mutation" then MUTATIONS else RANKS
+function Lettering.key(kind: "mutation" | "rank" | "title", id: string): string?
+	local styles = if kind == "mutation" then MUTATIONS elseif kind == "rank" then RANKS else TITLES
 	return if styles[id] then kind .. SEPARATOR .. id else nil
 end
 
@@ -139,6 +178,8 @@ function Lettering.style(key: string): Style?
 		return MUTATIONS[id :: string]
 	elseif kind == "rank" then
 		return RANKS[id :: string]
+	elseif kind == "title" then
+		return TITLES[id :: string]
 	end
 	return nil
 end

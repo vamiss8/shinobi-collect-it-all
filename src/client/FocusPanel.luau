@@ -11,6 +11,7 @@
 -- A press is answered on the sheet itself, by a ring of the grade's color going out from the
 -- target, and in words, ink on a slip whose outline and seal take that color.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -332,6 +333,18 @@ function FocusPanel.start()
 
 	Store.onChange(function(state)
 		holder.Visible = state.training == "focus"
+	end)
+
+	-- A window opening ends the exercise: the board stands where windows do, and a click
+	-- meant for a window is not a press on the ring. The tool is put away, as moving would
+	-- put it away. Meditation is left alone: it asks nothing of the player.
+	Ui.onWindowOpened(function()
+		local state = Store.get()
+		local character = Players.LocalPlayer.Character
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		if state and state.training == "focus" and humanoid then
+			humanoid:UnequipTools()
+		end
 	end)
 end
 
