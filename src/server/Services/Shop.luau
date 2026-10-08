@@ -45,10 +45,17 @@ local function runLevel(data: Data.Data): number
 	return Economy.runLevel(data.speedLevel, data.runAt)
 end
 
+-- How long a runner's stage has to stand before its look is put on, seconds, and for each
+-- player a count of the changes of their stage, by which a look that was overtaken is dropped.
+local DRESS_AFTER = 0.35
+local dressing: { [Player]: number } = {}
+
 -- Gives the player's character the run speed and the speed stage's look that go with the level
 -- they run at; `was` is the level they ran at until now. A frozen player (mid-throw) gets the
 -- speed when they are released. The look is put on anew only when the stage changes: putting
--- it on cuts every ribbon and starts every particle over.
+-- it on cuts every ribbon and starts every particle over. And only once the stage has stood
+-- for a moment: a player who buys a dozen levels in a breath goes through four stages, and
+-- was dressed and undressed four times over in as many frames.
 local function suit(player: Player, data: Data.Data, was: number)
 	local level = runLevel(data)
 	local character = player.Character
@@ -57,7 +64,14 @@ local function suit(player: Player, data: Data.Data, was: number)
 		humanoid.WalkSpeed = Economy.walkSpeed(level)
 	end
 	if character and SpeedStages.at(was) ~= SpeedStages.at(level) then
-		SpeedLook.apply(character, level)
+		local turn = (dressing[player] or 0) + 1
+		dressing[player] = turn
+		task.delay(DRESS_AFTER, function()
+			local now = Data.get(player)
+			if dressing[player] == turn and now and character.Parent then
+				SpeedLook.apply(character, runLevel(now))
+			end
+		end)
 	end
 end
 
@@ -167,6 +181,10 @@ function Shop.start()
 	Remotes.Buy.OnServerEvent:Connect(buy)
 	Remotes.RunAt.OnServerEvent:Connect(runAt)
 	Remotes.Sell.OnServerEvent:Connect(sell)
+
+	Data.onLeaving(function(player)
+		dressing[player] = nil
+	end)
 
 	-- Not a tool, but the same moment: every fresh character gets the bought run speed.
 	Loadout.register(function(player, _character, _backpack, humanoid)

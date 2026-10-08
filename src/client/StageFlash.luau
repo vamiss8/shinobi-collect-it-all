@@ -20,6 +20,9 @@ local Ui = require("./Ui")
 local StageFlash = {}
 
 local FLASH_SECONDS = 0.9 -- for the flash to fade
+-- The screen flashes no oftener than this, seconds: a player buying levels in a row goes
+-- through stages faster than a flash fades, and the screen stood in color all the while.
+local FLASH_APART = 1.5
 local HOLD_SECONDS = 2.4 -- the scroll stays this long
 
 -- Set by start(): flashes the screen and puts up the scroll.
@@ -83,14 +86,18 @@ function StageFlash.start()
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, line)
 
 	local token = 0
+	local flashedAt = -FLASH_APART
 	present = function(color: Color3, stamp: string, title: string, words: string)
 		token += 1
 		local mine = token
-		flash.BackgroundColor3 = color
-		flash.BackgroundTransparency = 0.45
-		flash.Visible = true
-		TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
-			:Play()
+		if os.clock() - flashedAt >= FLASH_APART then
+			flashedAt = os.clock()
+			flash.BackgroundColor3 = color
+			flash.BackgroundTransparency = 0.45
+			flash.Visible = true
+			TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
+				:Play()
+		end
 
 		Ui.rewrite(paper, function()
 			name.Text = title
