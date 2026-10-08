@@ -23,6 +23,8 @@ export type Data = {
 	chakra: number,
 	kunai: number, -- index into Config/Kunai of the best owned kunai
 	speedLevel: number,
+	-- The speed level the player chose to run at (Economy.runLevel); -1 for the fastest bought.
+	runAt: number,
 	padsBought: number,
 	spins: number, -- throws made; drives the luck milestones
 	streak: number, -- Perfects in a row
@@ -42,6 +44,7 @@ local TEMPLATE: Data = {
 	chakra = 1,
 	kunai = 1,
 	speedLevel = 0,
+	runAt = -1,
 	padsBought = 0,
 	spins = 0,
 	streak = 0,

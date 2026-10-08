@@ -150,6 +150,30 @@ function SpeedStages.after(level: number): Stage?
 	return STAGES[index + 1]
 end
 
+-- The speed level to run at to show the stage at `index` in the list, for a player who has
+-- bought `bought` levels: the fastest of that stage's levels that they own. Nil for a stage
+-- they have not reached.
+function SpeedStages.fastest(index: number, bought: number): number?
+	local stage = STAGES[index]
+	if not stage or stage.level > bought then
+		return nil
+	end
+	local following = STAGES[index + 1]
+	return if following then math.min(following.level - 1, bought) else bought
+end
+
+-- What the stage at `index` shows that the one before it did not, in the order it lists it.
+function SpeedStages.adds(index: number): { Wear }
+	local stage, before = STAGES[index], STAGES[index - 1]
+	local new: { Wear } = {}
+	for _, wear in stage.wears do
+		if not before or not table.find(before.wears, wear) then
+			table.insert(new, wear)
+		end
+	end
+	return new
+end
+
 -- Whether a stage shows the given thing on its runner.
 function SpeedStages.wears(stage: Stage, wear: Wear): boolean
 	return table.find(stage.wears, wear) ~= nil

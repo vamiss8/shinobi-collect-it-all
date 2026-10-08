@@ -129,6 +129,16 @@ function Economy.walkSpeed(level: number): number
 	return Tuning.Speed.base + Tuning.Speed.perLevel * math.clamp(level, 0, Tuning.Speed.maxLevel)
 end
 
+-- The speed level a player runs at. They may choose to run slower than they have bought, to
+-- keep their feet on the plaza or to wear an earlier stage (Config/SpeedStages): `chosen` is
+-- that level, or negative for "as fast as I have bought".
+function Economy.runLevel(bought: number, chosen: number?): number
+	if chosen and chosen >= 0 then
+		return math.min(math.floor(chosen), bought)
+	end
+	return bought
+end
+
 -- Chakra per rep with the kunai at `kunaiIndex` (1 = the starting one).
 function Economy.chakraPerRep(kunaiIndex: number): number
 	local kunai = Catalog.kunai[math.clamp(kunaiIndex, 1, #Catalog.kunai)]

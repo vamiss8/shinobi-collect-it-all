@@ -161,6 +161,16 @@ return {
 		T.ok(Economy.speedPrice(5) > Economy.speedPrice(4), "speed gets pricier")
 	end,
 
+	["a player runs as fast as they bought, or as slow as they chose"] = function()
+		T.eq(Economy.runLevel(12), 12, "nothing chosen")
+		T.eq(Economy.runLevel(12, -1), 12, "the fastest bought")
+		T.eq(Economy.runLevel(12, 5), 5, "a level of their own")
+		T.eq(Economy.runLevel(12, 0), 0, "a walk")
+		T.eq(Economy.runLevel(12, 30), 12, "no faster than bought")
+		T.eq(Economy.runLevel(12, 5.9), 5, "whole levels")
+		T.eq(Economy.runLevel(0, -1), 0)
+	end,
+
 	["walk speed is capped at the max level"] = function()
 		T.eq(Economy.walkSpeed(0), Tuning.Speed.base)
 		local max = Economy.walkSpeed(Tuning.Speed.maxLevel)

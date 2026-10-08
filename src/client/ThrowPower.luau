@@ -201,7 +201,7 @@ function ThrowPower.attach(pill: Frame): Frame
 		local distance = Kick.distance(used * sage)
 		local zone = Catalog.zoneAt(distance)
 		local following = Catalog.zoneAfter(zone)
-		local safe = Chase.escapesFrom(Economy.walkSpeed(state.speedLevel), distance)
+		local safe = Chase.escapesFrom(Economy.walkSpeed(state.runLevel), distance)
 		reachLabel.Text = if not safe
 			then Strings.get("ThrowReachDanger", zone.name)
 			elseif following then Strings.get("ThrowReachNext", zone.name, following.chakra)

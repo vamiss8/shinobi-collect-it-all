@@ -34,6 +34,7 @@ local Remotes = {
 	RingPress = event(Net.Events.RingPress),
 	RingResult = event(Net.Events.RingResult),
 	Buy = event(Net.Events.Buy),
+	RunAt = event(Net.Events.RunAt),
 	Upgrade = event(Net.Events.Upgrade),
 	Upgraded = event(Net.Events.Upgraded),
 	Sell = event(Net.Events.Sell),

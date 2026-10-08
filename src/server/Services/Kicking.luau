@@ -83,7 +83,9 @@ end
 -- lane, the speed everyone runs at there.
 local function setFrozen(player: Player, humanoid: Humanoid, frozen: boolean, onLane: boolean?)
 	local data = Data.get(player)
-	local speed = if frozen or not data then 0 else Economy.walkSpeed(data.speedLevel)
+	local speed = if frozen or not data
+		then 0
+		else Economy.walkSpeed(Economy.runLevel(data.speedLevel, data.runAt))
 	humanoid.WalkSpeed = if onLane then Chase.onLane(speed) else speed
 end
 

@@ -30,6 +30,7 @@ Net.Events = {
 	RingPress = "RingPress", -- client -> server: seconds the client watched the ring
 	RingResult = "RingResult", -- server -> client: RingResult; its `next` ring starts on receipt
 	Buy = "Buy", -- client -> server: "kunai" | "speed"
+	RunAt = "RunAt", -- client -> server: the speed level to run at, -1 for the fastest bought
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
 	Upgraded = "Upgraded", -- server -> all clients: Upgraded, a shinobi on a pad was levelled up
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
@@ -94,6 +95,9 @@ Net.SHOWROOM_ATTRIBUTE = "Showroom"
 -- Number attribute on the folder: in a Studio test, the place in the store (Config/Kunai) of
 -- the kunai the tester is given, to throw one they have not bought.
 Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
+-- Number attribute on the folder: in a Studio test, the run speed level the tester is given,
+-- to try every speed stage on their own character at the Youth Training Ground.
+Net.TEST_SPEED_ATTRIBUTE = "Speed"
 
 -- The numbers the HUD and the store windows are drawn from. Sent on every change and once a
 -- second with the income tick.
@@ -102,7 +106,8 @@ export type Snapshot = {
 	income: number, -- Ryo per second with all multipliers applied
 	chakra: number,
 	kunai: number, -- index into Config/Kunai of the best owned kunai
-	speedLevel: number,
+	speedLevel: number, -- run speed levels bought
+	runLevel: number, -- the level the player runs at: as many, or fewer if they chose so
 	padsBought: number,
 	spins: number,
 	streak: number,

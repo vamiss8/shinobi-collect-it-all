@@ -40,6 +40,27 @@ local function pay(player: Player, data: Data.Data, price: number): boolean
 	return true
 end
 
+-- The speed level the player runs at: what they bought, or less if they chose so.
+local function runLevel(data: Data.Data): number
+	return Economy.runLevel(data.speedLevel, data.runAt)
+end
+
+-- Gives the player's character the run speed and the speed stage's look that go with the level
+-- they run at; `was` is the level they ran at until now. A frozen player (mid-throw) gets the
+-- speed when they are released. The look is put on anew only when the stage changes: putting
+-- it on cuts every ribbon and starts every particle over.
+local function suit(player: Player, data: Data.Data, was: number)
+	local level = runLevel(data)
+	local character = player.Character
+	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+	if humanoid and humanoid.WalkSpeed > 0 then
+		humanoid.WalkSpeed = Economy.walkSpeed(level)
+	end
+	if character and SpeedStages.at(was) ~= SpeedStages.at(level) then
+		SpeedLook.apply(character, level)
+	end
+end
+
 local function buy(player: Player, item: unknown)
 	local data = Data.get(player)
 	local stall = if typeof(item) == "string" then STALL_OF[item] else nil
@@ -59,30 +80,40 @@ local function buy(player: Player, item: unknown)
 			and pay(player, data, Economy.speedPrice(data.speedLevel))
 		then
 			local before = SpeedStages.at(data.speedLevel)
+			local was = runLevel(data)
 			data.speedLevel += 1
-			local character = player.Character
-			local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-			-- A frozen player (mid-throw) gets the new speed when they are released.
-			if humanoid and humanoid.WalkSpeed > 0 then
-				humanoid.WalkSpeed = Economy.walkSpeed(data.speedLevel)
-			end
-			-- A new stage changes the runner's look, and a Gate opening is news for everyone.
+			-- Whoever buys a level means to run at it, whatever they had chosen before.
+			data.runAt = -1
+			suit(player, data, was)
+			-- A Gate opening is news for everyone.
 			local stage = SpeedStages.at(data.speedLevel)
-			if stage ~= before then
-				if character then
-					SpeedLook.apply(character, data.speedLevel)
-				end
-				if stage.gate > 0 then
-					for _, other in Players:GetPlayers() do
-						if other ~= player then
-							State.notify(other, "GateOpenedBy", player.DisplayName, stage.name)
-						end
+			if stage ~= before and stage.gate > 0 then
+				for _, other in Players:GetPlayers() do
+					if other ~= player then
+						State.notify(other, "GateOpenedBy", player.DisplayName, stage.name)
 					end
 				end
 			end
 		end
 	end
 
+	State.push(player)
+end
+
+-- A player may run slower than they have bought: the plaza is small for the top speeds, and
+-- an earlier stage's look goes with its speed. Chosen at the training ground's counter, like a
+-- purchase; the fastest bought is not kept as a choice, so that it follows the next purchase.
+local function runAt(player: Player, level: unknown)
+	local data = Data.get(player)
+	-- `level == level` is false only for NaN.
+	local sane = typeof(level) == "number" and level == level
+	if not data or not sane or not Market.playerAt(player, "speed") then
+		return
+	end
+	local was = runLevel(data)
+	local chosen = math.floor(level :: number)
+	data.runAt = if chosen < 0 or chosen >= data.speedLevel then -1 else chosen
+	suit(player, data, was)
 	State.push(player)
 end
 
@@ -132,13 +163,14 @@ end
 
 function Shop.start()
 	Remotes.Buy.OnServerEvent:Connect(buy)
+	Remotes.RunAt.OnServerEvent:Connect(runAt)
 	Remotes.Sell.OnServerEvent:Connect(sell)
 
 	-- Not a tool, but the same moment: every fresh character gets the bought run speed.
 	Loadout.register(function(player, _character, _backpack, humanoid)
 		local data = Data.get(player)
 		if data then
-			humanoid.WalkSpeed = Economy.walkSpeed(data.speedLevel)
+			humanoid.WalkSpeed = Economy.walkSpeed(runLevel(data))
 		end
 	end)
 end

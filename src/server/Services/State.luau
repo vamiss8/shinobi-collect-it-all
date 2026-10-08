@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Data = require("../Data")
+local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -24,6 +25,7 @@ function State.push(player: Player)
 		chakra = data.chakra,
 		kunai = data.kunai,
 		speedLevel = data.speedLevel,
+		runLevel = Economy.runLevel(data.speedLevel, data.runAt),
 		padsBought = data.padsBought,
 		spins = data.spins,
 		streak = data.streak,

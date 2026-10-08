@@ -98,6 +98,36 @@ return {
 		end
 	end,
 
+	-- A stage is worn by running at its speed: at the fastest of its levels the player owns.
+	["a stage a player has reached can be worn, at the fastest level of it they own"] = function()
+		for index, stage in stages do
+			local following = stages[index + 1]
+			T.eq(SpeedStages.fastest(index, stage.level - 1), nil, `{stage.name} before its level`)
+			T.eq(SpeedStages.fastest(index, stage.level), stage.level, `{stage.name} just reached`)
+			local top = SpeedStages.fastest(index, Tuning.Speed.maxLevel) :: number
+			local worn, at = SpeedStages.at(top)
+			T.eq(at, index, `running at {top} wears {worn.name}, not {stage.name}`)
+			if following then
+				T.eq(top, following.level - 1, `{stage.name} with every level bought`)
+			else
+				T.eq(top, Tuning.Speed.maxLevel)
+			end
+		end
+		T.eq(SpeedStages.fastest(#stages + 1, Tuning.Speed.maxLevel), nil, "no such stage")
+	end,
+
+	["what a stage adds is what it shows and the one before did not"] = function()
+		T.eq(#SpeedStages.adds(1), 0)
+		for index = 2, #stages do
+			local adds = SpeedStages.adds(index)
+			T.ok(#adds > 0, `{stages[index].name} adds nothing`)
+			for _, wear in adds do
+				T.ok(SpeedStages.wears(stages[index], wear), `{wear} is not shown`)
+				T.ok(not SpeedStages.wears(stages[index - 1], wear), `{wear} was shown before`)
+			end
+		end
+	end,
+
 	["the weights come off when the first Gate opens"] = function()
 		for _, stage in stages do
 			local strapped = SpeedStages.wears(stage, "weights")

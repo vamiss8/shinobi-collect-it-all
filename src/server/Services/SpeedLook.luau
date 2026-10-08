@@ -15,6 +15,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Data = require("../Data")
+local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Loadout = require("./Loadout")
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
@@ -377,7 +378,8 @@ function SpeedLook.start()
 		if not data then
 			return
 		end
-		local level = data.speedLevel
+		-- The stage of the speed they run at, which may be less than they have bought.
+		local level = Economy.runLevel(data.speedLevel, data.runAt)
 		task.spawn(function()
 			if humanoid.RigType == Enum.HumanoidRigType.R15 then
 				character:WaitForChild("RightLowerLeg", 5)
