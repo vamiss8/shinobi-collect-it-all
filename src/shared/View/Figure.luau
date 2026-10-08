@@ -10,12 +10,14 @@
 -- scythe or a sword out to one side still stands in the middle of its pad and under its tag.
 -- The model's own pivot is not looked at.
 --
--- Which way a model faces: a model is taken to face +Z, as one imported from a glTF file does
--- (glTF's front is +Z; a part's front in Roblox, the way its frame looks, is -Z), and is
--- turned about so that it looks the way the game stands it. One that then stands with its back
--- to the viewer, because it was made facing the other way, is turned once more by giving it a
--- boolean attribute "Flip" set to true; the same attribute on the Models folder does that to
--- every one of them.
+-- Which way a model faces: in the place a supplied model is taken to face +Z, its back to the
+-- way its frame looks, and is turned about so that it looks the way the game stands it. That
+-- is how every model imported so far came out, shinobi, enemies and shopkeepers alike: in
+-- their files they all face -Z (measured: the nose or the mask lies on that side of the head),
+-- and they stand the other way round once Studio's importer has brought them in. One that
+-- then stands with its back to the viewer, because it was made facing the other way, is turned
+-- once more by giving it a boolean attribute "Flip" set to true; the same attribute on the
+-- Models folder does that to every one of them.
 -- The placeholder is a block body in the rank's color with a head.
 --
 -- Shared because the server stands figures on pads and the client rolls them in the reveal.
@@ -120,7 +122,7 @@ end
 
 -- A supplied model by name, made safe to show: frozen in place, untouchable, scripts removed,
 -- scaled to `height` and with its pivot at its feet. Nil if no such model was supplied.
-local function supplied(name: string, height: number, facesFront: boolean?): Model?
+local function supplied(name: string, height: number): Model?
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	local template = if folder then folder:FindFirstChild(name) else nil
 	local model: Model
@@ -161,14 +163,13 @@ local function supplied(name: string, height: number, facesFront: boolean?): Mod
 	local feet = CFrame.new(x or box.Position.X, box.Position.Y - height / 2, z or box.Position.Z)
 	-- An imported model faces +Z, and a figure is stood by its pivot, whose front is -Z: so it
 	-- is turned about. (Not turned, every one of the fifty stood with its back to whatever it
-	-- was meant to face: the roulette's camera, the aisle of the dojo, its own portrait.) The
-	-- attribute marks a model that faces the other way and must be left as it is: the folder's
-	-- marks them all, and a model's own then marks that one back. A kind of model known to be
-	-- made facing -Z (`facesFront`) starts from the other side: left as it is, and turned about
-	-- when marked.
+	-- was meant to face: the roulette's camera, the aisle of the dojo, its own portrait; and so
+	-- did the five shopkeepers, which for a day were left unturned on the strength of their
+	-- files alone.) The attribute marks a model that faces the other way and must be left as
+	-- it is: the folder's marks them all, and a model's own then marks that one back.
 	local allMarked = folder ~= nil and folder:GetAttribute(Net.FLIP_ATTRIBUTE) == true
 	local marked = allMarked ~= (template:GetAttribute(Net.FLIP_ATTRIBUTE) == true)
-	if marked == (facesFront == true) then
+	if not marked then
 		feet *= CFrame.Angles(0, math.pi, 0)
 	end
 	model.WorldPivot = feet
@@ -306,9 +307,7 @@ end
 function Figure.keeper(keeper: Catalog.Keeper): Model
 	local tall = keeper.height
 	local name = keeper.name
-	-- The keepers' models were made facing -Z, a figure's own front (read out of the five
-	-- files: the nose of each lies on that side), where the shinobi's face +Z.
-	local model = supplied(keeper.id, tall, true)
+	local model = supplied(keeper.id, tall)
 		or placeholderUnit(Color3.fromHex(keeper.color), tall / UNIT_HEIGHT)
 	model.Name = name
 	-- A small keeper gets a smaller name, but never too small to read.
