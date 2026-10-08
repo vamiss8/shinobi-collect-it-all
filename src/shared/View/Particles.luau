@@ -1,7 +1,8 @@
 --!strict
 -- Particle emitters described as plain data, so that an effect is a short list of layers and
--- not a page of properties. Used for the aura of a mutation (View/Aura) and for what streams
--- off a flying kunai (View/KunaiEffects).
+-- not a page of properties. Used for the aura of a mutation (View/Aura), for what streams off
+-- a flying kunai (View/KunaiEffects) and for what a speed stage shows on its runner
+-- (server Services/SpeedLook).
 --
 -- Only textures that ship with Roblox are used, so there is nothing to upload.
 
@@ -24,7 +25,11 @@ export type Layer = {
 	size: { number }, -- studs, when a particle appears and when it is gone
 	lift: number, -- pull upwards, studs a second squared; negative sinks
 	spin: number, -- degrees a second, either way
-	glow: number, -- 0 is paint, 1 is light
+	-- 0 is paint, 1 is light. Light is added to what is behind it: it shows in the dark and
+	-- against the dark and is all but lost against a sunlit pavement.
+	glow: number,
+	bright: number?, -- how many times brighter than its color it is drawn; 1 when left out
+	lit: boolean?, -- takes the light of the place, as dust does, instead of showing its own color
 	fade: number, -- how see-through a particle is at its clearest, 0..1
 	color: string?, -- hex; the color of whatever wears the effect when left out
 }
@@ -57,7 +62,8 @@ function Particles.emitter(layer: Layer, own: Color3): ParticleEmitter
 	})
 	particles.Color = ColorSequence.new(color, color:Lerp(Color3.new(1, 1, 1), 0.4))
 	particles.LightEmission = layer.glow
-	particles.LightInfluence = 0
+	particles.LightInfluence = if layer.lit then 1 else 0
+	particles.Brightness = layer.bright or 1
 	return particles
 end
 

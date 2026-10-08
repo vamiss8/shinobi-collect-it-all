@@ -10,7 +10,16 @@
 -- the Gate's color.
 --
 -- Everything is added on the server, so it replicates to every client. It goes on each new
--- character and is redone when a purchase reaches a new stage.
+-- character and is redone when the stage changes, by a purchase or by the player's choice of
+-- the speed they run at.
+--
+-- EVERYTHING HERE IS MEANT TO BE SEEN FROM A CAMERA TWENTY STUDS OFF, IN DAYLIGHT. The first
+-- numbers were not: the owner could not see the dust at all and the flame hardly ("make all the
+-- effects stronger"). Sparks a third of a stud across are nothing at that distance; a few
+-- particles a second are strewn thin behind a runner; and particles that are all light
+-- (glow 1) are added to what is behind them, which by day is a sunlit plaza. So: more of
+-- them, two to three times the size, half paint and half light, and drawn brighter than their
+-- color (Particles `bright`) so that they still read as glowing.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -38,96 +47,110 @@ local CHECK_SECONDS = 0.15
 
 -- What comes off a runner, as layers of particles (View/Particles). A layer without a color
 -- takes its stage's.
+-- Dust is kicked out behind the runner and billows up: pale puffs that take the light of the
+-- place, a cloud of them at a run.
 local DUST: Particles.Layer = {
 	texture = Particles.SMOKE,
-	rate = 22,
-	life = { 0.4, 0.8 },
-	speed = { 1.5, 3 },
-	spread = 70,
-	size = { 0.5, 1.5 },
-	lift = 1.5,
-	spin = 60,
+	rate = 60,
+	life = { 0.5, 1 },
+	speed = { 2, 5 },
+	back = true,
+	spread = 55,
+	size = { 1.5, 4.2 },
+	lift = 4,
+	spin = 80,
 	glow = 0,
-	fade = 0.45,
-	color = "#BCAAA4",
+	lit = true,
+	fade = 0.15,
+	color = "#E3D5C1",
 }
 local MOTES: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 6,
+	rate = 16,
 	life = { 1, 1.6 },
-	speed = { 1.5, 2.5 },
+	speed = { 2, 3.5 },
 	locked = true,
-	spread = 40,
-	size = { 0.35, 0.1 },
-	lift = 1,
+	spread = 60,
+	size = { 0.9, 0.25 },
+	lift = 1.5,
 	spin = 120,
-	glow = 1,
-	fade = 0.1,
+	glow = 0.6,
+	bright = 3,
+	fade = 0.05,
 }
+-- Flame up to the knees and over.
 local FLAME: Particles.Layer = {
 	texture = Particles.FIRE,
-	rate = 14,
+	rate = 40,
 	life = { 0.5, 0.9 },
-	speed = { 3, 5 },
+	speed = { 4, 7 },
 	locked = true,
-	spread = 20,
-	size = { 1.6, 0.3 },
+	spread = 28,
+	size = { 2.6, 0.5 },
 	lift = 3,
 	spin = 30,
-	glow = 0.8,
-	fade = 0.3,
+	glow = 0.45,
+	bright = 2.5,
+	fade = 0.1,
 }
 local SPARKS: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 16,
-	life = { 0.15, 0.35 },
-	speed = { 8, 14 },
+	rate = 36,
+	life = { 0.2, 0.45 },
+	speed = { 10, 18 },
 	locked = true,
 	spread = 180,
-	size = { 0.5, 0.1 },
+	size = { 1.1, 0.2 },
 	lift = 0,
 	spin = 300,
-	glow = 1,
+	glow = 0.6,
+	bright = 3,
 	fade = 0,
 }
 local FAN: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 30,
-	life = { 0.3, 0.6 },
+	rate = 60,
+	life = { 0.35, 0.7 },
 	speed = { 10, 16 },
 	back = true,
 	spread = 55,
-	size = { 0.7, 0.15 },
+	size = { 1.3, 0.25 },
 	lift = 2,
 	spin = 200,
-	glow = 1,
-	fade = 0.1,
+	glow = 0.6,
+	bright = 3,
+	fade = 0.05,
 }
 local BURST: Particles.Layer = {
 	texture = Particles.SMOKE,
-	rate = 26,
-	life = { 0.35, 0.7 },
+	rate = 50,
+	life = { 0.4, 0.8 },
 	speed = { 6, 10 },
 	spread = 85,
-	size = { 0.8, 2.6 },
+	size = { 1.6, 4.4 },
 	lift = 1,
 	spin = 60,
-	glow = 0.4,
-	fade = 0.5,
+	glow = 0.3,
+	bright = 1.5,
+	fade = 0.3,
 }
 local EMBERS: Particles.Layer = {
 	texture = Particles.SPARKLE,
-	rate = 9,
+	rate = 22,
 	life = { 1.4, 2.2 },
 	speed = { 3, 5 },
-	spread = 30,
-	size = { 0.45, 0.1 },
+	spread = 40,
+	size = { 1, 0.25 },
 	lift = 2.5,
 	spin = 160,
-	glow = 1,
+	glow = 0.6,
+	bright = 3,
 	fade = 0.05,
 	color = "#FFD180",
 }
+-- How far off the ground what is kicked up at the feet appears, studs: a particle is drawn round
+-- its middle, and one born on the ground is half under it.
+local OFF_GROUND = 0.5
 
 -- Emitters that only run while their runner does, with the body whose speed says so.
 local whileRunning: { [ParticleEmitter]: BasePart } = {}
@@ -188,14 +211,14 @@ local function limbs(character: Model, names: { string }): { BasePart }
 	return found
 end
 
--- A point on the ground under the runner, where what is kicked up comes from.
+-- A point just over the ground under the runner, where what is kicked up comes from.
 local function atFeet(root: BasePart, humanoid: Humanoid): Attachment
 	local drop = if humanoid.RigType == Enum.HumanoidRigType.R6
 		then root.Size.Y / 2 + 2
 		else root.Size.Y / 2 + humanoid.HipHeight
 	local feet = mark(Instance.new("Attachment"))
 	feet.Name = "SpeedLookFeet"
-	feet.Position = Vector3.new(0, -drop, 0)
+	feet.Position = Vector3.new(0, OFF_GROUND - drop, 0)
 	feet.Parent = root
 	return feet
 end
@@ -225,16 +248,17 @@ end
 local function steam(root: BasePart, color: Color3, gate: number)
 	emit(root, root, "SpeedLookSteam", {
 		texture = Particles.SMOKE,
-		rate = 3 + gate * 2.5,
+		rate = 6 + gate * 3.5,
 		life = { 0.8, 1.4 },
 		speed = { 2, 3.5 },
 		locked = true,
-		spread = 25,
-		size = { 1 + gate * 0.08, 2.4 + gate * 0.15 },
+		spread = 30,
+		size = { 1.4 + gate * 0.1, 3 + gate * 0.22 },
 		lift = 2,
 		spin = 40,
-		glow = if gate >= SpeedStages.GATES then 0.8 else 0.5,
-		fade = 0.45,
+		glow = 0.4,
+		bright = if gate >= SpeedStages.GATES then 2 else 1.5,
+		fade = 0.32,
 	}, color)
 end
 
@@ -262,12 +286,13 @@ local function ribbon(
 	trail.Attachment0 = top
 	trail.Attachment1 = bottom
 	trail.Color = ColorSequence.new(color, color:Lerp(WHITE, 0.35))
-	trail.Transparency = NumberSequence.new(0.3, 1)
+	trail.Transparency = NumberSequence.new(0.15, 1)
 	trail.WidthScale = NumberSequence.new(1, 0.2)
 	trail.Lifetime = seconds
 	trail.MinLength = 0.1
-	trail.LightEmission = 0.7
+	trail.LightEmission = 0.5
 	trail.LightInfluence = 0
+	trail.Brightness = 2
 	trail.FaceCamera = true
 	trail.Parent = part
 end
@@ -341,12 +366,12 @@ function SpeedLook.apply(character: Model, level: number)
 
 	-- Behind the runner: only on the run.
 	if wears("trail") then
-		local seconds = 0.2 + gate * 0.04
+		local seconds = 0.35 + gate * 0.06
 		ribbon(
 			root,
 			"SpeedLookTrail",
-			Vector3.new(0, 1.2, 0),
-			Vector3.new(0, -1.2, 0),
+			Vector3.new(0, 1.5, 0),
+			Vector3.new(0, -1.5, 0),
 			color,
 			seconds
 		)
@@ -358,10 +383,10 @@ function SpeedLook.apply(character: Model, level: number)
 			ribbon(
 				hand,
 				"SpeedLookStreak",
-				Vector3.new(0, reach + 0.25, 0),
-				Vector3.new(0, reach - 0.25, 0),
+				Vector3.new(0, reach + 0.45, 0),
+				Vector3.new(0, reach - 0.45, 0),
 				color,
-				0.28
+				0.45
 			)
 		end
 	end
