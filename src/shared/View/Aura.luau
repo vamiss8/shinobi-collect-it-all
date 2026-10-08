@@ -50,7 +50,8 @@ local DEFAULT: Look = { body = { MOTES } }
 
 -- The layers of the auras, each named for what it is; LOOKS below says which go where.
 --
--- NO DARTS (`streak`) IN AN AURA. The first rework had them in every rare aura, as arcs, bolts
+-- NO DARTS (`streak`) IN AN AURA BUT STORM'S, where the owner asked for them back: sharp
+-- flat lines jumping about are what a storm is told by, as long as no other aura has them. The first rework had them in every rare aura, as arcs, bolts
 -- and rays, and in the game they came out as flat lines flickering and jumping about, which
 -- was the middle of every aura and made them all look alike (owner, 2026-10-08). An aura is
 -- told by its shape and by which way it moves, with plain round particles: down, up in a
@@ -249,14 +250,14 @@ local STORM_FLASH: Layer = {
 -- Storm: violet sparks bursting out of it and gone at once.
 local STORM_SPARKS: Layer = {
 	texture = SPARKLE,
-	rate = 30,
-	life = { 0.2, 0.35 },
+	rate = 34,
+	life = { 0.12, 0.28 },
 	speed = { 10, 16 },
 	spread = 180,
+	streak = 2.5,
 	size = { 1.2, 0.3 },
 	lift = 0,
-	spin = 400,
-	drag = 4,
+	spin = 0,
 	glow = 0.6,
 	bright = 3.5,
 	fade = 0,
@@ -268,9 +269,10 @@ local STORM_GROUND: Layer = {
 	life = { 0.25, 0.4 },
 	speed = { 7, 11 },
 	spread = 88,
+	streak = 2,
 	size = { 0.9, 0.3 },
 	lift = -4,
-	spin = 300,
+	spin = 0,
 	glow = 0.6,
 	bright = 3,
 	fade = 0,
