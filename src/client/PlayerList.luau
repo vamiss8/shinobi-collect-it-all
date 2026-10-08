@@ -11,6 +11,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
@@ -34,6 +35,12 @@ local CLEAR_OF_BUTTONS = 150
 local INCOME = 104
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
+-- Where the list hangs, from the screen's right edge, and where it is when put away: off that
+-- edge. It slides between the two, in and out, this long each way, seconds.
+local HUNG = -24
+local AWAY = WIDTH + 60
+local SLIDE_IN = 0.3
+local SLIDE_OUT = 0.22
 
 type Row = {
 	frame: Frame,
@@ -126,7 +133,7 @@ function PlayerList.start()
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local sheet: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -24, 0, 16),
+		Position = UDim2.new(1, HUNG, 0, 16),
 		Size = UDim2.fromOffset(WIDTH, HEADER + FOOT),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
@@ -215,9 +222,38 @@ function PlayerList.start()
 		adopt(player)
 	end
 
+	-- Tab slides it off the edge and back. Counted, so that a list on its way out that is
+	-- called back is not hidden when it would have arrived.
+	local hung = sheet.Visible
+	local slides = 0
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.Tab then
-			sheet.Visible = not sheet.Visible
+		if processed or input.KeyCode ~= Enum.KeyCode.Tab then
+			return
+		end
+		hung = not hung
+		slides += 1
+		local mine = slides
+		if hung then
+			if not sheet.Visible then
+				sheet.Position = UDim2.new(1, AWAY, 0, 16)
+				sheet.Visible = true
+			end
+			TweenService:Create(
+				sheet,
+				TweenInfo.new(SLIDE_IN, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Position = UDim2.new(1, HUNG, 0, 16) }
+			):Play()
+		else
+			TweenService:Create(
+				sheet,
+				TweenInfo.new(SLIDE_OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Position = UDim2.new(1, AWAY, 0, 16) }
+			):Play()
+			task.delay(SLIDE_OUT, function()
+				if slides == mine then
+					sheet.Visible = false
+				end
+			end)
 		end
 	end)
 end

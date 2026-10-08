@@ -166,6 +166,92 @@ function Ui.text(parent: Instance, properties: { [string]: any }): TextLabel
 	return label
 end
 
+-- How a button answers the pointer: it swells a little under it, dips when pressed and springs
+-- back when let go. A button that stands in a row or a grid laid out for it would pull its
+-- neighbors along, so that one blinks instead.
+local HOVERED = 1.03
+local PRESSED = 0.93
+local BLINK = 0.72
+
+-- Whether a list or a grid lays the button out.
+local function laidOut(button: GuiObject): boolean
+	local holder = button.Parent
+	return holder ~= nil and holder:FindFirstChildWhichIsA("UIGridStyleLayout") ~= nil
+end
+
+-- Makes a button answer the pointer. Only one that would do something answers: a button says
+-- that it would by lighting up under the pointer (AutoButtonColor), which whoever owns it
+-- switches off for one that is spent.
+local function enliven(button: TextButton)
+	-- It dips about its own middle, wherever it was hung from: hung from a corner, it would
+	-- shrink into that corner.
+	if not laidOut(button) then
+		local anchor, size = button.AnchorPoint, button.Size
+		local dx, dy = 0.5 - anchor.X, 0.5 - anchor.Y
+		button.Position += UDim2.new(
+			size.X.Scale * dx,
+			size.X.Offset * dx,
+			size.Y.Scale * dy,
+			size.Y.Offset * dy
+		)
+		button.AnchorPoint = Vector2.new(0.5, 0.5)
+	end
+	local scale: UIScale = Ui.make("UIScale", { Name = "Press" }, button)
+	local function to(size: number, seconds: number, style: Enum.EasingStyle)
+		TweenService
+			:Create(
+				scale,
+				TweenInfo.new(seconds, style, Enum.EasingDirection.Out),
+				{ Scale = size }
+			)
+			:Play()
+	end
+	-- The blink: a pale sheet over the button that fades at once. Made when first needed.
+	local sheet: Frame? = nil
+	local function blink()
+		local frame: Frame = sheet
+			or Ui.make("Frame", {
+				Name = "Blink",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = Ui.WHITE,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 9,
+			}, button)
+		if not sheet then
+			Ui.corner(frame, 8)
+			sheet = frame
+		end
+		frame.BackgroundTransparency = BLINK
+		TweenService:Create(frame, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+	end
+
+	local over = false
+	button.MouseEnter:Connect(function()
+		over = true
+		if button.AutoButtonColor and not laidOut(button) then
+			to(HOVERED, 0.12, Enum.EasingStyle.Quad)
+		end
+	end)
+	button.MouseLeave:Connect(function()
+		over = false
+		to(1, 0.16, Enum.EasingStyle.Quad)
+	end)
+	button.MouseButton1Down:Connect(function()
+		if not button.AutoButtonColor then
+			return
+		elseif laidOut(button) then
+			blink()
+		else
+			to(PRESSED, 0.07, Enum.EasingStyle.Quad)
+		end
+	end)
+	button.MouseButton1Up:Connect(function()
+		local rest = if over and button.AutoButtonColor and not laidOut(button) then HOVERED else 1
+		to(rest, 0.26, Enum.EasingStyle.Back)
+	end)
+end
+
 function Ui.button(parent: Instance, properties: { [string]: any }): TextButton
 	local button = Ui.make("TextButton", {
 		BackgroundColor3 = Ui.GREEN,
@@ -180,6 +266,7 @@ function Ui.button(parent: Instance, properties: { [string]: any }): TextButton
 		button[name] = value
 	end
 	Ui.corner(button, 8)
+	enliven(button)
 	return button
 end
 
@@ -403,7 +490,16 @@ export type Window = {
 }
 
 local windows: { Window } = {}
+-- What takes each window off the screen at once, for when another opens over it.
+local hiders: { [Window]: () -> () } = {}
 local openedListeners: { () -> () } = {}
+
+-- A window pops up from a little under its size and shrinks a little as it goes: how far
+-- under, and how long each takes, seconds.
+local POP_FROM = 0.86
+local POP_SECONDS = 0.24
+local SHUT_TO = 0.92
+local SHUT_WINDOW_SECONDS = 0.11
 
 -- Has `fn` called whenever a window is opened: for what has to make way for one.
 function Ui.onWindowOpened(fn: () -> ())
@@ -424,11 +520,20 @@ function Ui.window(name: string, size: Vector2): Window
 	})
 	Ui.stroke(frame, Ui.EDGE, 2)
 
+	-- `fit` is how large the window is drawn to fit the screen; popping open and shutting
+	-- play on top of it.
 	local scale: UIScale = Ui.make("UIScale", {}, frame)
+	local fit = 1
 	Ui.onResize(function()
 		local room = Ui.room()
-		scale.Scale = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
+		fit = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
+		scale.Scale = fit
 	end)
+	-- Whether the window is open, as whoever asks should hear it: one that is shutting is
+	-- still on the screen and already closed. `turn` counts openings and closings, so that
+	-- a shutting window that was opened again is not taken away.
+	local open = false
+	local turn = 0
 
 	local title = Ui.text(frame, {
 		Position = UDim2.fromOffset(16, 8),
@@ -465,28 +570,60 @@ function Ui.window(name: string, size: Vector2): Window
 		open = function()
 			for _, other in windows do
 				if other ~= window then
-					other.frame.Visible = false
+					hiders[other]()
 				end
 			end
-			frame.Visible = true
+			turn += 1
+			if not open then
+				open = true
+				frame.Visible = true
+				scale.Scale = fit * POP_FROM
+				TweenService:Create(
+					scale,
+					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = fit }
+				):Play()
+			end
 			for _, fn in openedListeners do
 				fn()
 			end
 		end,
 		close = function()
-			frame.Visible = false
+			if not open then
+				return
+			end
+			open = false
+			turn += 1
+			local mine = turn
+			TweenService:Create(
+				scale,
+				TweenInfo.new(SHUT_WINDOW_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Scale = fit * SHUT_TO }
+			):Play()
+			task.delay(SHUT_WINDOW_SECONDS, function()
+				if turn == mine then
+					frame.Visible = false
+					scale.Scale = fit
+				end
+			end)
 		end,
 		toggle = function()
-			if frame.Visible then
+			if open then
 				window.close()
 			else
 				window.open()
 			end
 		end,
 		isOpen = function()
-			return frame.Visible
+			return open
 		end,
 	}
+	hiders[window] = function()
+		open = false
+		turn += 1
+		frame.Visible = false
+		scale.Scale = fit
+	end
 	closeButton.Activated:Connect(window.close)
 	table.insert(windows, window)
 	return window

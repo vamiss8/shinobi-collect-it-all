@@ -4,6 +4,7 @@
 -- messages written on a scroll at the top.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
@@ -79,8 +80,15 @@ function Hud.sideButton(
 ): (TextButton, TextLabel)
 	local column = if left then leftColumn else sideColumn
 	assert(column, "Hud.start() has not run yet")
-	local tile = Ui.button(column, {
+	-- The column lays out a place of the tile's size, and the tile stands in the place: it
+	-- dips when it is pressed, and laid out by the column itself it would pull along the
+	-- tiles under it.
+	local place = Ui.make("Frame", {
 		Size = UDim2.fromOffset(112, 116),
+		BackgroundTransparency = 1,
+	}, column)
+	local tile = Ui.button(place, {
+		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
 	})
@@ -252,6 +260,33 @@ function Hud.start()
 		Padding = UDim.new(0, 12),
 	}, left)
 	leftColumn = left
+	-- The throw power slider opens upwards over the readouts, and Ryo moves up over it: into
+	-- where this column stands. So the column makes way too, to just above Ryo, and comes
+	-- back when the slider shuts. (On a touch screen it stands above all of that already.)
+	if not touch then
+		local function makeWay()
+			local goal = UDim2.new(0, 12, 0.5, 0)
+			if slider.Visible then
+				local tall = left.AbsoluteSize.Y / Ui.scale()
+				-- From the foot of the Chakra readout up to the top of Ryo.
+				local stacked = CHAKRA_HEIGHT
+					+ READOUT_GAP
+					+ slider.Size.Y.Offset
+					- slider.Position.Y.Offset
+					+ RYO_HEIGHT
+				local room = Ui.room().Y
+				local ryoTop = room * chakraBottom.Scale + chakraBottom.Offset - stacked
+				local foot = math.min(room / 2 + tall / 2, ryoTop - READOUT_GAP)
+				goal = UDim2.fromOffset(12, foot - tall / 2)
+			end
+			TweenService:Create(
+				left,
+				TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ Position = goal }
+			):Play()
+		end
+		slider:GetPropertyChangedSignal("Visible"):Connect(makeWay)
+	end
 
 	scroll = buildScroll(screen)
 

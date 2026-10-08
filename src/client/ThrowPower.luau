@@ -5,6 +5,7 @@
 -- Chakra readout and opens the slider above it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
@@ -294,8 +295,18 @@ function ThrowPower.attach(pill: Frame): Frame
 	useAll.Activated:Connect(function()
 		choose(0)
 	end)
+	-- It rises out of the readout it belongs to, rather than being there all at once.
+	local rise: UIScale = Ui.make("UIScale", {}, popup)
 	row.Activated:Connect(function()
 		popup.Visible = not popup.Visible
+		if popup.Visible then
+			rise.Scale = 0.86
+			TweenService:Create(
+				rise,
+				TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1 }
+			):Play()
+		end
 	end)
 
 	Store.onChange(function(state)
