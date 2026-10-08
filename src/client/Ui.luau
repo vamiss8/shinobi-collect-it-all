@@ -1,6 +1,7 @@
 --!strict
 -- Helpers for building the UI from code.
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -56,9 +57,13 @@ function Ui.scale(): number
 	return math.clamp(math.min(view.Y / DESIGN_HEIGHT, view.X / DESIGN_WIDTH), 1, MAX_SCALE)
 end
 
--- The size of the screen as the layers see it: in layout units, before they are scaled up.
+-- The size of the screen as the layers see it: in layout units, before they are scaled up. A
+-- layer begins under Roblox's own bar across the top, so it is that much shorter than the
+-- window. (Reckoned without the bar, whatever was placed by this measure sat a bar's height
+-- too low: the tiles that make way for the throw power slider ended up on the Ryo readout.)
 function Ui.room(): Vector2
-	return viewport() / Ui.scale()
+	local bar = GuiService:GetGuiInset()
+	return (viewport() - bar) / Ui.scale()
 end
 
 local resizeListeners: { () -> () } = {}
@@ -167,8 +172,8 @@ function Ui.text(parent: Instance, properties: { [string]: any }): TextLabel
 end
 
 -- How a button answers the pointer: it swells a little under it, dips when pressed and springs
--- back when let go. A button that stands in a row or a grid laid out for it would pull its
--- neighbors along, so that one blinks instead.
+-- back when let go. A button that a list or a grid lays out would pull its neighbors along as
+-- it dipped, so it is given a place of its own in the list and dips inside that.
 local HOVERED = 1.03
 local PRESSED = 0.93
 local BLINK = 0.72
@@ -183,6 +188,33 @@ end
 -- that it would by lighting up under the pointer (AutoButtonColor), which whoever owns it
 -- switches off for one that is spent.
 local function enliven(button: TextButton)
+	-- In a list or a grid, a cell takes the button's place and the button fills the cell. The
+	-- cell goes where the button is told to go, shows and hides with it, and goes when it
+	-- goes, so that whoever made the button need not know of it.
+	if laidOut(button) then
+		local cell: Frame = Ui.make("Frame", {
+			Name = "Cell",
+			Size = button.Size,
+			LayoutOrder = button.LayoutOrder,
+			Visible = button.Visible,
+			BackgroundTransparency = 1,
+		}, button.Parent)
+		button.AnchorPoint = Vector2.zero
+		button.Position = UDim2.new()
+		button.Size = UDim2.fromScale(1, 1)
+		button.Parent = cell
+		button:GetPropertyChangedSignal("LayoutOrder"):Connect(function()
+			cell.LayoutOrder = button.LayoutOrder
+		end)
+		button:GetPropertyChangedSignal("Visible"):Connect(function()
+			cell.Visible = button.Visible
+		end)
+		button.Destroying:Connect(function()
+			task.defer(function()
+				cell:Destroy()
+			end)
+		end)
+	end
 	-- It dips about its own middle, wherever it was hung from: hung from a corner, it would
 	-- shrink into that corner.
 	if not laidOut(button) then
@@ -249,6 +281,25 @@ local function enliven(button: TextButton)
 	button.MouseButton1Up:Connect(function()
 		local rest = if over and button.AutoButtonColor and not laidOut(button) then HOVERED else 1
 		to(rest, 0.26, Enum.EasingStyle.Back)
+	end)
+end
+
+-- Has a button spring up from small, `after` seconds from now: for a page of them that has
+-- just been turned to. (It plays on the same scale a press does.)
+function Ui.popIn(button: GuiObject, after: number)
+	local scale = button:FindFirstChild("Press")
+	if not scale or not scale:IsA("UIScale") then
+		return
+	end
+	scale.Scale = 0.6
+	task.delay(after, function()
+		if scale.Parent then
+			TweenService:Create(
+				scale,
+				TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1 }
+			):Play()
+		end
 	end)
 end
 

@@ -80,15 +80,8 @@ function Hud.sideButton(
 ): (TextButton, TextLabel)
 	local column = if left then leftColumn else sideColumn
 	assert(column, "Hud.start() has not run yet")
-	-- The column lays out a place of the tile's size, and the tile stands in the place: it
-	-- dips when it is pressed, and laid out by the column itself it would pull along the
-	-- tiles under it.
-	local place = Ui.make("Frame", {
+	local tile = Ui.button(column, {
 		Size = UDim2.fromOffset(112, 116),
-		BackgroundTransparency = 1,
-	}, column)
-	local tile = Ui.button(place, {
-		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
 	})
@@ -276,8 +269,14 @@ function Hud.start()
 					+ RYO_HEIGHT
 				local room = Ui.room().Y
 				local ryoTop = room * chakraBottom.Scale + chakraBottom.Offset - stacked
-				local foot = math.min(room / 2 + tall / 2, ryoTop - READOUT_GAP)
-				goal = UDim2.fromOffset(12, foot - tall / 2)
+				local foot = ryoTop - READOUT_GAP
+				if foot - tall < READOUT_GAP then
+					-- A short window has no room over Ryo: the column stands beside the
+					-- readouts instead.
+					goal = UDim2.new(0, 12 + READOUT_WIDTH + READOUT_GAP, 0.5, 0)
+				else
+					goal = UDim2.fromOffset(12, math.min(room / 2 + tall / 2, foot) - tall / 2)
+				end
 			end
 			TweenService:Create(
 				left,
@@ -286,6 +285,9 @@ function Hud.start()
 			):Play()
 		end
 		slider:GetPropertyChangedSignal("Visible"):Connect(makeWay)
+		-- A tile added while the slider is open, or the window resized, moves it again.
+		left:GetPropertyChangedSignal("AbsoluteSize"):Connect(makeWay)
+		Ui.onResize(makeWay)
 	end
 
 	scroll = buildScroll(screen)

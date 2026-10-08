@@ -72,6 +72,17 @@ function IndexPanel.start()
 	local tabWords: { [string]: TextLabel } = {}
 	local cards: { TextButton } = {}
 	local bonusPercent = Tuning.Index.pageCompleteBonus * 100
+	-- A page's cards spring up one after another when it is turned to, each this much after
+	-- the last, seconds; past the first rows they come together, or the last would be late.
+	local CARD_APART = 0.014
+	local CARDS_APART = 20
+
+	-- Has the cards on the page spring up, the first row first.
+	local function flourish()
+		for place, card in cards do
+			Ui.popIn(card, math.min(place - 1, CARDS_APART) * CARD_APART)
+		end
+	end
 
 	local function redraw()
 		local found = Store.found()
@@ -126,14 +137,23 @@ function IndexPanel.start()
 		})
 		Lettering.dress(words, Looks.key("mutation", page))
 		button.Activated:Connect(function()
-			selected = page
-			redraw()
+			if selected ~= page then
+				selected = page
+				redraw()
+				flourish()
+			end
 		end)
 		tabButtons[page] = button
 		tabWords[page] = words
 	end
 
 	Store.onIndex(redraw)
+	-- And when the book is opened.
+	window.frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if window.frame.Visible then
+			flourish()
+		end
+	end)
 end
 
 return IndexPanel
