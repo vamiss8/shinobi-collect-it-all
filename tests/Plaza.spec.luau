@@ -427,6 +427,28 @@ return {
 		T.eq(pieces, 7)
 	end,
 
+	-- The fourth thing on the plaza that looked solid and was not (bench backs, stone lanterns
+	-- and the back gate's beams before it): the shrine's little gate. What stands on the plaza
+	-- is solid now, shrubs and all; only water, crowns of trees, paper pinned to the board,
+	-- what is laid into the paving and cords are for the eye alone.
+	["the shrine, its gate, the shrubs and the training posts are solid all over"] = function()
+		local pieces = { Shrine = 0, Shrub = 0, Training = 0, Dummy = 0, Well = 0 }
+		local soft = { WellRope = true, WellWater = true }
+		for _, part in parts() do
+			for prefix in pieces do
+				if string.sub(part.Name, 1, #prefix) == prefix and not soft[part.Name] then
+					pieces[prefix] += 1
+					T.ok(part.CanCollide, `{where(part)} can be walked through`)
+				end
+			end
+		end
+		-- The shrine: base, step, house, door and ridge, and its gate's two posts, beam and tie.
+		T.eq(pieces.Shrine, 9)
+		-- Three shrubs and the planter they grow in, twice before every dojo.
+		T.eq(pieces.Shrub, 4 * 2 * PlazaPlan.DOJOS)
+		T.ok(pieces.Training >= 6, `only {pieces.Training} pieces of training post`)
+	end,
+
 	["a stone lantern is solid from its foot to its knob"] = function()
 		local pieces = 0
 		for _, part in parts() do

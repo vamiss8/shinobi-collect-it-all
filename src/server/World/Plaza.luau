@@ -812,15 +812,14 @@ local function shrubs(folder: Folder, base: Vector3)
 	)
 	for i, shift in { -1.6, 0.2, 1.8 } do
 		local size = 2.4 + (i % 2) * 0.6
-		local bush = show(
-			Build.part(
-				folder,
-				"Shrub",
-				Vector3.new(size, size, size),
-				base + UP * (1.5 + size * 0.3) + Vector3.new(shift, 0, 0),
-				if i == 2 then LEAF_LIGHT else LEAF,
-				Enum.Material.Grass
-			)
+		-- Solid, like all that stands on the plaza: a clipped shrub is not walked through.
+		local bush = Build.part(
+			folder,
+			"Shrub",
+			Vector3.new(size, size, size),
+			base + UP * (1.5 + size * 0.3) + Vector3.new(shift, 0, 0),
+			if i == 2 then LEAF_LIGHT else LEAF,
+			Enum.Material.Grass
 		)
 		bush.Shape = Enum.PartType.Ball
 	end
@@ -929,9 +928,7 @@ local function trainingCorner(folder: Folder, base: Vector3, face: number)
 	for i = -1, 1 do
 		local foot = base + Vector3.new(i * 6, 0, 0)
 		column(folder, "TrainingPost", foot, 6.4, 1.6, BARK, wood)
-		show(
-			column(folder, "TrainingBand", foot + UP * 4.2, 0.8, 1.8, LACQUER, Enum.Material.Fabric)
-		)
+		column(folder, "TrainingBand", foot + UP * 4.2, 0.8, 1.8, LACQUER, Enum.Material.Fabric)
 	end
 	-- The dummy: a post, arms across it, a body of straw and a head.
 	local dummy = base + Vector3.new(-7, 0, face * 8)
@@ -1018,42 +1015,23 @@ local function shrine(folder: Folder, base: Vector3, face: number)
 		Enum.Material.Slate
 	)
 	Build.part(folder, "ShrineHouse", Vector3.new(4, 3.6, 4), base + UP * 3.6, TIMBER, wood)
-	show(
-		Build.part(
-			folder,
-			"ShrineDoor",
-			Vector3.new(2, 2.4, 0.2),
-			base + Vector3.new(0, 3.2, face * 2.05),
-			PAPER
-		)
+	Build.part(
+		folder,
+		"ShrineDoor",
+		Vector3.new(2, 2.4, 0.2),
+		base + Vector3.new(0, 3.2, face * 2.05),
+		PAPER
 	)
 	roof(folder, base + UP * 7.4, 6.4, 3.2, 2, false, LACQUER)
 	Build.part(folder, "ShrineRidge", Vector3.new(6.8, 0.4, 0.5), base + UP * 7.5, TIMBER, wood)
-	-- Its gate, a few steps out.
+	-- Its gate, a few steps out: solid, beams and all. It is a shrine's gate, too low to walk
+	-- under, and was for the eye only until the owner walked through it.
 	local gate = base + Vector3.new(0, 0, face * 7.5)
 	for _, x in { -2.4, 2.4 } do
 		column(folder, "ShrineGatePost", gate + Vector3.new(x, 0, 0), 5, 0.6, LACQUER, wood)
 	end
-	show(
-		Build.part(
-			folder,
-			"ShrineGateBeam",
-			Vector3.new(6.6, 0.5, 0.7),
-			gate + UP * 5.1,
-			LACQUER,
-			wood
-		)
-	)
-	show(
-		Build.part(
-			folder,
-			"ShrineGateTie",
-			Vector3.new(5.4, 0.4, 0.4),
-			gate + UP * 4,
-			LACQUER,
-			wood
-		)
-	)
+	Build.part(folder, "ShrineGateBeam", Vector3.new(6.6, 0.5, 0.7), gate + UP * 5.1, LACQUER, wood)
+	Build.part(folder, "ShrineGateTie", Vector3.new(5.4, 0.4, 0.4), gate + UP * 4, LACQUER, wood)
 end
 
 function Plaza.start()
