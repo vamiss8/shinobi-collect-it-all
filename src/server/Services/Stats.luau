@@ -17,6 +17,7 @@ function Stats.multipliers(data: Data.Data): Boosts.Multipliers
 		potions = data.potions,
 		now = os.time(),
 		indexBonus = Index.incomeBonus(data.found),
+		rebirths = data.rebirths,
 	})
 end
 

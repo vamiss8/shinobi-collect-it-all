@@ -154,6 +154,25 @@ local TEXT: { [string]: string } = {
 	SellAllConfirm = "Send %s for %s Ryo?",
 	SellPrice = "Reward: %s",
 
+	-- Rebirth (client RebirthPanel): the tile, the window, and the scroll when one is done.
+	RebirthButton = "Rebirth",
+	RebirthTitle = "Rebirth",
+	RebirthStep = "Rebirth %s of %s  |  you are: %s",
+	RebirthAllDone = "Every rebirth is done",
+	RebirthProgress = "%s / %s Chakra",
+	RebirthRyo = "Dojo income",
+	RebirthPower = "Chakra per rep",
+	RebirthLuck = "Mutation luck",
+	RebirthChange = "x%s -> x%s",
+	RebirthHolds = "x%s",
+	RebirthNote = "Your Chakra goes back to the start. Your kunai, shinobi, Ryo, run speed and "
+		.. "dojo all stay, and what a rebirth pays is yours for good.",
+	RebirthDo = "REBIRTH",
+	RebirthNeed = "%s more Chakra",
+	RebirthSure = "Press again: your Chakra goes back to the start",
+	RebirthNoMore = "No further rebirth yet",
+	RebirthDone = "Income x%s  |  Chakra x%s  |  mutation luck x%s",
+
 	-- Throw
 	KickHint = "Click, tap or press Space to throw!",
 	KickGrade = "%s!  %s%% power",
@@ -205,6 +224,7 @@ local TEXT: { [string]: string } = {
 	Merged = "Merged into %s!",
 	FloorBuilt = "Your dojo grew! Floor %s is open.",
 	GateOpenedBy = "%s opened the %s!",
+	RebirthBy = "%s was reborn as %s!",
 	Sold = "%s left on a last mission. Reward: %s Ryo.",
 	SoldMany = "%s shinobi left on their last mission. Reward: %s Ryo.",
 }

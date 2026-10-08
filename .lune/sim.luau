@@ -3,6 +3,7 @@
 -- Config can be tuned in minutes rather than in hours of play.
 --   lune run sim        every profile, 40 hours of play
 --   lune run sim 10     stop after 10 hours
+--   lune run sim 40 plain   the same player never doing a rebirth, to see what rebirths change
 --
 -- The game's own math is used throughout (Logic/*), so the result follows the config. What is
 -- modelled here is the player: how well they press, how they split their time and what they
@@ -17,6 +18,7 @@ local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Economy = require("../src/shared/Logic/Economy")
 local Format = require("../src/shared/Logic/Format")
 local Kick = require("../src/shared/Logic/Kick")
+local Rebirth = require("../src/shared/Logic/Rebirth")
 local Roll = require("../src/shared/Logic/Roll")
 local T = require("../tests/harness")
 local Tuning = require("../src/shared/Config/Tuning")
@@ -50,6 +52,8 @@ local PROFILES: { Profile } = {
 
 -- Runs per profile; the middle one is reported, so one lucky mutation does not set the pace.
 local SEEDS = 5
+-- Whether the player does rebirths (Logic/Rebirth): as soon as each is offered.
+local REBIRTHS = process.args[2] ~= "plain"
 
 -- Time that goes on things the config does not describe, seconds.
 local RING_OVERHEAD = 0.25 -- from a press to watching the next ring
@@ -67,6 +71,8 @@ type Bill = { levels: number, price: number, seconds: number }
 
 type Player = {
 	time: number,
+	rebirths: number,
+	rebirthAt: { [number]: number }, -- rebirth number -> when it was done
 	chakra: number,
 	kunai: number,
 	speedLevel: number,
@@ -128,7 +134,7 @@ local function income(player: Player): number
 	for _, unit in player.pads do
 		total += Economy.unitIncome(unit)
 	end
-	return total
+	return total * Rebirth.ryo(player.rebirths)
 end
 
 local function pass(player: Player, seconds: number)
@@ -202,7 +208,8 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	player.spins += 1
 
 	local distance = math.max(result.distance, MIN_LANDING)
-	local drop = Roll.drop(result.distance, Roll.spinLuck(player.spins), 1, nil, rng)
+	local mutationLuck = Rebirth.mutationLuck(player.rebirths)
+	local drop = Roll.drop(result.distance, Roll.spinLuck(player.spins), mutationLuck, nil, rng)
 	local zone = Catalog.zoneById[drop.zone]
 	local unit: Unit = { character = drop.character, mutation = drop.mutation, level = 1 }
 
@@ -313,6 +320,8 @@ local function play(profile: Profile, seed: number, hours: number): Player
 	local rate = ringRate(profile) * bubbleBoost(profile)
 	local player: Player = {
 		time = 0,
+		rebirths = 0,
+		rebirthAt = {},
 		chakra = 1,
 		kunai = 1,
 		speedLevel = 0,
@@ -334,8 +343,14 @@ local function play(profile: Profile, seed: number, hours: number): Player
 	while player.time < hours * 3600 do
 		throw(player, profile, rng)
 		shop(player)
-		player.chakra += rate * Economy.chakraPerRep(player.kunai) * profile.trainPerThrow
+		player.chakra += rate * Economy.chakraPerRep(player.kunai) * Rebirth.chakra(player.rebirths) * profile.trainPerThrow
 		pass(player, profile.trainPerThrow)
+		-- A rebirth is taken as soon as it is offered: it pays more than it costs.
+		while REBIRTHS and Rebirth.ready(player.chakra, player.rebirths) do
+			player.rebirths += 1
+			player.rebirthAt[player.rebirths] = player.time
+			player.chakra = Rebirth.START_CHAKRA
+		end
 		for number, zone in Catalog.zones do
 			if not player.reached[number] and player.chakra >= zone.chakra then
 				player.reached[number] = player.time
@@ -516,6 +531,11 @@ local function printProfile(profile: Profile, hours: number)
 		table.insert(bought, clock(player.kunaiAt[number]))
 	end
 	print(`kunai bought at: {table.concat(bought, ", ")}`)
+	local reborn = {}
+	for number = 1, Rebirth.count() do
+		table.insert(reborn, `#{number} {clock(player.rebirthAt[number])}`)
+	end
+	print(`rebirths done at: {table.concat(reborn, ", ")}`)
 	local pads = {}
 	for _, index in padMilestones() do
 		table.insert(pads, `#{index} {clock(player.padAt[index - Tuning.Dojo.startPads])}`)

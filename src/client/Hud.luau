@@ -35,6 +35,7 @@ type Scroll = { frame: Frame, words: TextLabel, edge: UIStroke, seal: Frame }
 local scroll: Scroll? = nil
 local messageToken = 0
 local sideColumn: Frame? = nil
+local leftColumn: Frame? = nil
 
 -- Shows a message on the scroll at the top of the screen for a few seconds. A newer one
 -- replaces it. The words are always ink on parchment; `color` goes to the seal and the outline.
@@ -63,17 +64,19 @@ function Hud.rankColor(characterId: string): Color3
 	return if rank then Color3.fromHex(rank.color) else Ui.WHITE
 end
 
--- Adds a tile to the column on the right edge of the screen: an icon with a caption under it.
--- Windows use it as their opener. `drawIcon` fills the square it is given (see Icons). Returns
--- the tile and a small counter in its corner, hidden until it is given text. Call after
--- Hud.start().
+-- Adds a tile to the column on the right edge of the screen, or on the left one when `left`:
+-- an icon with a caption under it. Windows use it as their opener. `drawIcon` fills the square
+-- it is given (see Icons). Returns the tile and a small counter in its corner, hidden until it
+-- is given text. Call after Hud.start().
 function Hud.sideButton(
 	text: string,
 	color: Color3,
-	drawIcon: (holder: Instance) -> ()
+	drawIcon: (holder: Instance) -> (),
+	left: boolean?
 ): (TextButton, TextLabel)
-	assert(sideColumn, "Hud.start() has not run yet")
-	local tile = Ui.button(sideColumn, {
+	local column = if left then leftColumn else sideColumn
+	assert(column, "Hud.start() has not run yet")
+	local tile = Ui.button(column, {
 		Size = UDim2.fromOffset(112, 116),
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
@@ -231,6 +234,21 @@ function Hud.start()
 		Padding = UDim.new(0, 12),
 	}, column)
 	sideColumn = column
+	-- And a column on the left edge, for Rebirth, which the games of this kind keep there. It
+	-- stands at the middle of the edge, over the readouts; on a touch screen the readouts are
+	-- there themselves, so it stands above them.
+	local left = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, if touch then 0 else 0.5),
+		Position = UDim2.new(0, 12, if touch then 0.12 else 0.5, 0),
+		Size = UDim2.fromOffset(112, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+	}, screen)
+	Ui.make("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 12),
+	}, left)
+	leftColumn = left
 
 	scroll = buildScroll(screen)
 

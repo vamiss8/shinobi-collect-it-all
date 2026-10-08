@@ -1,7 +1,8 @@
 --!strict
 -- Celebrates a new speed stage (Config/SpeedStages): the screen flashes in the stage's color and
 -- a scroll in the middle names it, as when a Gate bursts open. Only a purchase sets it off; the
--- stage the save loads with does not.
+-- stage the save loads with does not. Whatever else is to be celebrated the same way, a
+-- rebirth for one, asks for the scroll with StageFlash.show.
 --
 -- The scroll is the game's own: parchment, the name in ink, and the stage's color on the
 -- outline and the seal, which is stamped with the Gate's number. Words are never put on the
@@ -20,6 +21,17 @@ local StageFlash = {}
 
 local FLASH_SECONDS = 0.9 -- for the flash to fade
 local HOLD_SECONDS = 2.4 -- the scroll stays this long
+
+-- Set by start(): flashes the screen and puts up the scroll.
+local present: ((color: Color3, stamp: string, title: string, words: string) -> ())? = nil
+
+-- Flashes the screen in `color` and names something on the scroll for a moment: `stamp` on its
+-- seal, `title` large, `words` under it. Nothing happens before start() has run.
+function StageFlash.show(color: Color3, stamp: string, title: string, words: string)
+	if present then
+		present(color, stamp, title, words)
+	end
+end
 
 function StageFlash.start()
 	local layer = Ui.screen("StageFlash", 20)
@@ -71,39 +83,19 @@ function StageFlash.start()
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 32 }, line)
 
-	local shownLevel: number? = nil
 	local token = 0
-	Store.onChange(function(state)
-		local level = state.speedLevel
-		local before = shownLevel
-		shownLevel = level
-		if before == nil or level <= before then
-			return
-		end
-		local _, from = SpeedStages.at(before)
-		local stage, to = SpeedStages.at(level)
-		if to <= from then
-			return
-		end
-
+	present = function(color: Color3, stamp: string, title: string, words: string)
 		token += 1
 		local mine = token
-		local color = Color3.fromHex(stage.color)
 		flash.BackgroundColor3 = color
 		flash.BackgroundTransparency = 0.45
 		flash.Visible = true
 		TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
 			:Play()
 
-		local speed = Economy.walkSpeed(level)
-		name.Text = string.upper(stage.name)
-		if stage.gate > 0 then
-			mark.Text = tostring(stage.gate)
-			line.Text = Strings.get("StageGateOpened", stage.gate, SpeedStages.GATES, speed)
-		else
-			mark.Text = "!"
-			line.Text = Strings.get("StageReached", speed)
-		end
+		name.Text = title
+		mark.Text = stamp
+		line.Text = words
 		paper.edge.Color = color
 		paper.seal.BackgroundColor3 = color
 		paper.frame.Visible = true
@@ -118,6 +110,30 @@ function StageFlash.start()
 				paper.frame.Visible = false
 			end
 		end)
+	end
+
+	local shownLevel: number? = nil
+	Store.onChange(function(state)
+		local level = state.speedLevel
+		local before = shownLevel
+		shownLevel = level
+		if before == nil or level <= before then
+			return
+		end
+		local _, from = SpeedStages.at(before)
+		local stage, to = SpeedStages.at(level)
+		if to <= from then
+			return
+		end
+		local speed = Economy.walkSpeed(level)
+		local color = Color3.fromHex(stage.color)
+		if stage.gate > 0 then
+			local words = Strings.get("StageGateOpened", stage.gate, SpeedStages.GATES, speed)
+			StageFlash.show(color, tostring(stage.gate), string.upper(stage.name), words)
+		else
+			local words = Strings.get("StageReached", speed)
+			StageFlash.show(color, "!", string.upper(stage.name), words)
+		end
 	end)
 end
 

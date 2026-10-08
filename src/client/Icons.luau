@@ -204,6 +204,19 @@ function Icons.meditate(holder: Instance)
 	overlay(holder, Art.icons.meditate)
 end
 
+-- Rebirth: the Rinnegan, the eye of the cycle of rebirth, its rings round a dark pupil.
+function Icons.rebirth(holder: Instance)
+	local iris = Color3.fromRGB(179, 157, 219)
+	local ring = Color3.fromRGB(94, 53, 177)
+	shape(holder, 0.04, 0.04, 0.92, 0.92, INK, 0.5)
+	shape(holder, 0.09, 0.09, 0.82, 0.82, iris, 0.5)
+	shape(holder, 0.19, 0.19, 0.62, 0.62, ring, 0.5)
+	shape(holder, 0.23, 0.23, 0.54, 0.54, iris, 0.5)
+	shape(holder, 0.31, 0.31, 0.38, 0.38, ring, 0.5)
+	shape(holder, 0.35, 0.35, 0.30, 0.30, iris, 0.5)
+	shape(holder, 0.43, 0.43, 0.14, 0.14, INK, 0.5)
+end
+
 -- Chakra control: the closing ring around its golden target, as in the exercise itself.
 function Icons.focus(holder: Instance)
 	shape(holder, 0.08, 0.08, 0.84, 0.84, PARCHMENT, 0.5)

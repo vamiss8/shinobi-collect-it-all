@@ -1,8 +1,10 @@
 --!strict
--- Combines game passes, active potions and the Bingo Book bonus into multipliers.
+-- Combines game passes, active potions, the Bingo Book bonus and what the player's rebirths
+-- pay into multipliers.
 -- Everything stacks multiplicatively. Kick milestone luck is applied on top at kick time.
 
 local Catalog = require("../Config/Catalog")
+local Rebirth = require("./Rebirth")
 
 local Boosts = {}
 
@@ -18,6 +20,7 @@ export type State = {
 	potions: { [string]: number }, -- potion id -> expiry, unix seconds
 	now: number,
 	indexBonus: number, -- e.g. 0.1 for +10%
+	rebirths: number, -- how many the player has done
 }
 
 local function apply(m: Multipliers, effect: string, factor: number)
@@ -41,7 +44,12 @@ local PASSES: { [string]: string } = {
 }
 
 function Boosts.compute(state: State): Multipliers
-	local m: Multipliers = { ryo = 1 + state.indexBonus, chakra = 1, luck = 1, mutationLuck = 1 }
+	local m: Multipliers = {
+		ryo = (1 + state.indexBonus) * Rebirth.ryo(state.rebirths),
+		chakra = Rebirth.chakra(state.rebirths),
+		luck = 1,
+		mutationLuck = Rebirth.mutationLuck(state.rebirths),
+	}
 	for key, effect in PASSES do
 		if state.passes[key] then
 			apply(m, effect, 2)

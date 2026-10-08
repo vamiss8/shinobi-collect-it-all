@@ -29,6 +29,7 @@ local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hub = require("./Hub")
 local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 
 local Showroom = {}
@@ -292,6 +293,15 @@ function Showroom.start()
 			data.runAt = -1
 		end)
 		print(`[Models] this test has {level} levels of run speed`)
+	end
+	-- And the rebirths to test with: what they pay is on from the start.
+	local testRebirths = folder:GetAttribute(Net.TEST_REBIRTHS_ATTRIBUTE)
+	if typeof(testRebirths) == "number" then
+		local count = Rebirth.done(testRebirths)
+		Data.onLoaded(function(_, data)
+			data.rebirths = count
+		end)
+		print(`[Models] this test has {count} rebirths done: {Rebirth.title(count)}`)
 	end
 
 	if wanted(folder, Net.SHOWROOM_ATTRIBUTE) then

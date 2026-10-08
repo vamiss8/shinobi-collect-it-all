@@ -144,7 +144,8 @@ return {
 
 	-- Run speed is what gets a catch home (Logic/Chase). Every zone from the third on asks
 	-- for about four more levels at its near edge, and the far end of the lane for all but
-	-- the last of the forty. Prices grow as the kunai's do, thirty-five times a zone, so the
+	-- the last of the forty. Prices grow as the kunai's do, about forty-eight times a zone
+	-- since rebirths came (thirty-five before: see Config/Kunai), so the
 	-- four levels a zone asks for stay the same small share of what its two kunai cost: run
 	-- speed is to be there by the time the Chakra is (see `lune run sim`). Config/SpeedStages
 	-- names the levels: laps, training weights, then the Eight Gates, the last at the top level.
@@ -153,7 +154,7 @@ return {
 		perLevel = 1,
 		maxLevel = 40,
 		basePrice = 20,
-		priceGrowth = 2.43,
+		priceGrowth = 2.63,
 	},
 
 	Index = {

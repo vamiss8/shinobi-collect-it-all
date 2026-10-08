@@ -8,9 +8,16 @@ local NOW = 1_000_000
 local function state(
 	passes: { [string]: boolean },
 	potions: { [string]: number },
-	bonus: number?
+	bonus: number?,
+	rebirths: number?
 ): Boosts.State
-	return { passes = passes, potions = potions, now = NOW, indexBonus = bonus or 0 }
+	return {
+		passes = passes,
+		potions = potions,
+		now = NOW,
+		indexBonus = bonus or 0,
+		rebirths = rebirths or 0,
+	}
 end
 
 return {

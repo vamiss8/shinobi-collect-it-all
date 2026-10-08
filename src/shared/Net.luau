@@ -31,6 +31,7 @@ Net.Events = {
 	RingResult = "RingResult", -- server -> client: RingResult; its `next` ring starts on receipt
 	Buy = "Buy", -- client -> server: "kunai" | "speed"
 	RunAt = "RunAt", -- client -> server: the speed level to run at, -1 for the fastest bought
+	Rebirth = "Rebirth", -- client -> server: do the next rebirth (no payload)
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
 	Upgraded = "Upgraded", -- server -> all clients: Upgraded, a shinobi on a pad was levelled up
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
@@ -103,6 +104,8 @@ Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
 -- Number attribute on the folder: in a Studio test, the run speed level the tester is given,
 -- to try every speed stage on their own character at the Youth Training Ground.
 Net.TEST_SPEED_ATTRIBUTE = "Speed"
+-- Number attribute on the folder: in a Studio test, how many rebirths the tester has done.
+Net.TEST_REBIRTHS_ATTRIBUTE = "Rebirths"
 -- Boolean attribute on the folder: the showroom's shinobi wear the mutations in turn, so that
 -- every aura and every lettering can be looked over without rolling for it.
 Net.TEST_AURAS_ATTRIBUTE = "Auras"
@@ -116,6 +119,7 @@ export type Snapshot = {
 	kunai: number, -- index into Config/Kunai of the best owned kunai
 	speedLevel: number, -- run speed levels bought
 	runLevel: number, -- the level the player runs at: as many, or fewer if they chose so
+	rebirths: number, -- rebirths done (Logic/Rebirth)
 	padsBought: number,
 	spins: number,
 	streak: number,

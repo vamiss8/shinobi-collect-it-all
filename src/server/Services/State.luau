@@ -26,6 +26,7 @@ function State.push(player: Player)
 		kunai = data.kunai,
 		speedLevel = data.speedLevel,
 		runLevel = Economy.runLevel(data.speedLevel, data.runAt),
+		rebirths = data.rebirths,
 		padsBought = data.padsBought,
 		spins = data.spins,
 		streak = data.streak,
