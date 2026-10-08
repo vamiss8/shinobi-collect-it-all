@@ -33,12 +33,15 @@ local State = require("./State")
 local Legends = {}
 
 -- The price tag at a pedestal's foot: parchment in a gilt outline with a round red seal, like
--- every other sign of the game. Its size in studs, and how far out from the middle of the
--- pedestal's top stone and how far under it its own middle hangs.
-local TAG = Vector2.new(7.4, 2.5)
+-- every other sign of the game. Its size in studs, how far out from the middle of the pedestal
+-- it hangs, and how far over the ground its own middle is: the same for all three, under the
+-- top of the lowest pedestal, so that the tags read as one row.
+local TAG = Vector2.new(6.6, 2.2)
 local TAG_OUT = 3.4
-local TAG_DROP = 0.5
+local TAG_HEIGHT = 1.3
 local TAG_FAR = 140
+-- A shinobi on show stands this many times its size, to be looked at from the lane.
+local SHOW = 1.5
 local PARCHMENT = Color3.fromRGB(236, 220, 188)
 local INK = Color3.fromRGB(58, 40, 30)
 local SEAL = Color3.fromRGB(198, 40, 40)
@@ -156,7 +159,7 @@ local function priceTag(folder: Instance, stand: Part, legend: Catalog.Legend, o
 	board.Name = "PriceTag"
 	board.Adornee = stand
 	board.Size = UDim2.fromScale(TAG.X, TAG.Y)
-	board.StudsOffsetWorldSpace = out * TAG_OUT - Vector3.yAxis * TAG_DROP
+	board.StudsOffsetWorldSpace = out * TAG_OUT + Vector3.yAxis * (TAG_HEIGHT - stand.Position.Y)
 	board.MaxDistance = TAG_FAR
 	board.LightInfluence = 0
 	board:SetAttribute(Net.LEGEND_ATTRIBUTE, legend.id)
@@ -241,8 +244,8 @@ local function exhibit()
 		local stand = Plaza.stands[legend.id]
 		if stand then
 			local top = stand.Position + Vector3.yAxis * (stand.Size.Y / 2)
-			local figure =
-				Figure.build({ character = legend.id, mutation = Catalog.NONE, level = 1 })
+			local unit = { character = legend.id, mutation = Catalog.NONE, level = 1 }
+			local figure = Figure.build(unit, SHOW)
 			figure:PivotTo(CFrame.lookAt(top, top + laneward))
 			figure.Parent = folder
 			priceTag(folder, stand, legend, laneward)

@@ -1143,12 +1143,13 @@ function Plaza.start()
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
 
-	-- The pedestals of the legendary shinobi, the last and dearest of them the tallest.
+	-- The pedestals of the legendary shinobi, each as tall as the plan says: the dearer, the
+	-- taller.
 	for place, legend in Catalog.legends do
 		local spot = PlazaPlan.pedestals[place]
 		if spot then
-			local height = if place == #Catalog.legends then 2.6 else 1.7
-			Plaza.stands[legend.id] = pedestal(folder, Hub.at(spot.along, 0, spot.side), height)
+			Plaza.stands[legend.id] =
+				pedestal(folder, Hub.at(spot.along, 0, spot.side), spot.height)
 		end
 	end
 

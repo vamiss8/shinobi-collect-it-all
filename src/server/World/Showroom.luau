@@ -119,6 +119,14 @@ local function check(): Instance?
 	for _, template in folder:GetChildren() do
 		local name = template.Name
 		local kind = expected[name]
+		-- A figure's model is found whatever the capitals of its name (View/Figure): the
+		-- importer names a model after its file, and "Tsunade" is as good as "tsunade". A
+		-- kunai's is not.
+		local lower = expected[string.lower(name)]
+		if not kind and lower and lower ~= "kunai" then
+			name = string.lower(name)
+			kind = lower
+		end
 		if not kind then
 			local guess = byPlain[plain(name)]
 			table.insert(

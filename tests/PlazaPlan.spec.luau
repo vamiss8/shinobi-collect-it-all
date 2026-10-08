@@ -125,14 +125,21 @@ return {
 					`pedestal {index} keeps clear of the {id} shop`
 				)
 			end
+			-- They stand together, to be taken in at one look and walked round as one: clear
+			-- of each other, and no farther apart than a step.
 			for other, theirs in PlazaPlan.pedestals do
 				if other > index then
-					T.ok(
-						PlazaPlan.apart(ground(spot), ground(theirs)) >= PASSAGE,
-						`pedestals {index} and {other} keep apart`
-					)
+					local gap = PlazaPlan.apart(ground(spot), ground(theirs))
+					T.ok(gap >= 1, `pedestals {index} and {other} run into each other`)
 				end
 			end
+			local nearest = math.huge
+			for other, theirs in PlazaPlan.pedestals do
+				if other ~= index then
+					nearest = math.min(nearest, PlazaPlan.apart(ground(spot), ground(theirs)))
+				end
+			end
+			T.ok(nearest <= 4, `pedestal {index} stands {nearest} studs from the others`)
 			for dojo = 1, PlazaPlan.DOJOS do
 				T.ok(
 					PlazaPlan.apart(ground(spot), { PlazaPlan.spawn(dojo) }) >= PASSAGE,
@@ -142,6 +149,17 @@ return {
 		end
 		-- The dearest is the last in the config, and stands in the middle.
 		T.eq(PlazaPlan.pedestals[#PlazaPlan.pedestals].side, 0)
+	end,
+
+	-- The owner's word: which is cheaper and which dearer is to be seen by how tall they stand.
+	["a dearer legendary shinobi stands on a plainly taller pedestal"] = function()
+		for index = 2, #PlazaPlan.pedestals do
+			local step = PlazaPlan.pedestals[index].height - PlazaPlan.pedestals[index - 1].height
+			T.ok(step >= 1.5, `pedestal {index} is {step} studs taller than the one before`)
+		end
+		-- The lowest still has its price tag under its top; the tallest is no tower.
+		T.ok(PlazaPlan.pedestals[1].height >= 2.2, "the lowest pedestal is lower than its tag")
+		T.ok(PlazaPlan.pedestals[#PlazaPlan.pedestals].height <= 7, "the tallest is a tower")
 	end,
 
 	["the measure of how far apart two pieces of ground are"] = function()

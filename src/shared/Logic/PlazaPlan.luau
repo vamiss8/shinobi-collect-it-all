@@ -89,15 +89,19 @@ PlazaPlan.shops = {
 
 -- The legendary shinobi (Config/Legends) stand on show on pedestals of their own, on the middle
 -- path between the back of Tenten's shop and the lane and looking at the lane: whoever comes
--- home from a throw walks towards them. One pedestal each, in the order of the config, in a
--- row across the path: the dearest, the last, in its middle, the others out to either side.
--- A pedestal's foot is PEDESTAL across.
+-- home from a throw walks towards them. One pedestal each, in the order of the config, close
+-- together in a row across the path like the steps of a podium: the dearest, the last, in the
+-- middle on the tallest, the cheapest on the lowest, so that which is worth more is seen
+-- before any price is read. A pedestal's foot is PEDESTAL across; they stand a little clear of
+-- each other and are walked round as one. The row stands just before a pair of the path's
+-- lantern posts, which light it from behind and hide none of it from the lane.
 PlazaPlan.PEDESTAL = 7
+export type Pedestal = Spot & { height: number }
 PlazaPlan.pedestals = {
-	{ along = -59, side = -19 },
-	{ along = -59, side = 19 },
-	{ along = -59, side = 0 },
-} :: { Spot }
+	{ along = -44, side = -9, height = 2.4 },
+	{ along = -44, side = 9, height = 4.2 },
+	{ along = -44, side = 0, height = 6 },
+} :: { Pedestal }
 
 -- Which way a shop looks out of its front, as a step along and a step across: at the fountain.
 function PlazaPlan.facing(shop: Spot): Spot

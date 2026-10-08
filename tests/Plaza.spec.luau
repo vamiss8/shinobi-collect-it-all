@@ -471,6 +471,7 @@ return {
 				local at = top.CFrame.Position
 				if math.abs(at.X - spot.along) < 0.01 and math.abs(at.Z - spot.side) < 0.01 then
 					found = true
+					T.near(high.Y, spot.height, 0.01, `the pedestal at {spot.side} is not as tall`)
 					if high.Y > tallest then
 						tallest, middle = high.Y, spot
 					end
