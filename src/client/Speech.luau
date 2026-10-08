@@ -1,8 +1,13 @@
 --!strict
 -- What a shopkeeper says, as a scroll hung in the air over their counter: parchment, the words
--- in ink, a red outline and a round red seal, like every other message of the game. The words
--- are large first, what the shop is for, and under a drawn line small, something the keeper
--- adds.
+-- in ink, a red outline, and on its left the keeper's own face, so that it is plain who is
+-- speaking. The words are large first, what the shop is for, and under a drawn line small,
+-- something the keeper adds.
+--
+-- The face is a photograph of the keeper's model (client Portrait), in a frame like the one a
+-- shinobi's portrait has in the inventory. A keeper without a model has a round red seal with
+-- a letter there instead, as every keeper had at first: the owner could not tell from a "D" on
+-- red who was talking.
 --
 -- It is a BillboardGui that is always drawn on top. The first greetings were Roblox's own chat
 -- bubbles over the keeper's head, which is under a roof and behind a curtain: the owner could
@@ -12,6 +17,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
+local Portrait = require("./Portrait")
 local Ui = require("./Ui")
 
 local Speech = {}
@@ -35,8 +41,9 @@ export type Scroll = {
 	hide: () -> (),
 }
 
--- A scroll hanging `lift` studs over the middle of `counter`, its seal stamped with `mark`.
-function Speech.build(counter: BasePart, lift: number, mark: string): Scroll
+-- A scroll hanging `lift` studs over the middle of `counter`, with the face of the keeper whose
+-- model is named `keeper` on it, or a seal stamped with `mark` when there is no such model.
+function Speech.build(counter: BasePart, lift: number, mark: string, keeper: string): Scroll
 	local board: BillboardGui = Ui.make("BillboardGui", {
 		Name = "Speech",
 		Adornee = counter,
@@ -69,43 +76,60 @@ function Speech.build(counter: BasePart, lift: number, mark: string): Scroll
 	}, edge)
 	Ui.make("UICorner", { CornerRadius = UDim.new(0.14, 0) }, paper)
 
+	-- Who is speaking: a red frame with the keeper's face in it, a square as tall as most of
+	-- the scroll.
 	local seal: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.03, 0.5),
-		Size = UDim2.fromScale(0.16, 0.66),
+		Size = UDim2.fromScale(0.24, 0.8),
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
 	}, paper)
 	Ui.make("UIAspectRatioConstraint", { AspectRatio = 1 }, seal)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
-	Ui.text(seal, {
+	local rim: UICorner = Ui.make("UICorner", { CornerRadius = UDim.new(0.16, 0) }, seal)
+	local window: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.7, 0.7),
-		TextScaled = true,
-		TextColor3 = Ui.PARCHMENT,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Text = mark,
-	})
+		Size = UDim2.fromScale(0.9, 0.9),
+		BackgroundColor3 = Ui.PANEL,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+	}, seal)
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.13, 0) }, window)
+	if not Portrait.show(window, keeper, false, true) then
+		-- No model to photograph: the round seal with a letter, as before.
+		rim.CornerRadius = UDim.new(0.5, 0)
+		seal.Size = UDim2.fromScale(0.16, 0.66)
+		window:Destroy()
+		Ui.text(seal, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.7, 0.7),
+			TextScaled = true,
+			TextColor3 = Ui.PARCHMENT,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = mark,
+		})
+	end
 
 	local title = Ui.text(paper, {
-		Position = UDim2.fromScale(0.2, 0.06),
-		Size = UDim2.fromScale(0.77, 0.46),
+		Position = UDim2.fromScale(0.26, 0.06),
+		Size = UDim2.fromScale(0.71, 0.46),
 		TextScaled = true,
 		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	-- A drawn line between the two.
 	Ui.make("Frame", {
-		Position = UDim2.fromScale(0.26, 0.56),
-		Size = UDim2.fromScale(0.65, 0.016),
+		Position = UDim2.fromScale(0.3, 0.56),
+		Size = UDim2.fromScale(0.63, 0.016),
 		BackgroundColor3 = Ui.INK,
 		BackgroundTransparency = 0.45,
 		BorderSizePixel = 0,
 	}, paper)
 	local line = Ui.text(paper, {
-		Position = UDim2.fromScale(0.2, 0.6),
-		Size = UDim2.fromScale(0.77, 0.34),
+		Position = UDim2.fromScale(0.26, 0.6),
+		Size = UDim2.fromScale(0.71, 0.34),
 		TextScaled = true,
 		TextColor3 = Ui.INK,
 		TextTransparency = 0.15,

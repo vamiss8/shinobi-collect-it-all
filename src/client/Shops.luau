@@ -48,22 +48,28 @@ local CHECK_SECONDS = 0.2
 -- How long to wait for the server's market to appear, seconds.
 local WAIT = 60
 
--- What a shop's keeper says, by shop, as keys of client/Strings: what the shop is for, the
--- seal's mark, and the lines one of which goes under it. The first line says what the shop's
--- goods are good for, and is the one said the first time; after that any of them.
-local TALK: { [string]: { pitch: string, mark: string, lines: { string } } } = {
+-- What a shop's keeper says, by shop, as keys of client/Strings: what the shop is for, and the
+-- lines one of which goes under it. The first line says what the shop's goods are good for,
+-- and is the one said the first time; after that any of them. `keeper` is whose face is on the
+-- scroll, by the id their model goes by (Config/Keepers), and `mark` the letter that stands in
+-- for the face of a keeper who has no model.
+type Talk = { pitch: string, keeper: string, mark: string, lines: { string } }
+local TALK: { [string]: Talk } = {
 	tenten = {
 		pitch = "PitchTenten",
+		keeper = "tenten",
 		mark = "T",
 		lines = { "TentenHello1", "TentenHello2", "TentenHello3", "TentenHello4" },
 	},
 	sell = {
 		pitch = "PitchSell",
+		keeper = "shizune",
 		mark = "S",
 		lines = { "MissionHello1", "MissionHello2", "MissionHello3", "MissionHello4" },
 	},
 	speed = {
 		pitch = "PitchSpeed",
+		keeper = "duy",
 		mark = "D",
 		lines = { "DuyHello1", "DuyHello2", "DuyHello3", "DuyHello4" },
 	},
@@ -106,7 +112,7 @@ function Shops.start()
 			table.insert(keepers, {
 				kind = kind :: string,
 				counter = at,
-				scroll = Speech.build(at, SPEECH_LIFT, talk.mark),
+				scroll = Speech.build(at, SPEECH_LIFT, talk.mark, talk.keeper),
 				spoken = false,
 				times = 0,
 				hideAt = nil,

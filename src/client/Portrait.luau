@@ -15,10 +15,13 @@ local Ui = require("./Ui")
 local Portrait = {}
 
 -- The camera's angle of view, narrow so that a face is not bulged, and what it takes in: this
--- share of the figure's height, centered this far up it. A chibi is half head.
+-- share of the figure's height, centered this far up it. A chibi is half head. A portrait of
+-- the face alone takes in the head and no more.
 local FIELD = 30
 local SEEN = 0.8
 local CENTER = 0.64
+local FACE_SEEN = 0.52
+local FACE_CENTER = 0.75
 
 -- A model made ready once for each character and copied for every portrait of it.
 local ready: { [string]: Model } = {}
@@ -38,8 +41,14 @@ end
 
 -- Fills `holder` with the portrait of that character and returns it, or returns nil when the
 -- character has no model. `shadow` makes it a black outline of the character, for one that has
--- not been found yet.
-function Portrait.show(holder: Instance, characterId: string, shadow: boolean?): ViewportFrame?
+-- not been found yet; `face` moves in on the face. Whoever has a model under their id can be
+-- photographed, a shopkeeper as well as a shinobi.
+function Portrait.show(
+	holder: Instance,
+	characterId: string,
+	shadow: boolean?,
+	face: boolean?
+): ViewportFrame?
 	local model = modelOf(characterId)
 	if not model then
 		return nil
@@ -59,8 +68,9 @@ function Portrait.show(holder: Instance, characterId: string, shadow: boolean?):
 
 	-- A figure stands on the scene's origin with its face to -Z: the camera stands out that
 	-- way, a little to one side and above, and looks back.
-	local focus = Vector3.new(0, Figure.HEIGHT * CENTER, 0)
-	local away = Figure.HEIGHT * SEEN / 2 / math.tan(math.rad(FIELD / 2))
+	local seen = if face then FACE_SEEN else SEEN
+	local focus = Vector3.new(0, Figure.HEIGHT * (if face then FACE_CENTER else CENTER), 0)
+	local away = Figure.HEIGHT * seen / 2 / math.tan(math.rad(FIELD / 2))
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = FIELD
 	camera.CFrame = CFrame.lookAt(focus + Vector3.new(away * 0.2, away * 0.08, -away), focus)
