@@ -5,7 +5,10 @@
 -- one, put a Model (or a single MeshPart) into ReplicatedStorage.Models (in Studio) named after
 -- the character's id from Config/Characters, e.g. "kakashi", or "enemy_" plus a zone id from
 -- Config/Zones for that zone's enemy. It is cloned, scaled to a standard height and stood on
--- its feet; nothing else in the game needs to change.
+-- its feet; nothing else in the game needs to change. "On its feet" is meant: the figure's
+-- pivot is put under whatever of it touches the ground (Logic/Footing), so one that holds a
+-- scythe or a sword out to one side still stands in the middle of its pad and under its tag.
+-- The model's own pivot is not looked at.
 --
 -- Which way a model faces: a model is taken to face +Z, as one imported from a glTF file does
 -- (glTF's front is +Z; a part's front in Roblox, the way its frame looks, is -Z), and is
@@ -24,6 +27,7 @@ local Aura = require("./Aura")
 local Build = require("./Build")
 local Catalog = require("../Config/Catalog")
 local Economy = require("../Logic/Economy")
+local Footing = require("../Logic/Footing")
 local Format = require("../Logic/Format")
 local Net = require("../Net")
 
@@ -80,6 +84,40 @@ local function tag(unit: Economy.Unit): (string, number)
 	return table.concat(lines, "\n"), #lines
 end
 
+-- The parts of a model as boxes set square with the world, for Logic/Footing.
+local function pieces(model: Model): { Footing.Piece }
+	local found = {}
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			local frame, size = part.CFrame, part.Size
+			-- The part's own three directions; how far it reaches along each of the world's is
+			-- what each of them contributes.
+			local right, up, back = frame.XVector, frame.YVector, frame.ZVector
+			local function half(pick: (Vector3) -> number): number
+				local reach = math.abs(pick(right)) * size.X
+					+ math.abs(pick(up)) * size.Y
+					+ math.abs(pick(back)) * size.Z
+				return reach / 2
+			end
+			table.insert(found, {
+				x = frame.Position.X,
+				y = frame.Position.Y,
+				z = frame.Position.Z,
+				halfX = half(function(direction)
+					return direction.X
+				end),
+				halfY = half(function(direction)
+					return direction.Y
+				end),
+				halfZ = half(function(direction)
+					return direction.Z
+				end),
+			})
+		end
+	end
+	return found
+end
+
 -- A supplied model by name, made safe to show: frozen in place, untouchable, scripts removed,
 -- scaled to `height` and with its pivot at its feet. Nil if no such model was supplied.
 local function supplied(name: string, height: number, facesFront: boolean?): Model?
@@ -116,8 +154,11 @@ local function supplied(name: string, height: number, facesFront: boolean?): Mod
 		return nil
 	end
 	model:ScaleTo(model:GetScale() * height / size.Y)
+	-- It stands on the ground under its feet; the middle of its box is where a model that
+	-- covers no ground at all is taken to stand.
 	local box = model:GetBoundingBox()
-	local feet = CFrame.new(box.Position - Vector3.new(0, height / 2, 0))
+	local x, z = Footing.of(pieces(model))
+	local feet = CFrame.new(x or box.Position.X, box.Position.Y - height / 2, z or box.Position.Z)
 	-- An imported model faces +Z, and a figure is stood by its pivot, whose front is -Z: so it
 	-- is turned about. (Not turned, every one of the fifty stood with its back to whatever it
 	-- was meant to face: the roulette's camera, the aisle of the dojo, its own portrait.) The
