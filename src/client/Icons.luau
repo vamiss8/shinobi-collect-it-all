@@ -215,6 +215,7 @@ function Icons.rebirth(holder: Instance)
 	shape(holder, 0.31, 0.31, 0.38, 0.38, ring, 0.5)
 	shape(holder, 0.35, 0.35, 0.30, 0.30, iris, 0.5)
 	shape(holder, 0.43, 0.43, 0.14, 0.14, INK, 0.5)
+	overlay(holder, Art.icons.rebirth)
 end
 
 -- Chakra control: the closing ring around its golden target, as in the exercise itself.

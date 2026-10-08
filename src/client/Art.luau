@@ -18,6 +18,7 @@ Art.icons = {
 	book = 134344077361427, -- the Bingo Book tile; assets/icons/book.png
 	meditate = 123433743975781, -- slot 1; assets/icons/meditate.png
 	focus = 74944362570117, -- slot 2, Chakra Control; assets/icons/focus.png
+	rebirth = 0, -- the Rebirth tile; assets/icons/rebirth.png (not uploaded yet)
 }
 
 -- Portraits of shinobi by character id (Config/Characters), for cards and quick slots. A
