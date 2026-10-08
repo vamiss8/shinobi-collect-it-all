@@ -35,9 +35,9 @@ local Legends = {}
 -- every other sign of the game. Its size in studs, how far out from the middle of the pedestal
 -- it hangs, and how far over the ground its own middle is: the same for all three, under the
 -- top of the lowest pedestal, so that the tags read as one row.
-local TAG = Vector2.new(6.6, 2.2)
+local TAG = Vector2.new(7, 2.4)
 local TAG_OUT = 3.4
-local TAG_HEIGHT = 1.3
+local TAG_HEIGHT = 1.5
 local TAG_FAR = 140
 -- A shinobi on show stands this many times its size, to be looked at from the lane.
 local SHOW = 1.5
@@ -154,7 +154,11 @@ local function priceTag(folder: Instance, stand: Part, legend: Catalog.Legend, o
 	board.Name = "PriceTag"
 	board.Adornee = stand
 	board.Size = UDim2.fromScale(TAG.X, TAG.Y)
-	board.StudsOffsetWorldSpace = out * TAG_OUT + Vector3.yAxis * (TAG_HEIGHT - stand.Position.Y)
+	-- Over the plaza's ground, which is not the world's zero: reckoned from zero, the tags
+	-- hung half sunk into the paving.
+	local ground = Hub.at(0, 0, 0).Y
+	board.StudsOffsetWorldSpace = out * TAG_OUT
+		+ Vector3.yAxis * (ground + TAG_HEIGHT - stand.Position.Y)
 	board.MaxDistance = TAG_FAR
 	board.LightInfluence = 0
 	board:SetAttribute(Net.LEGEND_ATTRIBUTE, legend.id)

@@ -46,7 +46,12 @@ function LegendShow.start()
 			end
 		end
 		if prompt then
+			-- The prompt is the way to buy: it names its price, and is gone for an owner.
 			prompt.Enabled = not owned[id]
+			local legend = Catalog.legendById[id]
+			if legend and mine[id] then
+				prompt.ObjectText = `{legend.name}  |  {mine[id]}`
+			end
 		end
 	end
 
