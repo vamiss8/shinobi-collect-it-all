@@ -39,6 +39,9 @@ local Kicking = {}
 local STRIP_CHECK = 0.1
 -- A throw never lands closer than this beyond the strip, studs.
 local MIN_LANDING = 8
+-- How far short of the lane's end a kunai lands at the farthest, studs: room for the roulette
+-- that stands past it, and for the shinobi it stops on, which leaps to more than its size.
+local END_ROOM = 16
 
 type Aim = { startedAt: number }
 
@@ -278,7 +281,13 @@ local function press(player: Player, claimed: unknown)
 	local chase = Tuning.Chase
 	local margin = Hub.LANE_WIDTH / 2 - 4
 	local side = math.clamp(Hub.toLocal(root.Position).Z, -margin, margin)
-	local along = math.max(distance, Tuning.Kick.stripDepth + MIN_LANDING)
+	-- It comes down short of the lane's very end, which the strongest throws reach to within
+	-- half a stud: the roulette stands a few steps past the kunai, and stood in the wall.
+	local along = math.clamp(
+		distance,
+		Tuning.Kick.stripDepth + MIN_LANDING,
+		Tuning.Kick.trackLength - END_ROOM
+	)
 	local landing = Hub.at(along, 0, side)
 	local enemyAt = landing + Vector3.new(chase.enemyGap, 0, 0)
 	local duration, height = Kick.flight(distance)
