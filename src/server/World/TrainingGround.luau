@@ -2,7 +2,7 @@
 -- The Youth Training Ground, where run speed is bought: an open yard of beaten earth edged
 -- with logs, its front to the fountain. At the front, a counter with Might Duy behind it and his
 -- turtle sitting on it; behind him, the gate of the Eight Gates, with a lantern hanging for each
--- Gate. Every player sees as many of them lit, each in its Gate's color, as they have opened
+-- Gate. Every player sees as many of them lit, green, as they have opened; the rest hang gray
 -- (Config/SpeedStages, client/GateLanterns). Behind the gate: posts to kick, a bench of
 -- weights, a boulder, a log and a high bar. Two banners stand at the front corners.
 --
@@ -54,8 +54,8 @@ local STRAW = Color3.fromRGB(214, 186, 120)
 local STEEL = Color3.fromRGB(176, 190, 197)
 local STONE = Color3.fromRGB(150, 145, 138)
 local BRONZE = Color3.fromRGB(196, 150, 70)
--- A lantern of a Gate not yet opened: plain paper, unlit.
-local UNLIT = Color3.fromRGB(214, 204, 182)
+-- A lantern of a Gate not yet opened: pale gray paper, unlit.
+local UNLIT = Color3.fromRGB(176, 178, 174)
 
 local METAL = Enum.Material.Metal
 local FABRIC = Enum.Material.Fabric

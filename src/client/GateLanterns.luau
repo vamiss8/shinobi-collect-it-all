@@ -1,8 +1,11 @@
 --!strict
 -- Lights the lanterns on the gate of the Youth Training Ground (World/TrainingGround) for this
--- player: one for every one of the Eight Gates they have opened (Config/SpeedStages), each
--- glowing in its Gate's color. The server hangs them unlit; what a client does to them only
--- that client sees, so every player sees their own way to the Gate of Death.
+-- player: one for every one of the Eight Gates they have opened (Config/SpeedStages), green and
+-- glowing a little; the rest hang pale gray, as the server hung them. What a client does to
+-- them only that client sees, so every player sees their own way to the Gate of Death.
+--
+-- They first glowed each in its Gate's color, green, blue and red; the owner asked for one
+-- plain reading instead: gray for what is not yet opened, green for what is.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -16,13 +19,9 @@ local GateLanterns = {}
 -- How long to wait for the server's market to appear, seconds.
 local WAIT = 60
 
--- Each Gate's color, by its number.
-local COLORS: { [number]: Color3 } = {}
-for _, stage in SpeedStages.list do
-	if stage.gate > 0 then
-		COLORS[stage.gate] = Color3.fromHex(stage.color)
-	end
-end
+-- An opened Gate's lantern: a green that glows without glaring, and the faint light it gives.
+local OPENED = Color3.fromRGB(104, 196, 118)
+local GLOW = { range = 9, brightness = 0.5 }
 
 function GateLanterns.start()
 	-- The server builds the market at startup, but this script may run first.
@@ -57,11 +56,13 @@ function GateLanterns.start()
 			for gate, lantern in lanterns do
 				local lit = gate <= stage.gate
 				local part = lantern.part
-				part.Color = if lit then COLORS[gate] or lantern.color else lantern.color
+				part.Color = if lit then OPENED else lantern.color
 				part.Material = if lit then Enum.Material.Neon else lantern.material
 				local light = part:FindFirstChildOfClass("PointLight")
 				if light then
-					light.Color = part.Color
+					light.Color = OPENED
+					light.Range = GLOW.range
+					light.Brightness = GLOW.brightness
 					light.Enabled = lit
 				end
 			end
