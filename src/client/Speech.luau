@@ -81,7 +81,7 @@ function Speech.build(counter: BasePart, lift: number, mark: string, keeper: str
 	local seal: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.03, 0.5),
-		Size = UDim2.fromScale(0.24, 0.8),
+		Size = UDim2.fromScale(0.2, 0.72),
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
 	}, paper)
@@ -112,24 +112,26 @@ function Speech.build(counter: BasePart, lift: number, mark: string, keeper: str
 		})
 	end
 
+	-- The words keep well clear of the face: brush letters lean out of the box they are set
+	-- in, and ran onto it.
 	local title = Ui.text(paper, {
-		Position = UDim2.fromScale(0.26, 0.06),
-		Size = UDim2.fromScale(0.71, 0.46),
+		Position = UDim2.fromScale(0.285, 0.06),
+		Size = UDim2.fromScale(0.685, 0.46),
 		TextScaled = true,
 		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	-- A drawn line between the two.
 	Ui.make("Frame", {
-		Position = UDim2.fromScale(0.3, 0.56),
-		Size = UDim2.fromScale(0.63, 0.016),
+		Position = UDim2.fromScale(0.32, 0.56),
+		Size = UDim2.fromScale(0.62, 0.016),
 		BackgroundColor3 = Ui.INK,
 		BackgroundTransparency = 0.45,
 		BorderSizePixel = 0,
 	}, paper)
 	local line = Ui.text(paper, {
-		Position = UDim2.fromScale(0.26, 0.6),
-		Size = UDim2.fromScale(0.71, 0.34),
+		Position = UDim2.fromScale(0.285, 0.6),
+		Size = UDim2.fromScale(0.685, 0.34),
 		TextScaled = true,
 		TextColor3 = Ui.INK,
 		TextTransparency = 0.15,
