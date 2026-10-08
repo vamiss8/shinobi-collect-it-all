@@ -24,9 +24,11 @@ local SUFFIXES = {
 }
 
 -- 8 -> "8", 1.25 -> "1.25", 1250 -> "1.25K", 657500000000 -> "657.5B". Up to two decimals,
--- with trailing zeros dropped. Values are truncated rather than rounded, so a price is never
--- shown as affordable a moment too early.
-function Format.short(n: number): string
+-- or as many as `decimals` says, with trailing zeros dropped. Values are truncated rather than
+-- rounded, so a price is never shown as affordable a moment too early.
+function Format.short(n: number, decimals: number?): string
+	local places = math.clamp(math.floor(decimals or 2), 0, 6)
+	local unit = 10 ^ places
 	local sign = if n < 0 then "-" else ""
 	n = math.abs(n)
 
@@ -42,10 +44,12 @@ function Format.short(n: number): string
 	end
 
 	-- The tiny nudge keeps 1.15 from becoming 1.14 through float error.
-	local text = string.format("%.2f", math.floor(value * 100 + 1e-6) / 100)
-	-- "1.50" -> "1.5", "2.00" -> "2"
-	text = (string.gsub(text, "0+$", ""))
-	text = (string.gsub(text, "%.$", ""))
+	local text = string.format(`%.{places}f`, math.floor(value * unit + 1e-6) / unit)
+	-- "1.50" -> "1.5", "2.00" -> "2"; a whole number has no zeros to spare.
+	if places > 0 then
+		text = (string.gsub(text, "0+$", ""))
+		text = (string.gsub(text, "%.$", ""))
+	end
 	return sign .. text .. SUFFIXES[tier + 1]
 end
 

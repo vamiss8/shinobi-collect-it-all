@@ -98,6 +98,18 @@ return {
 		end
 	end,
 
+	-- The list of players shows a dojo's income to a tenth: "1.2B", where two decimals are
+	-- more than a glance takes in and none would not tell two dojos apart.
+	["a number can be asked for with fewer decimals"] = function()
+		T.eq(Format.short(1.25e9, 1), "1.2B")
+		T.eq(Format.short(1e9, 1), "1B")
+		T.eq(Format.short(12.96, 1), "12.9")
+		T.eq(Format.short(999, 1), "999")
+		T.eq(Format.short(1500, 0), "1K")
+		T.eq(Format.short(100, 0), "100", "a whole number's own zeros are not trailing ones")
+		T.eq(Format.short(1250, 2), Format.short(1250))
+	end,
+
 	["negative numbers keep their sign"] = function()
 		T.eq(Format.short(-1500), "-1.5K")
 	end,
