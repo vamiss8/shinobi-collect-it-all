@@ -9,6 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Icons = require("./Icons")
+local Lettering = require("./Lettering")
+local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Strings = require("./Strings")
 local Ui = require("./Ui")
 
@@ -81,15 +83,22 @@ function UnitCard.build(
 	})
 	Ui.corner(plate, 6)
 	Ui.make("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }, plate)
+	-- The highest ranks' plates are not of one color (Config/Lettering).
+	if known and rank then
+		Lettering.dress(plate, Looks.key("rank", rank.id), true)
+	end
 
 	if mutation then
-		Ui.text(card, {
+		local words = Ui.text(card, {
 			Position = UDim2.fromOffset(10, 72),
 			Size = UDim2.new(1, -20, 0, 22),
 			TextSize = 18,
 			TextColor3 = if known then Color3.fromHex(mutation.color) else Ui.GRAY,
 			Text = string.upper(mutation.name),
 		})
+		if known then
+			Lettering.dress(words, Looks.key("mutation", mutation.id))
+		end
 	end
 
 	local upgrades = unit.upgrade or 0

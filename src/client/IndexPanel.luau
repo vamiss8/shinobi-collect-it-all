@@ -10,6 +10,8 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Index = require(ReplicatedStorage.Shared.Logic.Index)
+local Lettering = require("./Lettering")
+local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Store = require("./Store")
 local Strings = require("./Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -65,6 +67,9 @@ function IndexPanel.start()
 
 	local selected = Index.pages[1]
 	local tabButtons: { [string]: TextButton } = {}
+	-- What a page's button says is a label laid on the button: lettering colors the whole of
+	-- whatever it is put on, and the button's own face is to stay as it is.
+	local tabWords: { [string]: TextLabel } = {}
 	local cards: { TextButton } = {}
 	local bonusPercent = Tuning.Index.pageCompleteBonus * 100
 
@@ -75,7 +80,7 @@ function IndexPanel.start()
 		for page, button in tabButtons do
 			local name = pageLook(page)
 			local count = Index.count(found, page)
-			button.Text = Strings.get("IndexTab", name, count, total)
+			tabWords[page].Text = Strings.get("IndexTab", name, count, total)
 			button.BackgroundColor3 = if page == selected then Ui.EDGE else Ui.CARD
 		end
 
@@ -84,7 +89,13 @@ function IndexPanel.start()
 		header.Text = if count == total
 			then Strings.get("IndexComplete", name, bonusPercent)
 			else Strings.get("IndexProgress", name, count, total, bonusPercent)
-		header.TextColor3 = if count == total then Ui.GOLD else color
+		-- A page still being filled is headed in its mutation's lettering, a full one in gold.
+		local lettering = if count == total then nil else Looks.key("mutation", selected)
+		Lettering.dress(header, lettering)
+		if not lettering then
+			-- Lettered, its color is the lettering's: only a plain header is given one.
+			header.TextColor3 = if count == total then Ui.GOLD else color
+		end
 
 		for _, card in cards do
 			card:Destroy()
@@ -106,14 +117,20 @@ function IndexPanel.start()
 			LayoutOrder = order,
 			Size = UDim2.new(1, -8, 0, 50),
 			BackgroundColor3 = Ui.CARD,
+		})
+		local words = Ui.text(button, {
+			Size = UDim2.fromScale(1, 1),
 			TextColor3 = color,
 			TextSize = 21,
+			TextXAlignment = Enum.TextXAlignment.Center,
 		})
+		Lettering.dress(words, Looks.key("mutation", page))
 		button.Activated:Connect(function()
 			selected = page
 			redraw()
 		end)
 		tabButtons[page] = button
+		tabWords[page] = words
 	end
 
 	Store.onIndex(redraw)

@@ -31,6 +31,7 @@ local Catalog = require("../Config/Catalog")
 local Economy = require("../Logic/Economy")
 local Footing = require("../Logic/Footing")
 local Format = require("../Logic/Format")
+local Lettering = require("../Config/Lettering")
 local Net = require("../Net")
 
 local Figure = {}
@@ -56,34 +57,77 @@ function Figure.title(unit: Economy.Unit): string
 	return Catalog.unitTitle(unit.character, unit.mutation, unit.level, unit.upgrade)
 end
 
+-- One line of a figure's tag: what it says, the color it is written in (white when left out),
+-- and the key of its lettering when a plain color is not enough for it (Config/Lettering).
+type Line = { text: string, color: string?, lettering: string? }
+
 -- The tag above a figure, top to bottom: mutation (if any), rank, name with merge stars, level
 -- with income, and for an upgraded unit its base income: what it earned at level 1, which is
--- what tells a strong unit from a weak one that was merely leveled up. Returns the text and
--- how many lines it has.
-local function tag(unit: Economy.Unit): (string, number)
+-- what tells a strong unit from a weak one that was merely leveled up.
+local function tag(unit: Economy.Unit): { Line }
 	local character = Catalog.characterById[unit.character]
 	local rank = if character then Catalog.ranks[Catalog.rankOrder[character.rank]] else nil
 	local mutation = Catalog.mutationById[unit.mutation]
 
-	local lines = {}
+	local lines: { Line } = {}
 	if mutation then
-		table.insert(lines, `<font color="{mutation.color}">{string.upper(mutation.name)}</font>`)
+		table.insert(lines, {
+			text = string.upper(mutation.name),
+			color = mutation.color,
+			lettering = Lettering.key("mutation", mutation.id),
+		})
 	end
 	if rank then
-		table.insert(lines, `<font color="{rank.color}">{rank.name}</font>`)
+		table.insert(lines, {
+			text = rank.name,
+			color = rank.color,
+			lettering = Lettering.key("rank", rank.id),
+		})
 	end
 	local name = if character then character.name else unit.character
 	if unit.level > 1 then
 		name ..= ` <font color="#FFD54F">{Catalog.stars(unit.level)}</font>`
 	end
-	table.insert(lines, name)
+	table.insert(lines, { text = name })
 	local upgrades = unit.upgrade or 0
-	table.insert(lines, `Lvl {upgrades + 1} · {Format.short(Economy.unitIncome(unit))}/s`)
+	table.insert(
+		lines,
+		{ text = `Lvl {upgrades + 1} · {Format.short(Economy.unitIncome(unit))}/s` }
+	)
 	if upgrades > 0 then
 		local base = Format.short(Economy.baseIncome(unit))
-		table.insert(lines, `<font color="#BDBDBD">Base: {base}/s</font>`)
+		table.insert(lines, { text = `Base: {base}/s`, color = "#BDBDBD" })
 	end
-	return table.concat(lines, "\n"), #lines
+	return lines
+end
+
+-- Writes a tag on its board, a label to a line. (It was one label of several lines, which can
+-- be written in several colors but lettered only as a whole.) The board grows upwards with its
+-- lines: its lower edge stays just above the head. A line with lettering of its own is marked
+-- for the clients, each of which draws it (client Lettering).
+local function write(board: BillboardGui, lines: { Line })
+	board:ClearAllChildren()
+	local height = TAG_LINE * #lines
+	board.Size = UDim2.fromScale(TAG_WIDTH, height)
+	board.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
+	for index, line in lines do
+		local label = Instance.new("TextLabel")
+		label.Name = "Line" .. index
+		label.Position = UDim2.fromScale(0, (index - 1) / #lines)
+		label.Size = UDim2.fromScale(1, 1 / #lines)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.PermanentMarker
+		label.TextScaled = true
+		label.TextColor3 = if line.color then Color3.fromHex(line.color) else Color3.new(1, 1, 1)
+		label.TextStrokeTransparency = 0.4
+		label.RichText = true
+		label.Text = line.text
+		if line.lettering then
+			label:SetAttribute(Net.LETTERING_ATTRIBUTE, line.lettering)
+			CollectionService:AddTag(label, Net.LETTERING_TAG)
+		end
+		label.Parent = board
+	end
 end
 
 -- The parts of a model as boxes set square with the world, for Logic/Footing.
@@ -247,15 +291,10 @@ function Figure.build(unit: Economy.Unit): Model
 		Aura.attach(model, mutation, UNIT_HEIGHT)
 	end
 
-	-- The tag grows upwards with its line count; its bottom edge stays just above the head.
-	local text, lineCount = tag(unit)
-	local height = TAG_LINE * lineCount
-	Build.label(
-		topAnchor(model, UNIT_HEIGHT),
-		text,
-		TAG_GAP + height / 2,
-		Vector2.new(TAG_WIDTH, height)
-	)
+	local board = Instance.new("BillboardGui")
+	board.MaxDistance = 400
+	write(board, tag(unit))
+	board.Parent = topAnchor(model, UNIT_HEIGHT)
 
 	untouchable(model)
 	return model
@@ -267,14 +306,9 @@ end
 function Figure.retag(figure: Model, unit: Economy.Unit)
 	figure.Name = Figure.title(unit)
 	local anchor = figure:FindFirstChild(TAG_ANCHOR)
-	local gui = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
-	local label = if gui then gui:FindFirstChildOfClass("TextLabel") else nil
-	if gui and label then
-		local text, lineCount = tag(unit)
-		local height = TAG_LINE * lineCount
-		gui.Size = UDim2.fromScale(TAG_WIDTH, height)
-		gui.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
-		label.Text = text
+	local board = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
+	if board then
+		write(board, tag(unit))
 	end
 end
 

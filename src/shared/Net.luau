@@ -73,6 +73,11 @@ Net.UPGRADE_ATTRIBUTE = "Upgrade"
 Net.ACTIVE_ATTRIBUTE = "Active"
 -- How close a player has to stand to press a console button, studs.
 Net.PRESS_DISTANCE = 16
+-- Tag on a line of a figure's tag that is written in lettering of its own, and the attribute
+-- on it that holds the lettering's key (Config/Lettering.key). Each client draws the lettering
+-- and keeps it moving (client Lettering).
+Net.LETTERING_TAG = "Lettering"
+Net.LETTERING_ATTRIBUTE = "Lettering"
 -- Tag on the joint a carried shinobi hangs from over its carrier's head (View/Figure.attach).
 -- Every client turns the joints so tagged, so that the shinobi faces its own screen.
 Net.CARRY_TAG = "CarryJoint"
@@ -98,6 +103,9 @@ Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
 -- Number attribute on the folder: in a Studio test, the run speed level the tester is given,
 -- to try every speed stage on their own character at the Youth Training Ground.
 Net.TEST_SPEED_ATTRIBUTE = "Speed"
+-- Boolean attribute on the folder: the showroom's shinobi wear the mutations in turn, so that
+-- every aura and every lettering can be looked over without rolling for it.
+Net.TEST_AURAS_ATTRIBUTE = "Auras"
 
 -- The numbers the HUD and the store windows are drawn from. Sent on every change and once a
 -- second with the income tick.
