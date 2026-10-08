@@ -91,6 +91,14 @@ local FLOOR_WOOD = Color3.fromRGB(150, 108, 74)
 local STONE = Color3.fromRGB(150, 145, 138)
 local LANTERN = Color3.fromRGB(235, 90, 50)
 local LIGHT = Color3.fromRGB(255, 196, 120)
+-- How bright a lantern's light is at night, when it is brightest (client Lanterns), and how far
+-- the two at the front and the one inside reach. A house is small and its keeper stands three
+-- studs from the lantern inside and nine from the two in front: at 0.9 and a reach of 22 and 18
+-- the three of them washed the keeper's model out at night. The shades glow as they did; it
+-- is the light they throw that is a third of what it was where the keeper stands.
+local LANTERN_LIGHT = 0.45
+local FRONT_REACH = 15
+local INSIDE_REACH = 12
 
 -- What makes one shop's house look unlike another's.
 export type Style = {
@@ -262,7 +270,7 @@ function ShopHouse.kit(folder: Folder, place: CFrame): Kit
 		local light = Instance.new("PointLight")
 		light.Color = LIGHT
 		light.Range = range
-		light.Brightness = 0.9
+		light.Brightness = LANTERN_LIGHT
 		light.Parent = body
 		-- The evening lights it and the morning dims it, with the rest of the village's.
 		body:AddTag(Net.LANTERN_TAG)
@@ -625,9 +633,9 @@ local function buildFront(kit: Kit, style: Style): Part
 
 	for _, side in { -1, 1 } do
 		local hang = roofAt(6.3) - 0.05
-		kit.lantern(V(side * 6.3, hang, -1.5), hang - 0.4, 1, 22)
+		kit.lantern(V(side * 6.3, hang, -1.5), hang - 0.4, 1, FRONT_REACH)
 	end
-	kit.lantern(V(0, RIDGE - 0.05, 6.5), 8.6, 0.9, 18)
+	kit.lantern(V(0, RIDGE - 0.05, 6.5), 8.6, 0.9, INSIDE_REACH)
 	return counter
 end
 
