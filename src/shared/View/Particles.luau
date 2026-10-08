@@ -22,7 +22,17 @@ export type Layer = {
 	back: boolean?, -- or out of the back of the part, for something that flies nose first
 	locked: boolean?, -- particles travel with the part instead of being left where they appeared
 	spread: number, -- degrees off that direction; 180 is every way
-	size: { number }, -- studs, when a particle appears and when it is gone
+	-- Where in its part a particle appears, when not anywhere in the part's box: within a ball
+	-- as wide as the part, or on that ball's skin. From there it sets off away from the ball's
+	-- middle, or towards it when `inward`.
+	from: ("ball" | "shell")?,
+	inward: boolean?,
+	-- Studs across, when a particle appears and when it is gone; given three, when it appears,
+	-- half way and when it is gone.
+	size: { number },
+	streak: number?, -- drawn stretched along its flight, this much (1 to 3): a spark is a dart
+	flat: boolean?, -- drawn lying across its flight: one that rises is a disc seen from above
+	drag: number?, -- how fast it slows down; not at all when left out
 	lift: number, -- pull upwards, studs a second squared; negative sinks
 	spin: number, -- degrees a second, either way
 	-- 0 is paint, 1 is light. Light is added to what is behind it: it shows in the dark and
@@ -50,9 +60,36 @@ function Particles.emitter(layer: Layer, own: Color3): ParticleEmitter
 	particles.LockedToPart = layer.locked == true
 	particles.SpreadAngle = Vector2.new(layer.spread, layer.spread)
 	particles.Acceleration = Vector3.new(0, layer.lift, 0)
-	particles.Rotation = NumberRange.new(0, 360)
-	particles.RotSpeed = NumberRange.new(-layer.spin, layer.spin)
-	particles.Size = NumberSequence.new(layer.size[1], layer.size[2])
+	if layer.streak then
+		-- A dart points the way it flies: it is neither turned nor spun.
+		particles.Orientation = Enum.ParticleOrientation.VelocityParallel
+		particles.Squash = NumberSequence.new(layer.streak)
+		particles.Rotation = NumberRange.new(0)
+	else
+		if layer.flat then
+			particles.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+		end
+		particles.Rotation = NumberRange.new(0, 360)
+		particles.RotSpeed = NumberRange.new(-layer.spin, layer.spin)
+	end
+	if layer.from then
+		particles.Shape = Enum.ParticleEmitterShape.Sphere
+		particles.ShapeStyle = if layer.from == "shell"
+			then Enum.ParticleEmitterShapeStyle.Surface
+			else Enum.ParticleEmitterShapeStyle.Volume
+		particles.ShapeInOut = if layer.inward
+			then Enum.ParticleEmitterShapeInOut.Inward
+			else Enum.ParticleEmitterShapeInOut.Outward
+	end
+	particles.Drag = layer.drag or 0
+	local size = layer.size
+	particles.Size = if #size >= 3
+		then NumberSequence.new({
+			NumberSequenceKeypoint.new(0, size[1]),
+			NumberSequenceKeypoint.new(0.5, size[2]),
+			NumberSequenceKeypoint.new(1, size[3]),
+		})
+		else NumberSequence.new(size[1], size[2])
 	-- Each particle fades in, holds, and fades out again.
 	particles.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
