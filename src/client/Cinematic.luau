@@ -595,15 +595,17 @@ local function fly(flight: Net.Flight)
 	end)
 end
 
--- The banner of the intro: a scroll like the one messages are written on, larger and hung
--- under it, with the enemy's name in ink and a line under the name. What it says in color it
+-- The banner of the intro: a scroll like the one messages are written on, larger, at the top
+-- of the screen where the messages are (the owner asked for it there: nothing else is said up
+-- there while the enemy is looked at, now that what the roulette stopped on is not named),
+-- with the enemy's name in ink and a line under the name. What it says in color it
 -- says with its outline and its seal, as every message does. (It was red and white lettering
 -- straight on the picture at first, which was nothing like the rest of the game.)
 local function buildBanner(): Banner
 	local screen = Ui.screen("Chase", 16)
 	local paper = Ui.parchment(screen, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 128),
+		Position = UDim2.new(0.5, 0, 0, 20),
 		Size = UDim2.fromOffset(840, 148),
 		Visible = false,
 	}, 76)
