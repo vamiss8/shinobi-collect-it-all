@@ -36,8 +36,9 @@ return {
 			end
 		end
 		T.eq(up, TIME.daylight)
-		T.ok(TIME.daylight > TIME.night, "the night is as long as the day")
-		T.ok(TIME.night >= 120, "the night is over before it has been looked at")
+		-- The owner's lengths: five minutes of each.
+		T.eq(TIME.daylight, 300)
+		T.eq(TIME.night, 300)
 	end,
 
 	["the hours the light is known at come round the clock in order"] = function()

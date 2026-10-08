@@ -357,9 +357,10 @@ ZoneArt.day = {
 
 -- How long the village's day is, in seconds of play: from sunrise to sunset and from sunset to
 -- sunrise, each twelve hours on the clock; and the hour a server's first day begins at, so that
--- whoever joins a new server finds a morning.
+-- whoever joins a new server finds a morning. Five minutes of each, at the owner's word: the
+-- day was ten at first, and the night with its lanterns came round too seldom.
 ZoneArt.daytime = {
-	daylight = 600,
+	daylight = 300,
 	night = 300,
 	begins = 8,
 }
