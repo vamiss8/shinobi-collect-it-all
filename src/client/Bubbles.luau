@@ -29,6 +29,8 @@ local LOOKS: { [number]: { color: Color3, size: number } } = {
 	[5] = { color = Ui.BLUE, size = 154 },
 	[10] = { color = Ui.GOLD, size = 170 },
 }
+-- How far from the middle of the screen a seal's middle keeps, in layout pixels.
+local CLEAR_OF_MIDDLE = 250
 local PLAIN = { color = Ui.GREEN, size = 140 }
 
 type Shown = { id: number, multiplier: number, button: TextButton }
@@ -149,7 +151,13 @@ function Bubbles.start()
 
 		-- Somewhere in the middle of the screen: clear of the message scroll above and of the
 		-- ring and the power bar below.
-		local button = draw(screen, offer, rng:NextNumber(0.25, 0.75), rng:NextNumber(0.3, 0.5))
+		-- To one side of the screen's middle or the other, never over it: the Chakra Control
+		-- board stands there, in a layer above this one, and a seal behind it cannot be seen
+		-- or broken. The gap is half the board, half a seal and a little room.
+		local gap = math.min(CLEAR_OF_MIDDLE / Ui.room().X, 0.2)
+		local side = if rng:NextInteger(0, 1) == 0 then -1 else 1
+		local x = 0.5 + side * rng:NextNumber(gap, math.max(gap, 0.3))
+		local button = draw(screen, offer, x, rng:NextNumber(0.3, 0.5))
 		local bubble: Shown = { id = offer.id, multiplier = offer.multiplier, button = button }
 		shown = bubble
 		button.Activated:Connect(pop)
