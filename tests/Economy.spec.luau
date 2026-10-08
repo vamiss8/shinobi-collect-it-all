@@ -16,6 +16,32 @@ local function unit(character: string, mutation: string, level: number): Economy
 end
 
 return {
+	-- The owner's word: a shinobi grows as it is levelled up.
+	["a shinobi stands taller for its levels, most of all for the first, and not past a bound"] = function()
+		T.eq(Economy.growth(0), 1)
+		T.eq(Economy.growth(nil), 1)
+		local before, step = 1, math.huge
+		for upgrades = 1, Tuning.Upgrade.maxUpgrades do
+			local growth = Economy.growth(upgrades)
+			T.ok(growth > before, `level {upgrades + 1} stands no taller`)
+			T.ok(
+				growth - before <= step + 1e-12,
+				`level {upgrades + 1} grows by more than the last`
+			)
+			step, before = growth - before, growth
+		end
+		T.ok(before < Tuning.Upgrade.tallest, "the last level stands past the bound")
+		T.ok(before > Tuning.Upgrade.tallest - 0.01, "the last level stands well short of it")
+		-- Ten levels are seen: a twentieth of the height or more.
+		T.ok(Economy.growth(10) >= 1.05, `ten levels add {Economy.growth(10) - 1}`)
+		-- A floor of the dojo is 14 studs: the tallest shinobi, 4.8 studs grown, with a tag
+		-- of five lines of 1.3 studs over a gap of 0.4, stays under the next floor.
+		T.ok(
+			4.8 * Tuning.Upgrade.tallest + 0.4 + 5 * 1.3 < 14,
+			"a grown shinobi's tag is in the ceiling"
+		)
+	end,
+
 	["income multiplies base, mutation and merge level"] = function()
 		local merge = Tuning.Dojo.mergeMultiplier
 		T.ok(ICE > 1, "the ice mutation must boost income for this case to mean anything")

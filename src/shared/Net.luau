@@ -98,6 +98,12 @@ Net.PRESS_DISTANCE = 16
 -- and keeps it moving (client Lettering).
 Net.LETTERING_TAG = "Lettering"
 Net.LETTERING_ATTRIBUTE = "Lettering"
+-- Attributes on a shinobi's figure (View/Figure.build): the size it was built at, as
+-- Model:GetScale has it, and how many times that it stands for the levels bought for it. Their
+-- product is the size the figure is meant to have, which is what a client that plays with its
+-- size (the swell at an upgrade) goes back to.
+Net.BUILT_ATTRIBUTE = "BuiltScale"
+Net.GROWTH_ATTRIBUTE = "Growth"
 -- Tag on the joint a carried shinobi hangs from over its carrier's head (View/Figure.attach).
 -- Every client turns the joints so tagged, so that the shinobi faces its own screen.
 Net.CARRY_TAG = "CarryJoint"

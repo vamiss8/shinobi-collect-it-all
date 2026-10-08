@@ -169,6 +169,16 @@ end
 local function supplied(name: string, height: number): Model?
 	local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
 	local template = if folder then folder:FindFirstChild(name) else nil
+	-- Studio's importer names a model after its file, capitals and all: "Tsunade" is found
+	-- for "tsunade".
+	if folder and not template then
+		for _, child in folder:GetChildren() do
+			if string.lower(child.Name) == name then
+				template = child
+				break
+			end
+		end
+	end
 	local model: Model
 	if template and template:IsA("Model") then
 		model = template:Clone()
@@ -277,8 +287,9 @@ local function untouchable(model: Model)
 end
 
 -- Builds a shinobi standing at the world origin. Its pivot is at its feet, so
--- `figure:PivotTo(cframe)` stands it on that point.
-function Figure.build(unit: Economy.Unit): Model
+-- `figure:PivotTo(cframe)` stands it on that point. It stands taller for the levels bought
+-- for it (Economy.growth); `show` makes it that many times larger again, for one put on show.
+function Figure.build(unit: Economy.Unit, show: number?): Model
 	local rank = Catalog.rankOf(unit.character)
 	local rankColor = if rank then Color3.fromHex(rank.color) else Color3.new(1, 1, 1)
 	local mutation = Catalog.mutationById[unit.mutation]
@@ -289,6 +300,10 @@ function Figure.build(unit: Economy.Unit): Model
 	if mutation then
 		Aura.attach(model, mutation, UNIT_HEIGHT)
 	end
+	-- A legendary shinobi has an aura that is its own, whatever else it wears.
+	if Catalog.isLegend(unit.character) then
+		Aura.legend(model, unit.character, UNIT_HEIGHT)
+	end
 
 	local board = Instance.new("BillboardGui")
 	board.MaxDistance = 400
@@ -296,6 +311,14 @@ function Figure.build(unit: Economy.Unit): Model
 	board.Parent = topAnchor(model, UNIT_HEIGHT)
 
 	untouchable(model)
+
+	-- Last, so that the aura and the tag's anchor grow with it. The size it is built at is
+	-- left on it, with how much it has grown: whoever changes its size goes by the two.
+	local built = model:GetScale() * (show or 1)
+	local growth = Economy.growth(unit.upgrade)
+	model:SetAttribute(Net.BUILT_ATTRIBUTE, built)
+	model:SetAttribute(Net.GROWTH_ATTRIBUTE, growth)
+	model:ScaleTo(built * growth)
 	return model
 end
 
@@ -304,6 +327,13 @@ end
 -- is left alone; built anew it would be gone for a moment.
 function Figure.retag(figure: Model, unit: Economy.Unit)
 	figure.Name = Figure.title(unit)
+	-- It grows where it stands, about its feet.
+	local built = figure:GetAttribute(Net.BUILT_ATTRIBUTE)
+	if typeof(built) == "number" then
+		local growth = Economy.growth(unit.upgrade)
+		figure:SetAttribute(Net.GROWTH_ATTRIBUTE, growth)
+		figure:ScaleTo(built * growth)
+	end
 	local anchor = figure:FindFirstChild(TAG_ANCHOR)
 	local board = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
 	if board then

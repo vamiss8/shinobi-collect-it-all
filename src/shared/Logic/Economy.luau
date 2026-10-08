@@ -33,6 +33,14 @@ function Economy.unitIncome(unit: Unit): number
 	return Economy.baseIncome(unit) * Tuning.Upgrade.incomeGrowth ^ (unit.upgrade or 0)
 end
 
+-- How many times its own height a shinobi with this many upgrades stands (Tuning.Upgrade): 1
+-- with none, and never quite `tallest`.
+function Economy.growth(upgrades: number?): number
+	local u = Tuning.Upgrade
+	local bought = math.clamp(upgrades or 0, 0, u.maxUpgrades)
+	return 1 + (u.tallest - 1) * (1 - math.exp(-bought / u.growthLevels))
+end
+
 -- Price of the unit's next upgrade, or nil when it is maxed out. Prices scale with what the
 -- unit earns, so upgrading a rare unit costs more and gives more.
 function Economy.upgradePrice(unit: Unit): number?

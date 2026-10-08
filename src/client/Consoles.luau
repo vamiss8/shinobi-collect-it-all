@@ -58,8 +58,23 @@ local SPARKS: Particles.Layer = {
 -- Where each button rests, remembered at its first press: a press that comes in the middle of
 -- the last one's dip must not take the dip for the button's place.
 local rests: { [BasePart]: CFrame } = {}
--- The size each swelling shinobi really is, for the same reason.
+-- The size each swelling shinobi really is, for the same reason: for a figure that does not
+-- say what size it is meant to be.
 local sizes: { [Model]: number } = {}
+
+-- The size a figure is meant to have: what it was built at times what it has grown by, as the
+-- server left it on the figure (View/Figure). A shinobi grows with its levels, so the size
+-- the swell returns to is not the one it set out from.
+local function meant(figure: Model): number
+	local built = figure:GetAttribute(Net.BUILT_ATTRIBUTE)
+	local growth = figure:GetAttribute(Net.GROWTH_ATTRIBUTE)
+	if typeof(built) == "number" and typeof(growth) == "number" then
+		return built * growth
+	end
+	local size = sizes[figure] or figure:GetScale()
+	sizes[figure] = size
+	return size
+end
 
 -- Dips a button into its board and lets it spring back. Only this player sees it.
 local function dip(button: BasePart)
@@ -89,19 +104,17 @@ local function celebrate(upgrade: Net.Upgraded)
 	end
 	local feet = figure:GetPivot().Position
 
-	-- It swells and settles back to the size it was.
-	local size = sizes[figure] or figure:GetScale()
-	sizes[figure] = size
+	-- It swells and settles at the size it has grown to.
 	local startedAt = os.clock()
 	local swelling: RBXScriptConnection
 	swelling = RunService.RenderStepped:Connect(function()
 		local t = (os.clock() - startedAt) / SWELL_SECONDS
 		if t < 1 and figure.Parent then
-			figure:ScaleTo(size * (1 + SWELL * math.sin(math.pi * t)))
+			figure:ScaleTo(meant(figure) * (1 + SWELL * math.sin(math.pi * t)))
 		else
 			swelling:Disconnect()
 			if figure.Parent then
-				figure:ScaleTo(size)
+				figure:ScaleTo(meant(figure))
 			end
 			sizes[figure] = nil
 		end

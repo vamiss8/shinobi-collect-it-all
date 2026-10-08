@@ -114,6 +114,12 @@ return {
 		costSeconds = 5, -- the first upgrade costs this many seconds of the unit's income
 		costGrowth = 1.5, -- and each next one this many times more
 		maxUpgrades = 199, -- so the highest level shown is 200
+		-- A shinobi stands taller for the levels bought for it: up to `tallest` times its
+		-- height, and most of that over the first levels, `growthLevels` of them bringing it
+		-- about two thirds of the way, so that the first few are seen at once. No taller: a
+		-- floor of the dojo is fourteen studs, and the tag has to fit under the next one.
+		tallest = 1.3,
+		growthLevels = 35,
 	},
 
 	Luck = {
