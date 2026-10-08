@@ -71,9 +71,12 @@ local TEXT: { [string]: string } = {
 	ShopTentenTitle = "Tenten's Ninja Tools",
 	ShopTentenHint = "A better kunai gives more Chakra from every kind of training and changes "
 		.. "how your throw looks. They are bought in order.",
-	-- What Tenten says when her shop is opened, one at random.
-	TentenHello1 = "Welcome to my shop! Every kunai here flies true.",
-	TentenHello2 = "A better kunai makes every rep of training count for more!",
+	-- What a keeper says to whoever comes up to the counter (client Shops): what the shop is
+	-- for, large, and one of the lines under it. The first line says what the shop's goods
+	-- are good for and is the one said first; after that any of them.
+	PitchTenten = "Buy a better kunai here!",
+	TentenHello1 = "A better kunai gives more Chakra for every rep!",
+	TentenHello2 = "Welcome to my shop! Every kunai here flies true.",
 	TentenHello3 = "Kunai, shuriken, scrolls... if it's sharp, I sell it!",
 	TentenHello4 = "One at a time! Master each blade before the next.",
 	ShopKunaiChakra = "+%s Chakra per rep",
@@ -96,8 +99,8 @@ local TEXT: { [string]: string } = {
 	-- On the scroll that names a new speed stage, under its name.
 	StageGateOpened = "Gate %s of %s is open!  Run speed %s",
 	StageReached = "A new stage of training!  Run speed %s",
-	-- What Might Duy says when the training ground is opened, one at random.
-	DuyHello1 = "Youth is all about running! Pick up the pace!",
+	PitchSpeed = "Improve your run speed here!",
+	DuyHello1 = "Run faster and you get home from the farther zones!",
 	DuyHello2 = "Strap on those weights and run until the sun goes down!",
 	DuyHello3 = "Even a genin can open the Gates with enough hard work!",
 	DuyHello4 = "Your youth is burning bright today!",
@@ -141,9 +144,9 @@ local TEXT: { [string]: string } = {
 	SellTitle = "Mission Desk",
 	SellHint = "Send a shinobi on its last mission: it will not come back, and Shizune pays "
 		.. "you its reward. Click one to send it.",
-	-- What Shizune says when the desk is opened, one at random.
-	MissionHello1 = "Welcome to the Mission Desk! Shinobi are always needed out there.",
-	MissionHello2 = "Every shinobi you hand in earns you Ryo.",
+	PitchSell = "Send shinobi on a last mission here!",
+	MissionHello1 = "Spare shinobi earn you Ryo on their last mission.",
+	MissionHello2 = "Welcome to the Mission Desk! Shinobi are always needed.",
 	MissionHello3 = "Tonton, those are mission reports, not snacks!",
 	MissionHello4 = "Lady Tsunade wants all of these missions filled by tonight...",
 	SellEmpty = "Nobody to send. Shinobi on pads have to be taken off first.",
