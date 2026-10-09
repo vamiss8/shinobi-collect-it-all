@@ -375,7 +375,8 @@ function RebirthPanel.start()
 					Rebirth.ryo(done),
 					Rebirth.chakra(done),
 					Rebirth.mutationLuck(done)
-				)
+				),
+				"rank"
 			)
 			window.close()
 		end

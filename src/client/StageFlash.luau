@@ -12,10 +12,15 @@
 -- bar, the readouts and the buttons do not, so that it never comes between a player and what
 -- they are reading or timing.
 --
--- What is celebrated at the player's own doing (a stage bought, a rebirth) is shown at once,
--- over whatever the scroll said. What comes of itself (an event beginning: client EventShow)
--- WAITS ITS TURN with StageFlash.queue: until the scroll is free and no window is open over
--- where it would unroll, so that it is never on top of anything nor hidden under it.
+-- THE SCROLL IS NEVER UNDER A WINDOW. A window is drawn over it, and a stage is bought in one:
+-- the scroll for a new stage unrolled behind the training ground's window and was gone before
+-- the window was shut. So what is celebrated at the player's own doing (a stage bought, a
+-- rebirth: StageFlash.show) flashes the screen at once, as the answer to what they did, and
+-- its scroll comes at once only if no window is open; otherwise as soon as the window is
+-- shut. Of several stages bought in one sitting the last is the one named. What comes of
+-- itself (an event beginning: client EventShow) WAITS ITS TURN altogether with
+-- StageFlash.queue: until the scroll is free of another announcement too, so that it is never
+-- on top of anything.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -45,44 +50,46 @@ local QUEUE_SECONDS = 0.25
 export type Stamp = string | (holder: Instance) -> ()
 
 -- An announcement that waits its turn. `still` says whether it is still worth making when
--- the turn comes.
+-- the turn comes; `flash` whether the screen is to flash with it then; and of those waiting
+-- under one `slot` only the latest is kept.
 type Waiting = {
 	color: Color3,
 	stamp: Stamp,
 	title: string,
 	words: string,
 	still: (() -> boolean)?,
+	flash: boolean,
+	slot: string?,
 }
 
--- Set by start(): flashes the screen and puts up the scroll.
-local present: ((color: Color3, stamp: Stamp, title: string, words: string) -> ())? = nil
+-- Set by start(): puts up the scroll, flashing the screen with it or not; and flashes the
+-- screen alone.
+local present: ((color: Color3, stamp: Stamp, title: string, words: string, flash: boolean) -> ())? =
+	nil
+local glare: ((color: Color3) -> ())? = nil
 -- Those waiting, in the order they came; whether something is seeing them through; and when
 -- the scroll is free of what it shows now.
 local waiting: { Waiting } = {}
 local draining = false
 local busyUntil = 0
 
--- Flashes the screen in `color` and names something on the scroll for a moment: `stamp` on its
--- seal, `title` large, `words` under it. Nothing happens before start() has run.
-function StageFlash.show(color: Color3, stamp: Stamp, title: string, words: string)
-	if present then
-		present(color, stamp, title, words)
+-- Takes what waits under a slot out of the line: something newer has come for it.
+local function forget(slot: string?)
+	if not slot then
+		return
+	end
+	for index = #waiting, 1, -1 do
+		if waiting[index].slot == slot then
+			table.remove(waiting, index)
+		end
 	end
 end
 
--- The same, in its turn: once the scroll is free of whatever it shows and no window is open.
--- It is dropped if `still` says, when its turn comes, that it is no longer worth making.
-function StageFlash.queue(
-	color: Color3,
-	stamp: Stamp,
-	title: string,
-	words: string,
-	still: (() -> boolean)?
-)
-	table.insert(
-		waiting,
-		{ color = color, stamp = stamp, title = title, words = words, still = still }
-	)
+-- Puts an announcement in the line and sees the line through: each is shown once the scroll
+-- is free of whatever it shows and no window is open over it.
+local function enqueue(entry: Waiting)
+	forget(entry.slot)
+	table.insert(waiting, entry)
 	if draining then
 		return
 	end
@@ -95,12 +102,59 @@ function StageFlash.queue(
 			else
 				local due = table.remove(waiting, 1)
 				if due and (not due.still or due.still()) then
-					show(due.color, due.stamp, due.title, due.words)
+					show(due.color, due.stamp, due.title, due.words, due.flash)
 				end
 			end
 		end
 		draining = false
 	end)
+end
+
+-- Flashes the screen in `color` and names something on the scroll for a moment: `stamp` on its
+-- seal, `title` large, `words` under it. With a window open the flash comes at once and the
+-- scroll when the window is shut; of several shown under one `slot` meanwhile, the last.
+-- Nothing happens before start() has run.
+function StageFlash.show(color: Color3, stamp: Stamp, title: string, words: string, slot: string?)
+	local show = present
+	if not show then
+		return
+	end
+	if Ui.windowOpen() then
+		if glare then
+			glare(color)
+		end
+		enqueue({
+			color = color,
+			stamp = stamp,
+			title = title,
+			words = words,
+			flash = false,
+			slot = slot,
+		})
+	else
+		forget(slot)
+		show(color, stamp, title, words, true)
+	end
+end
+
+-- The same, in its turn: once the scroll is free of whatever it shows and no window is open,
+-- flash and scroll together. It is dropped if `still` says, when its turn comes, that it is
+-- no longer worth making.
+function StageFlash.queue(
+	color: Color3,
+	stamp: Stamp,
+	title: string,
+	words: string,
+	still: (() -> boolean)?
+)
+	enqueue({
+		color = color,
+		stamp = stamp,
+		title = title,
+		words = words,
+		still = still,
+		flash = true,
+	})
 end
 
 function StageFlash.start()
@@ -160,17 +214,30 @@ function StageFlash.start()
 
 	local token = 0
 	local flashedAt = -FLASH_APART
-	present = function(color: Color3, stamp: Stamp, title: string, words: string)
+	local function flashScreen(color: Color3)
+		if os.clock() - flashedAt < FLASH_APART then
+			return
+		end
+		flashedAt = os.clock()
+		flash.BackgroundColor3 = color
+		flash.BackgroundTransparency = 0.45
+		flash.Visible = true
+		TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
+			:Play()
+	end
+	glare = flashScreen
+	present = function(
+		color: Color3,
+		stamp: Stamp,
+		title: string,
+		words: string,
+		withFlash: boolean
+	)
 		token += 1
 		local mine = token
 		busyUntil = os.clock() + HOLD_SECONDS + TURN_SECONDS
-		if os.clock() - flashedAt >= FLASH_APART then
-			flashedAt = os.clock()
-			flash.BackgroundColor3 = color
-			flash.BackgroundTransparency = 0.45
-			flash.Visible = true
-			TweenService:Create(flash, TweenInfo.new(FLASH_SECONDS), { BackgroundTransparency = 1 })
-				:Play()
+		if withFlash then
+			flashScreen(color)
 		end
 
 		Ui.rewrite(paper, function()
@@ -213,7 +280,7 @@ function StageFlash.start()
 			else Strings.get("StageReached", speed)
 		StageFlash.show(color, function(holder)
 			Icons.stage(holder, stage)
-		end, string.upper(stage.name), words)
+		end, string.upper(stage.name), words, "stage")
 	end)
 end
 
