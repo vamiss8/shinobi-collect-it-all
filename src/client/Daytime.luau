@@ -20,7 +20,8 @@ local Net = require(ReplicatedStorage.Shared.Net)
 
 local Daytime = {}
 
--- How long the hands take to turn to an hour they are to be held at, and back, seconds.
+-- How long the hands take to turn to an hour they are to be held at, and back, seconds, when
+-- whoever holds them names no time of their own.
 local TURN_SECONDS = 4
 -- The hands are turned forward to an hour up to this many hours on; farther than that, back.
 local FORWARD_MOST = 18
@@ -33,10 +34,12 @@ local turnedAt = -math.huge
 local hourFrom = 0
 local gripFrom = 0
 local hoursRound = 0
+-- How long the turn that is under way takes, seconds.
+local turnSeconds = TURN_SECONDS
 
 -- How far through the turn the hands are, eased, 0..1.
 local function turned(): number
-	local t = math.clamp((os.clock() - turnedAt) / TURN_SECONDS, 0, 1)
+	local t = math.clamp((os.clock() - turnedAt) / turnSeconds, 0, 1)
 	return t * t * (3 - 2 * t)
 end
 
@@ -83,11 +86,12 @@ end
 
 -- Whether the hands are on their way to a held hour or back from one.
 function Daytime.turning(): boolean
-	return os.clock() - turnedAt < TURN_SECONDS
+	return os.clock() - turnedAt < turnSeconds
 end
 
--- Holds the clock at `hour`, or with nil lets it go. The hands set out from where they are.
-function Daytime.hold(hour: number?)
+-- Holds the clock at `hour`, or with nil lets it go. The hands set out from where they are and
+-- take `seconds` over the turn, or the usual time.
+function Daytime.hold(hour: number?, seconds: number?)
 	if hour == heldAt then
 		return
 	end
@@ -95,6 +99,7 @@ function Daytime.hold(hour: number?)
 	gripFrom = Daytime.grip()
 	heldAt = hour
 	turnedAt = os.clock()
+	turnSeconds = seconds or TURN_SECONDS
 	local forward = ((hour or own()) - hourFrom) % 24
 	hoursRound = if forward > FORWARD_MOST then forward - 24 else forward
 end

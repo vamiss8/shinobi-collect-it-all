@@ -8,6 +8,13 @@
 -- red night, a ceiling of red cloud shedding black feathers, fireworks over falling gold
 -- leaves on a lantern-lit evening.
 --
+-- THE RED MOON IS THE MOON, NOT A DRAWING OF ONE (owner, 2026-10-09, on the first, a disc of
+-- flat red with three dark spots: "it looks slightly cartoonish, and is not always laid over
+-- the Moon at once: at the start of the camera's flight it is sometimes not there yet, and it
+-- looks crooked"). It is the place's own moon texture, tinted red, on a board that stands
+-- exactly where the hour has the moon, from the first frame and through the turn of the clock:
+-- the board is put there again whenever the light is written (Mood.onLit).
+--
 -- AN EVENT LOOKS THE SAME WHATEVER THE HOUR: the village is held in the event's own light for
 -- as long as it runs (Mood.hold), and nothing an event puts in the air takes the light of the
 -- place, which by night would turn gold leaves gray.
@@ -31,6 +38,7 @@ local Cinematic = require("./Cinematic")
 local Events = require(ReplicatedStorage.Shared.Logic.Events)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
+local Looks = require(ReplicatedStorage.Shared.Config.ZoneArt)
 local Mood = require("./Mood")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
@@ -58,21 +66,33 @@ local ROOF = 40
 local FIRST_PERSON = 1.5
 local CLEAR = 2
 local ROOM_LEAST = 0.4
--- The red moon is the place's own moon turned red: a disc that hangs before it and hides it,
--- wherever the hour has it in the sky. Where the hour has no moon up (most zones keep an hour
--- of the day) it hangs MOON_WAY instead, and it swings from one to the other at MOON_SWING, a
--- rate, as the camera passes from zone to zone. MOON_LOW is how high the real moon must stand
--- to be the one, as the height of its direction. The disc is MOON_FAR studs off, near enough
--- for the air's haze to leave it be; MOON_DISC of its board is the moon and the rest its halo,
--- and it is MOON_OVER times as wide as the moon it covers, which is MOON_ANGLE degrees wide
--- when the place has no Sky to ask.
+-- The clock is turned to an event's hour in this long, seconds: the sky has all but arrived
+-- by the time the camera's eyes have lifted to it (Logic/SkyLook).
+local HOLD_SECONDS = 2.4
+-- The red moon is the place's own moon turned red: a board that hangs before it and hides it,
+-- wherever the hour has it in the sky. In a place lit by the hour that is where it always is,
+-- below the horizon too, so that it rises with the moon as the clock is turned. Elsewhere it
+-- is on the moon when the zone's hour has one up (MOON_LOW is how high, as the height of its
+-- direction) and hangs MOON_WAY when it has none, and goes from the one to the other in
+-- MOON_SWING seconds as the camera passes from zone to zone. The board is MOON_FAR studs off,
+-- near enough for the air's haze to leave it be; MOON_DISC of it is the moon and the rest its
+-- glow, and the moon on it is MOON_OVER times as wide as the one it covers, which is
+-- MOON_ANGLE degrees wide when the place has no Sky to ask.
 local MOON_WAY = Vector3.new(-0.42, 0.56, 0.72).Unit
 local MOON_LOW = 0.3
-local MOON_SWING = 2.5
+local MOON_SWING = 0.7
 local MOON_FAR = 340
-local MOON_DISC = 0.66
+local MOON_DISC = 0.62
 local MOON_OVER = 1.14
 local MOON_ANGLE = 11
+-- The moon every place has unless its Sky names another, and where the disc lies in that
+-- picture, which is 128 pixels square with black round the moon: the corner and the size of
+-- the square the disc fills, a pixel inside its soft edge.
+local MOON_TEXTURE = "rbxasset://sky/moon.jpg"
+local MOON_CUT = { 9, 7, 111, 112 }
+-- What the gray moon is multiplied by, and how many times brighter than that it is drawn.
+local MOON_RED = Color3.fromRGB(255, 58, 70)
+local MOON_BRIGHT = 2.2
 -- The cloud ceiling: how far over the camera it hangs and how wide it is, studs.
 local CEILING_UP = 120
 local CEILING_WIDE = 420
@@ -113,29 +133,25 @@ local function unseen(size: Vector3): Part
 	return part
 end
 
--- The way to the red moon just now: to the place's own moon when the hour has it up, so that
--- the disc covers it and there is one moon in the sky, a red one.
-local function moonWay(): Vector3
-	local real = Lighting:GetMoonDirection()
-	return if real.Y > MOON_LOW then real.Unit else MOON_WAY
-end
-
--- A red moon: a disc that always faces the camera, far off, before the moon.
-local function moon(): Scene
+-- A red moon: the moon's own picture, tinted, on a board that always faces the camera, far
+-- off, before the moon. `byTheHour` says whether the camera is in a place lit by the hour,
+-- where the board keeps to the moon whatever its height.
+local function moon(byTheHour: () -> boolean): Scene
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	local angle = if sky then sky.MoonAngularSize else MOON_ANGLE
+	local texture = if sky and sky.MoonTextureId ~= "" then sky.MoonTextureId else MOON_TEXTURE
 	local wide = 2 * MOON_FAR * math.tan(math.rad(angle * MOON_OVER / 2)) / MOON_DISC
 	local anchor = unseen(Vector3.one)
 	local board: BillboardGui = Ui.make("BillboardGui", {
 		Size = UDim2.fromScale(wide, wide),
 		LightInfluence = 0,
-		Brightness = 2,
+		Brightness = MOON_BRIGHT,
 		MaxDistance = MOON_FAR * 3,
 	}, anchor)
-	local function disc(size: number, x: number, y: number, color: Color3, clear: number)
+	local function disc(size: number, color: Color3, clear: number)
 		local frame = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(x, y),
+			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(size, size),
 			BackgroundColor3 = color,
 			BackgroundTransparency = clear,
@@ -143,20 +159,49 @@ local function moon(): Scene
 		}, board)
 		Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
 	end
-	-- A halo, the moon, and the darker seas on it.
-	disc(1, 0.5, 0.5, Color3.fromRGB(255, 23, 68), 0.82)
-	disc(0.82, 0.5, 0.5, Color3.fromRGB(255, 61, 85), 0.6)
-	disc(MOON_DISC, 0.5, 0.5, Color3.fromRGB(229, 20, 46), 0)
-	disc(0.16, 0.42, 0.42, Color3.fromRGB(170, 8, 28), 0)
-	disc(0.12, 0.60, 0.58, Color3.fromRGB(170, 8, 28), 0)
-	disc(0.07, 0.58, 0.36, Color3.fromRGB(170, 8, 28), 0)
-	local way = moonWay()
+	-- A faint glow, thinning outward; under the moon a plain red disc, which is all there is
+	-- should the picture not load; and the moon.
+	disc(1, Color3.fromRGB(255, 40, 70), 0.93)
+	disc(0.86, Color3.fromRGB(255, 50, 76), 0.88)
+	disc(0.72, Color3.fromRGB(255, 64, 84), 0.8)
+	disc(MOON_DISC, Color3.fromRGB(190, 26, 44), 0)
+	local face: ImageLabel = Ui.make("ImageLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(MOON_DISC, MOON_DISC),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = texture,
+		ImageColor3 = MOON_RED,
+		ScaleType = Enum.ScaleType.Stretch,
+	}, board)
+	if texture == MOON_TEXTURE then
+		face.ImageRectOffset = Vector2.new(MOON_CUT[1], MOON_CUT[2])
+		face.ImageRectSize = Vector2.new(MOON_CUT[3], MOON_CUT[4])
+	end
+	-- The picture is square, with black in its corners: the board shows the round of it.
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, face)
+
+	-- How much the board is on the real moon, 0..1, and where that puts it.
+	local function wanted(): number
+		return if byTheHour() or Lighting:GetMoonDirection().Y > MOON_LOW then 1 else 0
+	end
+	local onMoon = wanted()
+	local way = MOON_WAY
 	local last = os.clock()
 	return {
 		follow = function(camera)
 			local now = os.clock()
-			local mixed = way:Lerp(moonWay(), 1 - math.exp(-MOON_SWING * (now - last)))
+			local goal = wanted()
+			local step = (now - last) / MOON_SWING
 			last = now
+			onMoon = if goal > onMoon
+				then math.min(onMoon + step, goal)
+				else math.max(onMoon - step, goal)
+			local real = Lighting:GetMoonDirection()
+			-- On the moon it is on the moon exactly: anything that eased it there would let
+			-- the white moon show beside it while the clock is turned.
+			local mixed = if onMoon >= 1 then real else MOON_WAY:Lerp(real, onMoon)
 			if mixed.Magnitude > 0.01 then
 				way = mixed.Unit
 			end
@@ -341,6 +386,8 @@ function EventShow.start()
 	tint.Parent = Lighting
 	local lastZone = Catalog.zones[#Catalog.zones].id
 	local inLastZone = false
+	-- Whether the camera is in a place lit by the hour of the village's day.
+	local inVillage = true
 
 	-- The event on show, the moment it ends, and what it has put in the world.
 	local showing: Events.Event? = nil
@@ -364,6 +411,8 @@ function EventShow.start()
 	end
 	Mood.onPlace(function(place)
 		inLastZone = place == lastZone
+		local art = Looks.zones[place]
+		inVillage = place == Mood.HOME or (art ~= nil and art.daily == true)
 		colorize()
 	end)
 
@@ -538,11 +587,20 @@ function EventShow.start()
 
 		table.insert(scenes, falling(event))
 		local sky = if event.shows == "moon"
-			then moon()
+			then moon(function()
+				return inVillage
+			end)
 			elseif event.shows == "clouds" then clouds()
 			else fireworks()
 		table.insert(scenes, sky)
-		Mood.hold(event.light)
+		-- Where it all hangs from the first moment, before a frame has gone by.
+		local eye = Workspace.CurrentCamera
+		if eye then
+			for _, scene in scenes do
+				scene.follow(eye)
+			end
+		end
+		Mood.hold(event.light, HOLD_SECONDS)
 		colorize()
 
 		title.Text = string.upper(event.name)
@@ -619,6 +677,17 @@ function EventShow.start()
 			hub:GetAttributeChangedSignal(Net.EVENT_ATTRIBUTE):Connect(changed)
 			hub:GetAttributeChangedSignal(Net.EVENT_ENDS_ATTRIBUTE):Connect(changed)
 			read()
+		end
+	end)
+
+	-- What hangs where the hour has the moon is put there again once the hour has been written
+	-- for the frame: whichever of the two modules is stepped first, it ends where the moon is.
+	Mood.onLit(function()
+		local camera = Workspace.CurrentCamera
+		if showing and camera then
+			for _, scene in scenes do
+				scene.follow(camera)
+			end
 		end
 	end)
 

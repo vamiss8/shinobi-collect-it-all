@@ -63,6 +63,8 @@ type Listener = (place: string) -> ()
 
 local listeners: { Listener } = {}
 local current: string? = nil
+-- Called every time the light has been written out (Mood.onLit).
+local lit: { () -> () } = {}
 -- The light the village is held in, as a row; kept after it is let go, for it is still mixed
 -- in while the village's own light comes back.
 local held: Row? = nil
@@ -122,12 +124,21 @@ local function row(look: Looks.Light): Row
 end
 
 -- Holds the places lit by the hour in `light`, whatever their own hour, until it is called
--- with nil: an event's light (Config/Events). The clock and the lanterns turn with it.
-function Mood.hold(light: Looks.Light?)
+-- with nil: an event's light (Config/Events). The clock and the lanterns turn with it, in
+-- `seconds` or the clock's usual time.
+function Mood.hold(light: Looks.Light?, seconds: number?)
 	if light then
 		held = row(light)
 	end
-	Daytime.hold(if light then light.clock else nil)
+	Daytime.hold(if light then light.clock else nil, seconds)
+end
+
+-- Calls `fn` every time the light has been written out, in the same frame and before it is
+-- drawn: for what has to stand where the hour has just put the moon (client EventShow). The
+-- order two modules are stepped in within a frame is nobody's to choose, and a moon placed
+-- before the hour moved would trail it.
+function Mood.onLit(fn: () -> ())
+	table.insert(lit, fn)
 end
 
 -- `share` of the way from one row to another.
@@ -281,6 +292,9 @@ function Mood.start()
 			if not written or apart(now, written) >= WRITTEN then
 				written = now
 				put(now)
+				for _, fn in lit do
+					fn()
+				end
 			end
 		end)
 	end)
