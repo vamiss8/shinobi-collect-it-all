@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Icons = require("./Icons")
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local Store = require("./Store")
 local Strings = require("./Strings")
@@ -25,12 +26,16 @@ local FLASH_SECONDS = 0.9 -- for the flash to fade
 local FLASH_APART = 1.5
 local HOLD_SECONDS = 2.4 -- the scroll stays this long
 
+-- What a scroll's seal is stamped with: a word or two, or an emblem drawn into the square it
+-- is given (see Icons).
+export type Stamp = string | (holder: Instance) -> ()
+
 -- Set by start(): flashes the screen and puts up the scroll.
-local present: ((color: Color3, stamp: string, title: string, words: string) -> ())? = nil
+local present: ((color: Color3, stamp: Stamp, title: string, words: string) -> ())? = nil
 
 -- Flashes the screen in `color` and names something on the scroll for a moment: `stamp` on its
 -- seal, `title` large, `words` under it. Nothing happens before start() has run.
-function StageFlash.show(color: Color3, stamp: string, title: string, words: string)
+function StageFlash.show(color: Color3, stamp: Stamp, title: string, words: string)
 	if present then
 		present(color, stamp, title, words)
 	end
@@ -58,6 +63,11 @@ function StageFlash.start()
 		TextColor3 = Ui.PARCHMENT,
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
+	-- An emblem, when the seal is stamped with one, lies over the seal.
+	local emblem: Frame = Ui.make("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+	}, paper.seal)
 	local name = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(130, 6),
 		Size = UDim2.new(1, -168, 0, 88),
@@ -87,7 +97,7 @@ function StageFlash.start()
 
 	local token = 0
 	local flashedAt = -FLASH_APART
-	present = function(color: Color3, stamp: string, title: string, words: string)
+	present = function(color: Color3, stamp: Stamp, title: string, words: string)
 		token += 1
 		local mine = token
 		if os.clock() - flashedAt >= FLASH_APART then
@@ -101,7 +111,13 @@ function StageFlash.start()
 
 		Ui.rewrite(paper, function()
 			name.Text = title
-			mark.Text = stamp
+			emblem:ClearAllChildren()
+			if typeof(stamp) == "string" then
+				mark.Text = stamp
+			else
+				mark.Text = ""
+				stamp(emblem)
+			end
 			line.Text = words
 			paper.edge.Color = color
 			paper.seal.BackgroundColor3 = color
@@ -128,13 +144,12 @@ function StageFlash.start()
 		end
 		local speed = Economy.walkSpeed(level)
 		local color = Color3.fromHex(stage.color)
-		if stage.gate > 0 then
-			local words = Strings.get("StageGateOpened", stage.gate, SpeedStages.GATES, speed)
-			StageFlash.show(color, tostring(stage.gate), string.upper(stage.name), words)
-		else
-			local words = Strings.get("StageReached", speed)
-			StageFlash.show(color, "!", string.upper(stage.name), words)
-		end
+		local words = if stage.gate > 0
+			then Strings.get("StageGateOpened", stage.gate, SpeedStages.GATES, speed)
+			else Strings.get("StageReached", speed)
+		StageFlash.show(color, function(holder)
+			Icons.stage(holder, stage)
+		end, string.upper(stage.name), words)
 	end)
 end
 

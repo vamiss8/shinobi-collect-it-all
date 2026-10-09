@@ -73,8 +73,12 @@ local function rankRow(list: Instance, count: number): Row
 		BackgroundTransparency = 1,
 	})
 	local edge = Ui.stroke(frame, Ui.GOLD, 2)
-	local seal = Ui.badge(frame, tostring(count), color, 34)
-	seal.Position = UDim2.fromOffset(7, 7)
+	local seal = Ui.make("Frame", {
+		Position = UDim2.fromOffset(5, 5),
+		Size = UDim2.fromOffset(38, 38),
+		BackgroundTransparency = 1,
+	}, frame)
+	Icons.rank(seal, count)
 	local name = Ui.text(frame, {
 		Position = UDim2.fromOffset(50, 4),
 		Size = UDim2.new(1, -118, 1, -8),
@@ -162,13 +166,12 @@ function RebirthPanel.start()
 		Size = UDim2.new(1, -(RIGHT + 24), 0, SCROLL.height),
 	}, 78)
 	scroll.edge.Thickness = 4
-	local number = Ui.text(scroll.seal, {
+	-- The rank's emblem lies over the seal, and is drawn anew when the rank shown changes.
+	local emblem = Ui.make("Frame", {
 		Size = UDim2.fromScale(1, 1),
-		TextScaled = true,
-		TextColor3 = Ui.PARCHMENT,
-		TextXAlignment = Enum.TextXAlignment.Center,
-	})
-	Ui.padding(scroll.seal, 12)
+		BackgroundTransparency = 1,
+	}, scroll.seal)
+	local drawn: number? = nil
 	local title = Ui.text(scroll.page, {
 		Position = UDim2.fromOffset(124, 8),
 		Size = UDim2.new(1, -154, 0, 64),
@@ -305,7 +308,11 @@ function RebirthPanel.start()
 		local color = Color3.fromHex(Rebirth.color(shown))
 		scroll.edge.Color = color
 		scroll.seal.BackgroundColor3 = color
-		number.Text = tostring(shown)
+		if drawn ~= shown then
+			drawn = shown
+			emblem:ClearAllChildren()
+			Icons.rank(emblem, shown)
+		end
 		title.Text = string.upper(Rebirth.title(shown))
 		if not following then
 			now.Text = Strings.get("RebirthAllDone")
@@ -359,7 +366,9 @@ function RebirthPanel.start()
 			isArmed = false
 			StageFlash.show(
 				Color3.fromHex(Rebirth.color(done)),
-				tostring(done),
+				function(holder)
+					Icons.rank(holder, done)
+				end,
 				string.upper(Rebirth.title(done)),
 				Strings.get(
 					"RebirthDone",

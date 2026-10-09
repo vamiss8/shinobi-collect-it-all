@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
+local Icons = require("./Icons")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Strings = require("./Strings")
@@ -27,7 +28,7 @@ local HEADER = 50
 local ROW = 36
 local GAP = 3
 local FOOT = 12
-local SEAL = 28
+local SEAL = 30
 -- The window buttons stand at the middle of the same edge (client Hud): the list keeps this
 -- far above the middle of the screen, and is drawn smaller when it would not.
 local CLEAR_OF_BUTTONS = 150
@@ -45,7 +46,8 @@ local SLIDE_OUT = 0.22
 type Row = {
 	frame: Frame,
 	edge: UIStroke,
-	seal: TextLabel,
+	seal: Frame, -- where the rank's emblem is drawn
+	rank: number?, -- the rank drawn there
 	name: TextLabel,
 	income: TextLabel,
 }
@@ -89,10 +91,12 @@ local function row(sheet: Frame): Row
 	}, sheet)
 	Ui.corner(frame, 8)
 	local edge = Ui.stroke(frame, Ui.SEAL, 2)
-	local seal = Ui.badge(frame, "0", Ui.GRAY, SEAL)
-	seal.AnchorPoint = Vector2.new(0, 0.5)
-	seal.Position = UDim2.new(0, 5, 0.5, 0)
-	Ui.stroke(seal, Ui.INK, 2)
+	local seal = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 5, 0.5, 0),
+		Size = UDim2.fromOffset(SEAL, SEAL),
+		BackgroundTransparency = 1,
+	}, frame)
 	local name = Ui.text(frame, {
 		Position = UDim2.fromOffset(SEAL + 14, 3),
 		Size = UDim2.new(1, -(SEAL + 14 + INCOME + 10), 1, -6),
@@ -190,8 +194,11 @@ function PlayerList.start()
 			line.frame.Position = UDim2.fromOffset(10, HEADER + (place - 1) * (ROW + GAP))
 			line.frame.BackgroundTransparency = if own then 0.9 else 1
 			line.edge.Transparency = if own then 0 else 1
-			line.seal.Text = tostring(done)
-			line.seal.BackgroundColor3 = Color3.fromHex(Rebirth.color(done))
+			if line.rank ~= done then
+				line.rank = done
+				line.seal:ClearAllChildren()
+				Icons.rank(line.seal, done)
+			end
 			line.name.Text = player.DisplayName
 			-- To a tenth: "1.2B" tells two dojos apart where "1B" did not.
 			line.income.Text =

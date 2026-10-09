@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Icons = require("../Icons")
 local Remotes = require("../Remotes")
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local Store = require("../Store")
@@ -42,17 +43,18 @@ local FASTEST = -1
 type StyleRow = {
 	frame: Frame,
 	edge: UIStroke,
-	seal: TextLabel,
+	seal: Frame, -- where the stage's emblem is drawn
+	reached: boolean?, -- how it is drawn there: in the stage's color, or gray
 	button: TextButton,
 }
 
--- The seal of a stage the player has not reached: pale gray, like the lanterns of the Gates not
--- yet opened on the training ground's gate (client GateLanterns).
-local UNREACHED = Color3.fromRGB(176, 178, 174)
-
--- What a stage's seal is stamped with: its Gate's number, or the first letter of its name.
-local function markOf(stage: SpeedStages.Stage): string
-	return if stage.gate > 0 then tostring(stage.gate) else string.sub(stage.name, 1, 1)
+-- A square for a stage's emblem (Icons.stage) to be drawn in.
+local function sealAt(parent: Instance, left: number, top: number, size: number): Frame
+	return Ui.make("Frame", {
+		Position = UDim2.fromOffset(left, top),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	}, parent)
 end
 
 -- What the stage at `index` adds to a runner's look, in words.
@@ -90,8 +92,8 @@ function SpeedStore.build(): Ui.Window
 	Ui.stroke(header, Ui.EDGE, 2)
 	local sealLeft = (HEADER_HEIGHT - HEADER_SEAL) / 2
 	local headerText = sealLeft + HEADER_SEAL + 16
-	local headerSeal = Ui.badge(header, "", Ui.GOLD, HEADER_SEAL)
-	headerSeal.Position = UDim2.fromOffset(sealLeft, sealLeft)
+	local headerSeal = sealAt(header, sealLeft, sealLeft, HEADER_SEAL)
+	local headerStage: SpeedStages.Stage? = nil
 	Ui.text(header, {
 		Position = UDim2.fromOffset(headerText, 16),
 		Size = UDim2.new(0.5, -headerText, 0, 22),
@@ -287,8 +289,7 @@ function SpeedStore.build(): Ui.Window
 		})
 		local edge = Ui.stroke(frame, Ui.GOLD, 2)
 		local inset = (ROW_HEIGHT - ROW_SEAL) / 2
-		local seal = Ui.badge(frame, markOf(stage), Color3.fromHex(stage.color), ROW_SEAL)
-		seal.Position = UDim2.fromOffset(inset, inset)
+		local seal = sealAt(frame, inset, inset, ROW_SEAL)
 
 		-- Three lines: the name, the level it comes at with its speed, and what it adds. The
 		-- last is the long one (up to 53 characters) and is drawn smaller if it has to be.
@@ -382,8 +383,11 @@ function SpeedStore.build(): Ui.Window
 		local stage = SpeedStages.at(bought)
 		local color = Color3.fromHex(stage.color)
 
-		headerSeal.Text = markOf(stage)
-		headerSeal.BackgroundColor3 = color
+		if headerStage ~= stage then
+			headerStage = stage
+			headerSeal:ClearAllChildren()
+			Icons.stage(headerSeal, stage)
+		end
 		stageName.Text = stage.name
 		stageName.TextColor3 = if stage.gate > 0 then color else Ui.PARCHMENT
 		levelLabel.Text = Strings.get("ShopSpeedLevel", Economy.walkSpeed(bought), bought, maxLevel)
@@ -452,9 +456,11 @@ function SpeedStore.build(): Ui.Window
 				button.BackgroundColor3 = Ui.GRAY
 			end
 			button.AutoButtonColor = reached and index ~= worn
-			row.seal.BackgroundColor3 = if reached
-				then Color3.fromHex(SpeedStages.list[index].color)
-				else UNREACHED
+			if row.reached ~= reached then
+				row.reached = reached
+				row.seal:ClearAllChildren()
+				Icons.stage(row.seal, SpeedStages.list[index], reached)
+			end
 			row.frame.BackgroundTransparency = if reached then 0 else 0.5
 			row.edge.Color = if index == worn then Ui.BLUE else Ui.GOLD
 			row.edge.Transparency = if index == worn then 0 else 1
