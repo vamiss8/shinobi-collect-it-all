@@ -2,6 +2,7 @@
 -- Lookup indexes over the static config, built once when first required.
 
 local Characters = require("./Characters")
+local Events = require("./Events")
 local Keepers = require("./Keepers")
 local KunaiList = require("./Kunai")
 local Legends = require("./Legends")
@@ -245,6 +246,26 @@ function Catalog.validate(): { string }
 		check(m.id ~= Catalog.NONE, `mutation id "{Catalog.NONE}" is reserved`)
 		check(m.chance >= 1, `mutation {m.id} has chance below 1 in 1`)
 		check(m.multiplier > 1, `mutation {m.id} does not boost income`)
+	end
+
+	-- An event and its mutation name each other.
+	local brings: { [string]: string } = {}
+	for _, event in Events.list do
+		check(brings[event.id] == nil, `duplicate event id {event.id}`)
+		brings[event.id] = event.mutation
+		local mutation = Catalog.mutationById[event.mutation]
+		check(
+			mutation ~= nil and mutation.event == event.id,
+			`event {event.id} brings a mutation that is not its own`
+		)
+		check(event.weight > 0 and event.minutes > 0, `event {event.id} never runs`)
+		check(event.minutes < Events.slotMinutes, `event {event.id} outlasts its slot`)
+	end
+	for _, m in Mutations do
+		check(
+			m.event == nil or brings[m.event] == m.id,
+			`mutation {m.id} waits for an event that does not bring it`
+		)
 	end
 
 	check(#Zones > 0, "no zones")

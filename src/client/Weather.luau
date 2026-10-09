@@ -65,6 +65,10 @@ local function emitter(weather: Looks.Weather): ParticleEmitter
 	return particles
 end
 
+-- The emitter of a kind of weather, for whoever else has something fall on the camera (an
+-- event has: client EventShow).
+Weather.emitter = emitter
+
 function Weather.start()
 	-- The space the particles appear in; it is moved with the camera every frame.
 	local cloud = Instance.new("Part")

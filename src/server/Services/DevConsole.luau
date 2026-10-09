@@ -20,6 +20,7 @@ local Data = require("../Data")
 local Developers = require("../Developers")
 local Dojo = require("./Dojo")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Events = require("./Events")
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Inventory = require("./Inventory")
 local Kicking = require("./Kicking")
@@ -280,6 +281,16 @@ function commands.legend(player, data, legendId, give)
 		end
 	end
 	return `{legend.name}: taken`
+end
+
+-- "event": an event started on this server for everyone on it, or with no id the one started
+-- by hand ended. The clock's own schedule goes on underneath.
+function commands.event(_, _, id)
+	if typeof(id) ~= "string" then
+		Events.force(nil)
+		return "The event started by hand is over"
+	end
+	return if Events.force(id) then `Event started: {id}` else nil
 end
 
 -- "reset": the save as a new player's, but for the legendary shinobi and the Bingo Book.

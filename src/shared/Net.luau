@@ -78,6 +78,11 @@ Net.ORIGIN_ATTRIBUTE = "Origin"
 -- An attribute of the Hub folder: the server's clock (Workspace:GetServerTimeNow) at the moment
 -- the village's day began. Every client works the hour out from it, so all see the same sky.
 Net.DAY_ATTRIBUTE = "DayBegan"
+-- Attributes of the Hub folder while an event runs (Services/Events): the event's id
+-- (Config/Events) and the moment it ends, by the clock every client shares with the server.
+-- Neither is there between events. Each client draws the event from them (client EventShow).
+Net.EVENT_ATTRIBUTE = "Event"
+Net.EVENT_ENDS_ATTRIBUTE = "EventEnds"
 -- For looking at an hour without waiting for it: a number put on the Hub folder under this
 -- name in a Studio test stops the village's clock at that hour.
 Net.HOUR_ATTRIBUTE = "Hour"

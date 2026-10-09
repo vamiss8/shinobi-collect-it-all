@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Events = require(ReplicatedStorage.Shared.Logic.Events)
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Hud = require("./Hud")
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -329,6 +330,19 @@ local function build()
 				send("legend", legend.id, false)
 			end)
 		end
+	end
+
+	-- An event started by hand, for everyone on this server, and stopped again.
+	do
+		local frame, take = row("Event")
+		for _, event in Events.list do
+			press(frame, take(176), 176, event.name, Ui.SEAL, function()
+				send("event", event.id)
+			end)
+		end
+		press(frame, take(100), 100, "Stop", Ui.GRAY, function()
+			send("event")
+		end)
 	end
 
 	-- What the server said of the last command.

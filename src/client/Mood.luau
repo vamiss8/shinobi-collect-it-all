@@ -32,6 +32,9 @@ Mood.HOME = Crossing.HOME
 -- The name of the effect the weather flashes its lightning through (client Weather). It is of
 -- the class the zones' colors are graded with, and the two must not be taken for each other.
 Mood.LIGHTNING = "Lightning"
+-- And the name of the effect an event tints the picture with (client EventShow), passed over
+-- like the lightning's.
+Mood.EVENT = "EventTint"
 
 -- How fast the light on screen closes on the light of where the camera is: this share of what
 -- is left of the way, every second, as a rate. A camera that walks or runs is followed all but
@@ -70,7 +73,8 @@ end
 -- effect and undo each other.
 local function effect(className: string): any
 	for _, child in Lighting:GetChildren() do
-		if child.ClassName == className and child.Name ~= Mood.LIGHTNING then
+		local own = child.Name ~= Mood.LIGHTNING and child.Name ~= Mood.EVENT
+		if child.ClassName == className and own then
 			return child
 		end
 	end

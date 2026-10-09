@@ -647,6 +647,11 @@ local function buildBanner(): Banner
 	return { paper = paper, name = name, line = line, mark = mark }
 end
 
+-- Whether the camera is the reveal's just now: whatever else would move it waits.
+function Cinematic.staging(): boolean
+	return stage ~= nil
+end
+
 function Cinematic.start()
 	banner = buildBanner()
 

@@ -19,6 +19,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Events = require("./Events")
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hub = require("../World/Hub")
 local Index = require(ReplicatedStorage.Shared.Logic.Index)
@@ -274,8 +275,14 @@ local function press(player: Player, claimed: unknown)
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)
-	local drop =
-		Roll.drop(distance, multipliers.luck * spinLuck, multipliers.mutationLuck, nil, roll)
+	-- A catch made while an event runs has a chance of the event's own mutation.
+	local drop = Roll.drop(
+		distance,
+		multipliers.luck * spinLuck,
+		multipliers.mutationLuck,
+		Events.current(),
+		roll
+	)
 
 	-- The kunai flies straight down the lane from where the thrower stands.
 	local chase = Tuning.Chase

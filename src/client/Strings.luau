@@ -231,6 +231,12 @@ local TEXT: { [string]: string } = {
 	LegendJoined = "%s has joined you! Find them in your Inventory.",
 	LegendBy = "%s has %s at their side!",
 
+	-- An event (client EventShow): what it brings, on the scroll that announces it; what is
+	-- left of it, on its timer; and that it is over.
+	EventBegins = "A chance of %s shinobi on every catch  |  x%s Ryo",
+	EventLeft = "%s left",
+	EventOver = "The %s is over.",
+
 	-- Notifications sent by the server
 	NothingHeld = "Pick a shinobi in your Inventory first.",
 	HandsFull = "Your hands are full until you are back home.",
