@@ -36,6 +36,7 @@ local TEXT: { [string]: string } = {
 
 	-- The luck board on the map
 	LuckTitle = "LUCKY THROWS",
+	LuckWhat = "better odds of a higher rank and of a mutation",
 	LuckThrow = "Your next throw is #%s",
 	LuckSoon = "x%s luck in %s throws",
 	LuckNow = "x%s LUCK ON YOUR NEXT THROW!",
@@ -220,7 +221,8 @@ local TEXT: { [string]: string } = {
 	FocusMiss = "Miss",
 
 	-- The list of players (client PlayerList): how many are here, and what a dojo earns.
-	PlayersTitle = "SHINOBI  %s",
+	PlayersTitle = "ONLINE  %s/%s",
+	PlayersCount = "x%s",
 	PlayersIncome = "%s/s",
 
 	-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
