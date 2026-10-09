@@ -309,6 +309,10 @@ function commands.reset(player, data)
 	return "Save reset"
 end
 
+-- The commands that touch no save, and so can be given in the middle of a throw: an event is
+-- the server's, and how one looks to a player who is throwing is a thing to be tried.
+local ANY_TIME = { event = true }
+
 local function run(player: Player, name: unknown, ...: unknown)
 	if not allowed(player) then
 		return
@@ -318,13 +322,14 @@ local function run(player: Player, name: unknown, ...: unknown)
 	if not data or not command then
 		return
 	end
+	local anyTime = ANY_TIME[name :: string] == true
 	-- A throw holds on to the Chakra, the speed and the catch of the save as it was.
-	if Kicking.throwing(player) then
+	if Kicking.throwing(player) and not anyTime then
 		Remotes.Dev:FireClient(player, "Not in the middle of a throw")
 		return
 	end
 	local done = command(player, data, ...)
-	if done then
+	if done and not anyTime then
 		refresh(player, data)
 	end
 	Remotes.Dev:FireClient(player, done or "That is not something the console can do")

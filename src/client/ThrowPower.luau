@@ -22,6 +22,14 @@ local Ui = require("./Ui")
 
 local ThrowPower = {}
 
+-- Whether the slider's panel is open, once there is one.
+local showing: (() -> boolean)? = nil
+
+-- Whether the player has the throw power slider open.
+function ThrowPower.isOpen(): boolean
+	return showing ~= nil and showing()
+end
+
 -- A slider this close to its right end snaps to "all of it", which also keeps up as Chakra grows.
 local FULL_AT = 0.985
 
@@ -306,6 +314,9 @@ function ThrowPower.attach(pill: Frame): Frame
 	useAll.Activated:Connect(function()
 		choose(0)
 	end)
+	showing = function()
+		return popup.Visible
+	end
 	-- It rises out of the readout it belongs to, rather than being there all at once.
 	local rise: UIScale = Ui.make("UIScale", {}, popup)
 	local function toggle()

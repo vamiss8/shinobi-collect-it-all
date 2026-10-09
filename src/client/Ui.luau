@@ -557,6 +557,17 @@ function Ui.onWindowOpened(fn: () -> ())
 	table.insert(openedListeners, fn)
 end
 
+-- Whether any window is open: the player is reading one, and is not to have the world taken
+-- from behind it.
+function Ui.windowOpen(): boolean
+	for _, window in windows do
+		if window.isOpen() then
+			return true
+		end
+	end
+	return false
+end
+
 -- A centered window with a title bar and a close button, hidden until opened. Opening one
 -- closes the others. It grows with its layer (see Ui.screen) and shrinks again if it would not
 -- fit the screen.

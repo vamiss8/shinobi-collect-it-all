@@ -21,10 +21,18 @@
 --
 -- All of it is this client's own: the tint is an effect of its own in Lighting, beside the
 -- zone's and the lightning's (client Mood, Weather), and what is in the sky follows this
--- camera. The camera is only flown for a player who is doing nothing that needs it: not
--- while they aim, nor during a throw or the run home, nor under a roof. And the last zone
--- keeps its own light and its own sky through any event, as it is to keep them through
--- everything: no tint there, no red moon over its moon, no cloud across it.
+-- camera. And the last zone keeps its own light and its own sky through any event, as it is
+-- to keep them through everything: no tint there, no red moon over its moon, no cloud across
+-- it.
+--
+-- NOBODY IS INTERRUPTED BY AN EVENT (owner, 2026-10-10: "I hope the events' animations do
+-- not start for people who are at home, in a throw and so on, even if they only sit in the
+-- throw panel"). A player on the throwing strip, with its bar swinging, or anywhere between
+-- their kunai's flight and the end of their run home, gets no flash, no scroll across the
+-- screen and no camera: a line on the message scroll and the timer in the corner tell them,
+-- and the sky is there when they look up. The camera is flown only for a player who is doing
+-- nothing that needs it: not with a window or the throw power slider open either, nor under
+-- a roof, which is to say at home in their dojo.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -46,6 +54,7 @@ local Remotes = require("./Remotes")
 local SkyLook = require(ReplicatedStorage.Shared.Logic.SkyLook)
 local StageFlash = require("./StageFlash")
 local Strings = require("./Strings")
+local ThrowPower = require("./ThrowPower")
 local Ui = require("./Ui")
 local Weather = require("./Weather")
 
@@ -430,12 +439,24 @@ function EventShow.start()
 		aiming, thrown = false, false
 	end)
 
+	-- Whether the player is in the middle of a throw, from the bar on the strip to the end of
+	-- the run home: nothing of an event is to come between them and it.
+	local function throwing(): boolean
+		return aiming or thrown or Cinematic.staging()
+	end
+
+	-- Whether the player is at something on the screen: a window, or the throw power slider.
+	local function reading(): boolean
+		return Ui.windowOpen() or ThrowPower.isOpen()
+	end
+
 	-- The look at the sky (Logic/SkyLook): the camera leaves the player's shoulder, draws back
 	-- and climbs with them still in the picture, lifts its eyes `way`, and comes home the way
 	-- it went, to where it was about the player, who may have walked on meanwhile. `over` is
-	-- called when it is done with. Not flown for a player who is busy with a throw, stands
-	-- under a roof or looks out of their own eyes; given up at once if a throw's staging takes
-	-- the camera, and flown home quickly for a player who begins to aim.
+	-- called when it is done with. Not flown for a player who is busy with a throw or with a
+	-- window, stands under a roof or looks out of their own eyes; given up at once if a
+	-- throw's staging takes the camera, and flown home quickly for a player who begins to aim
+	-- or opens a window.
 	local function lookUp(way: () -> Vector3, over: () -> ()): boolean
 		local camera = Workspace.CurrentCamera
 		local character = Players.LocalPlayer.Character
@@ -443,7 +464,7 @@ function EventShow.start()
 		if not camera or not root or not root:IsA("BasePart") then
 			return false
 		end
-		if aiming or thrown or Cinematic.staging() then
+		if throwing() or reading() then
 			return false
 		end
 		-- Something else has the camera.
@@ -540,7 +561,7 @@ function EventShow.start()
 					return
 				end
 				fly, gaze = SkyLook.at(time)
-				if aiming or thrown then
+				if throwing() or reading() then
 					hurriedAt, flyFrom, gazeFrom = now, fly, gaze
 				end
 			end
@@ -610,8 +631,19 @@ function EventShow.start()
 		Icons.event(emblem, event.shows)
 		Ui.unroll(paper)
 
-		if fresh then
-			local mutation = Catalog.mutationById[event.mutation]
+		local mutation = Catalog.mutationById[event.mutation]
+		if fresh and throwing() then
+			-- In the middle of a throw the event is told in a line and no more: a flash across
+			-- the bar would cost a Perfect, and a scroll would lie over the roulette.
+			Hud.toast(
+				Strings.get(
+					"EventBegan",
+					event.name,
+					if mutation then mutation.name else event.mutation
+				),
+				color
+			)
+		elseif fresh then
 			StageFlash.show(
 				color,
 				function(holder)
