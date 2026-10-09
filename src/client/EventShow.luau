@@ -1,19 +1,26 @@
 --!strict
 -- An event on this player's screen (Config/Events; the server says which is running and until
 -- when, on the Hub folder). When one begins the player cannot miss it: the screen flashes in
--- its color, a scroll names it and what it brings, and the camera lifts to the sky, where the
--- event hangs. While it runs the whole picture is tinted, something falls or rises everywhere,
--- and a scroll in the corner counts down what is left of it. No two events look alike: a red
--- moon over a red world, a ceiling of red cloud shedding black feathers, fireworks over
--- falling gold leaves.
+-- its color, a scroll names it and what it brings, and the camera flies off from the player,
+-- climbs, looks up at the sky, where the event hangs, and flies home (Logic/SkyLook). While it
+-- runs the whole picture is tinted, something falls or rises everywhere, and a scroll in the
+-- corner counts down what is left of it. No two events look alike: the moon turned red over a
+-- red night, a ceiling of red cloud shedding black feathers, fireworks over falling gold
+-- leaves on a lantern-lit evening.
+--
+-- AN EVENT LOOKS THE SAME WHATEVER THE HOUR: the village is held in the event's own light for
+-- as long as it runs (Mood.hold), and nothing an event puts in the air takes the light of the
+-- place, which by night would turn gold leaves gray.
 --
 -- All of it is this client's own: the tint is an effect of its own in Lighting, beside the
 -- zone's and the lightning's (client Mood, Weather), and what is in the sky follows this
--- camera. The camera is only lifted for a player who is doing nothing that needs it: not
--- while they aim, nor during a throw or the run home. And the last zone keeps its own light
--- through any event, as it is to keep it through everything.
+-- camera. The camera is only flown for a player who is doing nothing that needs it: not
+-- while they aim, nor during a throw or the run home, nor under a roof. And the last zone
+-- keeps its own light and its own sky through any event, as it is to keep them through
+-- everything: no tint there, no red moon over its moon, no cloud across it.
 
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -28,6 +35,7 @@ local Mood = require("./Mood")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local Remotes = require("./Remotes")
+local SkyLook = require(ReplicatedStorage.Shared.Logic.SkyLook)
 local StageFlash = require("./StageFlash")
 local Strings = require("./Strings")
 local Ui = require("./Ui")
@@ -40,15 +48,31 @@ local TIMER = Vector2.new(330, 78)
 local TIMER_SEAL = 56
 -- How long the picture takes to take an event's tint, and to lose it, seconds.
 local TINT_SECONDS = 2.5
--- The look at the sky when an event begins: the camera lifts, holds and comes back, seconds.
-local LOOK_UP = 0.9
-local LOOK_HOLD = 1.7
-local LOOK_BACK = 0.8
--- Which way the moon hangs, and how far off and how wide it is, studs. Near enough for the
--- air's haze to leave it be, high enough to clear whatever stands beside the lane.
+-- The look at the sky when an event begins (Logic/SkyLook has its timing and its way). The
+-- camera watches a point this far over the player's middle, studs. It is not flown for a
+-- player with something solid this near overhead, nor for one whose camera is nearer them than
+-- FIRST_PERSON, who is looking out of their own eyes. It keeps CLEAR studs short of whatever
+-- stands in its way, and is not flown at all with less than ROOM_LEAST of the way free.
+local EYES = 1.5
+local ROOF = 40
+local FIRST_PERSON = 1.5
+local CLEAR = 2
+local ROOM_LEAST = 0.4
+-- The red moon is the place's own moon turned red: a disc that hangs before it and hides it,
+-- wherever the hour has it in the sky. Where the hour has no moon up (most zones keep an hour
+-- of the day) it hangs MOON_WAY instead, and it swings from one to the other at MOON_SWING, a
+-- rate, as the camera passes from zone to zone. MOON_LOW is how high the real moon must stand
+-- to be the one, as the height of its direction. The disc is MOON_FAR studs off, near enough
+-- for the air's haze to leave it be; MOON_DISC of its board is the moon and the rest its halo,
+-- and it is MOON_OVER times as wide as the moon it covers, which is MOON_ANGLE degrees wide
+-- when the place has no Sky to ask.
 local MOON_WAY = Vector3.new(-0.42, 0.56, 0.72).Unit
+local MOON_LOW = 0.3
+local MOON_SWING = 2.5
 local MOON_FAR = 340
-local MOON_WIDE = 64
+local MOON_DISC = 0.66
+local MOON_OVER = 1.14
+local MOON_ANGLE = 11
 -- The cloud ceiling: how far over the camera it hangs and how wide it is, studs.
 local CEILING_UP = 120
 local CEILING_WIDE = 420
@@ -57,11 +81,23 @@ local BURST_OUT = 150
 local BURST_UP = { 70, 130 }
 local BURST_EVERY = { 0.6, 1.3 }
 local BURST_COLORS = { "#FFD54F", "#FF80AB", "#69F0AE", "#FFFFFF" }
+-- While the camera looks at the sky they burst where it looks: this far off, within this far
+-- of the middle of the picture, studs, and this often.
+local WATCHED_OUT = 150
+local WATCHED_SPREAD = 46
+local WATCHED_EVERY = { 0.3, 0.55 }
 
 -- What an event has put in the world for this client, to be taken out again.
 type Scene = {
 	follow: (camera: Camera) -> (), -- moves it with the camera, every frame
 	stop: () -> (),
+	-- Which way it hangs from the camera, for what hangs in one part of the sky.
+	way: (() -> Vector3)?,
+	-- Called with whether the camera is where the sky is to be left as it is (the last zone):
+	-- what would hang across that sky is taken out of it.
+	plain: ((plain: boolean) -> ())?,
+	-- Called with the way the camera looks while it looks at the sky, and with nil after.
+	watched: ((way: Vector3?) -> ())?,
 }
 
 local function unseen(size: Vector3): Part
@@ -77,11 +113,21 @@ local function unseen(size: Vector3): Part
 	return part
 end
 
--- A red moon: a disc that always faces the camera, far off in one part of the sky.
+-- The way to the red moon just now: to the place's own moon when the hour has it up, so that
+-- the disc covers it and there is one moon in the sky, a red one.
+local function moonWay(): Vector3
+	local real = Lighting:GetMoonDirection()
+	return if real.Y > MOON_LOW then real.Unit else MOON_WAY
+end
+
+-- A red moon: a disc that always faces the camera, far off, before the moon.
 local function moon(): Scene
+	local sky = Lighting:FindFirstChildOfClass("Sky")
+	local angle = if sky then sky.MoonAngularSize else MOON_ANGLE
+	local wide = 2 * MOON_FAR * math.tan(math.rad(angle * MOON_OVER / 2)) / MOON_DISC
 	local anchor = unseen(Vector3.one)
 	local board: BillboardGui = Ui.make("BillboardGui", {
-		Size = UDim2.fromScale(MOON_WIDE, MOON_WIDE),
+		Size = UDim2.fromScale(wide, wide),
 		LightInfluence = 0,
 		Brightness = 2,
 		MaxDistance = MOON_FAR * 3,
@@ -100,16 +146,30 @@ local function moon(): Scene
 	-- A halo, the moon, and the darker seas on it.
 	disc(1, 0.5, 0.5, Color3.fromRGB(255, 23, 68), 0.82)
 	disc(0.82, 0.5, 0.5, Color3.fromRGB(255, 61, 85), 0.6)
-	disc(0.66, 0.5, 0.5, Color3.fromRGB(229, 20, 46), 0)
+	disc(MOON_DISC, 0.5, 0.5, Color3.fromRGB(229, 20, 46), 0)
 	disc(0.16, 0.42, 0.42, Color3.fromRGB(170, 8, 28), 0)
 	disc(0.12, 0.60, 0.58, Color3.fromRGB(170, 8, 28), 0)
 	disc(0.07, 0.58, 0.36, Color3.fromRGB(170, 8, 28), 0)
+	local way = moonWay()
+	local last = os.clock()
 	return {
 		follow = function(camera)
-			anchor.CFrame = CFrame.new(camera.CFrame.Position + MOON_WAY * MOON_FAR)
+			local now = os.clock()
+			local mixed = way:Lerp(moonWay(), 1 - math.exp(-MOON_SWING * (now - last)))
+			last = now
+			if mixed.Magnitude > 0.01 then
+				way = mixed.Unit
+			end
+			anchor.CFrame = CFrame.new(camera.CFrame.Position + way * MOON_FAR)
 		end,
 		stop = function()
 			anchor:Destroy()
+		end,
+		way = function()
+			return way
+		end,
+		plain = function(plain)
+			board.Enabled = not plain
 		end,
 	}
 end
@@ -117,6 +177,7 @@ end
 -- A ceiling of cloud over the camera: great slow puffs, dark red among black.
 local function clouds(): Scene
 	local ceiling = unseen(Vector3.new(CEILING_WIDE, 2, CEILING_WIDE))
+	local banks: { ParticleEmitter } = {}
 	for _, color in { "#8E1B26", "#1A1014" } do
 		local puffs = Particles.emitter({
 			texture = Particles.SMOKE,
@@ -132,6 +193,7 @@ local function clouds(): Scene
 			fade = 0.35,
 		}, Color3.fromHex(color))
 		puffs.Parent = ceiling
+		table.insert(banks, puffs)
 	end
 	return {
 		follow = function(camera)
@@ -139,6 +201,11 @@ local function clouds(): Scene
 		end,
 		stop = function()
 			ceiling:Destroy()
+		end,
+		plain = function(plain)
+			for _, puffs in banks do
+				puffs.Enabled = not plain
+			end
 		end,
 	}
 end
@@ -159,7 +226,8 @@ local function fireworks(): Scene
 			drag = 2.6,
 			lift = -14,
 			spin = 120,
-			glow = 1,
+			-- Not all light: light alone is lost against a sky that is still bright.
+			glow = 0.6,
 			bright = 4,
 			fade = 0,
 		}, Color3.fromHex(color))
@@ -168,18 +236,27 @@ local function fireworks(): Scene
 	end
 	local rng = Random.new()
 	local at = Vector3.zero
+	local watched: Vector3? = nil
 	local running = true
 	task.spawn(function()
 		while running do
-			task.wait(rng:NextNumber(BURST_EVERY[1], BURST_EVERY[2]))
+			local every = if watched then WATCHED_EVERY else BURST_EVERY
+			task.wait(rng:NextNumber(every[1], every[2]))
 			if not running then
 				break
 			end
-			local out = Vector3.new(
-				rng:NextNumber(-BURST_OUT, BURST_OUT),
-				rng:NextNumber(BURST_UP[1], BURST_UP[2]),
-				rng:NextNumber(-BURST_OUT, BURST_OUT)
-			)
+			local looked = watched
+			local out = if looked
+				then looked * WATCHED_OUT + Vector3.new(
+					rng:NextNumber(-WATCHED_SPREAD, WATCHED_SPREAD),
+					rng:NextNumber(-WATCHED_SPREAD, WATCHED_SPREAD),
+					rng:NextNumber(-WATCHED_SPREAD, WATCHED_SPREAD)
+				)
+				else Vector3.new(
+					rng:NextNumber(-BURST_OUT, BURST_OUT),
+					rng:NextNumber(BURST_UP[1], BURST_UP[2]),
+					rng:NextNumber(-BURST_OUT, BURST_OUT)
+				)
 			rocket.CFrame = CFrame.new(at + out)
 			bursts[rng:NextInteger(1, #bursts)]:Emit(rng:NextInteger(30, 46))
 		end
@@ -195,6 +272,9 @@ local function fireworks(): Scene
 				rocket:Destroy()
 			end)
 		end,
+		watched = function(way)
+			watched = way
+		end,
 	}
 end
 
@@ -205,6 +285,9 @@ local function falling(weather: Events.Event): Scene
 	local cloud = unseen(Vector3.new(look.box[1], look.box[2], look.box[3]))
 	local shift = Vector3.new(look.shift[1], look.shift[2], look.shift[3])
 	local made = Weather.emitter(look)
+	-- A zone's weather takes the light of its zone. An event's shows its own colors: the
+	-- village may be at any hour when it begins, and a gold leaf is gold at all of them.
+	made.LightInfluence = 0
 	made.Parent = cloud
 	return {
 		follow = function(camera)
@@ -267,6 +350,11 @@ function EventShow.start()
 	local function colorize()
 		local event = showing
 		local sky = if event and not inLastZone then event.sky else nil
+		for _, scene in scenes do
+			if scene.plain then
+				scene.plain(inLastZone)
+			end
+		end
 		TweenService:Create(tint, TweenInfo.new(TINT_SECONDS), {
 			TintColor = if sky then Color3.fromHex(sky.tint) else Color3.new(1, 1, 1),
 			Brightness = if sky then sky.brightness else 0,
@@ -293,52 +381,129 @@ function EventShow.start()
 		aiming, thrown = false, false
 	end)
 
-	-- Lifts the camera to look `way`, holds it there and gives it back where it was, moved by
-	-- however far the character has walked meanwhile. Given up at once if a throw's staging
-	-- takes the camera.
-	local function lookUp(way: Vector3)
+	-- The look at the sky (Logic/SkyLook): the camera leaves the player's shoulder, draws back
+	-- and climbs with them still in the picture, lifts its eyes `way`, and comes home the way
+	-- it went, to where it was about the player, who may have walked on meanwhile. `over` is
+	-- called when it is done with. Not flown for a player who is busy with a throw, stands
+	-- under a roof or looks out of their own eyes; given up at once if a throw's staging takes
+	-- the camera, and flown home quickly for a player who begins to aim.
+	local function lookUp(way: () -> Vector3, over: () -> ()): boolean
 		local camera = Workspace.CurrentCamera
-		if not camera or aiming or thrown or Cinematic.staging() then
-			return
+		local character = Players.LocalPlayer.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if not camera or not root or not root:IsA("BasePart") then
+			return false
+		end
+		if aiming or thrown or Cinematic.staging() then
+			return false
+		end
+		-- Something else has the camera.
+		if camera.CameraType ~= Enum.CameraType.Custom then
+			return false
 		end
 		local from = camera.CFrame
-		local focus = camera.Focus.Position
+		local offset = from.Position - root.Position
+		local flat = Vector3.new(offset.X, 0, offset.Z)
+		if flat.Magnitude < FIRST_PERSON then
+			return false
+		end
+		local stand: SkyLook.Stand = {
+			radius = flat.Magnitude,
+			height = offset.Y,
+			angle = math.atan2(flat.Z, flat.X),
+		}
+		-- The camera climbs on the side of the player away from what it will look at; for
+		-- something straight overhead, on the side it is on.
+		local toward = way()
+		local side = if math.abs(toward.X) + math.abs(toward.Z) > 0.05
+			then math.atan2(-toward.Z, -toward.X)
+			else stand.angle
+
+		-- What stands in the way is what a character would bump into: the dojos, the shops'
+		-- roofs, the yard's unseen fence. Other players do not count.
+		local people: { Instance } = {}
+		for _, player in Players:GetPlayers() do
+			if player.Character then
+				table.insert(people, player.Character)
+			end
+		end
+		local solid = RaycastParams.new()
+		solid.FilterType = Enum.RaycastFilterType.Exclude
+		solid.FilterDescendantsInstances = people
+		solid.RespectCanCollide = true
+		local eyes = root.Position + Vector3.new(0, EYES, 0)
+		if Workspace:Raycast(eyes, Vector3.new(0, ROOF, 0), solid) then
+			return false
+		end
+		local function about(at: SkyLook.Stand): Vector3
+			return Vector3.new(
+				math.cos(at.angle) * at.radius,
+				at.height,
+				math.sin(at.angle) * at.radius
+			)
+		end
+		local out = root.Position + about(SkyLook.peak(stand, side, 1)) - eyes
+		local hit = Workspace:Raycast(eyes, out, solid)
+		local room = if hit then math.max(hit.Distance - CLEAR, 0) / out.Magnitude else 1
+		if room < ROOM_LEAST then
+			return false
+		end
+		local peak = SkyLook.peak(stand, side, room)
+
 		local startedAt = os.clock()
+		-- When the look was given up, and how far out the camera and its eyes were then.
+		local hurriedAt: number? = nil
+		local flyFrom, gazeFrom = 0, 0
 		camera.CameraType = Enum.CameraType.Scriptable
 		local watching: RBXScriptConnection
+		local function home()
+			watching:Disconnect()
+			if root.Parent then
+				camera.CFrame = CFrame.new(root.Position + offset) * from.Rotation
+			end
+			camera.CameraType = Enum.CameraType.Custom
+			over()
+		end
 		watching = RunService.RenderStepped:Connect(function()
 			if Cinematic.staging() then
 				-- The reveal has the camera now, and will hand it back itself.
 				watching:Disconnect()
+				over()
 				return
 			end
-			local t = os.clock() - startedAt
-			local moved = camera.Focus.Position - focus
-			local home = from + moved
-			local sky = CFrame.lookAt(home.Position, home.Position + way)
-			local share
-			if t < LOOK_UP then
-				share = TweenService:GetValue(
-					t / LOOK_UP,
-					Enum.EasingStyle.Quad,
-					Enum.EasingDirection.InOut
-				)
-			elseif t < LOOK_UP + LOOK_HOLD then
-				share = 1
-			elseif t < LOOK_UP + LOOK_HOLD + LOOK_BACK then
-				share = 1
-					- TweenService:GetValue(
-						(t - LOOK_UP - LOOK_HOLD) / LOOK_BACK,
-						Enum.EasingStyle.Quad,
-						Enum.EasingDirection.InOut
-					)
+			if not root.Parent then
+				home()
+				return
+			end
+			local now = os.clock()
+			local fly: number, gaze: number
+			if hurriedAt then
+				local still = 1 - SkyLook.eased((now - hurriedAt) / SkyLook.HURRY)
+				if still <= 0 then
+					home()
+					return
+				end
+				fly, gaze = flyFrom * still, gazeFrom * still
 			else
-				watching:Disconnect()
-				camera.CameraType = Enum.CameraType.Custom
-				return
+				local time = now - startedAt
+				if time >= SkyLook.length() then
+					home()
+					return
+				end
+				fly, gaze = SkyLook.at(time)
+				if aiming or thrown then
+					hurriedAt, flyFrom, gazeFrom = now, fly, gaze
+				end
 			end
-			camera.CFrame = home:Lerp(sky, share)
+			local place = root.Position + about(SkyLook.orbit(stand, peak, fly))
+			local onPlayer = CFrame.lookAt(place, root.Position + Vector3.new(0, EYES, 0)).Rotation
+			local onSky = CFrame.lookAt(place, place + way()).Rotation
+			-- At the shoulder the camera looks as the player had it; a third of the way out it
+			-- has turned to them.
+			local turned = from.Rotation:Lerp(onPlayer, SkyLook.eased(fly * 3))
+			camera.CFrame = CFrame.new(place) * turned:Lerp(onSky, gaze)
 		end)
+		return true
 	end
 
 	local function finish(announce: boolean)
@@ -351,6 +516,7 @@ function EventShow.start()
 			scene.stop()
 		end
 		scenes = {}
+		Mood.hold(nil)
 		colorize()
 		Ui.rollUp(paper)
 		if announce then
@@ -376,6 +542,7 @@ function EventShow.start()
 			elseif event.shows == "clouds" then clouds()
 			else fireworks()
 		table.insert(scenes, sky)
+		Mood.hold(event.light)
 		colorize()
 
 		title.Text = string.upper(event.name)
@@ -403,12 +570,21 @@ function EventShow.start()
 			-- the camera already faces.
 			local camera = Workspace.CurrentCamera
 			local ahead = if camera then camera.CFrame.LookVector * Vector3.new(1, 0, 1) else nil
-			local way = if event.shows == "moon"
-					or not ahead
-					or ahead.Magnitude < 0.01
-				then MOON_WAY
-				else (ahead.Unit + Vector3.new(0, 0.95, 0)).Unit
-			lookUp(way)
+			local overhead = if ahead and ahead.Magnitude > 0.01
+				then (ahead.Unit + Vector3.new(0, 0.95, 0)).Unit
+				else MOON_WAY
+			local way: () -> Vector3 = sky.way or function(): Vector3
+				return overhead
+			end
+			local watched = sky.watched
+			local flown = lookUp(way, function()
+				if watched then
+					watched(nil)
+				end
+			end)
+			if flown and watched then
+				watched(way())
+			end
 		end
 	end
 

@@ -11,6 +11,11 @@
 -- The village's own light goes by the hour of its day (Logic/Daylight, client Daytime): the
 -- plaza with its dojos, and the first zone. Every other zone keeps its light whatever the hour.
 --
+-- An event holds the village in a light of its own while it runs (Mood.hold), so that it looks
+-- the same whether it began at noon or at midnight: the clock is turned to the event's hour
+-- and the village's light of that hour gives way to the event's, both over a few seconds, and
+-- both come back as slowly when the event is over.
+--
 -- Only numbers are changed here, on Lighting, its Atmosphere and its effects. The place's Sky,
 -- and with it the moon, is never touched.
 
@@ -58,6 +63,9 @@ type Listener = (place: string) -> ()
 
 local listeners: { Listener } = {}
 local current: string? = nil
+-- The light the village is held in, as a row; kept after it is let go, for it is still mixed
+-- in while the village's own light comes back.
+local held: Row? = nil
 
 -- Calls `fn` with where the camera is, a zone's id or Mood.HOME: right away if that is known
 -- already, and again whenever it changes.
@@ -111,6 +119,15 @@ local function row(look: Looks.Light): Row
 			Color3.fromHex(look.tint),
 		},
 	}
+end
+
+-- Holds the places lit by the hour in `light`, whatever their own hour, until it is called
+-- with nil: an event's light (Config/Events). The clock and the lanterns turn with it.
+function Mood.hold(light: Looks.Light?)
+	if light then
+		held = row(light)
+	end
+	Daytime.hold(if light then light.clock else nil)
 end
 
 -- `share` of the way from one row to another.
@@ -180,11 +197,16 @@ function Mood.start()
 		local villageAt = -math.huge
 		local function byTheHour(): Row
 			local now = os.clock()
-			if now - villageAt >= HOUR_SECONDS then
+			-- While the clock is being turned to a held hour, or back, every frame counts.
+			if now - villageAt >= HOUR_SECONDS or Daytime.turning() then
 				villageAt = now
 				local clock = Daytime.clock()
 				local from, to, share = Daylight.mix(clock)
 				village = between(hours[from], hours[to], share)
+				local grip = Daytime.grip()
+				if held and grip > 0 then
+					village = between(village, held, grip)
+				end
 				village.numbers[CLOCK] = clock
 			end
 			return village
