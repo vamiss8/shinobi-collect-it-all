@@ -215,7 +215,8 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 
 	local distance = math.max(result.distance, MIN_LANDING)
 	local mutationLuck = Rebirth.mutationLuck(player.rebirths)
-	local drop = Roll.drop(result.distance, Roll.spinLuck(player.spins), mutationLuck, nil, rng)
+	local lucky = Roll.spinLuck(player.spins)
+	local drop = Roll.drop(result.distance, lucky, mutationLuck * lucky, nil, rng)
 	local zone = Catalog.zoneById[drop.zone]
 	local unit: Unit = { character = drop.character, mutation = drop.mutation, level = 1 }
 

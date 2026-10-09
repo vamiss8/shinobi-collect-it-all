@@ -275,11 +275,13 @@ local function press(player: Player, claimed: unknown)
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)
-	-- A catch made while an event runs has a chance of the event's own mutation.
+	-- A lucky throw multiplies the chance of the next rank up and of a mutation alike, and a
+	-- catch made while an event runs has a chance of the event's own mutation: so a lucky
+	-- throw is worth keeping for an event.
 	local drop = Roll.drop(
 		distance,
 		multipliers.luck * spinLuck,
-		multipliers.mutationLuck,
+		multipliers.mutationLuck * spinLuck,
 		Events.current(),
 		roll
 	)

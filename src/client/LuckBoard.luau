@@ -53,12 +53,15 @@ function LuckBoard.start()
 				TextXAlignment = Enum.TextXAlignment.Center,
 			})
 		end
-		local heading = line(0.05, 0.2, Ui.GOLD)
+		local heading = line(0.04, 0.18, Ui.GOLD)
 		heading.Font = Ui.BRUSH
 		heading.Text = Strings.get("LuckTitle")
-		local throw = line(0.28, 0.2, Ui.WHITE)
-		local countdown = line(0.5, 0.26, Ui.WHITE)
-		line(0.8, 0.14, Ui.MUTED).Text = legend()
+		-- What the luck is luck with: the next rank up, and since 2026-10-09 mutations too,
+		-- an event's own among them, which is what a lucky throw is kept for.
+		line(0.225, 0.1, Ui.MUTED).Text = Strings.get("LuckWhat")
+		local throw = line(0.345, 0.17, Ui.WHITE)
+		local countdown = line(0.53, 0.25, Ui.WHITE)
+		line(0.81, 0.13, Ui.MUTED).Text = legend()
 
 		Store.onChange(function(state)
 			local throwsLeft, luck = Roll.nextMilestone(state.spins)

@@ -19,9 +19,12 @@ export type Drop = {
 	mutation: string,
 }
 
--- Converts weights into probabilities and applies luck. Every entry except the first (the most
--- common one) has its chance multiplied by `luck`, and the first takes whatever is left. When the
--- boosted chances add up to more than 1, they are scaled down to fit and the first drops out.
+-- Converts weights into probabilities and applies luck. A table is listed from the least
+-- wanted entry to the most: every entry except the first has its chance multiplied by `luck`,
+-- and the first takes whatever is left. When the boosted chances add up to more than 1 the
+-- first drops out and the rest are served from the far end of the list: the most wanted keeps
+-- all that its luck gave it and those before it give way, so that more luck is never spent on
+-- more of the commonest thing.
 function Roll.withLuck(entries: { Entry }, luck: number): { Entry }
 	local total = 0
 	for _, e in entries do
@@ -29,16 +32,14 @@ function Roll.withLuck(entries: { Entry }, luck: number): { Entry }
 	end
 	assert(total > 0, "roll table has no weight")
 
-	local rare = 0
-	for i = 2, #entries do
-		rare += entries[i].weight / total * luck
+	local out: { Entry } = table.create(#entries)
+	local left = 1
+	for i = #entries, 2, -1 do
+		local chance = math.min(entries[i].weight / total * luck, left)
+		left -= chance
+		out[i] = { id = entries[i].id, weight = chance }
 	end
-	local scale = if rare > 1 then 1 / rare else 1
-
-	local out: { Entry } = { { id = entries[1].id, weight = math.max(1 - rare, 0) } }
-	for i = 2, #entries do
-		table.insert(out, { id = entries[i].id, weight = entries[i].weight / total * luck * scale })
-	end
+	out[1] = { id = entries[1].id, weight = math.max(left, 0) }
 	return out
 end
 
@@ -96,16 +97,32 @@ function Roll.depthMutationLuck(zone: Catalog.Zone, distance: number): number
 	return 1 + (Tuning.Zones.deepMutationLuck - 1) * Catalog.zoneProgress(zone, distance)
 end
 
--- Mutation chances, with "no mutation" first. Event mutations join only while their event runs.
+-- Mutation chances, with "no mutation" first and then from the mutation that pays least to
+-- the one that pays most, which is the order luck serves them in when there is more of it
+-- than fits (Roll.withLuck). Event mutations join only while their event runs.
 function Roll.mutationTable(activeEvent: string?): { Entry }
-	local entries = { { id = Catalog.NONE, weight = 0 } }
-	local sum = 0
+	local dropping = {}
 	for _, m in Catalog.mutations do
 		if m.event == nil or m.event == activeEvent then
-			local p = 1 / m.chance
-			sum += p
-			table.insert(entries, { id = m.id, weight = p })
+			table.insert(dropping, m)
 		end
+	end
+	table.sort(dropping, function(a, b)
+		if a.multiplier ~= b.multiplier then
+			return a.multiplier < b.multiplier
+		end
+		-- Of two that pay alike the rarer is the more wanted.
+		if a.chance ~= b.chance then
+			return a.chance < b.chance
+		end
+		return a.id < b.id
+	end)
+	local entries = { { id = Catalog.NONE, weight = 0 } }
+	local sum = 0
+	for _, m in dropping do
+		local p = 1 / m.chance
+		sum += p
+		table.insert(entries, { id = m.id, weight = p })
 	end
 	entries[1].weight = math.max(1 - sum, 0)
 	return entries
@@ -148,7 +165,9 @@ function Roll.character(rankId: string, r: number): string
 	return pool[i].id
 end
 
--- Everything a kunai landing at `distance` turns into. `rng` returns numbers in [0, 1).
+-- Everything a kunai landing at `distance` turns into. `rng` returns numbers in [0, 1). `luck`
+-- multiplies the chance of the next rank up and `mutationLuck` that of every mutation; a lucky
+-- throw is in both (Services/Kicking).
 function Roll.drop(
 	distance: number,
 	luck: number,

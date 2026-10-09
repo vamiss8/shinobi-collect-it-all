@@ -6,6 +6,9 @@ local Tuning = require("../src/shared/Config/Tuning")
 
 local EPS = 1e-9
 
+-- The event during which Tsukuyomi drops, whatever it is called.
+local MOON = Catalog.mutationById.tsukuyomi.event :: string
+
 local function weightOf(entries: { Roll.Entry }, id: string): number
 	for _, e in entries do
 		if e.id == id then
@@ -28,15 +31,76 @@ return {
 		T.near(weightOf(out, "b"), 0.2, EPS)
 	end,
 
-	["overflowing luck keeps rare entries in proportion"] = function()
-		local out = Roll.withLuck({
-			{ id = "a", weight = 50 },
-			{ id = "b", weight = 30 },
-			{ id = "c", weight = 20 },
-		}, 10)
+	["overflowing luck serves the last entries first and the earlier ones give way"] = function()
+		local entries = {
+			{ id = "a", weight = 70 },
+			{ id = "b", weight = 20 },
+			{ id = "c", weight = 10 },
+		}
+		-- 80% and 40%: the last keeps all of its 40%, the one before it gets what is left.
+		local out = Roll.withLuck(entries, 4)
 		T.near(weightOf(out, "a"), 0, EPS)
 		T.near(weightOf(out, "b"), 0.6, EPS)
 		T.near(weightOf(out, "c"), 0.4, EPS)
+		T.eq(out[1].id, "a", "the order of the table is kept")
+		T.eq(out[3].id, "c")
+		-- With luck enough for the last alone, it is all there is.
+		out = Roll.withLuck(entries, 20)
+		T.near(weightOf(out, "b"), 0, EPS)
+		T.near(weightOf(out, "c"), 1, EPS)
+	end,
+
+	["more luck never lowers the chance of the best there is"] = function()
+		local running = { "none" }
+		for _, mutation in Catalog.mutations do
+			if mutation.event then
+				table.insert(running, mutation.event)
+			end
+		end
+		T.eq(#running, 4, "three events and none")
+		for _, event in running do
+			local base = Roll.mutationTable(if event == "none" then nil else event)
+			local best = base[#base].id
+			local before = 0
+			for _, luck in { 1, 2, 4, 5, 10, 20, 40, 100 } do
+				local out = Roll.withLuck(base, luck)
+				local total = 0
+				for _, e in out do
+					total += e.weight
+					T.ok(e.weight >= 0, `{e.id} at x{luck}: {e.weight}`)
+				end
+				T.near(total, 1, EPS, `x{luck} during {event}`)
+				local now = weightOf(out, best)
+				T.ok(now >= before - EPS, `{best} fell from {before} to {now} at x{luck}`)
+				before = now
+			end
+		end
+	end,
+
+	-- The owner's word: a lucky throw is kept for an event. Ten times the luck is then ten
+	-- times the event's mutation, not a share of what luck was left over.
+	["a lucky throw multiplies an event's mutation in full"] = function()
+		for _, mutation in Catalog.mutations do
+			if mutation.event then
+				local during = Roll.mutationTable(mutation.event)
+				for _, luck in { 1, 2, 5, 10 } do
+					T.near(
+						weightOf(Roll.withLuck(during, luck), mutation.id),
+						luck / mutation.chance,
+						EPS,
+						`{mutation.name} at x{luck}`
+					)
+				end
+			end
+		end
+	end,
+
+	["mutations are listed from the one that pays least to the one that pays most"] = function()
+		local t = Roll.mutationTable("leaf_festival")
+		for i = 3, #t do
+			local before, after = Catalog.mutationById[t[i - 1].id], Catalog.mutationById[t[i].id]
+			T.ok(after.multiplier >= before.multiplier, `{after.id} is listed after {before.id}`)
+		end
 	end,
 
 	["pick walks the cumulative weights"] = function()
@@ -95,11 +159,8 @@ return {
 	end,
 
 	["event mutations join while their event runs"] = function()
-		T.ok(
-			weightOf(Roll.mutationTable("blood_moon"), "tsukuyomi") > 0,
-			"tsukuyomi during blood moon"
-		)
-		T.eq(weightOf(Roll.mutationTable("blood_moon"), "akatsuki"), 0, "other events stay out")
+		T.ok(weightOf(Roll.mutationTable(MOON), "tsukuyomi") > 0, "tsukuyomi during its event")
+		T.eq(weightOf(Roll.mutationTable(MOON), "akatsuki"), 0, "other events stay out")
 	end,
 
 	["zones switch at their start distance"] = function()
