@@ -51,6 +51,12 @@ local HEADROOM = 12.5
 local TAG_LINE_LEAST = 0.8
 -- Attribute on a figure: how many times its size it was built for show (1 for most).
 local SHOWN = "Shown"
+-- Attributes on a tag's board: how wide and how tall its lines ask it to be, studs.
+local TAG_WIDE = "Wide"
+local TAG_TALL = "Tall"
+-- On the line under the name: the level, and what the shinobi earns.
+local LEVEL_COLOR = "#FFD54F"
+local INCOME_COLOR = "#9CF0AC"
 
 -- How high over a carrier's root a carried figure's feet are.
 Figure.CARRY_HEIGHT = 3.5
@@ -96,30 +102,48 @@ local function tag(unit: Economy.Unit): { Line }
 		name ..= ` <font color="#FFD54F">{Catalog.stars(unit.level)}</font>`
 	end
 	table.insert(lines, { text = name })
+	-- The level in gold and what it earns in green: all in white, the line had to be read
+	-- to be told from the name over it.
 	local upgrades = unit.upgrade or 0
-	table.insert(
-		lines,
-		{ text = `Lvl {upgrades + 1} · {Format.short(Economy.unitIncome(unit))}/s` }
-	)
+	local income = Format.short(Economy.unitIncome(unit))
+	table.insert(lines, {
+		text = `<font color="{LEVEL_COLOR}">Lvl {upgrades + 1}</font>`
+			.. `  <font color="{INCOME_COLOR}">{income}/s</font>`,
+	})
 	if upgrades > 0 then
 		local base = Format.short(Economy.baseIncome(unit))
-		table.insert(lines, { text = `Base: {base}/s`, color = "#BDBDBD" })
+		table.insert(lines, { text = `Base: {base}/s`, color = "#B0BEC5" })
 	end
 	return lines
+end
+
+-- Gives a tag's board the size and the place its lines ask for, which `write` left on it. A
+-- model's scale is the scale of everything in it, a tag's board included: whoever scales a
+-- figure (the swell at an upgrade does, on each client) settles its tag afterwards.
+local function lay(board: BillboardGui)
+	local wide, tall = board:GetAttribute(TAG_WIDE), board:GetAttribute(TAG_TALL)
+	if typeof(wide) == "number" and typeof(tall) == "number" then
+		board.Size = UDim2.fromScale(wide, tall)
+		board.StudsOffset = Vector3.new(0, TAG_GAP + tall / 2, 0)
+	end
 end
 
 -- Writes a tag on its board, a label to a line. (It was one label of several lines, which can
 -- be written in several colors but lettered only as a whole.) The board grows upwards with its
 -- lines: its lower edge stays just above the head. A line with lettering of its own is marked
 -- for the clients, each of which draws it (client Lettering).
-local function write(board: BillboardGui, lines: { Line }, tall: number)
+local function write(board: BillboardGui, lines: { Line }, tall: number, shown: number)
 	board:ClearAllChildren()
 	-- Over a tall figure the lines are lower, so that figure and tag still stand under a
-	-- ceiling; never so low that they cannot be read.
+	-- ceiling; never so low that they cannot be read. A figure put on show stands in the
+	-- open and is looked at from far off: its tag is as many times larger as it is.
 	local each = math.clamp((HEADROOM - tall - TAG_GAP) / #lines, TAG_LINE_LEAST, TAG_LINE)
-	local height = each * #lines
-	board.Size = UDim2.fromScale(TAG_WIDTH, height)
-	board.StudsOffset = Vector3.new(0, TAG_GAP + height / 2, 0)
+	if shown > 1 then
+		each = TAG_LINE * shown
+	end
+	board:SetAttribute(TAG_WIDE, TAG_WIDTH * math.max(shown, 1))
+	board:SetAttribute(TAG_TALL, each * #lines)
+	lay(board)
 	for index, line in lines do
 		local label = Instance.new("TextLabel")
 		label.Name = "Line" .. index
@@ -129,7 +153,9 @@ local function write(board: BillboardGui, lines: { Line }, tall: number)
 		label.Font = Enum.Font.PermanentMarker
 		label.TextScaled = true
 		label.TextColor3 = if line.color then Color3.fromHex(line.color) else Color3.new(1, 1, 1)
-		label.TextStrokeTransparency = 0.4
+		-- Outlined in full black: a dojo's walls are white paper, and pale writing with a
+		-- faint outline was lost on them.
+		label.TextStrokeTransparency = 0
 		label.RichText = true
 		label.Text = line.text
 		if line.lettering then
@@ -315,22 +341,28 @@ function Figure.build(unit: Economy.Unit, show: number?): Model
 		Aura.legend(model, unit.character, UNIT_HEIGHT)
 	end
 
-	local shown = show or 1
-	local growth = Economy.growth(unit.upgrade)
-	local board = Instance.new("BillboardGui")
-	board.MaxDistance = 400
-	write(board, tag(unit), UNIT_HEIGHT * shown * growth)
-	board.Parent = topAnchor(model, UNIT_HEIGHT)
-
+	local anchor = topAnchor(model, UNIT_HEIGHT)
 	untouchable(model)
 
-	-- Last, so that the aura and the tag's anchor grow with it. The size it is built at is
-	-- left on it, with how much it has grown: whoever changes its size goes by the two.
+	-- Scaled once the aura and the tag's anchor are in it, so that they grow with it. The size
+	-- it is built at is left on it, with how much it has grown: whoever changes its size goes
+	-- by the two.
+	local shown = show or 1
+	local growth = Economy.growth(unit.upgrade)
 	local built = model:GetScale() * shown
 	model:SetAttribute(Net.BUILT_ATTRIBUTE, built)
 	model:SetAttribute(Net.GROWTH_ATTRIBUTE, growth)
 	model:SetAttribute(SHOWN, shown)
 	model:ScaleTo(built * growth)
+
+	-- THE TAG GOES ON AFTER THE SCALING. Scaling a model scales a board of studs inside it
+	-- like any part: written first, the tag of a figure built at a high level came out half
+	-- as large again as meant, its lower lines huge and its top two, the mutation and the
+	-- rank, up in the ceiling where nobody saw them.
+	local board = Instance.new("BillboardGui")
+	board.MaxDistance = 400
+	write(board, tag(unit), UNIT_HEIGHT * shown * growth, shown)
+	board.Parent = anchor
 	return model
 end
 
@@ -350,8 +382,18 @@ function Figure.retag(figure: Model, unit: Economy.Unit)
 	local anchor = figure:FindFirstChild(TAG_ANCHOR)
 	local board = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
 	if board then
-		local tall = UNIT_HEIGHT * growth * (if typeof(shown) == "number" then shown else 1)
-		write(board, tag(unit), tall)
+		-- Written after the scaling, which has just scaled the board with the rest.
+		local show = if typeof(shown) == "number" then shown else 1
+		write(board, tag(unit), UNIT_HEIGHT * growth * show, show)
+	end
+end
+
+-- Puts a figure's tag back to the size its lines ask for, after the figure was scaled.
+function Figure.settle(figure: Model)
+	local anchor = figure:FindFirstChild(TAG_ANCHOR)
+	local board = if anchor then anchor:FindFirstChildOfClass("BillboardGui") else nil
+	if board then
+		lay(board)
 	end
 end
 

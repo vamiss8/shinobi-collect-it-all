@@ -18,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local Remotes = require("./Remotes")
@@ -115,6 +116,9 @@ local function celebrate(upgrade: Net.Upgraded)
 			swelling:Disconnect()
 			if figure.Parent then
 				figure:ScaleTo(meant(figure))
+				-- The tag was scaled with the figure, and may have been rewritten for the
+				-- new level in the middle of it.
+				Figure.settle(figure)
 			end
 			sizes[figure] = nil
 		end
