@@ -7,16 +7,17 @@
 -- elsewhere"): every rank somebody on the server holds has a band with its emblem and its
 -- name, in its color and lettered as over its holders' heads (Config/Lettering `titles`), the
 -- highest rank first; under a band are the names of those who hold it and what their dojos
--- earn a second, the richest first. Roblox's own list is switched off.
+-- earn a second, the richest first. Roblox's own list is switched off. A band does not count
+-- its holders: a server is six players, and they are counted at a glance.
 --
 -- The numbers are read off the Players themselves, where the server keeps them as attributes
 -- (Services/State). Tab hides the list and brings it back, as it does Roblox's.
 --
--- WHERE IT HANGS. The window buttons stand at the middle of the same edge (client Hud), and
--- the corner over them has room for nine lines or so. A list that fits there, at its size or
--- a little smaller, hangs in the corner. One that does not (six players of five ranks are
--- eleven lines) hangs just left of the buttons instead, where it may be as long as it likes,
--- rather than be drawn too small to read.
+-- IT NEVER REACHES THE WINDOW BUTTONS, which stand at the middle of the same edge (client
+-- Hud). The corner over them has room for nine lines or so, and six players of five ranks are
+-- eleven: the scroll is then as long as the corner lets it be, and its lines are turned
+-- through with the wheel. (It first hung left of the buttons when it grew; the owner would
+-- rather have it stay where it is and scroll.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -45,28 +46,22 @@ local FOOT = 12
 local SEAL = 24
 -- A player's line stands in from its rank's band by this much.
 local INDENT = 14
--- What a line's income may take of its width, and a band's count of holders.
+-- What a line's income may take of its width.
 local INCOME = 96
-local COUNT = 38
--- The window buttons stand at the middle of the same edge (client Hud): a list in the corner
--- keeps this far above the middle of the screen. It may be drawn this much smaller to fit;
--- smaller than that it hangs beside the buttons instead, BESIDE from the right edge, and
--- keeps LOW clear at the foot of the screen.
+-- Where the scroll's top is from the top of the screen. The window buttons stand at the middle
+-- of the same edge (client Hud): the scroll's foot keeps this far above the middle of the
+-- screen. However short the window, this much of the lines is shown.
+local TOP = 16
 local CLEAR_OF_BUTTONS = 150
-local CORNER_LEAST = 0.85
-local BESIDE = -140
-local LOW = 190
-local BESIDE_LEAST = 0.6
+local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
--- Where the list hangs in the corner, from the screen's right edge, and where it is when put
--- away: off that edge. It slides between the two, in and out, this long each way, seconds, and
--- from the corner to beside the buttons in MOVE.
+-- Where the list hangs, from the screen's right edge, and where it is when put away: off that
+-- edge. It slides between the two, in and out, this long each way, seconds.
 local HUNG = -24
 local AWAY = WIDTH + 60
 local SLIDE_IN = 0.3
 local SLIDE_OUT = 0.22
-local MOVE = 0.2
 
 type Row = {
 	frame: Frame,
@@ -78,7 +73,6 @@ type Row = {
 -- The band of a rank.
 type Band = {
 	frame: Frame,
-	count: TextLabel,
 }
 
 -- A number the server keeps on a player, or nothing yet.
@@ -111,9 +105,9 @@ local function rod(sheet: Frame, at: number)
 	end
 end
 
--- The band of the rank held after `done` rebirths: a strip of ink with the rank's emblem, its
--- name in its color, lettered if the rank is, and how many on the server hold it.
-local function band(sheet: Frame, done: number): Band
+-- The band of the rank held after `done` rebirths: a strip of ink with the rank's emblem and
+-- its name in its color, lettered if the rank is.
+local function band(sheet: Instance, done: number): Band
 	local frame = Ui.make("Frame", {
 		Size = UDim2.new(1, -16, 0, BAND),
 		BackgroundColor3 = Ui.PANEL,
@@ -132,24 +126,16 @@ local function band(sheet: Frame, done: number): Band
 	-- copies of the word, and a copy has to come out the size of the word.
 	local name = Ui.text(frame, {
 		Position = UDim2.fromOffset(SEAL + 12, 0),
-		Size = UDim2.new(1, -(SEAL + 12 + COUNT + 6), 1, 0),
+		Size = UDim2.new(1, -(SEAL + 20), 1, 0),
 		TextSize = 19,
 		TextColor3 = Color3.fromHex(Rebirth.color(done)),
 		Text = string.upper(Rebirth.title(done)),
 	})
 	Lettering.dress(name, Looks.key("title", tostring(done)))
-	local count = Ui.text(frame, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 0),
-		Size = UDim2.new(0, COUNT, 1, 0),
-		TextSize = 17,
-		TextColor3 = Ui.MUTED,
-		TextXAlignment = Enum.TextXAlignment.Right,
-	})
-	return { frame = frame, count = count }
+	return { frame = frame }
 end
 
-local function row(sheet: Frame): Row
+local function row(sheet: Instance): Row
 	local frame = Ui.make("Frame", {
 		Size = UDim2.new(1, -(16 + INDENT), 0, ROW),
 		BackgroundColor3 = Ui.INK,
@@ -198,7 +184,7 @@ function PlayerList.start()
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local sheet: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, HUNG, 0, 16),
+		Position = UDim2.new(1, HUNG, 0, TOP),
 		Size = UDim2.fromOffset(WIDTH, HEADER + FOOT),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
@@ -208,7 +194,21 @@ function PlayerList.start()
 	Ui.stroke(sheet, Ui.EDGE, 3)
 	rod(sheet, 0)
 	rod(sheet, 1)
-	local scale: UIScale = Ui.make("UIScale", {}, sheet)
+	-- The lines, under the title: as much of them as the corner has room for, the rest a turn
+	-- of the wheel away.
+	local lines: ScrollingFrame = Ui.make("ScrollingFrame", {
+		Position = UDim2.fromOffset(0, HEADER),
+		Size = UDim2.fromScale(1, 0),
+		CanvasSize = UDim2.fromOffset(0, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ElasticBehavior = Enum.ElasticBehavior.Never,
+		ScrollBarThickness = 5,
+		ScrollBarImageColor3 = Ui.INK,
+		ScrollBarImageTransparency = 0.35,
+		ScrollingEnabled = false,
+	}, sheet)
 
 	local title = Ui.text(sheet, {
 		Position = UDim2.fromOffset(0, 12),
@@ -229,10 +229,8 @@ function PlayerList.start()
 	local rows: { [Player]: Row } = {}
 	-- A band for every rank that has been held on this server, by the rebirths it takes.
 	local bands: { [number]: Band } = {}
-	-- Whether the list is on the screen (Tab puts it away), and where it hangs from the right
-	-- edge when it is.
+	-- Whether the list is on the screen (Tab puts it away).
 	local hung = sheet.Visible
-	local hangs = HUNG
 
 	-- Writes every line anew and puts them in order: the highest rank first, and under each
 	-- rank the richest dojo first.
@@ -260,7 +258,7 @@ function PlayerList.start()
 		for done, strip in bands do
 			strip.frame.Visible = holders[done] ~= nil
 		end
-		local y = HEADER
+		local y = 0
 		local last: number? = nil
 		for _, player in listed do
 			local done = ranks[player]
@@ -268,16 +266,15 @@ function PlayerList.start()
 				last = done
 				local strip = bands[done]
 				if not strip then
-					strip = band(sheet, done)
+					strip = band(lines, done)
 					bands[done] = strip
 				end
 				strip.frame.Position = UDim2.fromOffset(8, y)
-				strip.count.Text = Strings.get("PlayersCount", holders[done])
 				y += BAND + GAP
 			end
 			local line = rows[player]
 			if not line then
-				line = row(sheet)
+				line = row(lines)
 				rows[player] = line
 			end
 			local own = player == Players.LocalPlayer
@@ -291,25 +288,13 @@ function PlayerList.start()
 			y += ROW + GAP
 		end
 
-		local height = y + FOOT
-		sheet.Size = UDim2.fromOffset(WIDTH, height)
-		local room = Ui.room()
-		local corner = (room.Y / 2 - CLEAR_OF_BUTTONS) / height
-		local was = hangs
-		if corner >= CORNER_LEAST then
-			hangs = HUNG
-			scale.Scale = math.min(corner, 1)
-		else
-			hangs = BESIDE
-			scale.Scale = math.clamp((room.Y - LOW) / height, BESIDE_LEAST, 1)
-		end
-		if hangs ~= was and hung then
-			TweenService:Create(
-				sheet,
-				TweenInfo.new(MOVE, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-				{ Position = UDim2.new(1, hangs, 0, 16) }
-			):Play()
-		end
+		-- As much of the lines as fits between the title and the window buttons.
+		local room = Ui.room().Y / 2 - CLEAR_OF_BUTTONS - TOP - HEADER - FOOT
+		local shown = math.min(y, math.max(room, SHOWN_LEAST))
+		lines.CanvasSize = UDim2.fromOffset(0, y)
+		lines.Size = UDim2.new(1, 0, 0, shown)
+		lines.ScrollingEnabled = y > shown
+		sheet.Size = UDim2.fromOffset(WIDTH, HEADER + shown + FOOT)
 	end
 	Ui.onResize(draw)
 
@@ -344,19 +329,19 @@ function PlayerList.start()
 		local mine = slides
 		if hung then
 			if not sheet.Visible then
-				sheet.Position = UDim2.new(1, AWAY, 0, 16)
+				sheet.Position = UDim2.new(1, AWAY, 0, TOP)
 				sheet.Visible = true
 			end
 			TweenService:Create(
 				sheet,
 				TweenInfo.new(SLIDE_IN, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-				{ Position = UDim2.new(1, hangs, 0, 16) }
+				{ Position = UDim2.new(1, HUNG, 0, TOP) }
 			):Play()
 		else
 			TweenService:Create(
 				sheet,
 				TweenInfo.new(SLIDE_OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-				{ Position = UDim2.new(1, AWAY, 0, 16) }
+				{ Position = UDim2.new(1, AWAY, 0, TOP) }
 			):Play()
 			task.delay(SLIDE_OUT, function()
 				if slides == mine then

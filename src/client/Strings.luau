@@ -222,7 +222,6 @@ local TEXT: { [string]: string } = {
 
 	-- The list of players (client PlayerList): how many are here, and what a dojo earns.
 	PlayersTitle = "ONLINE  %s/%s",
-	PlayersCount = "x%s",
 	PlayersIncome = "%s/s",
 
 	-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
