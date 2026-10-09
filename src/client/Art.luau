@@ -28,31 +28,31 @@ Art.icons = {
 -- frames (Icons.rank, Icons.stage). The pictures are kept in assets/icons as rank_<n>.png and
 -- stage_<n>.png.
 Art.ranks = {
-	[0] = 0,
-	[1] = 0,
-	[2] = 0,
-	[3] = 0,
-	[4] = 0,
-	[5] = 0,
-	[6] = 0,
-	[7] = 0,
-	[8] = 0,
-	[9] = 0,
-	[10] = 0,
+	[0] = 90964076211156, -- Academy Student
+	[1] = 108510148876957, -- Genin
+	[2] = 74231858107005, -- Chunin
+	[3] = 96262673939127, -- Special Jonin
+	[4] = 116383352351205, -- Jonin
+	[5] = 105009275133134, -- ANBU
+	[6] = 139778893959986, -- ANBU Captain
+	[7] = 73491911753299, -- Sannin
+	[8] = 110692031362276, -- Kage
+	[9] = 106605286429250, -- Sage
+	[10] = 130745525133572, -- Sage of Six Paths
 } :: { [number]: number }
 Art.stages = {
-	[1] = 0,
-	[2] = 0,
-	[3] = 0,
-	[4] = 0,
-	[5] = 0,
-	[6] = 0,
-	[7] = 0,
-	[8] = 0,
-	[9] = 0,
-	[10] = 0,
-	[11] = 0,
-	[12] = 0,
+	[1] = 103899649154186, -- Beginner
+	[2] = 133230073728037, -- Morning Laps
+	[3] = 136424728514446, -- Training Weights
+	[4] = 74685852013618, -- Heavy Weights
+	[5] = 129118547272015, -- Gate of Opening
+	[6] = 133458288556065, -- Gate of Healing
+	[7] = 112941852624431, -- Gate of Life
+	[8] = 118098574893622, -- Gate of Pain
+	[9] = 131720257347679, -- Gate of Limit
+	[10] = 106608979424319, -- Gate of View
+	[11] = 107539491901641, -- Gate of Wonder
+	[12] = 87883693169818, -- Gate of Death
 } :: { [number]: number }
 
 -- Portraits of shinobi by character id (Config/Characters), for cards and quick slots. A

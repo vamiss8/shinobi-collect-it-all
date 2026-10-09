@@ -22,14 +22,21 @@ function Verdict([string]$state) {
     return $state
 }
 
-# Every `name = 123456,` line of Art.luau that carries a real id (0 means "draw it").
+# Every `name = 123456,` line of Art.luau that carries a real id (0 means "draw it"). A table
+# keyed by numbers (the ranks' badges, the speed stages') has its lines named by the table and
+# the number: "ranks[4]".
 $names = [ordered]@{}
 if ($args.Count -gt 0) {
     foreach ($id in $args) { $names["$id"] = "asset" }
 } else {
-    $art = Get-Content (Join-Path $PSScriptRoot "..\src\client\Art.luau") -Raw
-    foreach ($match in [regex]::Matches($art, '(?m)^\s*\[?"?([A-Za-z_][A-Za-z0-9_]*)"?\]?\s*=\s*(\d{6,})\s*,')) {
-        $names[$match.Groups[2].Value] = $match.Groups[1].Value
+    $table = ""
+    foreach ($line in (Get-Content (Join-Path $PSScriptRoot "..\src\client\Art.luau"))) {
+        if ($line -match '^Art\.(\w+)\s*=\s*\{') { $table = $Matches[1] }
+        if ($line -match '^\s*\[?"?([A-Za-z0-9_]+)"?\]?\s*=\s*(\d{6,})\s*,') {
+            $key = $Matches[1]
+            $id = $Matches[2]
+            $names[$id] = if ($key -notmatch '\D') { "{0}[{1}]" -f $table, $key } else { $key }
+        }
     }
 }
 
