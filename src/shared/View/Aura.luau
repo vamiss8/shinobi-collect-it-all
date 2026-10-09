@@ -444,44 +444,142 @@ local SAGE_STARS: Layer = {
 	fade = 0,
 	color = "#FFFFFF",
 }
+-- THE EVENT MUTATIONS. Each is its event in small, and a shape of its own like the rest:
+-- Tsukuyomi red light coming down as off a moon onto a red mist that draws inward; Akatsuki a
+-- cloak of red cloud round a black column with dark feathers falling out of it; Leaf Festival
+-- leaves coming down through fireworks thrown up.
 local MOON_MIST: Layer = {
 	texture = SMOKE,
 	rate = 5,
 	life = { 2, 3 },
 	speed = { 0.5, 1 },
 	spread = 60,
-	size = { 1.8, 3.4 },
+	size = { 2.2, 3.8 },
 	lift = 0.3,
 	spin = 20,
 	glow = 0.3,
-	bright = 1.4,
-	fade = 0.65,
+	bright = 1.5,
+	fade = 0.6,
 }
-local MOON_SPARKS: Layer = {
+-- Tsukuyomi: red light falling straight down round it, slowly, as off the moon.
+local MOON_LIGHT: Layer = {
+	texture = SPARKLE,
+	rate = 9,
+	life = { 1.6, 2.2 },
+	speed = { 1.4, 2.2 },
+	down = true,
+	spread = 6,
+	size = { 0.9, 0.3 },
+	lift = 0,
+	spin = 60,
+	glow = 0.7,
+	bright = 3.2,
+	fade = 0.05,
+	color = "#FF5252",
+}
+-- Tsukuyomi: an eye opening and shutting about it, great and red.
+local MOON_EYES: Layer = {
+	texture = SPARKLE,
+	rate = 2,
+	life = { 0.6, 0.9 },
+	speed = { 0, 0.2 },
+	spread = 180,
+	size = { 0.4, 3, 0.4 },
+	lift = 0,
+	spin = 40,
+	glow = 0.8,
+	bright = 4,
+	fade = 0,
+	color = "#FF1744",
+}
+-- Tsukuyomi: the dream drawing in, dark red from all round.
+local MOON_PULL: Layer = {
 	texture = SPARKLE,
 	rate = 8,
-	life = { 1.5, 2.4 },
-	speed = { 0.8, 1.6 },
-	spread = 60,
-	size = { 0.8, 0.2 },
-	lift = 0.4,
-	spin = 90,
+	life = { 1, 1.2 },
+	speed = { 2.4, 2.8 },
+	from = "shell",
+	inward = true,
+	spread = 0,
+	size = { 1, 0.2 },
+	lift = 0,
+	spin = 120,
 	glow = 0.6,
-	bright = 3,
-	fade = 0.05,
+	bright = 2.6,
+	fade = 0,
+	color = "#B71C1C",
+}
+-- Tsukuyomi: a pool of red light underfoot.
+local MOON_POOL: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.2, 0.4 },
+	spread = 88,
+	size = { 2.8, 4.4 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.4,
+	fade = 0.5,
+	color = "#FF1744",
 }
 local AKATSUKI_CLOUDS: Layer = {
 	texture = SMOKE,
-	rate = 6,
-	life = { 2.4, 3.4 },
+	rate = 7,
+	life = { 2.2, 3 },
 	speed = { 0.6, 1.2 },
 	spread = 35,
 	size = { 2, 3.6 },
 	lift = 0.3,
 	spin = 25,
 	glow = 0.3,
-	bright = 1.5,
-	fade = 0.5,
+	bright = 1.6,
+	fade = 0.45,
+}
+-- Akatsuki: the black of the cloak, a column going up through the red.
+local AKATSUKI_CLOAK: Layer = {
+	texture = SMOKE,
+	rate = 8,
+	life = { 1, 1.5 },
+	speed = { 2.5, 3.5 },
+	spread = 10,
+	size = { 1.8, 2.8 },
+	lift = 1,
+	spin = 40,
+	glow = 0,
+	fade = 0.3,
+	color = "#120A0C",
+}
+-- Akatsuki: crows' feathers coming down out of it, dark, turning.
+local AKATSUKI_FEATHERS: Layer = {
+	texture = SMOKE,
+	rate = 6,
+	life = { 1.8, 2.4 },
+	speed = { 0.6, 1.2 },
+	down = true,
+	spread = 50,
+	size = { 0.8, 0.5 },
+	lift = -0.8,
+	spin = 220,
+	glow = 0,
+	fade = 0.1,
+	color = "#1A1014",
+}
+-- Akatsuki: red sparks spat up out of the ground, falling back.
+local AKATSUKI_EMBERS: Layer = {
+	texture = SPARKLE,
+	rate = 7,
+	life = { 0.9, 1.2 },
+	speed = { 6, 8 },
+	spread = 30,
+	size = { 0.9, 0.3 },
+	lift = -13,
+	spin = 160,
+	glow = 0.6,
+	bright = 3.2,
+	fade = 0,
+	color = "#FF5252",
 }
 local FESTIVAL_LEAVES: Layer = {
 	texture = SPARKLE,
@@ -496,6 +594,36 @@ local FESTIVAL_LEAVES: Layer = {
 	glow = 0.5,
 	bright = 2.5,
 	fade = 0.05,
+}
+-- Leaf Festival: fireworks: sparks thrown high and falling back, rose and green.
+local FESTIVAL_ROCKETS: Layer = {
+	texture = SPARKLE,
+	rate = 8,
+	life = { 1, 1.4 },
+	speed = { 9, 12 },
+	spread = 24,
+	size = { 1, 0.3 },
+	lift = -16,
+	spin = 200,
+	glow = 0.7,
+	bright = 3.4,
+	fade = 0,
+	color = "#FF80AB",
+}
+-- Leaf Festival: a lantern's warm light breathing on the ground.
+local FESTIVAL_LANTERN: Layer = {
+	texture = SMOKE,
+	rate = 3,
+	life = { 1.8, 2.4 },
+	speed = { 0.2, 0.5 },
+	spread = 88,
+	size = { 2.6, 4 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2.2,
+	fade = 0.5,
+	color = "#FFB74D",
 }
 
 local LOOKS: { [string]: Look } = {
@@ -537,17 +665,23 @@ local LOOKS: { [string]: Look } = {
 		around = { SAGE_PULL },
 		light = 1.5,
 	},
-	-- A red mist with sparks in it, under glints of a red moon.
+	-- Red light falling as off a moon onto a red mist, and all of it drawing in.
 	tsukuyomi = {
-		body = { MOON_MIST, MOON_SPARKS },
+		body = { MOON_LIGHT, MOON_EYES },
+		ground = { MOON_MIST, MOON_POOL },
+		around = { MOON_PULL },
+		light = 1.2,
 	},
-	-- Red clouds rolling up.
+	-- A cloak of red cloud round a black column, feathers falling, sparks spat up.
 	akatsuki = {
-		body = { AKATSUKI_CLOUDS },
+		body = { AKATSUKI_CLOUDS, AKATSUKI_CLOAK, AKATSUKI_FEATHERS },
+		ground = { AKATSUKI_EMBERS },
+		light = 1.1,
 	},
-	-- Golden leaves coming down, turning as they fall.
+	-- Golden leaves coming down through fireworks, over a lantern's light.
 	leaf_festival = {
 		body = { FESTIVAL_LEAVES },
+		ground = { FESTIVAL_ROCKETS, FESTIVAL_LANTERN },
 	},
 }
 

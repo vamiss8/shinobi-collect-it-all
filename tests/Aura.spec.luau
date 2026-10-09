@@ -61,6 +61,16 @@ return {
 		end
 	end,
 
+	-- An event's mutation is the event in small: more than one kind of particle.
+	["every event mutation's aura has several kinds of particle"] = function()
+		for _, mutation in Catalog.mutations do
+			if mutation.event then
+				local count = layers(Aura.looks[mutation.id])
+				T.ok(count >= 3, `{mutation.name}'s aura is {count} kinds of particle`)
+			end
+		end
+	end,
+
 	["nothing in an aura is too small to be seen or too much to draw"] = function()
 		for id, look in Aura.looks do
 			if not PLAIN[id] then
