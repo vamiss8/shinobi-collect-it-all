@@ -27,12 +27,18 @@
 --
 -- NOBODY IS INTERRUPTED BY AN EVENT (owner, 2026-10-10: "I hope the events' animations do
 -- not start for people who are at home, in a throw and so on, even if they only sit in the
--- throw panel"). A player on the throwing strip, with its bar swinging, or anywhere between
--- their kunai's flight and the end of their run home, gets no flash, no scroll across the
--- screen and no camera: a line on the message scroll and the timer in the corner tell them,
--- and the sky is there when they look up. The camera is flown only for a player who is doing
--- nothing that needs it: not with a window or the throw power slider open either, nor under
--- a roof, which is to say at home in their dojo.
+-- throw panel"; and then how he would have it):
+--   Away on a throw, from the kunai's flight to the end of the run home, a player is shown
+--   NOTHING of an event that begins: not its scroll, not its sky, not its timer. All of it
+--   comes when they are back, but for the camera's flight, which they have missed and are
+--   not owed.
+--   On the throwing strip, with the bar swinging, the scroll and everything else come at
+--   once, without the camera.
+--   The camera is flown only for a player who is doing nothing that needs it: not with a
+--   window or the throw power slider open either, nor under a roof, which is to say at home
+--   in their dojo.
+--   And the scroll that names the event waits its turn (StageFlash.queue): it is never put
+--   over another, nor under a window.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -65,6 +71,9 @@ local TIMER = Vector2.new(330, 78)
 local TIMER_SEAL = 56
 -- How long the picture takes to take an event's tint, and to lose it, seconds.
 local TINT_SECONDS = 2.5
+-- A player back from a throw is given this long before an event that began meanwhile is
+-- shown to them, seconds: what the run home ended in is being told just then.
+local RETURN_PAUSE = 0.8
 -- The look at the sky when an event begins (Logic/SkyLook has its timing and its way). The
 -- camera watches a point this far over the player's middle, studs. It is not flown for a
 -- player with something solid this near overhead, nor for one whose camera is nearer them than
@@ -435,9 +444,20 @@ function EventShow.start()
 		aiming = false
 		thrown = result ~= nil
 	end)
+	-- When the player was last back from a throw, by this client's clock.
+	local backAt = 0
 	Remotes.RunEnd.OnClientEvent:Connect(function()
 		aiming, thrown = false, false
+		backAt = os.clock()
 	end)
+
+	-- Whether the player is away on a throw, their eyes on the kunai, the roulette or the way
+	-- home: an event that begins then is kept for when they are back.
+	local function away(): boolean
+		return thrown or Cinematic.staging()
+	end
+	-- The event that began while they were away, and when it ends.
+	local later: { event: Events.Event, ends: number }? = nil
 
 	-- Whether the player is in the middle of a throw, from the bar on the strip to the end of
 	-- the run home: nothing of an event is to come between them and it.
@@ -595,8 +615,9 @@ function EventShow.start()
 	end
 
 	-- Puts an event on show. `fresh` is whether it began while this player was here to see
-	-- it begin: one they walked into has no announcement, only its sky and its timer.
-	local function begin(event: Events.Event, ends: number, fresh: boolean)
+	-- it begin: one they walked into has no announcement, only its sky and its timer. `fly` is
+	-- whether the camera may look at the sky for it: not for an event shown late.
+	local function begin(event: Events.Event, ends: number, fresh: boolean, fly: boolean)
 		if showing == event then
 			endsAt = ends
 			return
@@ -631,20 +652,10 @@ function EventShow.start()
 		Icons.event(emblem, event.shows)
 		Ui.unroll(paper)
 
-		local mutation = Catalog.mutationById[event.mutation]
-		if fresh and throwing() then
-			-- In the middle of a throw the event is told in a line and no more: a flash across
-			-- the bar would cost a Perfect, and a scroll would lie over the roulette.
-			Hud.toast(
-				Strings.get(
-					"EventBegan",
-					event.name,
-					if mutation then mutation.name else event.mutation
-				),
-				color
-			)
-		elseif fresh then
-			StageFlash.show(
+		if fresh then
+			local mutation = Catalog.mutationById[event.mutation]
+			-- In its turn: never over another scroll, nor under a window.
+			StageFlash.queue(
 				color,
 				function(holder)
 					Icons.event(holder, event.shows)
@@ -654,8 +665,13 @@ function EventShow.start()
 					"EventBegins",
 					if mutation then mutation.name else event.mutation,
 					if mutation then mutation.multiplier else 1
-				)
+				),
+				function()
+					return showing == event
+				end
 			)
+		end
+		if fresh and fly then
 			-- Up at whatever hangs there: the moon where it is, the rest overhead, the way
 			-- the camera already faces.
 			local camera = Workspace.CurrentCamera
@@ -686,8 +702,16 @@ function EventShow.start()
 		local ends = if hub then hub:GetAttribute(Net.EVENT_ENDS_ATTRIBUTE) else nil
 		local event = if typeof(id) == "string" then Events.byId[id] else nil
 		if event and typeof(ends) == "number" and Workspace:GetServerTimeNow() < ends then
-			begin(event, ends, started)
+			if showing ~= event and started and away() then
+				-- It is kept for when they are back.
+				finish(false)
+				later = { event = event, ends = ends }
+			else
+				later = nil
+				begin(event, ends, started, true)
+			end
 		else
+			later = nil
 			finish(started)
 		end
 		started = true
@@ -724,6 +748,15 @@ function EventShow.start()
 	end)
 
 	RunService.RenderStepped:Connect(function()
+		-- Back from a throw: the event that began meanwhile, if it is still on.
+		local kept = later
+		if kept and not away() and os.clock() - backAt >= RETURN_PAUSE then
+			later = nil
+			if Workspace:GetServerTimeNow() < kept.ends then
+				begin(kept.event, kept.ends, true, false)
+			end
+		end
+
 		local event = showing
 		local camera = Workspace.CurrentCamera
 		if not event or not camera then

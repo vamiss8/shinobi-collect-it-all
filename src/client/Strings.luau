@@ -235,7 +235,6 @@ local TEXT: { [string]: string } = {
 	-- An event (client EventShow): what it brings, on the scroll that announces it; what is
 	-- left of it, on its timer; and that it is over.
 	EventBegins = "A chance of %s shinobi on every catch  |  x%s Ryo",
-	EventBegan = "%s: a chance of %s shinobi on every catch",
 	EventLeft = "%s left",
 	EventOver = "The %s is over.",
 

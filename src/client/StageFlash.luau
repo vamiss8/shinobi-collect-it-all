@@ -7,6 +7,15 @@
 -- The scroll is the game's own: parchment, the name in ink, and the stage's color on the
 -- outline and the seal, which is stamped with the Gate's number. Words are never put on the
 -- screen as bare colored lettering (see Ui.parchment).
+--
+-- The flash lies UNDER the interface, on a layer of its own: the world flashes, and the power
+-- bar, the readouts and the buttons do not, so that it never comes between a player and what
+-- they are reading or timing.
+--
+-- What is celebrated at the player's own doing (a stage bought, a rebirth) is shown at once,
+-- over whatever the scroll said. What comes of itself (an event beginning: client EventShow)
+-- WAITS ITS TURN with StageFlash.queue: until the scroll is free and no window is open over
+-- where it would unroll, so that it is never on top of anything nor hidden under it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -25,13 +34,33 @@ local FLASH_SECONDS = 0.9 -- for the flash to fade
 -- through stages faster than a flash fades, and the screen stood in color all the while.
 local FLASH_APART = 1.5
 local HOLD_SECONDS = 2.4 -- the scroll stays this long
+-- About how long the scroll takes to open on new words and to roll up again: with
+-- HOLD_SECONDS, how long one announcement has it. And how often one that waits looks whether
+-- its turn has come, seconds.
+local TURN_SECONDS = 1
+local QUEUE_SECONDS = 0.25
 
 -- What a scroll's seal is stamped with: a word or two, or an emblem drawn into the square it
 -- is given (see Icons).
 export type Stamp = string | (holder: Instance) -> ()
 
+-- An announcement that waits its turn. `still` says whether it is still worth making when
+-- the turn comes.
+type Waiting = {
+	color: Color3,
+	stamp: Stamp,
+	title: string,
+	words: string,
+	still: (() -> boolean)?,
+}
+
 -- Set by start(): flashes the screen and puts up the scroll.
 local present: ((color: Color3, stamp: Stamp, title: string, words: string) -> ())? = nil
+-- Those waiting, in the order they came; whether something is seeing them through; and when
+-- the scroll is free of what it shows now.
+local waiting: { Waiting } = {}
+local draining = false
+local busyUntil = 0
 
 -- Flashes the screen in `color` and names something on the scroll for a moment: `stamp` on its
 -- seal, `title` large, `words` under it. Nothing happens before start() has run.
@@ -41,14 +70,48 @@ function StageFlash.show(color: Color3, stamp: Stamp, title: string, words: stri
 	end
 end
 
+-- The same, in its turn: once the scroll is free of whatever it shows and no window is open.
+-- It is dropped if `still` says, when its turn comes, that it is no longer worth making.
+function StageFlash.queue(
+	color: Color3,
+	stamp: Stamp,
+	title: string,
+	words: string,
+	still: (() -> boolean)?
+)
+	table.insert(
+		waiting,
+		{ color = color, stamp = stamp, title = title, words = words, still = still }
+	)
+	if draining then
+		return
+	end
+	draining = true
+	task.spawn(function()
+		while #waiting > 0 do
+			local show = present
+			if not show or os.clock() < busyUntil or Ui.windowOpen() then
+				task.wait(QUEUE_SECONDS)
+			else
+				local due = table.remove(waiting, 1)
+				if due and (not due.still or due.still()) then
+					show(due.color, due.stamp, due.title, due.words)
+				end
+			end
+		end
+		draining = false
+	end)
+end
+
 function StageFlash.start()
 	local layer = Ui.screen("StageFlash", 20)
+	-- Under every other layer of the interface (the lowest of them is 9).
 	local flash: Frame = Ui.make("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		Visible = false,
-	}, layer)
+	}, Ui.screen("Flash", 5))
 
 	local paper = Ui.parchment(layer, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -100,6 +163,7 @@ function StageFlash.start()
 	present = function(color: Color3, stamp: Stamp, title: string, words: string)
 		token += 1
 		local mine = token
+		busyUntil = os.clock() + HOLD_SECONDS + TURN_SECONDS
 		if os.clock() - flashedAt >= FLASH_APART then
 			flashedAt = os.clock()
 			flash.BackgroundColor3 = color
