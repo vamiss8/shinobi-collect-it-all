@@ -2,14 +2,24 @@
 -- The events (Config/Events) and the clock they go by (Logic/Events).
 local Catalog = require("../src/shared/Config/Catalog")
 local Config = require("../src/shared/Config/Events")
+local Daylight = require("../src/shared/Logic/Daylight")
 local Events = require("../src/shared/Logic/Events")
 local Roll = require("../src/shared/Logic/Roll")
 local T = require("./harness")
+local ZoneArt = require("../src/shared/Config/ZoneArt")
 
 -- A slot of about now, to count from.
 local NOW = 1_790_000_000
 local FIRST = math.floor(NOW / Events.slot())
 local MANY = 30000
+
+-- How bright a hex color is, 0 for black to 1 for white.
+local function brightness(hex: string): number
+	local red = tonumber(string.sub(hex, 2, 3), 16) :: number
+	local green = tonumber(string.sub(hex, 4, 5), 16) :: number
+	local blue = tonumber(string.sub(hex, 6, 7), 16) :: number
+	return (0.299 * red + 0.587 * green + 0.114 * blue) / 255
+end
 
 return {
 	["a slot's dice is its own, the same wherever it is thrown, and fair"] = function()
@@ -122,6 +132,69 @@ return {
 			local mutation = Catalog.mutationById[entry.id]
 			T.ok(not (mutation and mutation.event), `{entry.id} drops with no event running`)
 		end
+	end,
+
+	-- The owner's numbers of 2026-10-09: the festival every 25 to 30 minutes, the raid every
+	-- hour, the moon every two.
+	["the events come as often as the owner asked"] = function()
+		local total = Config.quiet
+		for _, event in Config.list do
+			total += event.weight
+		end
+		local function every(id: string): number
+			return Config.slotMinutes * total / Events.byId[id].weight
+		end
+		T.ok(every("leaf_festival") >= 25 and every("leaf_festival") <= 30, "the festival")
+		T.near(every("akatsuki_raid"), 60, 3, "the raid")
+		T.near(every("crimson_moon"), 120, 6, "the moon")
+		for _, event in Config.list do
+			T.ok(
+				event.minutes <= Config.slotMinutes / 2,
+				`{event.name} leaves no quiet before the next slot`
+			)
+		end
+	end,
+
+	["no event has blood in its name"] = function()
+		for _, event in Config.list do
+			T.ok(not string.find(string.lower(event.name), "blood"), event.name)
+			T.ok(not string.find(event.id, "blood"), event.id)
+		end
+	end,
+
+	-- "Let the beauty of an event not depend on the time of day": each holds the village in a
+	-- light of its own, at an hour of its own, and none of the three is a dark one.
+	["every event has a light of its own for the village, and it is not a dark one"] = function()
+		local hours: { [number]: string } = {}
+		for _, event in Config.list do
+			local light = event.light
+			T.ok(hours[light.clock] == nil, `{event.name} is held at {hours[light.clock]}'s hour`)
+			hours[light.clock] = event.name
+			T.ok(light.clock >= 0 and light.clock < 24, `{event.name}: hour {light.clock}`)
+			T.ok(brightness(light.outdoor) >= 0.26, `{event.name}: outdoor ambient {light.outdoor}`)
+			T.ok(brightness(light.ambient) >= 0.26, `{event.name}: indoor ambient {light.ambient}`)
+			T.ok(light.brightness >= 1.5 and light.brightness <= 4, `{event.name} brightness`)
+			for key, value in ZoneArt.hours.noon :: any do
+				T.ok(
+					typeof((light :: any)[key]) == typeof(value),
+					`{event.name}'s light has no {key}`
+				)
+			end
+		end
+		-- The festival's lanterns are lit, the red moon has a night for its moon to be up in,
+		-- and the raid's cloud has daylight to darken.
+		T.ok(Daylight.glow(Events.byId.leaf_festival.light.clock) > 0.95, "the festival's lanterns")
+		local moon = Events.byId.crimson_moon.light.clock
+		T.ok(moon >= 21 or moon <= 3, `the moon is held at {moon}`)
+		local raid = Events.byId.akatsuki_raid.light.clock
+		T.ok(raid > 9 and raid < 16, `the raid is held at {raid}`)
+		-- A red night, not a blue one: a red tint on blue is a dark violet.
+		local night = Events.byId.crimson_moon.light.outdoor
+		T.ok(
+			(tonumber(string.sub(night, 2, 3), 16) :: number)
+				> (tonumber(string.sub(night, 6, 7), 16) :: number) * 1.3,
+			`the moon's night is {night}`
+		)
 	end,
 
 	["no two events look alike"] = function()

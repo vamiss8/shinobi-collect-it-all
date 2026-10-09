@@ -355,6 +355,18 @@ ZoneArt.day = {
 	{ clock = 24, light = NIGHT },
 } :: { Hour }
 
+-- The same lights by name, for whoever borrows one: an event holds the village in a light of
+-- its own, made from one of these (Config/Events).
+ZoneArt.hours = {
+	night = NIGHT,
+	dawn = DAWN,
+	morning = MORNING,
+	noon = NOON,
+	afternoon = AFTERNOON,
+	sunset = SUNSET,
+	dusk = DUSK,
+}
+
 -- How long the village's day is, in seconds of play: from sunrise to sunset and from sunset to
 -- sunrise, each twelve hours on the clock; and the hour a server's first day begins at, so that
 -- whoever joins a new server finds a morning. Five minutes of each, at the owner's word: the

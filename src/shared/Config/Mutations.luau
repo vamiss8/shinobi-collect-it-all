@@ -28,7 +28,7 @@ local Mutations: { Mutation } = {
 		multiplier = 8,
 		chance = 50,
 		color = "#D50000",
-		event = "blood_moon",
+		event = "crimson_moon",
 	},
 	{
 		id = "akatsuki",
