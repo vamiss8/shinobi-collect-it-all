@@ -21,6 +21,40 @@ Art.icons = {
 	rebirth = 78996990936807, -- the Rebirth tile; assets/icons/rebirth.png
 }
 
+-- The emblems of the ranks players hold for their rebirths, by how many rebirths the rank
+-- takes (Config/Rebirths; 0 is Academy Student), and of the stages of run speed, by the
+-- stage's place in Config/SpeedStages (1 is Beginner, 5 the first Gate, 12 the last). Each is
+-- a whole round badge, its own ground included, and takes the place of the seal drawn from
+-- frames (Icons.rank, Icons.stage). The pictures are kept in assets/icons as rank_<n>.png and
+-- stage_<n>.png.
+Art.ranks = {
+	[0] = 0,
+	[1] = 0,
+	[2] = 0,
+	[3] = 0,
+	[4] = 0,
+	[5] = 0,
+	[6] = 0,
+	[7] = 0,
+	[8] = 0,
+	[9] = 0,
+	[10] = 0,
+} :: { [number]: number }
+Art.stages = {
+	[1] = 0,
+	[2] = 0,
+	[3] = 0,
+	[4] = 0,
+	[5] = 0,
+	[6] = 0,
+	[7] = 0,
+	[8] = 0,
+	[9] = 0,
+	[10] = 0,
+	[11] = 0,
+	[12] = 0,
+} :: { [number]: number }
+
 -- Portraits of shinobi by character id (Config/Characters), for cards and quick slots. A
 -- character without one gets the drawn stand-in in its rank's color.
 Art.portraits = {} :: { [string]: number }

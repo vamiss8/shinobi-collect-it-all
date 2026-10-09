@@ -36,6 +36,8 @@ local STEEL = Color3.fromRGB(176, 190, 197)
 local HANDLE = Color3.fromRGB(58, 44, 36)
 local OUTLINE = Color3.fromRGB(30, 22, 18)
 local WHITE = Color3.new(1, 1, 1)
+-- What a picture is multiplied by to show something not yet reached.
+local DULL = Color3.fromRGB(150, 150, 150)
 -- The color of the panels icons sit on; a shape in it reads as a hole.
 local NIGHT = Ui.PANEL
 
@@ -99,12 +101,19 @@ local RETRIES = 120
 -- An image that is still in moderation, or was turned down, cannot be fetched; the drawing
 -- then simply stays. Call it last, after the icon is drawn. Does nothing when there is no
 -- picture (the id is 0 or missing). `turn` turns the picture, in degrees clockwise, and `zoom`
--- draws it that many times larger about the holder's middle.
+-- draws it that many times larger about the holder's middle. `dull` shows it grayed and half
+-- there, for something not yet reached.
 --
 -- The picture is fetched through ContentProvider and not left to the label, because a label
 -- inside a hidden window does not load its image: the power bar and the store are hidden when
 -- they are built, and their drawings would stay under the pictures for good.
-local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: number?)
+local function overlay(
+	holder: Instance,
+	assetId: number?,
+	turn: number?,
+	zoom: number?,
+	dull: boolean?
+)
 	if not assetId or assetId == 0 then
 		return
 	end
@@ -117,6 +126,8 @@ local function overlay(holder: Instance, assetId: number?, turn: number?, zoom: 
 		BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Fit,
 		Image = `rbxassetid://{assetId}`,
+		ImageColor3 = if dull then DULL else WHITE,
+		ImageTransparency = if dull then 0.35 else 0,
 		Rotation = turn or 0,
 		ZIndex = 5,
 		Visible = false,
@@ -449,6 +460,7 @@ function Icons.rank(holder: Instance, count: number)
 	if mark then
 		mark(holder, face)
 	end
+	overlay(holder, Art.ranks[done])
 end
 
 -- The color of the seal of a speed stage the player has not reached: pale gray, like the
@@ -525,6 +537,13 @@ function Icons.stage(holder: Instance, stage: SpeedStages.Stage, reached: boolea
 	else
 		training(holder, stage, face)
 	end
+	overlay(
+		holder,
+		Art.stages[table.find(SpeedStages.list, stage) or 0],
+		nil,
+		nil,
+		reached == false
+	)
 end
 
 -- The seal of an event (Config/Events), by what the event hangs in the sky: a red moon, red
