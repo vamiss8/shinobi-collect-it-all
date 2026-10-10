@@ -512,6 +512,30 @@ function Plots.setFloors(plot: Plot, count: number): number
 	return before
 end
 
+-- Whether a point is inside a dojo's hall, anybody's: between its walls, on one of the floors
+-- that stand, under its roof. On the staircase before it and on its roof it is outside.
+-- `slack` widens the hall by so many studs every way.
+function Plots.indoors(position: Vector3, slack: number?): boolean
+	local at = Hub.toLocal(position)
+	local grow = slack or 0
+	for _, plot in plots do
+		-- The hall in its own measure (Logic/DojoPlan): x along the plaza, z in from its front.
+		local place = PlazaPlan.dojo(plot.index)
+		local x = place.along - at.X
+		local z = place.side * at.Z - PlazaPlan.HALF_WIDTH
+		if
+			math.abs(x) <= DojoPlan.HALF_WIDTH + grow
+			and z >= DojoPlan.FRONT - grow
+			and z <= DojoPlan.BACK + grow
+			and at.Y >= -grow
+			and at.Y <= plot.hall.floors * DojoPlan.STOREY + grow
+		then
+			return true
+		end
+	end
+	return false
+end
+
 -- Runs `fn` for every dojo. Services use it, after Plots.start(), to hook up the pads' prompts.
 function Plots.forEach(fn: (plot: Plot) -> ())
 	for _, plot in plots do

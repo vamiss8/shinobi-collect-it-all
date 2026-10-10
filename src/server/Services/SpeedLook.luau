@@ -20,13 +20,23 @@
 -- (glow 1) are added to what is behind them, which by day is a sunlit plaza. So: more of
 -- them, two to three times the size, half paint and half light, and drawn brighter than their
 -- color (Particles `bright`) so that they still read as glowing.
+--
+-- AND NONE OF IT IS SHOWN IN A DOJO (owner, 2026-10-10: "at home the effects sometimes get in
+-- the way; in one's own dojo and in others', switch the sight of one's Gates' effect off, for
+-- everyone"). What was made to be seen across a plaza fills a hall: steam three to five studs
+-- across between a player and the pads they are reading. So while a runner is inside any hall
+-- (World/Plots.indoors) everything that comes off them, particles and ribbons, is off, for
+-- every client alike, and comes back as they step out. What is strapped on, cloth and iron,
+-- stays: it is in nobody's way.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Loadout = require("./Loadout")
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
+local Plots = require("../World/Plots")
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 
 local SpeedLook = {}
@@ -44,6 +54,9 @@ local HANDS = { "LeftHand", "RightHand", "Left Arm", "Right Arm" }
 -- studs a second.
 local RUNNING = 4
 local CHECK_SECONDS = 0.15
+-- A runner whose look is off for being in a hall has to be this far out of it for the look to
+-- come back, studs: a step in the doorway does not blink it.
+local DOORSTEP = 2
 
 -- What comes off a runner, as layers of particles (View/Particles). A layer without a color
 -- takes its stage's.
@@ -154,10 +167,33 @@ local OFF_GROUND = 0.5
 
 -- Emitters that only run while their runner does, with the body whose speed says so.
 local whileRunning: { [ParticleEmitter]: BasePart } = {}
+-- The bodies of the runners who are in a hall just now: what comes off them is off.
+local indoors: { [BasePart]: boolean } = {}
 
 local function mark<T>(instance: T): T
 	((instance :: any) :: Instance):SetAttribute(MARK, true)
 	return instance
+end
+
+-- Puts what comes off a runner out of sight, or brings it back: every particle and ribbon of
+-- the look, for everyone. What is in the air when it goes is taken away with it.
+local function show(character: Model, root: BasePart, seen: boolean)
+	indoors[root] = if seen then nil else true
+	for _, item in character:GetDescendants() do
+		if item:GetAttribute(MARK) then
+			if item:IsA("ParticleEmitter") then
+				if not seen then
+					item.Enabled = false
+					item:Clear()
+				elseif not whileRunning[item] then
+					-- One that is only for the run is the loop's to switch on.
+					item.Enabled = true
+				end
+			elseif item:IsA("Trail") then
+				item.Enabled = seen
+			end
+		end
+	end
 end
 
 -- Takes off whatever look the character has.
@@ -393,6 +429,12 @@ function SpeedLook.apply(character: Model, level: number)
 	if wears("fan") then
 		emit(root, root, "SpeedLookFan", FAN, color, true)
 	end
+
+	-- Dressed inside a hall, as at the training ground's window it never is but from the
+	-- developer console it may be: the new look is put out of sight like the old.
+	if indoors[root] or Plots.indoors(root.Position) then
+		show(character, root, false)
+	end
 end
 
 function SpeedLook.start()
@@ -416,17 +458,36 @@ function SpeedLook.start()
 		end)
 	end)
 
-	-- What is only for the run shows only while running on the ground.
+	-- What is only for the run shows only while running on the ground, and nothing that comes
+	-- off a runner shows while they are in a hall.
 	task.spawn(function()
 		while true do
 			task.wait(CHECK_SECONDS)
+			for root in indoors do
+				if not root.Parent then
+					indoors[root] = nil
+				end
+			end
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+				if character and root and root:IsA("BasePart") then
+					local hidden = indoors[root] == true
+					local inside = Plots.indoors(root.Position, if hidden then DOORSTEP else 0)
+					if inside ~= hidden then
+						show(character, root, not inside)
+					end
+				end
+			end
 			for particles, root in whileRunning do
 				if not particles.Parent or not root.Parent then
 					whileRunning[particles] = nil
 				else
 					local velocity = root.AssemblyLinearVelocity
 					local along = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-					particles.Enabled = along > RUNNING and math.abs(velocity.Y) < 3
+					particles.Enabled = not indoors[root]
+						and along > RUNNING
+						and math.abs(velocity.Y) < 3
 				end
 			end
 		end
