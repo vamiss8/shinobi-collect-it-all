@@ -26,8 +26,8 @@
 -- everyone"). What was made to be seen across a plaza fills a hall: steam three to five studs
 -- across between a player and the pads they are reading. So while a runner is inside any hall
 -- (World/Plots.indoors) everything that comes off them, particles and ribbons, is off, for
--- every client alike, and comes back as they step out. What is strapped on, cloth and iron,
--- stays: it is in nobody's way.
+-- every client alike, and comes back as they step out; it fades out and in, it is not cut.
+-- What is strapped on, cloth and iron, stays: it is in nobody's way.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -176,7 +176,10 @@ local function mark<T>(instance: T): T
 end
 
 -- Puts what comes off a runner out of sight, or brings it back: every particle and ribbon of
--- the look, for everyone. What is in the air when it goes is taken away with it.
+-- the look, for everyone. Nothing is snatched away: the emitters stop giving, and what is in
+-- the air lives out its second and fades as it always does, as a ribbon's tail does (the
+-- owner, on the first, which cleared the air at a stroke: "they vanish very abruptly; let
+-- them calmly fade away"). They come back the same way, a particle at a time.
 local function show(character: Model, root: BasePart, seen: boolean)
 	indoors[root] = if seen then nil else true
 	for _, item in character:GetDescendants() do
@@ -184,7 +187,6 @@ local function show(character: Model, root: BasePart, seen: boolean)
 			if item:IsA("ParticleEmitter") then
 				if not seen then
 					item.Enabled = false
-					item:Clear()
 				elseif not whileRunning[item] then
 					-- One that is only for the run is the loop's to switch on.
 					item.Enabled = true
