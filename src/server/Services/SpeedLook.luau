@@ -181,7 +181,11 @@ end
 -- owner, on the first, which cleared the air at a stroke: "they vanish very abruptly; let
 -- them calmly fade away"). They come back the same way, a particle at a time.
 local function show(character: Model, root: BasePart, seen: boolean)
-	indoors[root] = if seen then nil else true
+	if seen then
+		indoors[root] = nil
+	else
+		indoors[root] = true
+	end
 	for _, item in character:GetDescendants() do
 		if item:GetAttribute(MARK) then
 			if item:IsA("ParticleEmitter") then
