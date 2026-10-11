@@ -10,6 +10,11 @@
 -- as a hand would have drawn them: the target in ink, the one that closes on it in seal red.
 -- A press is answered on the sheet itself, by a ring of the grade's color going out from the
 -- target, and in words, ink on a slip whose outline and seal take that color.
+--
+-- The player's own character trains on the sheet, inside the rings (client RingFigure): the
+-- board hangs low in the middle of the screen, which is where the character stands, so a copy
+-- of it is shown doing what the character does, and the ring that closes reads as its Chakra
+-- gathering.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,6 +25,7 @@ local UserInputService = game:GetService("UserInputService")
 local Focus = require(ReplicatedStorage.Shared.Logic.Focus)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
+local RingFigure = require("./RingFigure")
 local Store = require("./Store")
 local Strings = require("./Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -188,6 +194,19 @@ function FocusPanel.start()
 		table.insert(bursts, { frame = frame, line = line })
 	end
 
+	-- The character stands on the sheet, over its ruled lines and under everything that moves:
+	-- the Chakra at the heart, the two strokes, the seal and what a hit sends out are lifted
+	-- over where it is drawn.
+	local fronts: { Frame } = { haze, wash, target, closing, heart }
+	for _, burst in bursts do
+		table.insert(fronts, burst.frame)
+	end
+	for _, front in fronts do
+		front.ZIndex = RingFigure.Z + 1
+	end
+	-- The character on the sheet, while the training lasts.
+	local figure: RingFigure.Shown? = nil
+
 	-- The verdict: ink on a slip, the grade's color on its outline and its seal.
 	local slip = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -270,6 +289,9 @@ function FocusPanel.start()
 	Remotes.RingResult.OnClientEvent:Connect(function(hit: Net.RingResult)
 		local color = GRADE_COLORS[hit.grade] or Ui.EDGE
 		answer(hit.grade, color, hit.gain > 0)
+		if figure and hit.gain > 0 then
+			figure.hit()
+		end
 		result.Text = if hit.gain > 0
 			then Strings.get("FocusHit", hit.grade, hit.gain)
 			else Strings.get("FocusMiss")
@@ -332,7 +354,14 @@ function FocusPanel.start()
 	end)
 
 	Store.onChange(function(state)
-		holder.Visible = state.training == "focus"
+		local visible = state.training == "focus"
+		if visible and not figure then
+			figure = RingFigure.show(arena)
+		elseif not visible and figure then
+			figure.destroy()
+			figure = nil
+		end
+		holder.Visible = visible
 	end)
 
 	-- A window opening ends the exercise: the board stands where windows do, and a click

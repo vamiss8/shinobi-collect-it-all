@@ -8,17 +8,24 @@
 -- keeps the shinobi; getting caught loses it.
 --
 -- The timeline (flight, roll, hold, intro) is fixed here and sent to the client, so both sides
--- follow the same schedule, the client simply one network hop later.
+-- follow the same schedule, the client simply one network hop later. Once there is a throw
+-- animation (Config/Animations) all of it waits for the arm: the kunai leaves the hand on the
+-- animation's "Release" frame, and until one is made it leaves at the press, as it always did.
+--
+-- The zone's enemy is moved here and brought to life by Services/EnemyMoves: this module says
+-- where it stands and whether it chases, that one how it looks doing it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Animations = require(ReplicatedStorage.Shared.Config.Animations)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local EnemyMoves = require("./EnemyMoves")
 local Events = require("./Events")
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Hub = require("../World/Hub")
@@ -53,7 +60,7 @@ type Run = {
 	unit: Economy.Unit,
 	zone: Catalog.Zone,
 	carried: Model,
-	enemy: Model,
+	enemy: EnemyMoves.Mover, -- the zone's enemy, moved and animated (Services/EnemyMoves)
 	enemyAt: Vector3,
 	enemySpeed: number, -- studs per second on the lane; set by how deep the kunai fell
 	releaseAt: number, -- os.clock() time the player may start running
@@ -108,7 +115,12 @@ local function endRun(player: Player, escaped: boolean)
 		return
 	end
 	runs[player] = nil
-	run.enemy:Destroy()
+	-- An enemy that caught its runner lunges before it goes; one that was outrun is gone.
+	if escaped then
+		run.enemy:destroy()
+	else
+		run.enemy:finish()
+	end
 	run.carried:Destroy()
 
 	local data = Data.get(player)
@@ -179,6 +191,7 @@ local function startRun(player: Player, drop: Roll.Drop, landing: Vector3, enemy
 	local enemy = Figure.enemy(zone)
 	enemy:PivotTo(CFrame.lookAt(enemyAt, landing))
 	enemy.Parent = Workspace
+	local mover = EnemyMoves.new(enemy, zone.id)
 
 	local releaseAt = os.clock() + Tuning.Chase.introSeconds
 	runs[player] = {
@@ -188,7 +201,7 @@ local function startRun(player: Player, drop: Roll.Drop, landing: Vector3, enemy
 		unit = unit,
 		zone = zone,
 		carried = carried,
-		enemy = enemy,
+		enemy = mover,
 		enemyAt = enemyAt,
 		enemySpeed = Chase.onLane(Chase.enemySpeed(zone, Hub.toLocal(landing).X)),
 		releaseAt = releaseAt,
@@ -210,23 +223,28 @@ local function stepRuns(dt: number)
 	for player, run in runs do
 		if player.Character ~= run.character or run.humanoid.Health <= 0 or not run.root.Parent then
 			endRun(player, false)
-		elseif not run.released then
-			if now >= run.releaseAt then
+		elseif run.released and Hub.toLocal(run.root.Position).X <= 0 then
+			endRun(player, true)
+		else
+			if not run.released and now >= run.releaseAt then
 				run.released = true
 				setFrozen(player, run.humanoid, false, true)
 			end
-		elseif Hub.toLocal(run.root.Position).X <= 0 then
-			endRun(player, true)
-		elseif now >= run.chaseFrom then
+			-- The enemy faces its runner all along: standing while the camera shows it and
+			-- through the head start, then chasing.
 			local position = run.root.Position
 			local target = Vector3.new(position.X, run.enemyAt.Y, position.Z)
-			local offset = target - run.enemyAt
-			local step = run.enemySpeed * dt
-			if offset.Magnitude <= math.max(step, Tuning.Chase.catchRadius) then
-				endRun(player, false)
-			else
+			if run.released and now >= run.chaseFrom then
+				local offset = target - run.enemyAt
+				local step = run.enemySpeed * dt
+				if offset.Magnitude <= math.max(step, Tuning.Chase.catchRadius) then
+					endRun(player, false)
+					continue
+				end
 				run.enemyAt += offset.Unit * step
-				run.enemy:PivotTo(CFrame.lookAt(run.enemyAt, target))
+				run.enemy:step(dt, CFrame.lookAt(run.enemyAt, target), true)
+			else
+				run.enemy:step(dt, CFrame.lookAt(run.enemyAt, target), false)
 			end
 		end
 	end
@@ -305,6 +323,16 @@ local function press(player: Player, claimed: unknown)
 	flights[player] = token
 	setFrozen(player, humanoid, true)
 
+	-- With a throw animation the thrower's client swings the arm first (client PlayerMoves),
+	-- and the kunai leaves the hand on the animation's "Release" frame: everything after the
+	-- press waits that long. Without one there is no wait.
+	local windup = Animations.throwDelay()
+	if windup > 0 then
+		-- Thrown the way the kunai flies, whichever way the player happened to face.
+		local ahead = Vector3.new(landing.X, root.Position.Y, landing.Z)
+		root.CFrame = CFrame.lookAt(root.Position, ahead)
+	end
+
 	local flight: Net.Flight = {
 		thrower = player.UserId,
 		kunai = data.kunai,
@@ -314,8 +342,6 @@ local function press(player: Player, claimed: unknown)
 		height = height,
 		linger = chase.rollSeconds + chase.holdSeconds,
 	}
-	Remotes.Flight:FireAllClients(flight)
-
 	local reveal: Net.Reveal = {
 		character = drop.character,
 		mutation = drop.mutation,
@@ -327,7 +353,18 @@ local function press(player: Player, claimed: unknown)
 		hold = chase.holdSeconds,
 		intro = chase.introSeconds,
 	}
-	Remotes.Reveal:FireClient(player, reveal)
+	-- The kunai leaves the hand: unless the thrower has left meanwhile.
+	local function letFly()
+		if flights[player] == token then
+			Remotes.Flight:FireAllClients(flight)
+			Remotes.Reveal:FireClient(player, reveal)
+		end
+	end
+	if windup > 0 then
+		task.delay(windup, letFly)
+	else
+		letFly()
+	end
 
 	local payload: Net.KickResult = {
 		grade = result.grade,
@@ -341,7 +378,7 @@ local function press(player: Player, claimed: unknown)
 	State.push(player)
 
 	-- The token goes stale if the player leaves before the reveal is over.
-	task.delay(duration + chase.rollSeconds + chase.holdSeconds, function()
+	task.delay(windup + duration + chase.rollSeconds + chase.holdSeconds, function()
 		if flights[player] == token then
 			flights[player] = nil
 			startRun(player, drop, landing, enemyAt)
@@ -391,7 +428,7 @@ function Kicking.start()
 		local run = runs[player]
 		if run then
 			runs[player] = nil
-			run.enemy:Destroy()
+			run.enemy:destroy()
 			run.carried:Destroy()
 		end
 	end)

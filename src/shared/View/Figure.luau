@@ -62,6 +62,8 @@ local INCOME_COLOR = "#9CF0AC"
 Figure.CARRY_HEIGHT = 3.5
 -- How tall a shinobi's figure stands.
 Figure.HEIGHT = UNIT_HEIGHT
+-- How tall an enemy's figure stands.
+Figure.ENEMY_HEIGHT = ENEMY_HEIGHT
 -- Name of the part at the top of a figure's head that its tag hangs from.
 Figure.TAG_ANCHOR = TAG_ANCHOR
 local SKIN = Color3.fromRGB(255, 219, 172)

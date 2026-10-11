@@ -13,6 +13,7 @@
 
 local process = require("@lune/process")
 
+local Animations = require("../src/shared/Config/Animations")
 local Catalog = require("../src/shared/Config/Catalog")
 local Chase = require("../src/shared/Logic/Chase")
 local DojoPlan = require("../src/shared/Logic/DojoPlan")
@@ -223,7 +224,9 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	local chase = Tuning.Chase
 	local runSpeed = Economy.walkSpeed(player.speedLevel)
 	local enemySpeed = Chase.enemySpeed(zone, distance)
-	local staged = (Kick.flight(distance))
+	-- The swing of the arm before the kunai leaves it, once there is a throw animation.
+	local staged = Animations.throwDelay()
+		+ (Kick.flight(distance))
 		+ chase.rollSeconds
 		+ chase.holdSeconds
 		+ chase.introSeconds

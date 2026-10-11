@@ -16,6 +16,7 @@ local specs: { [string]: Spec } = {
 	DojoHall = require("../tests/DojoHall.spec"),
 	DojoPlan = require("../tests/DojoPlan.spec"),
 	Economy = require("../tests/Economy.spec"),
+	EnemyMotion = require("../tests/EnemyMotion.spec"),
 	Events = require("../tests/Events.spec"),
 	SkyLook = require("../tests/SkyLook.spec"),
 	Footing = require("../tests/Footing.spec"),
