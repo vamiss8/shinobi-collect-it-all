@@ -1,13 +1,18 @@
 --!strict
--- The player's own character inside the rings of chakra control (client/FocusPanel), doing the
--- chakra-control animation. The window stays where it is, in the middle of the screen, and the
--- player still sees their character train: a copy of it stands in a little scene of its own
--- (a ViewportFrame) behind the rings, so the closing ring reads as its chakra gathering in.
+-- The player's own character at the Chakra Control board (client FocusPanel), doing the
+-- chakra-control animation: a copy of it in a little scene of its own (a ViewportFrame), which
+-- only this client sees. The board stands low in the middle of the screen, over where the
+-- character is, so the copy is how the player sees themselves train.
+--
+-- IT STANDS BESIDE THE RINGS, NOT BEHIND THEM. It was first drawn on the target's own sheet,
+-- inside the rings; the owner: "it looks cool, but it is in the way, being behind the very
+-- actions of the mini-game; something else has to be thought of, the animation stays". So the
+-- board has a small scroll of its own for it, and this module only fills the sheet it is
+-- handed: the rings have the target to themselves.
 --
 -- The copy is made when the training starts, so it wears what the character wears then, and
--- is thrown away when it ends. Its animations play in the scene's WorldModel, which only this
--- client sees. Until the chakra-control animation is made (Config/Animations) the copy simply
--- stands there.
+-- is thrown away when it ends. With no chakra-control animation (Config/Animations) there is
+-- no copy at all, and the scroll stays away.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,27 +23,72 @@ local Ui = require("./Ui")
 
 local RingFigure = {}
 
--- Where the scene is drawn among what shares its holder: over whatever is there at the default
--- 1, and under what the caller lifts past this. Not 0: a layer made in code draws by ZIndex
--- across the whole layer, and at 0 the figure would lie under the board it stands on.
-RingFigure.Z = 2
-
-export type Shown = {
+export type Controller = {
+	-- The training has begun or ended: the copy is made, or thrown away.
+	setOpen: (open: boolean) -> (),
+	-- A press hit: the copy answers as the character does.
 	hit: () -> (),
-	destroy: () -> (),
 }
 
--- The camera's angle of view and how much of the body it takes in, studs: the whole figure
--- with a little room over the head.
-local FIELD = 30
-local SEEN = 6.4
--- How far below the root the middle of what the camera takes in is, studs (the root sits at
--- the hips of an R15 body, the feet about 3 studs below it).
-local DROP = 0.3
+local R15_BODY: { string } = {
+	"Head",
+	"LowerTorso",
+	"UpperTorso",
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"LeftHand",
+	"RightUpperArm",
+	"RightLowerArm",
+	"RightHand",
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"LeftFoot",
+	"RightUpperLeg",
+	"RightLowerLeg",
+	"RightFoot",
+}
+local R6_BODY: { string } = { "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }
 
--- Everything a copy of the character can do without: what runs, what floats over it and what
--- it carries (the shinobi over its head, a tool in its hand, the look of its speed stage).
+-- A character may be there before the rest of its body is. A Humanoid and a root are not
+-- enough for a portrait: wait for the whole body, hands and feet included.
+local function bodyReady(character: Model, humanoid: Humanoid): boolean
+	local names: { string } = if humanoid.RigType == Enum.HumanoidRigType.R15
+		then R15_BODY
+		else R6_BODY
+	for _, name in names do
+		local part = character:FindFirstChild(name)
+		if not part or not part:IsA("BasePart") then
+			return false
+		end
+	end
+	return true
+end
+
+-- A player's character is not archivable as a rule. The flag is put back even if the copying
+-- fails, so that this portrait never changes how anything else sees the player.
+local function cloneCharacter(character: Model): Model?
+	local archivable = character.Archivable
+	character.Archivable = true
+	local ok, result = pcall(function()
+		return character:Clone()
+	end)
+	character.Archivable = archivable
+	if not ok then
+		warn("Cannot copy the player for the Chakra Control board: " .. tostring(result))
+		return nil
+	end
+	return result :: Model?
+end
+
+-- Keeps the body, the clothes and the accessories, and nothing that runs, floats over the
+-- character or comes off it. A Model right under the character is a shinobi carried, not a
+-- part of the body.
 local function strip(copy: Model)
+	for _, child in copy:GetChildren() do
+		if child:IsA("Model") then
+			child:Destroy()
+		end
+	end
 	for _, item in copy:GetDescendants() do
 		if
 			item:IsA("LuaSourceContainer")
@@ -48,86 +98,240 @@ local function strip(copy: Model)
 			or item:IsA("Trail")
 			or item:IsA("Sound")
 			or item:IsA("ForceField")
-			or (item:IsA("Model") and item.Parent == copy)
 		then
 			item:Destroy()
+		elseif item:IsA("BasePart") then
+			item.CanCollide = false
+			item.CanTouch = false
+			item.CanQuery = false
+			-- A player in first person is unseen by their own camera: not so here.
+			item.LocalTransparencyModifier = 0
 		end
 	end
 end
 
--- A copy of the player's character standing at the origin, facing -Z; nil without one.
-local function copyCharacter(): Model?
-	local character = Players.LocalPlayer.Character
-	if not character then
-		return nil
+-- Stands the camera so that every corner of the body's box is in the picture, whatever the
+-- sheet's shape: a distance that fits the height alone would crop broad shoulders on a narrow
+-- sheet. A little room is left for the hands going forward at a hit.
+local function frameBody(camera: Camera, viewport: ViewportFrame, box: CFrame, size: Vector3)
+	local pixels = viewport.AbsoluteSize
+	local aspect = if pixels.Y > 0 then math.max(pixels.X / pixels.Y, 0.1) else 1
+	local vertical = math.tan(math.rad(camera.FieldOfView / 2))
+	local horizontal = vertical * aspect
+	-- From in front of the body (its face is to -Z), a little to its side and from above.
+	local direction = Vector3.new(0.22, 0.05, -1).Unit
+	local center = box.Position
+	local facing = CFrame.lookAt(center + direction, center)
+	local half = size / 2
+	local distance = 0.5
+	for _, x in { -1, 1 } do
+		for _, y in { -1, 1 } do
+			for _, z in { -1, 1 } do
+				local corner =
+					box:PointToWorldSpace(Vector3.new(half.X * x, half.Y * y, half.Z * z))
+				local offset = corner - center
+				local depth = offset:Dot(direction)
+				distance = math.max(
+					distance,
+					math.abs(offset:Dot(facing.RightVector)) / horizontal + depth,
+					math.abs(offset:Dot(facing.UpVector)) / vertical + depth
+				)
+			end
+		end
 	end
-	local archivable = character.Archivable
-	character.Archivable = true
-	local copy = character:Clone()
-	character.Archivable = archivable
-	if not copy then
-		return nil
-	end
-	strip(copy)
-	local humanoid = copy:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-	end
-	local root = copy:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		root.Anchored = true
-	end
-	copy:PivotTo(CFrame.new())
-	return copy
+	camera.CFrame = CFrame.lookAt(center + direction * distance * 1.2, center)
+	camera.Focus = CFrame.new(center)
 end
 
--- Shows the character in `holder`, filling it, at RingFigure.Z among what else is in it. Nil
--- when there is no character to copy.
-function RingFigure.show(holder: GuiObject): Shown?
-	local copy = copyCharacter()
-	if not copy then
-		return nil
+-- Keeps a copy of the player on `stage` while the training is open, filling it. `shown` is
+-- told when a copy has come to stand there and when it is gone, so that whoever owns the
+-- stage can bring it up and take it away.
+function RingFigure.start(stage: Frame, shown: (there: boolean) -> ()): Controller
+	local player = Players.LocalPlayer
+	local opened = false
+	local destroyed = false
+	local source: Model? = nil
+	local viewport: ViewportFrame? = nil
+	local animator: Animator? = nil
+	local connections: { RBXScriptConnection } = {}
+
+	local function clearFigure()
+		animator = nil
+		local scene = viewport
+		if scene then
+			viewport = nil
+			scene:Destroy()
+			shown(false)
+		end
 	end
-	local scene: ViewportFrame = Ui.make("ViewportFrame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Ambient = Color3.fromRGB(190, 190, 200),
-		LightColor = Color3.fromRGB(200, 230, 255),
-		LightDirection = Vector3.new(0.4, -1, 0.8),
-		ImageTransparency = 0.1,
-		ZIndex = RingFigure.Z,
-	}, holder)
-	-- Animations only play in a WorldModel.
-	local world = Instance.new("WorldModel")
-	world.Parent = scene
-	copy.Parent = world
 
-	local focus = Vector3.new(0, -DROP, 0)
-	local away = SEEN / 2 / math.tan(math.rad(FIELD / 2))
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = FIELD
-	camera.CFrame = CFrame.lookAt(focus + Vector3.new(away * 0.25, away * 0.1, -away), focus)
-	camera.Parent = scene
-	scene.CurrentCamera = camera
+	local function unwatch()
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		table.clear(connections)
+		source = nil
+		clearFigure()
+	end
 
-	local animator = Moves.animator(copy)
-	Moves.play(animator, Animations.player.ChakraLoop, Enum.AnimationPriority.Action, true, 0)
+	local function configured(): boolean
+		return Animations.asset(Animations.player.ChakraLoop) ~= nil
+			or Animations.asset(Animations.player.ChakraHit) ~= nil
+	end
+
+	local function watch(character: Model?)
+		unwatch()
+		if not opened or not configured() or not character then
+			return
+		end
+		source = character
+		local attempted = false
+		local humanoidWatching: Humanoid? = nil
+
+		local function show()
+			if attempted or not opened or destroyed or player.Character ~= character then
+				return
+			end
+			local root = character:FindFirstChild("HumanoidRootPart")
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if not root or not root:IsA("BasePart") or not humanoid then
+				return
+			end
+			if humanoidWatching ~= humanoid then
+				humanoidWatching = humanoid
+				table.insert(connections, humanoid.Died:Connect(clearFigure))
+			end
+			if
+				humanoid.Health <= 0
+				or not character.Parent
+				or not bodyReady(character, humanoid)
+			then
+				return
+			end
+			attempted = true
+			local copy = cloneCharacter(character)
+			if not copy then
+				return
+			end
+			strip(copy)
+			local copyRoot = copy:FindFirstChild("HumanoidRootPart")
+			local copyHumanoid = copy:FindFirstChildOfClass("Humanoid")
+			if not copyRoot or not copyRoot:IsA("BasePart") or not copyHumanoid then
+				copy:Destroy()
+				return
+			end
+			copyRoot.Anchored = true
+			copyHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+			copyHumanoid.AutoRotate = false
+			copy.PrimaryPart = copyRoot
+			copy:PivotTo(CFrame.new())
+
+			local scene: ViewportFrame = Ui.make("ViewportFrame", {
+				Name = "RingFigure",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Active = false,
+				Selectable = false,
+				Ambient = Color3.fromRGB(200, 200, 200),
+				LightColor = Color3.new(1, 1, 1),
+				LightDirection = Vector3.new(-1, -1, -1),
+			}, stage)
+			-- Animations only play in a WorldModel.
+			local world: WorldModel = Ui.make("WorldModel", {}, scene)
+			copy.Parent = world
+			local camera: Camera = Ui.make("Camera", {
+				CameraType = Enum.CameraType.Scriptable,
+				FieldOfView = 35,
+			}, scene)
+			scene.CurrentCamera = camera
+			local box, size = copy:GetBoundingBox()
+			frameBody(camera, scene, box, size)
+			table.insert(
+				connections,
+				scene:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+					frameBody(camera, scene, box, size)
+				end)
+			)
+			viewport = scene
+			local host = Moves.animator(copy)
+			animator = host
+			Moves.play(
+				host,
+				Animations.player.ChakraLoop,
+				Enum.AnimationPriority.Action,
+				true,
+				0.15
+			)
+			shown(true)
+		end
+
+		-- Opened in the middle of a respawn, the character may be there before all of its
+		-- body: wait for the body to come, rather than copy anew with every snapshot.
+		table.insert(connections, character.ChildAdded:Connect(show))
+		table.insert(
+			connections,
+			character.ChildRemoved:Connect(function(child: Instance)
+				if child.Name == "HumanoidRootPart" or child == humanoidWatching then
+					clearFigure()
+				end
+			end)
+		)
+		table.insert(
+			connections,
+			character.AncestryChanged:Connect(function()
+				if character.Parent then
+					show()
+				else
+					clearFigure()
+				end
+			end)
+		)
+		show()
+	end
+
+	local added = player.CharacterAdded:Connect(function(character: Model)
+		watch(character)
+	end)
+	-- Hats and clothes can come after the body. The copy is made once more when Roblox has
+	-- finished dressing the character, so one made during a respawn has the whole outfit.
+	local appearance = player.CharacterAppearanceLoaded:Connect(function(character: Model)
+		if source == character then
+			watch(character)
+		end
+	end)
+	local removing = player.CharacterRemoving:Connect(function(character: Model)
+		if source == character then
+			unwatch()
+		end
+	end)
+	-- The board outlives respawns; should it ever be taken down, its listeners go with it.
+	stage.Destroying:Connect(function()
+		destroyed = true
+		added:Disconnect()
+		appearance:Disconnect()
+		removing:Disconnect()
+		unwatch()
+	end)
 
 	return {
-		hit = function()
-			Moves.play(
-				animator,
-				Animations.player.ChakraHit,
-				Enum.AnimationPriority.Action2,
-				false,
-				0.05
-			)
+		setOpen = function(open: boolean)
+			if destroyed or opened == open then
+				return
+			end
+			opened = open
+			watch(if open then player.Character else nil)
 		end,
-		destroy = function()
-			scene:Destroy()
+		hit = function()
+			if opened and animator then
+				Moves.play(
+					animator,
+					Animations.player.ChakraHit,
+					Enum.AnimationPriority.Action2,
+					false,
+					0.05
+				)
+			end
 		end,
 	}
 end

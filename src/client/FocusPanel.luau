@@ -11,10 +11,11 @@
 -- A press is answered on the sheet itself, by a ring of the grade's color going out from the
 -- target, and in words, ink on a slip whose outline and seal take that color.
 --
--- The player's own character trains on the sheet, inside the rings (client RingFigure): the
--- board hangs low in the middle of the screen, which is where the character stands, so a copy
--- of it is shown doing what the character does, and the ring that closes reads as its Chakra
--- gathering.
+-- The player's own character trains beside the board (client RingFigure): the board hangs low
+-- in the middle of the screen, which is where the character stands, so a copy of it is shown
+-- doing what the character does. It has a small scroll of its own at the board's right hand,
+-- NOT the target's sheet, where it stood at first: behind the rings it was in the way of the
+-- very thing the player is watching (owner, 2026-10-12).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -51,6 +52,13 @@ local BURST_GROWS = 70
 local BURST_SECONDS = 0.38
 -- Ticks round the rim of the sheet; every sixth is longer and red.
 local TICKS = 24
+-- The scroll the player's character stands on, at the board's right hand and level with its
+-- foot, and the gap between the two. No taller than this: over it is where the bonus seals
+-- come up (client Bubbles), and one behind the scroll could not be broken.
+local STAGE = Vector2.new(176, 208)
+local STAGE_GAP = 12
+-- What the scroll leaves free at the screen's right edge, for the window tiles there.
+local STAGE_CLEAR = 130
 
 local GRADE_COLORS: { [string]: Color3 } = {
 	Perfect = Color3.fromRGB(255, 202, 40),
@@ -194,18 +202,53 @@ function FocusPanel.start()
 		table.insert(bursts, { frame = frame, line = line })
 	end
 
-	-- The character stands on the sheet, over its ruled lines and under everything that moves:
-	-- the Chakra at the heart, the two strokes, the seal and what a hit sends out are lifted
-	-- over where it is drawn.
-	local fronts: { Frame } = { haze, wash, target, closing, heart }
-	for _, burst in bursts do
-		table.insert(fronts, burst.frame)
+	-- The scroll the player's own character stands on: a dark board like the large one, a
+	-- sheet of parchment on it under a red seal, and Chakra gathering on the sheet behind where
+	-- the figure will be. It is brought up when there is a figure to stand on it and there is
+	-- room for it beside the board.
+	local stageBoard = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(1, STAGE_GAP, 1, 0),
+		Size = UDim2.fromOffset(STAGE.X, STAGE.Y),
+		BackgroundColor3 = Ui.PANEL,
+		BackgroundTransparency = 0.06,
+		BorderSizePixel = 0,
+		Visible = false,
+	}, holder)
+	Ui.corner(stageBoard, 14)
+	Ui.stroke(stageBoard, Ui.EDGE, 3)
+	local stage = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -18, 1, -18),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+	}, stageBoard)
+	Ui.corner(stage, 6)
+	Ui.stroke(stage, Ui.EDGE, 2)
+	local stageHaze = disc(stage, 128, Ui.BLUE)
+	stageHaze.Position = UDim2.fromScale(0.5, 0.46)
+	stageHaze.BackgroundTransparency = 0.86
+	local stageWash = disc(stage, 84, Ui.BLUE)
+	stageWash.Position = UDim2.fromScale(0.5, 0.46)
+	stageWash.BackgroundTransparency = 0.8
+	local stageSeal = disc(stage, 22, Ui.SEAL)
+	stageSeal.AnchorPoint = Vector2.new(0, 0)
+	stageSeal.Position = UDim2.fromOffset(8, 8)
+	Ui.stroke(stageSeal, Ui.INK, 2)
+
+	local figureThere = false
+	local function placeStage()
+		-- Half the screen has to hold half the board, the gap, the scroll and the tiles.
+		local needed = BOARD.X / 2 + STAGE_GAP + STAGE.X + STAGE_CLEAR
+		stageBoard.Visible = figureThere and Ui.room().X / 2 >= needed
 	end
-	for _, front in fronts do
-		front.ZIndex = RingFigure.Z + 1
-	end
-	-- The character on the sheet, while the training lasts.
-	local figure: RingFigure.Shown? = nil
+	local figure = RingFigure.start(stage, function(there: boolean)
+		figureThere = there
+		placeStage()
+	end)
+	Ui.onResize(placeStage)
 
 	-- The verdict: ink on a slip, the grade's color on its outline and its seal.
 	local slip = Ui.make("Frame", {
@@ -289,7 +332,7 @@ function FocusPanel.start()
 	Remotes.RingResult.OnClientEvent:Connect(function(hit: Net.RingResult)
 		local color = GRADE_COLORS[hit.grade] or Ui.EDGE
 		answer(hit.grade, color, hit.gain > 0)
-		if figure and hit.gain > 0 then
+		if hit.gain > 0 then
 			figure.hit()
 		end
 		result.Text = if hit.gain > 0
@@ -355,13 +398,8 @@ function FocusPanel.start()
 
 	Store.onChange(function(state)
 		local visible = state.training == "focus"
-		if visible and not figure then
-			figure = RingFigure.show(arena)
-		elseif not visible and figure then
-			figure.destroy()
-			figure = nil
-		end
 		holder.Visible = visible
+		figure.setOpen(visible)
 	end)
 
 	-- A window opening ends the exercise: the board stands where windows do, and a click
