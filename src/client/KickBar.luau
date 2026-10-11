@@ -5,12 +5,20 @@
 -- It is drawn as a scroll unrolled on a dark board: the grades are bands of ink across the
 -- paper, the marker is the player's own kunai hanging over it, and under the scroll a row of
 -- seals counts the Perfects in a row that charge the Sage throw.
+--
+-- THE BOARD DOES NOT STAND OVER THE THROW. It hangs low in the middle of the screen, which is
+-- where the thrower stands, and used to stay there for a moment after the press with the
+-- marker where it stopped. Once the throw had an animation (Config/Animations) that moment
+-- was the swing of the arm, and the owner: "the throw's animation cannot be seen, the throw's
+-- menu is in front of it". So with an animated throw the board goes at the press, and what
+-- the press was worth is told on a slip of parchment under the thrower's feet.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Animations = require(ReplicatedStorage.Shared.Config.Animations)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
@@ -49,6 +57,9 @@ local TAG_KUNAI = 112
 local STREAK_TOP = 236
 local STREAK_HEIGHT = 48
 local SEAL = 42
+-- The slip that tells what a press was worth when the board has made way for the throw.
+local SLIP = Vector2.new(470, 60)
+local SLIP_SEAL = 34
 
 -- The colors grades are named in, on the board and on the message scroll.
 local GRADE_COLORS: { [string]: Color3 } = {
@@ -381,6 +392,22 @@ function KickBar.start()
 		streakGoal.TextColor3 = if ready then Ui.GOLD else Ui.MUTED
 	end)
 
+	-- The slip: ink on parchment, the grade's color on its outline and its seal. It stands
+	-- where the foot of the board stood, under the thrower and not over them.
+	local slip = Ui.parchment(screen, {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -BOTTOM),
+		Size = UDim2.fromOffset(SLIP.X, SLIP.Y),
+		Visible = false,
+	}, SLIP_SEAL)
+	local slipWords = Ui.text(slip.page, {
+		Position = UDim2.fromOffset(28 + SLIP_SEAL + 10, 6),
+		Size = UDim2.new(1, -(28 + SLIP_SEAL + 10) - 30, 1, -12),
+		TextSize = 30,
+		TextColor3 = Ui.INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+
 	local active = false
 	local pressed = false
 	local startedAt = 0
@@ -394,6 +421,7 @@ function KickBar.start()
 		title.Text = Strings.get("KickHint")
 		title.TextColor3 = Ui.WHITE
 		title.TextSize = 30
+		slip.frame.Visible = false
 		board.Visible = true
 	end)
 
@@ -429,20 +457,37 @@ function KickBar.start()
 		-- A bar that was cancelled (the player stepped off the strip) just goes away.
 		if not result then
 			board.Visible = false
+			slip.frame.Visible = false
 			return
 		end
 
 		local color = GRADE_COLORS[result.grade]
 		local percent = math.floor(result.power * 100 + 0.5)
-		title.Text = Strings.get("KickGrade", Strings.get("Grade" .. result.grade), percent)
-		title.TextColor3 = color or Ui.WHITE
-		title.TextSize = 34
-		-- The frozen marker stays on screen for a moment so the player sees where they hit.
-		task.delay(RESULT_SECONDS, function()
-			if not active then
-				board.Visible = false
-			end
-		end)
+		local worth = Strings.get("KickGrade", Strings.get("Grade" .. result.grade), percent)
+		if Animations.hasThrow() then
+			-- The thrower swings their arm now, just where the board hangs: it makes way, and
+			-- the slip under their feet says what the press was worth.
+			board.Visible = false
+			slipWords.Text = worth
+			slip.edge.Color = color or Ui.EDGE
+			slip.seal.BackgroundColor3 = color or Ui.SEAL
+			Ui.unroll(slip)
+			task.delay(RESULT_SECONDS, function()
+				if not active then
+					Ui.rollUp(slip)
+				end
+			end)
+		else
+			title.Text = worth
+			title.TextColor3 = color or Ui.WHITE
+			title.TextSize = 34
+			-- The frozen marker stays on screen for a moment so the player sees where they hit.
+			task.delay(RESULT_SECONDS, function()
+				if not active then
+					board.Visible = false
+				end
+			end)
+		end
 
 		local text = Strings.get("KickResult", result.grade, result.distance, zoneName(result.zone))
 		if result.luck > 1 then
