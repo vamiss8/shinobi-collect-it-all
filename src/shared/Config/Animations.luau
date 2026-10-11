@@ -25,15 +25,15 @@ local Animations = {}
 Animations.player = {
 	-- The kunai throw with a short run-up. Has a marker named "Release" on the frame the kunai
 	-- leaves the hand; the kunai flies from that moment.
-	Throw = "89679859131903",
+	Throw = "125462351590146",
 	-- Meditation: sitting down into a half lotus and rising a little off the ground, the pose
 	-- held in a loop (rising and sinking a little), and getting up again.
-	MeditateStart = "122527617398687",
-	MeditateLoop = "120597008126969",
-	MeditateEnd = "108324337250224",
+	MeditateStart = "99975334289797",
+	MeditateLoop = "113446100346058",
+	MeditateEnd = "98808882494147",
 	-- Chakra control: gathering chakra between the palms, in a loop, and a short jolt on a hit.
-	ChakraLoop = "76051004314630",
-	ChakraHit = "92010342009522",
+	ChakraLoop = "108390209612212",
+	ChakraHit = "119045030931691",
 }
 
 -- When in the throw animation the kunai leaves the hand, seconds from its start: where its
