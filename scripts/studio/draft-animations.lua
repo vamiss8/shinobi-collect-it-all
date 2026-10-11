@@ -1,9 +1,13 @@
 -- Draft animations for Shinobi: Collect It All!: the throw, meditation and chakra control.
 -- Rough poses to start from; fix them by eye in the Animation Editor before publishing.
 --
--- 1. Avatar tab -> Rig Builder -> Block Rig, R15. Select the new rig in the Explorer.
+-- 1. A rig to pose. Either leave it to this script: with no rig selected it makes a plain R15
+--    body itself and stands it where the camera looks. Or insert one: Avatar (or Home) tab ->
+--    Character -> R15, any body (the tool is the Rig Generator; older Studios call it Rig
+--    Builder), and select the new "Rig" in the Explorer.
 -- 2. View -> Command Bar. Paste this whole script into it and press Enter.
--- 3. Avatar tab -> Animation Editor, click the rig, then ... -> Load and pick an animation.
+-- 3. Avatar tab -> Animation Editor, click the rig. Asked about saved animations in an old
+--    format, choose Migrate. Then ... -> Load and pick an animation.
 -- 4. Fix the poses, then ... -> Publish to Roblox, as whoever owns the game (see the note on
 --    permissions in src/shared/Config/Animations.luau). Copy the id into that file under the
 --    same name.
@@ -13,10 +17,35 @@
 -- Each pose is { x, y, z, rx, ry, rz }: a move (only LowerTorso has one) and the joint's turn
 -- in degrees, as CFrame.Angles takes them.
 
+local Players = game:GetService("Players")
 local Selection = game:GetService("Selection")
 
+-- The rig the drafts go on: the R15 rig selected in the Explorer, or, with none selected, a
+-- plain R15 body made here and stood where the camera looks.
 local rig = Selection:Get()[1]
-assert(rig and rig:FindFirstChild("LowerTorso"), "Select an R15 rig in the Explorer first")
+if not (rig and rig:FindFirstChild("LowerTorso")) then
+	-- A body left at the default is black all over, and a pose cannot be read off a black
+	-- shape: skin for the head and arms, green for the torso and brown for the legs, so that
+	-- an arm held before the chest is seen.
+	local look = Instance.new("HumanoidDescription")
+	local skin = Color3.fromRGB(234, 184, 146)
+	look.HeadColor, look.LeftArmColor, look.RightArmColor = skin, skin, skin
+	look.TorsoColor = Color3.fromRGB(40, 127, 71)
+	look.LeftLegColor, look.RightLegColor =
+		Color3.fromRGB(196, 112, 60), Color3.fromRGB(196, 112, 60)
+	local ok, made = pcall(function()
+		return Players:CreateHumanoidModelFromDescription(look, Enum.HumanoidRigType.R15)
+	end)
+	assert(
+		ok and made and made:FindFirstChild("LowerTorso"),
+		"Could not make a rig: insert one with Avatar tab -> Character -> R15, select it and run this again"
+	)
+	rig = made
+	rig.Name = "AnimationRig"
+	rig:PivotTo(CFrame.new(workspace.CurrentCamera.Focus.Position))
+	rig.Parent = workspace
+	Selection:Set({ rig })
+end
 
 local TREE = {
 	HumanoidRootPart = { "LowerTorso" },
