@@ -72,39 +72,28 @@ local RIG_NAME = "AnimationRig"
 
 assert(not RunService:IsRunning(), "Stop Play/Run mode before creating animation drafts.")
 
--- Whether a model is a whole R15 body: every part there, and a joint from each to its parent.
-local function isRig(model: Instance): boolean
-	local humanoid = model:FindFirstChildOfClass("Humanoid")
-	if not model:IsA("Model") or not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
-		return false
+-- What keeps a model from being a rig the drafts fit, in words; nil when nothing does. Only
+-- the body's parts are asked for, by name: the poses go by those names. Its joints are not
+-- looked at: a body just made and not yet in the place failed a check of them, and whether
+-- a rig can be animated at all is the Animation Editor's to say.
+local function lacks(model: Instance): string?
+	if not model:IsA("Model") then
+		return "it is not a Model"
 	end
-	local parts: { [string]: BasePart } = {}
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return "it has no Humanoid"
+	end
+	if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		return "it is not R15"
+	end
 	for _, node in skeleton do
 		local part = model:FindFirstChild(node[1])
 		if not part or not part:IsA("BasePart") then
-			return false
-		end
-		parts[node[1]] = part
-	end
-	for _, node in skeleton do
-		if node[2] ~= "" then
-			local connected = false
-			for _, joint in model:GetDescendants() do
-				if
-					joint:IsA("Motor6D")
-					and joint.Part0 == parts[node[2]]
-					and joint.Part1 == parts[node[1]]
-				then
-					connected = true
-					break
-				end
-			end
-			if not connected then
-				return false
-			end
+			return "it has no " .. node[1]
 		end
 	end
-	return true
+	return nil
 end
 
 -- Where a rig's saved animations are: a Model or Folder named AnimSaves inside it (the old
@@ -147,32 +136,70 @@ local function freeName(): (string, number)
 	return name, count
 end
 
--- A plain R15 body. One left at the default is black all over, and a pose cannot be read off
--- a black shape: skin for the head and the arms, green for the torso and brown for the legs,
--- so that an arm held before the chest is seen.
-local function makeRig(): Model
-	local look = Instance.new("HumanoidDescription")
+-- A body as it comes is black all over, and a pose cannot be read off a black shape: skin for
+-- the head and the arms, green for the torso and brown for the legs, so that an arm held
+-- before the chest is seen. Painted by hand, on the parts and on what the Humanoid colors
+-- them from, so that it does not hang on how the body was asked for.
+local function paint(model: Model)
 	local skin = Color3.fromRGB(234, 184, 146)
+	local shirt = Color3.fromRGB(40, 127, 71)
 	local legs = Color3.fromRGB(196, 112, 60)
-	look.HeadColor, look.LeftArmColor, look.RightArmColor = skin, skin, skin
-	look.TorsoColor = Color3.fromRGB(40, 127, 71)
-	look.LeftLegColor, look.RightLegColor = legs, legs
-	local ok, made = pcall(function()
-		return Players:CreateHumanoidModelFromDescriptionAsync(look, Enum.HumanoidRigType.R15)
-	end)
-	if not ok then
-		-- The name this call had before; a Studio that has not the new one has this.
-		ok, made = pcall(function()
+	local colors = model:FindFirstChildOfClass("BodyColors")
+	if colors then
+		colors.HeadColor3, colors.LeftArmColor3, colors.RightArmColor3 = skin, skin, skin
+		colors.TorsoColor3 = shirt
+		colors.LeftLegColor3, colors.RightLegColor3 = legs, legs
+	end
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			local name = part.Name
+			part.Color = if string.find(name, "Torso")
+				then shirt
+				elseif string.find(name, "Leg") or string.find(name, "Foot") then legs
+				else skin
+		end
+	end
+end
+
+-- A plain R15 body, asked for first in the very way that is known to work here (the call's
+-- older name and an empty description), and then by the name the call has now.
+local function makeRig(): Model
+	local ways: { () -> Model } = {
+		function(): Model
 			return (Players :: any):CreateHumanoidModelFromDescription(
-				look,
+				Instance.new("HumanoidDescription"),
 				Enum.HumanoidRigType.R15
 			)
-		end)
+		end,
+		function(): Model
+			return Players:CreateHumanoidModelFromDescriptionAsync(
+				Instance.new("HumanoidDescription"),
+				Enum.HumanoidRigType.R15
+			)
+		end,
+	}
+	local made: Model? = nil
+	local why = "nothing was tried"
+	for _, way in ways do
+		local ok, result = pcall(way)
+		if ok and typeof(result) == "Instance" then
+			local missing = lacks(result)
+			if not missing then
+				made = result
+				break
+			end
+			why = missing
+		else
+			why = tostring(result)
+		end
 	end
 	assert(
-		ok and made and isRig(made),
-		"Could not make a rig: insert one with Avatar tab -> Character -> R15, select it and run this again"
+		made,
+		"Could not make a rig ("
+			.. why
+			.. "): insert one with Avatar tab -> Character -> R15, select it and run this again"
 	)
+	paint(made)
 	local name, count = freeName()
 	made.Name = name
 	-- Beside the rigs made before it, not inside them.
@@ -182,7 +209,9 @@ local function makeRig(): Model
 end
 
 local selected = Selection:Get()
-local chosen: Model? = if #selected == 1 and isRig(selected[1]) then selected[1] :: Model else nil
+local chosen: Model? = if #selected == 1 and not lacks(selected[1])
+	then selected[1] :: Model
+	else nil
 local taken = chosen ~= nil and not free(chosen)
 local rig: Model = if chosen and not taken then chosen else makeRig()
 local fresh = rig ~= chosen
