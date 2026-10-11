@@ -1,7 +1,9 @@
 --!strict
--- Plays the animations of Config/Animations on a body: a player's character or an enemy's
--- model. An animation is loaded once per body and kept; one whose id is empty is never loaded,
--- and asking for it gives nil, so callers simply go without.
+-- Plays the animations of Config/Animations on a body: a player's character, the copy of it on
+-- the Chakra Control board, or an enemy's model. A track is loaded once per body and kept: an
+-- Animator has only so many tracks, and loading one again on every press would use them up. An
+-- id that is empty is never loaded, and one that will not load is remembered as such, so that
+-- it warns once and is not asked for again with every press. Callers get nil and go without.
 --
 -- Shared because the server animates enemies and the client the player's own character (what
 -- a client plays on its own character every other client sees as well).
@@ -12,9 +14,10 @@ local Animations = require(ReplicatedStorage.Shared.Config.Animations)
 
 local Moves = {}
 
--- Tracks already loaded, by animator and then by asset id. Weak keys: a body that is gone takes
--- its tracks with it.
-local loaded: { [Animator]: { [string]: AnimationTrack } } = setmetatable({}, { __mode = "k" }) :: any
+-- What is known of an animation on a body: its track, or nothing if it would not load.
+type Loaded = { track: AnimationTrack? }
+-- By animator and then by asset id. Weak keys: a body that is gone takes its tracks with it.
+local loaded: { [Animator]: { [string]: Loaded } } = setmetatable({}, { __mode = "k" }) :: any
 
 -- The body's Animator: the one under its Humanoid or AnimationController, made if missing.
 -- A model with neither (an enemy imported without a Humanoid) gets an AnimationController,
@@ -36,11 +39,12 @@ function Moves.animator(model: Model): Animator
 	return animator
 end
 
--- The track of an animation on that animator, loaded the first time; nil when its id is empty
--- or it fails to load (a wrong id, or one the game's owner does not own).
-function Moves.track(animator: Animator, id: string?): AnimationTrack?
+-- The track of an animation on that animator, loaded the first time; nil when there is no
+-- animator, the id is empty, or it fails to load (a wrong id, or an animation the game has no
+-- permission to use).
+function Moves.track(animator: Animator?, id: string?): AnimationTrack?
 	local asset = Animations.asset(id)
-	if not asset then
+	if not animator or not asset then
 		return nil
 	end
 	local tracks = loaded[animator]
@@ -48,27 +52,30 @@ function Moves.track(animator: Animator, id: string?): AnimationTrack?
 		tracks = {}
 		loaded[animator] = tracks
 	end
-	local track = tracks[asset]
-	if not track then
-		local animation = Instance.new("Animation")
-		animation.AnimationId = asset
-		local ok, result = pcall(function()
-			return animator:LoadAnimation(animation)
-		end)
-		if not ok then
-			warn(`Animation {asset} did not load: {result}`)
-			return nil
-		end
-		track = result
-		tracks[asset] = result
+	local known = tracks[asset]
+	if known then
+		return known.track
 	end
-	return track
+	-- A failure is kept too, or every press would try again and fill the output.
+	local entry: Loaded = {}
+	tracks[asset] = entry
+	local animation = Instance.new("Animation")
+	animation.AnimationId = asset
+	local ok, result = pcall(function(): AnimationTrack
+		return animator:LoadAnimation(animation)
+	end)
+	if not ok then
+		warn(`Animation {asset} did not load: {result}`)
+		return nil
+	end
+	entry.track = result
+	return result
 end
 
 -- Plays an animation on that animator; returns its track, or nil when there is none.
 -- `fade` is how long it blends in, seconds.
 function Moves.play(
-	animator: Animator,
+	animator: Animator?,
 	id: string?,
 	priority: Enum.AnimationPriority,
 	looped: boolean,
@@ -83,11 +90,13 @@ function Moves.play(
 	return track
 end
 
--- Stops an animation if it is playing.
-function Moves.stop(animator: Animator, id: string?, fade: number?)
+-- Stops an animation if it is playing. One that was never played on this body is not loaded
+-- for the sake of stopping it.
+function Moves.stop(animator: Animator?, id: string?, fade: number?)
 	local asset = Animations.asset(id)
-	local tracks = loaded[animator]
-	local track = if asset and tracks then tracks[asset] else nil
+	local tracks = if animator then loaded[animator] else nil
+	local known = if asset and tracks then tracks[asset] else nil
+	local track = if known then known.track else nil
 	if track and track.IsPlaying then
 		track:Stop(fade or 0.2)
 	end

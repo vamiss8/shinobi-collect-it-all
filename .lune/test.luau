@@ -6,6 +6,7 @@ local process = require("@lune/process")
 type Spec = { [string]: () -> () }
 
 local specs: { [string]: Spec } = {
+	Animations = require("../tests/Animations.spec"),
 	Aura = require("../tests/Aura.spec"),
 	Boosts = require("../tests/Boosts.spec"),
 	Catalog = require("../tests/Catalog.spec"),
@@ -35,6 +36,7 @@ local specs: { [string]: Spec } = {
 	Saves = require("../tests/Saves.spec"),
 	SpeedStages = require("../tests/SpeedStages.spec"),
 	Strings = require("../tests/Strings.spec"),
+	ThrowMoves = require("../tests/ThrowMoves.spec"),
 	ZoneArt = require("../tests/ZoneArt.spec"),
 	ZoneBuild = require("../tests/ZoneBuild.spec"),
 }

@@ -1,12 +1,8 @@
 --!strict
--- The player's own moves (Config/Animations), played on their character; what a client plays
--- on its own character every other player sees too.
---   The throw: when the server takes the press. The kunai leaves on the animation's "Release"
---     frame, because the server holds the flight back that long (Services/Kicking).
---   Meditation: sitting into the pose, then the pose in a loop for as long as it lasts, then
---     getting up. It plays over the plain sit the server puts the character in.
---   Chakra control: the loop for as long as the training lasts, and a jolt on every hit.
--- A move whose id is empty is skipped and the game looks as it did without it.
+-- Plays the local player's published animation clips in response to server-confirmed actions.
+-- Only an Animator replicated inside the player's Humanoid is used: Roblox can then replicate
+-- this owner's playback to other clients. These clips never move the root, change Humanoid.Sit,
+-- alter training rewards, or own the camera; those remain with the existing gameplay modules.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,86 +15,239 @@ local Store = require("./Store")
 
 local PlayerMoves = {}
 
-local ids = Animations.player
-local ACTION = Enum.AnimationPriority.Action
--- A hit plays over the chakra loop, so it sits a level higher.
-local OVER = Enum.AnimationPriority.Action2
+local FADE = 0.15
+local THROW_FADE = 0.05
+-- Length is zero while a clip loads, and can remain zero for an inaccessible asset. A missing
+-- transition must not keep the usable meditation loop waiting forever.
+local LENGTH_TIMEOUT = 2
+local LENGTH_POLL = 0.05
+local ANIMATOR_TIMEOUT = 2
+local HUMANOID_TIMEOUT = 5
 
--- The animator of the player's current character, if it has one yet.
-local function animator(): Animator?
-	local character = Players.LocalPlayer.Character
-	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-	return if humanoid then humanoid:FindFirstChildOfClass("Animator") else nil
-end
-
--- Sits into the pose and holds it. The loop fades in over the last moment of the sitting down,
--- so the pose never drops back to the plain sit in between; without a sitting-down animation it
--- starts at once.
-local LOOP_OVERLAP = 0.15
-
-local function startMeditating(on: Animator)
-	local start = Moves.play(on, ids.MeditateStart, ACTION, false, 0.2)
-	if not start then
-		Moves.play(on, ids.MeditateLoop, ACTION, true, 0.2)
-		return
-	end
-	task.spawn(function()
-		-- A track knows its length only once its animation has loaded.
-		local waited = 0
-		while start.Length <= 0 and waited < 2 do
-			waited += task.wait()
-		end
-		task.wait(math.max(start.Length - LOOP_OVERLAP - waited, 0))
-		local state = Store.get()
-		if start.IsPlaying and state and state.training == "meditate" then
-			Moves.play(on, ids.MeditateLoop, ACTION, true, LOOP_OVERLAP)
-		end
-	end)
-end
-
-local function stopMeditating(on: Animator)
-	Moves.stop(on, ids.MeditateStart, 0.1)
-	Moves.stop(on, ids.MeditateLoop, 0.15)
-	Moves.play(on, ids.MeditateEnd, ACTION, false, 0.1)
-end
+local started = false
 
 function PlayerMoves.start()
+	if started then
+		return
+	end
+	started = true
+
+	local clips = Animations.player
+	local configured = false
+	for _, id in clips do
+		if id ~= "" then
+			configured = true
+			break
+		end
+	end
+	-- Empty placeholders deliberately preserve today's player behavior, including avoiding
+	-- unnecessary Animator lookup/creation, asset requests, and character event connections.
+	if not configured then
+		return
+	end
+
+	local player = Players.LocalPlayer
+	local character: Model? = nil
+	local humanoid: Humanoid? = nil
+	local animator: Animator? = nil
 	local training: string? = nil
-	Store.onChange(function(state)
-		if state.training == training then
+	local characterGeneration = 0
+	local modeGeneration = 0
+	local characterConnections: { RBXScriptConnection } = {}
+
+	local function currentAnimator(): Animator?
+		local model = character
+		local body = humanoid
+		local host = animator
+		if
+			model
+			and model == player.Character
+			and model.Parent ~= nil
+			and body
+			and body.Parent == model
+			and body.Health > 0
+			and host
+			and host.Parent == body
+		then
+			return host
+		end
+		return nil
+	end
+
+	local function stopTraining(host: Animator, fade: number)
+		Moves.stop(host, clips.MeditateStart, fade)
+		Moves.stop(host, clips.MeditateLoop, fade)
+		Moves.stop(host, clips.MeditateEnd, fade)
+		Moves.stop(host, clips.ChakraLoop, fade)
+		Moves.stop(host, clips.ChakraHit, fade)
+	end
+
+	-- Invalidates both character-loading work and meditation transitions before stopping any
+	-- tracks. A removed/dead character is never given an exit animation or a delayed new loop.
+	local function clearCharacter()
+		characterGeneration += 1
+		modeGeneration += 1
+		training = nil
+		for _, connection in characterConnections do
+			connection:Disconnect()
+		end
+		table.clear(characterConnections)
+		local previous = animator
+		character = nil
+		humanoid = nil
+		animator = nil
+		if previous then
+			stopTraining(previous, 0)
+			Moves.stop(previous, clips.Throw, 0)
+		end
+	end
+
+	local function beginMode(mode: string?, generation: number)
+		local host = currentAnimator()
+		if not host then
 			return
 		end
-		local before = training
-		training = state.training
-		local on = animator()
-		if not on then
+		if mode == "focus" then
+			Moves.play(host, clips.ChakraLoop, Enum.AnimationPriority.Action, true, FADE)
+		elseif mode == "meditate" then
+			local transition =
+				Moves.play(host, clips.MeditateStart, Enum.AnimationPriority.Action, false, FADE)
+
+			local function stillMeditating(): boolean
+				return modeGeneration == generation
+					and training == "meditate"
+					and currentAnimator() == host
+			end
+
+			local function beginLoop()
+				if stillMeditating() then
+					Moves.stop(host, clips.MeditateStart, FADE)
+					Moves.play(host, clips.MeditateLoop, Enum.AnimationPriority.Action, true, FADE)
+				end
+			end
+
+			if not transition then
+				-- The start clip is optional. An empty or unloadable id uses the loop directly.
+				beginLoop()
+				return
+			end
+
+			task.spawn(function()
+				local deadline = os.clock() + LENGTH_TIMEOUT
+				while
+					stillMeditating()
+					and transition.Length <= 0
+					and transition.IsPlaying
+					and os.clock() < deadline
+				do
+					task.wait(LENGTH_POLL)
+				end
+				if not stillMeditating() then
+					return
+				end
+				if transition.Length <= 0 or not transition.IsPlaying then
+					beginLoop()
+					return
+				end
+				-- Account for playback that elapsed during loading. The loop fades in for the
+				-- last 0.15 seconds of the start clip, rather than adding a pause between them.
+				local remaining = math.max(transition.Length - transition.TimePosition - FADE, 0)
+				task.delay(remaining, beginLoop)
+			end)
+		end
+	end
+
+	local function setTraining(mode: string?)
+		local nextMode = if mode == "meditate" or mode == "focus" then mode else nil
+		if training == nextMode then
 			return
 		end
-		if before == "meditate" then
-			stopMeditating(on)
-		elseif before == "focus" then
-			Moves.stop(on, ids.ChakraLoop)
+		local previous = training
+		training = nextMode
+		modeGeneration += 1
+		local host = currentAnimator()
+		if host then
+			stopTraining(host, FADE)
+			if previous == "meditate" then
+				Moves.play(host, clips.MeditateEnd, Enum.AnimationPriority.Action, false, FADE)
+			end
 		end
-		if training == "meditate" then
-			startMeditating(on)
-		elseif training == "focus" then
-			Moves.play(on, ids.ChakraLoop, ACTION, true, 0.2)
+		beginMode(nextMode, modeGeneration)
+	end
+
+	local function bindCharacter(model: Model)
+		clearCharacter()
+		character = model
+		local generation = characterGeneration
+		local function stillCurrent(): boolean
+			return characterGeneration == generation
+				and character == model
+				and player.Character == model
+				and model.Parent ~= nil
+		end
+		table.insert(
+			characterConnections,
+			model.AncestryChanged:Connect(function(_, parent)
+				if parent == nil and character == model then
+					clearCharacter()
+				end
+			end)
+		)
+		task.spawn(function()
+			local body = model:FindFirstChildOfClass("Humanoid")
+			if not body then
+				local found = model:WaitForChild("Humanoid", HUMANOID_TIMEOUT)
+				body = if found and found:IsA("Humanoid") then found else nil
+			end
+			if not stillCurrent() or not body or body.Health <= 0 then
+				return
+			end
+			humanoid = body
+			table.insert(characterConnections, body.Died:Connect(clearCharacter))
+			-- A client-created Animator cannot replicate its tracks. Allow a short wait for
+			-- the normal server-created player Animator instead of silently creating one here.
+			local host = body:FindFirstChildOfClass("Animator")
+			if not host then
+				local found = body:WaitForChild("Animator", ANIMATOR_TIMEOUT)
+				host = if found and found:IsA("Animator") then found else nil
+			end
+			if not stillCurrent() or body.Health <= 0 then
+				return
+			end
+			if not host then
+				warn("PlayerMoves: the player's server-created Humanoid.Animator is missing")
+				return
+			end
+			animator = host
+			beginMode(training, modeGeneration)
+		end)
+	end
+
+	player.CharacterAdded:Connect(bindCharacter)
+	player.CharacterRemoving:Connect(function(model)
+		if character == model then
+			clearCharacter()
 		end
 	end)
+	if player.Character then
+		bindCharacter(player.Character)
+	end
 
-	Remotes.RingResult.OnClientEvent:Connect(function(hit: Net.RingResult)
-		local on = animator()
-		if on and hit.gain > 0 then
-			Moves.play(on, ids.ChakraHit, OVER, false, 0.05)
-		end
+	-- State also arrives once per second with income. Only a changed training mode starts or
+	-- stops a clip, so unchanged snapshots do not continually rewind the active loop.
+	Store.onChange(function(snapshot)
+		setTraining(snapshot.training)
 	end)
-
-	-- The server has taken the press: the throw starts now and the kunai leaves the hand on its
-	-- "Release" frame. A cancelled bar (nil) is no throw.
 	Remotes.KickResult.OnClientEvent:Connect(function(result: Net.KickResult?)
-		local on = animator()
-		if on and result then
-			Moves.play(on, ids.Throw, Enum.AnimationPriority.Action4, false, 0.05)
+		local host = currentAnimator()
+		if result and host then
+			Moves.play(host, clips.Throw, Enum.AnimationPriority.Action4, false, THROW_FADE)
+		end
+	end)
+	Remotes.RingResult.OnClientEvent:Connect(function(result: Net.RingResult)
+		local host = currentAnimator()
+		if training == "focus" and result.gain > 0 and host then
+			Moves.play(host, clips.ChakraHit, Enum.AnimationPriority.Action2, false, FADE)
 		end
 	end)
 end
