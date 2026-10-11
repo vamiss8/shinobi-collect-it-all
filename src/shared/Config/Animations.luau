@@ -28,12 +28,12 @@ Animations.player = {
 	Throw = "",
 	-- Meditation: sitting down into a half lotus and rising a little off the ground, the pose
 	-- held in a loop (rising and sinking a little), and getting up again.
-	MeditateStart = "",
-	MeditateLoop = "",
-	MeditateEnd = "",
+	MeditateStart = "122527617398687",
+	MeditateLoop = "120597008126969",
+	MeditateEnd = "108324337250224",
 	-- Chakra control: gathering chakra between the palms, in a loop, and a short jolt on a hit.
 	ChakraLoop = "",
-	ChakraHit = "",
+	ChakraHit = "92010342009522",
 }
 
 -- When in the throw animation the kunai leaves the hand, seconds from its start: where its
