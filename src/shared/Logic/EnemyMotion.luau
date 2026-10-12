@@ -134,9 +134,23 @@ function EnemyMotion.pose(
 			pose.lift = 0.03 * math.sin(time * 4)
 		end
 	elseif motion == "glider" then
-		-- Hovers a little over the ground and never steps; leans into the chase.
-		pose.lift = 0.5 + 0.15 * math.sin(time * 1.5)
-		pose.pitch = if moving then 0.07 else 0
+		-- Never steps: it rides the air over a stud off the ground, rising and sinking as it
+		-- breathes. In the chase it lies forward into its flight and banks from side to side;
+		-- standing, it leans back a little and looks about. (It first hung half a stud up and
+		-- moved a hand's breadth, which on a body nine studs tall was seen as nothing at all:
+		-- the owner, "every enemy's animation works but Pain's".)
+		local breath = math.sin(time * 2.4)
+		if moving then
+			local bank = math.sin(time * 1.7)
+			pose.lift = 1.4 + 0.3 * breath
+			pose.pitch = 0.3
+			pose.roll = 0.1 * bank
+			pose.side = 0.4 * bank
+		else
+			pose.lift = 1.2 + 0.3 * breath
+			pose.pitch = -0.05
+			pose.yaw = 0.08 * math.sin(time * 1.1)
+		end
 	end
 
 	return scaled(pose, (height or EnemyMotion.HEIGHT) / EnemyMotion.HEIGHT)

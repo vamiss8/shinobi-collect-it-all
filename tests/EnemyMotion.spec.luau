@@ -21,7 +21,9 @@ return {
 				for _, moving in { true, false } do
 					local pose = EnemyMotion.pose(motion :: any, i * 0.37, i * 0.05, moving)
 					local where = `{motion} at step {i}`
-					T.ok(pose.lift >= -0.2 and pose.lift <= 1, `{where} lift`)
+					-- One that rides the air is the only one over a stud off the ground.
+					local top = if motion == "glider" then 2 else 1
+					T.ok(pose.lift >= -0.2 and pose.lift <= top, `{where} lift`)
 					T.ok(math.abs(pose.side) <= 1.5, `{where} side`)
 					T.ok(math.abs(pose.pitch) <= 0.4, `{where} pitch`)
 					T.ok(math.abs(pose.roll) <= 0.2, `{where} roll`)
@@ -54,6 +56,20 @@ return {
 			T.near(counted / stride, cadence, 1e-6, `{motion} at full speed`)
 			T.near(EnemyMotion.paced(motion :: any, 0.01, 1 / 60), 0.01, 1e-12, `{motion} slow`)
 		end
+	end,
+
+	["one that glides is seen to ride the air, standing and in the chase"] = function()
+		local low, high = math.huge, -math.huge
+		for i = 0, 200 do
+			local pose = EnemyMotion.pose("glider", 0, i * 0.05, false)
+			low, high = math.min(low, pose.lift), math.max(high, pose.lift)
+		end
+		T.ok(low >= 0.8, "it never comes down to the ground")
+		T.ok(high - low >= 0.5, "and its rise and fall can be seen")
+		local chasing = EnemyMotion.pose("glider", 30, 1, true)
+		local standing = EnemyMotion.pose("glider", 30, 1, false)
+		T.ok(chasing.pitch >= 0.2, "it lies forward into the chase")
+		T.ok(chasing.pitch > standing.pitch + 0.2, "which it does not do standing")
 	end,
 
 	["the snake winds from side to side as it goes"] = function()
