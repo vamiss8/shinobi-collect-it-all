@@ -24,8 +24,8 @@ local RENDER_STEP = "CarriedFacing"
 local OVERHEAD = 0.5
 -- The least room between the top of the carrier's head and the shinobi's feet, studs. Standing
 -- or running there is more than this and the shinobi rides at its usual height; a carrier who
--- meditates is raised well over a stud off the ground, head and all, and without this their
--- head would stand in the shinobi's feet.
+-- meditates has their body lifted a stud over their root by the animation, head and all, and
+-- without this their head would stand at the shinobi's feet.
 local HEAD_ROOM = 1
 
 local function faceCamera()

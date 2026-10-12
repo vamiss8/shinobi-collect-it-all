@@ -26,12 +26,6 @@ local RADIUS = 2.3
 local BEHIND = 1.5
 local LIFT = 0.6
 local BREATH = 0.14
--- Where an R15 body's hips are from the middle of its root as it stands, studs up, and how
--- far over the root they have to be for the body to have left the ground: it meditates then
--- (Services/Training raises it), and its wheel goes up with it. A step, a crouch or a jump of
--- the throw's animation is not that, and the wheel does not follow those.
-local HIPS = -1
-local AFLOAT = 0.5
 -- How fast an orb closes on its place, a second, and how far behind it may fall, studs.
 local FOLLOW = 15
 local SLACK = 3.4
@@ -143,20 +137,9 @@ local function step(dt: number)
 			continue
 		end
 
-		-- A meditating body hovers well over its root (Services/Training), and the root
-		-- stays on the ground: the wheel is behind the back, wherever the back is.
-		local raise = 0
-		local hips = (character :: Model):FindFirstChild("LowerTorso")
-		if hips and hips:IsA("BasePart") then
-			local stands = root.CFrame:PointToObjectSpace(hips.Position).Y
-			if stands > AFLOAT then
-				raise = stands - HIPS
-			end
-		end
-
 		-- The wheel stands upright behind the back, in the plane the character faces.
 		local frame = root.CFrame
-		local middle = frame:PointToWorldSpace(Vector3.new(0, LIFT + raise, BEHIND))
+		local middle = frame:PointToWorldSpace(Vector3.new(0, LIFT, BEHIND))
 		local right, up = frame.RightVector, frame.UpVector
 		local radius = RADIUS + BREATH * math.sin(now * 1.7)
 		local turn = math.rad(look.spin) * now

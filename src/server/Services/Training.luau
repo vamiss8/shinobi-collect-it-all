@@ -1,6 +1,7 @@
 --!strict
 -- Training. Two tools sit at the front of the hotbar:
---   Meditate (slot 1) sits the player down and earns Chakra on a timer, so it works AFK.
+--   Meditate (slot 1) lifts the player into the air where they stand and earns Chakra on a
+--     timer, so it works AFK.
 --   Chakra Control (slot 2) is the active way: a ring closes in on a target and the player
 --     presses as they meet. The closer the press, the more it pays.
 -- Both are done standing still. Equipping a tool only asks to train: the training starts once
@@ -11,7 +12,6 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -43,11 +43,11 @@ local STEP = 0.5
 -- How often players holding a training tool are checked, seconds.
 local REST_CHECK = 0.1
 -- Still checks in a row before a training starts. One is not enough: at the top of a jump a
--- character is motionless for an instant, and a sit ordered in mid-air does not take.
+-- character is motionless for an instant.
 local STILL_CHECKS = 4
--- Right after sitting down to meditate the character still settles; it is not checked for
--- getting up yet.
-local SETTLE_SECONDS = 0.6
+-- Right after a meditation begins the character rises to its height and settles there; it is
+-- not checked for having moved off yet.
+local SETTLE_SECONDS = 1.2
 
 -- Someone holding a training tool: waiting to come to rest, then training with it from the
 -- spot they stopped on.
@@ -154,50 +154,29 @@ local function ringPress(player: Player, claimed: unknown)
 	State.push(player)
 end
 
--- A MEDITATING BODY HOVERS (owner, 2026-10-12: "the rise is not at once, and it does not
--- rise enough: the legs touch the ground"). The meditation's animation raises the body a stud
--- by itself, at the end of the sitting down, which left the folded legs on the ground. So the
--- server raises the whole body on the joint between its root and its hips the moment the
--- meditation begins, and lets it down when it ends: a joint the server moves is moved for
--- everyone. The root itself stays where it is, so nothing that asks where a player stands or
--- how fast they move is told otherwise. Only the R15 body has that joint, and only for it are
--- the animations made.
-local raised: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+-- A MEDITATING CHARACTER HOVERS, AND IS NOT SEATED (owner, 2026-10-12: "the rise is not at
+-- once, and not enough: the legs touch the ground"; then, of two attempts to raise it: "are
+-- you sure you made the rise? It feels as if it is not applied, and was not before either").
+-- It was not, and could not be while the player was seated. A seated Humanoid holds nothing
+-- up: the character lies on its own body, with its root wherever that leaves it. So raising
+-- the body over its root (the animation's own stud, then a joint moved by the server, by 1.3
+-- studs and by 4) only let the whole character sink until the body lay on the ground again,
+-- the root now under it. What does hold a character over the ground is a standing Humanoid's
+-- HipHeight. So meditation no longer sits the player down: they stand, the Humanoid is told
+-- to hold them higher, and the lotus is the animation's alone. The root rises too, and with
+-- it whatever goes by the root: the rank's orbs, a runner's effects, a carried shinobi, the
+-- camera. The server sets it and it is every client's to see.
+local hipRest: { [Humanoid]: number } = setmetatable({}, { __mode = "k" }) :: any
 
-local function hipJoint(character: Instance?): Motor6D?
-	local hips = if character then character:FindFirstChild("LowerTorso") else nil
-	if hips then
-		for _, joint in hips:GetChildren() do
-			if joint:IsA("Motor6D") and joint.Part0 and joint.Part0.Name == "HumanoidRootPart" then
-				return joint
-			end
-		end
-	end
-	return nil
-end
-
-local function hover(character: Instance?, up: boolean)
-	local joint = hipJoint(character)
-	if not joint then
-		return
-	end
-	local t = Tuning.Training
-	local rest = raised[joint]
+local function hover(humanoid: Humanoid, up: boolean)
+	local rest = hipRest[humanoid]
 	if up then
-		local from = rest or joint.C0
-		raised[joint] = from
-		TweenService:Create(
-			joint,
-			TweenInfo.new(t.meditateLiftSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ C0 = CFrame.new(0, t.meditateLift, 0) * from }
-		):Play()
+		local from = rest or humanoid.HipHeight
+		hipRest[humanoid] = from
+		humanoid.HipHeight = from + Tuning.Training.meditateLift
 	elseif rest then
-		raised[joint] = nil
-		TweenService:Create(
-			joint,
-			TweenInfo.new(t.meditateLiftSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ C0 = rest }
-		):Play()
+		hipRest[humanoid] = nil
+		humanoid.HipHeight = rest
 	end
 end
 
@@ -222,7 +201,7 @@ local function putAway(player: Player, mode: string)
 	end
 end
 
-local function giveTools(player: Player, character: Model, backpack: Instance, humanoid: Humanoid)
+local function giveTools(player: Player, _character: Model, backpack: Instance, humanoid: Humanoid)
 	-- Equipping a tool only asks to train; watchTrainees starts the training once the player
 	-- is at rest.
 	local function takeOut(mode: string)
@@ -236,8 +215,7 @@ local function giveTools(player: Player, character: Model, backpack: Instance, h
 		takeOut(MEDITATE)
 	end)
 	meditate.Unequipped:Connect(function()
-		humanoid.Sit = false
-		hover(character, false)
+		hover(humanoid, false)
 		putAway(player, MEDITATE)
 	end)
 	meditate.Parent = backpack
@@ -275,15 +253,15 @@ local function watchTrainees()
 				trainee.startedAt = now
 				trainee.spot = root.Position
 				if trainee.mode == MEDITATE then
-					trainee.humanoid.Sit = true
-					hover(trainee.humanoid.Parent, true)
+					hover(trainee.humanoid, true)
 				end
 				setMode(player, trainee.mode)
 			end
 		elseif trainee.mode == MEDITATE then
-			-- A meditating player is seated and gets up by jumping, which ends the sit.
+			-- A meditating player hovers where they stopped, and comes down by walking off
+			-- or jumping.
 			local settled = now - trainee.startedAt > SETTLE_SECONDS
-			if settled and (not trainee.humanoid.Sit or speed > MOVING_SPEED) then
+			if settled and speed > MOVING_SPEED then
 				-- Fires the tool's Unequipped, which clears the trainee and ends the training.
 				trainee.humanoid:UnequipTools()
 			end
