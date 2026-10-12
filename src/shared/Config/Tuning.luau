@@ -10,9 +10,10 @@ return {
 		meditateReps = 0.5,
 		-- How much higher over the ground a meditating character is held than a standing one,
 		-- studs (Services/Training raises its Humanoid's HipHeight by this). The animation
-		-- lifts the body a stud more and folds the legs, so with 3 here there are about five
-		-- studs of air under them: the owner's "say 5 in all" (2026-10-12).
-		meditateLift = 3,
+		-- lifts the body a stud more and folds the legs, so with 2 here there are about four
+		-- studs of air under them. It was 3, the owner's "say 5 in all", and seen: "a little
+		-- lower" (2026-10-12).
+		meditateLift = 2,
 		-- Chakra control (active): a ring closes in on a target ring; press as they meet.
 		-- Every round the ring's speed and the target's size are drawn at random, so pressing
 		-- on a fixed beat does not work.
