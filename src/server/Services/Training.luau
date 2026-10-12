@@ -11,6 +11,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -153,6 +154,53 @@ local function ringPress(player: Player, claimed: unknown)
 	State.push(player)
 end
 
+-- A MEDITATING BODY HOVERS (owner, 2026-10-12: "the rise is not at once, and it does not
+-- rise enough: the legs touch the ground"). The meditation's animation raises the body a stud
+-- by itself, at the end of the sitting down, which left the folded legs on the ground. So the
+-- server raises the whole body on the joint between its root and its hips the moment the
+-- meditation begins, and lets it down when it ends: a joint the server moves is moved for
+-- everyone. The root itself stays where it is, so nothing that asks where a player stands or
+-- how fast they move is told otherwise. Only the R15 body has that joint, and only for it are
+-- the animations made.
+local raised: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+
+local function hipJoint(character: Instance?): Motor6D?
+	local hips = if character then character:FindFirstChild("LowerTorso") else nil
+	if hips then
+		for _, joint in hips:GetChildren() do
+			if joint:IsA("Motor6D") and joint.Part0 and joint.Part0.Name == "HumanoidRootPart" then
+				return joint
+			end
+		end
+	end
+	return nil
+end
+
+local function hover(character: Instance?, up: boolean)
+	local joint = hipJoint(character)
+	if not joint then
+		return
+	end
+	local t = Tuning.Training
+	local rest = raised[joint]
+	if up then
+		local from = rest or joint.C0
+		raised[joint] = from
+		TweenService:Create(
+			joint,
+			TweenInfo.new(t.meditateLiftSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ C0 = CFrame.new(0, t.meditateLift, 0) * from }
+		):Play()
+	elseif rest then
+		raised[joint] = nil
+		TweenService:Create(
+			joint,
+			TweenInfo.new(t.meditateLiftSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ C0 = rest }
+		):Play()
+	end
+end
+
 local function makeTool(name: string, tip: string): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = name
@@ -174,7 +222,7 @@ local function putAway(player: Player, mode: string)
 	end
 end
 
-local function giveTools(player: Player, _character: Model, backpack: Instance, humanoid: Humanoid)
+local function giveTools(player: Player, character: Model, backpack: Instance, humanoid: Humanoid)
 	-- Equipping a tool only asks to train; watchTrainees starts the training once the player
 	-- is at rest.
 	local function takeOut(mode: string)
@@ -189,6 +237,7 @@ local function giveTools(player: Player, _character: Model, backpack: Instance, 
 	end)
 	meditate.Unequipped:Connect(function()
 		humanoid.Sit = false
+		hover(character, false)
 		putAway(player, MEDITATE)
 	end)
 	meditate.Parent = backpack
@@ -227,6 +276,7 @@ local function watchTrainees()
 				trainee.spot = root.Position
 				if trainee.mode == MEDITATE then
 					trainee.humanoid.Sit = true
+					hover(trainee.humanoid.Parent, true)
 				end
 				setMode(player, trainee.mode)
 			end

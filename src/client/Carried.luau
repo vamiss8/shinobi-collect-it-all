@@ -22,6 +22,11 @@ local RENDER_STEP = "CarriedFacing"
 -- A camera straight overhead has no side to turn the shinobi to; nearer than this, level, it
 -- is left as it stands.
 local OVERHEAD = 0.5
+-- The least room between the top of the carrier's head and the shinobi's feet, studs. Standing
+-- or running there is more than this and the shinobi rides at its usual height; a carrier who
+-- meditates is raised well over a stud off the ground, head and all, and without this their
+-- head would stand in the shinobi's feet.
+local HEAD_ROOM = 1
 
 local function faceCamera()
 	local camera = Workspace.CurrentCamera
@@ -32,7 +37,14 @@ local function faceCamera()
 	for _, joint in CollectionService:GetTagged(Net.CARRY_TAG) do
 		local root = if joint:IsA("Weld") then joint.Part0 else nil
 		if joint:IsA("Weld") and root then
-			local at = root.CFrame * Vector3.new(0, Figure.CARRY_HEIGHT, 0)
+			local height = Figure.CARRY_HEIGHT
+			local carrier = root.Parent
+			local head = if carrier then carrier:FindFirstChild("Head") else nil
+			if head and head:IsA("BasePart") then
+				local top = root.CFrame:PointToObjectSpace(head.Position).Y + head.Size.Y / 2
+				height = math.max(height, top + HEAD_ROOM)
+			end
+			local at = root.CFrame * Vector3.new(0, height, 0)
 			local toEye = (eye - at) * Vector3.new(1, 0, 1)
 			if toEye.Magnitude > OVERHEAD then
 				-- Where the figure should stand and look, in the root's own terms.

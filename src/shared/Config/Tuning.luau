@@ -8,6 +8,12 @@ return {
 		-- which averages about one rep a second once throws and errands are counted in.
 		meditateInterval = 1,
 		meditateReps = 0.5,
+		-- How far a meditating body is raised off the ground by code, studs, over what its
+		-- animation raises it by itself (a stud), and how long the rise takes, seconds. With
+		-- the animation's stud alone the folded legs still lay on the ground, and the rise
+		-- came only at the end of the sitting down.
+		meditateLift = 1.3,
+		meditateLiftSeconds = 0.2,
 		-- Chakra control (active): a ring closes in on a target ring; press as they meet.
 		-- Every round the ring's speed and the target's size are drawn at random, so pressing
 		-- on a fixed beat does not work.
