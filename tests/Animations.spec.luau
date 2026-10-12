@@ -51,17 +51,22 @@ return {
 		withThrow("123", function()
 			T.eq(Animations.hasThrow(), true)
 			T.eq(Animations.THROW_RELEASE, 0.75)
-			T.eq(Animations.throwDelay(), 0.75)
+			T.ok(
+				Animations.THROW_STRETCH >= 1.5 and Animations.THROW_STRETCH <= 2,
+				"the throw is played 1.5 to 2 times longer than it was made"
+			)
+			T.near(Animations.throwSpeed() * Animations.THROW_STRETCH, 1, 1e-9)
+			T.near(Animations.throwDelay(), 0.75 * Animations.THROW_STRETCH, 1e-9)
 		end)
 		withThrow("rbxassetid://123", function()
 			T.eq(Animations.hasThrow(), true)
-			T.eq(Animations.throwDelay(), Animations.THROW_RELEASE)
+			T.eq(Animations.throwDelay(), Animations.THROW_RELEASE * Animations.THROW_STRETCH)
 		end)
 	end,
 
 	["removing the throw restores immediate release"] = function()
 		withThrow("123", function()
-			T.eq(Animations.throwDelay(), Animations.THROW_RELEASE)
+			T.eq(Animations.throwDelay(), Animations.THROW_RELEASE * Animations.THROW_STRETCH)
 			Animations.player.Throw = ""
 			T.eq(Animations.hasThrow(), false)
 			T.eq(Animations.throwDelay(), 0)

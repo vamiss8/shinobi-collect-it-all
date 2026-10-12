@@ -40,6 +40,10 @@ Animations.player = {
 -- "Release" marker sits. The server lets the kunai fly this long after the press, so that every
 -- client sees it leave the hand; with no throw animation it flies at once, as it always did.
 Animations.THROW_RELEASE = 0.75
+-- How many times longer than it was made the throw is played (owner, 2026-10-12: "make the
+-- throw's animation 1.5 to 2 times longer"). The clip is not made anew for it: it is played
+-- that much slower (client PlayerMoves), and the kunai leaves the hand that much later.
+Animations.THROW_STRETCH = 1.75
 
 -- Each zone's enemy, by zone id (Config/Zones).
 Animations.enemies = {
@@ -72,9 +76,15 @@ function Animations.hasThrow(): boolean
 	return Animations.asset(Animations.player.Throw) ~= nil
 end
 
--- How long after a press the kunai leaves the hand.
+-- The speed the throw is played at, 1 being as it was made.
+function Animations.throwSpeed(): number
+	return 1 / Animations.THROW_STRETCH
+end
+
+-- How long after a press the kunai leaves the hand: where the clip's marker sits, at the pace
+-- the clip is played.
 function Animations.throwDelay(): number
-	return if Animations.hasThrow() then Animations.THROW_RELEASE else 0
+	return if Animations.hasThrow() then Animations.THROW_RELEASE * Animations.THROW_STRETCH else 0
 end
 
 return Animations

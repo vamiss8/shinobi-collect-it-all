@@ -219,6 +219,11 @@ function PlayerMoves.start()
 				return
 			end
 			animator = host
+			-- Every clip is asked for now, so that the first sit or throw does not stand
+			-- waiting for its clip to come.
+			for _, id in clips do
+				Moves.track(host, id :: string)
+			end
 			beginMode(training, modeGeneration)
 		end)
 	end
@@ -241,7 +246,13 @@ function PlayerMoves.start()
 	Remotes.KickResult.OnClientEvent:Connect(function(result: Net.KickResult?)
 		local host = currentAnimator()
 		if result and host then
-			Moves.play(host, clips.Throw, Enum.AnimationPriority.Action4, false, THROW_FADE)
+			local throw =
+				Moves.play(host, clips.Throw, Enum.AnimationPriority.Action4, false, THROW_FADE)
+			-- Played slower than it was made (Animations.THROW_STRETCH): the server counts
+			-- the kunai's leaving the hand by the same pace.
+			if throw then
+				throw:AdjustSpeed(Animations.throwSpeed())
+			end
 		end
 	end)
 	Remotes.RingResult.OnClientEvent:Connect(function(result: Net.RingResult)

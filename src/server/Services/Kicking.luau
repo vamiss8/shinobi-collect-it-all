@@ -322,6 +322,10 @@ local function press(player: Player, claimed: unknown)
 	local token = {}
 	flights[player] = token
 	setFrozen(player, humanoid, true)
+	-- A shinobi carried is put away for the throw: it rode over the thrower's head through
+	-- the swing of the arm and the kunai's flight (owner, 2026-10-12). It is in the
+	-- inventory still; the hands stay empty until the run home brings its catch.
+	Inventory.hold(player, nil)
 
 	-- With a throw animation the thrower's client swings the arm first (client PlayerMoves),
 	-- and the kunai leaves the hand on the animation's "Release" frame: everything after the

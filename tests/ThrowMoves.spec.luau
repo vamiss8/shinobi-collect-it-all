@@ -10,6 +10,10 @@ local T = require("./harness")
 
 local FLIGHT = 1.25
 local REVEAL = FLIGHT + Tuning.Chase.rollSeconds + Tuning.Chase.holdSeconds
+-- How long the arm swings before the kunai leaves it, and a hair past a moment: the server
+-- adds its times up in an order of its own, and may come out a rounding away from ours.
+local WINDUP = Animations.THROW_RELEASE * Animations.THROW_STRETCH
+local PAST = 1e-6
 
 local function signal(): any
 	local listeners: { (...any) -> () } = {}
@@ -337,9 +341,9 @@ return {
 			)
 			T.near(h.root.CFrame.LookVector.Y, 0, 0.000001, "turn stays horizontal")
 			T.near(h.root.CFrame.LookVector.X, 1, 0.000001, "turn faces the lane")
-			h.advance(0.74)
+			h.advance(WINDUP - 0.01)
 			T.eq(eventNames(h), "KickResult,State")
-			h.advance(0.75)
+			h.advance(WINDUP + PAST)
 			T.eq(eventNames(h), "KickResult,State,Flight,Reveal")
 			T.eq(h.events[3].payload.from, roblox.Vector3.new(0, 8, 3))
 			h.advance(REVEAL)
@@ -348,7 +352,7 @@ return {
 				"KickResult,State,Flight,Reveal",
 				"windup cannot shorten the reveal"
 			)
-			h.advance(0.75 + REVEAL)
+			h.advance(WINDUP + REVEAL + PAST)
 			T.eq(eventNames(h), "KickResult,State,Flight,Reveal,RunStart")
 		end)
 	end,
@@ -358,7 +362,7 @@ return {
 			h.aim()
 			h.press()
 			h.leave()
-			h.advance(0.75 + REVEAL)
+			h.advance(WINDUP + REVEAL + PAST)
 			T.eq(eventNames(h), "KickResult,State")
 		end)
 	end,
@@ -371,17 +375,17 @@ return {
 			h.leave()
 			h.aim()
 			h.press()
-			h.advance(0.75)
+			h.advance(WINDUP + PAST)
 			T.eq(eventNames(h), "KickResult,State", "old launch cannot consume the current token")
-			h.advance(0.95)
+			h.advance(0.2 + WINDUP + PAST)
 			T.eq(eventNames(h), "KickResult,State,Flight,Reveal")
-			h.advance(0.75 + REVEAL)
+			h.advance(WINDUP + REVEAL + PAST)
 			T.eq(
 				eventNames(h),
 				"KickResult,State,Flight,Reveal",
 				"old reveal cannot start the current run"
 			)
-			h.advance(0.95 + REVEAL)
+			h.advance(0.2 + WINDUP + REVEAL + PAST)
 			T.eq(eventNames(h), "KickResult,State,Flight,Reveal,RunStart")
 		end)
 	end,
