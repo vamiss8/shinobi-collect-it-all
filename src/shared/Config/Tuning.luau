@@ -11,8 +11,9 @@ return {
 		-- How far a meditating body is raised off the ground by code, studs, over what its
 		-- animation raises it by itself (a stud), and how long the rise takes, seconds. With
 		-- the animation's stud alone the folded legs still lay on the ground, and the rise
-		-- came only at the end of the sitting down.
-		meditateLift = 1.3,
+		-- came only at the end of the sitting down. Five studs in all, at the owner's word
+		-- (2026-10-12: 2.3 was "higher still, say 5 in all").
+		meditateLift = 4,
 		meditateLiftSeconds = 0.2,
 		-- Chakra control (active): a ring closes in on a target ring; press as they meet.
 		-- Every round the ring's speed and the target's size are drawn at random, so pressing
