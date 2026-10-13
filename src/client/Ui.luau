@@ -3,6 +3,7 @@
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -638,6 +639,16 @@ local POP_FROM = 0.86
 local POP_SECONDS = 0.24
 local SHUT_TO = 0.92
 local SHUT_WINDOW_SECONDS = 0.11
+-- A WINDOW IS DRAWN OUT OF SIGHT BEFORE IT POPS. Text is drawn anew a frame after the scale it
+-- is under has changed: a window that was hidden at its full size and shown at 0.86 of it had,
+-- for its first frame, a small frame with its words still full size, which the owner saw in
+-- every shop as text "larger for an instant than it is" (2026-10-13; cutting the hint's lines
+-- and taking the spring out had not cured it). So a hidden window waits at the size its pop
+-- begins from, and when opened is shown for these frames far below the screen, where its text
+-- is drawn at that size, and only then put in its place to pop.
+local OUT_OF_SIGHT = UDim2.fromScale(0.5, 4)
+local IN_PLACE = UDim2.fromScale(0.5, 0.5)
+local FRAMES_OUT_OF_SIGHT = 2
 
 -- Has `fn` called whenever a window is opened: for what has to make way for one.
 function Ui.onWindowOpened(fn: () -> ())
@@ -676,7 +687,7 @@ function Ui.window(name: string, size: Vector2): Window
 	Ui.onResize(function()
 		local room = Ui.room()
 		fit = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
-		scale.Scale = fit
+		scale.Scale = if frame.Visible then fit else fit * POP_FROM
 	end)
 	-- Whether the window is open, as whoever asks should hear it: one that is shutting is
 	-- still on the screen and already closed. `turn` counts openings and closings, so that
@@ -725,13 +736,38 @@ function Ui.window(name: string, size: Vector2): Window
 			turn += 1
 			if not open then
 				open = true
-				frame.Visible = true
-				scale.Scale = fit * POP_FROM
-				TweenService:Create(
-					scale,
-					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-					{ Scale = fit }
-				):Play()
+				local mine = turn
+				local function pop()
+					frame.Position = IN_PLACE
+					TweenService
+						:Create(
+							scale,
+							TweenInfo.new(
+								POP_SECONDS,
+								Enum.EasingStyle.Back,
+								Enum.EasingDirection.Out
+							),
+							{ Scale = fit }
+						)
+						:Play()
+				end
+				if frame.Visible then
+					-- Opened again while it was shutting: it is on the screen, and pops from
+					-- where it has got to.
+					pop()
+				else
+					scale.Scale = fit * POP_FROM
+					frame.Position = OUT_OF_SIGHT
+					frame.Visible = true
+					task.spawn(function()
+						for _ = 1, FRAMES_OUT_OF_SIGHT do
+							RunService.RenderStepped:Wait()
+						end
+						if turn == mine and open then
+							pop()
+						end
+					end)
+				end
 			end
 			for _, fn in openedListeners do
 				fn()
@@ -752,7 +788,8 @@ function Ui.window(name: string, size: Vector2): Window
 			task.delay(SHUT_WINDOW_SECONDS, function()
 				if turn == mine then
 					frame.Visible = false
-					scale.Scale = fit
+					frame.Position = IN_PLACE
+					scale.Scale = fit * POP_FROM
 				end
 			end)
 		end,
@@ -771,7 +808,8 @@ function Ui.window(name: string, size: Vector2): Window
 		open = false
 		turn += 1
 		frame.Visible = false
-		scale.Scale = fit
+		frame.Position = IN_PLACE
+		scale.Scale = fit * POP_FROM
 	end
 	closeButton.Activated:Connect(window.close)
 	table.insert(windows, window)
