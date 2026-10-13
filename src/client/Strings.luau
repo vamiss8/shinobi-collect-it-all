@@ -175,6 +175,9 @@ local TEXT: { [string]: string } = {
 	RebirthLoses = '<font color="#EF5350">RESETS</font>   Chakra · shinobi · Ryo · run speed',
 	RebirthKeeps = '<font color="#66BB6A">STAYS</font>   kunai · dojo floors · Bingo Book'
 		.. " · legendary shinobi",
+	-- The run speed the rank to come starts with: its stage (Config/SpeedStages) and the speed.
+	RebirthStarts = "Starts with %s (speed %s)",
+	RebirthStartsNone = "Run speed starts over (speed %s)",
 	RebirthDo = "REBIRTH",
 	RebirthNeed = "Need %s more Chakra",
 	RebirthSure = "Press again to confirm",

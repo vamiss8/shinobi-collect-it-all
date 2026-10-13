@@ -361,14 +361,15 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		player.chakra += rate * Economy.chakraPerRep(player.kunai) * Rebirth.chakra(player.rebirths) * profile.trainPerThrow
 		pass(player, profile.trainPerThrow)
 		-- A rebirth is taken as soon as it is offered, and starts the player over as
-		-- Rebirth.apply does: no Chakra, no shinobi, no Ryo, no run speed; the kunai and the
-		-- pads bought stay, and so do the legendary shinobi with the levels bought for them.
+		-- Rebirth.apply does: no Chakra, no shinobi, no Ryo, the run speed their new rank
+		-- starts with; the kunai and the pads bought stay, and so do the legendary shinobi
+		-- with the levels bought for them.
 		while REBIRTHS and Rebirth.ready(player.chakra, player.rebirths) do
 			player.rebirths += 1
 			player.rebirthAt[player.rebirths] = player.time
 			player.chakra = Rebirth.START_CHAKRA
 			player.ryo = 0
-			player.speedLevel = 0
+			player.speedLevel = Rebirth.startSpeed(player.rebirths)
 			local kept = {}
 			for _, unit in player.pads do
 				if Catalog.isLegend(unit.character) then

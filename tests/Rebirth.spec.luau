@@ -5,7 +5,9 @@ local Boosts = require("../src/shared/Logic/Boosts")
 local Catalog = require("../src/shared/Config/Catalog")
 local Rebirth = require("../src/shared/Logic/Rebirth")
 local Rebirths = require("../src/shared/Config/Rebirths")
+local SpeedStages = require("../src/shared/Config/SpeedStages")
 local T = require("./harness")
+local Tuning = require("../src/shared/Config/Tuning")
 
 local EPS = 1e-9
 
@@ -77,6 +79,30 @@ return {
 	end,
 
 	-- The owner's rule: a rebirth starts the player over, but for what they built to last.
+	-- The owner's word: at certain ranks a certain run speed is bought already.
+	["a rank starts with run speed that is a stage's, and no rank with less than the one before"] = function()
+		T.eq(Rebirth.startSpeed(0), 0)
+		T.eq(Rebirth.startSpeed(nil), 0)
+		-- The first rebirth comes minutes into the game: there is nothing to skip yet.
+		T.eq(Rebirth.startSpeed(1), 0)
+		local stageLevels: { [number]: boolean } = {}
+		for _, stage in SpeedStages.list do
+			stageLevels[stage.level] = true
+		end
+		local given = false
+		for count = 1, Rebirth.count() do
+			local level = Rebirth.startSpeed(count)
+			T.ok(
+				stageLevels[level] == true,
+				`{Rebirth.title(count)} starts at level {level}, which no stage is`
+			)
+			T.ok(level >= Rebirth.startSpeed(count - 1), `{Rebirth.title(count)} starts slower`)
+			T.ok(level < Tuning.Speed.maxLevel, `{Rebirth.title(count)} starts with all of it`)
+			given = given or level > 0
+		end
+		T.ok(given, "no rank starts with any run speed")
+	end,
+
 	["a rebirth takes Chakra, shinobi, Ryo and run speed, and nothing else"] = function()
 		local save = {
 			rebirths = 2,
@@ -95,7 +121,12 @@ return {
 		T.eq(save.rebirths, 3)
 		T.eq(save.chakra, Rebirth.START_CHAKRA)
 		T.eq(save.ryo, 0)
-		T.eq(save.speedLevel, 0)
+		T.eq(
+			save.speedLevel,
+			Rebirth.startSpeed(3),
+			"the run speed is not what the rank starts with"
+		)
+		T.ok(save.speedLevel < 14, "the run speed was kept")
 		T.eq(save.runAt, -1, "the speed chosen to run at was of levels now gone")
 		T.eq(next(save.units), nil, "a shinobi was kept")
 		T.eq(next(save.pads), nil, "a pad is still taken")

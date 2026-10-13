@@ -3,10 +3,12 @@
 -- under, and one written under older rules is brought up to today's when it is loaded, a step
 -- at a time. (Characters that leave the roster are Logic/Roster's business.)
 
+local Rebirth = require("./Rebirth")
+
 local Saves = {}
 
 -- The rules a save is written under today.
-Saves.VERSION = 2
+Saves.VERSION = 3
 
 -- The fields of a save that the steps below touch.
 export type Save = {
@@ -30,6 +32,13 @@ function Saves.bring(save: Save): boolean
 	if save.version < 2 then
 		save.rebirths = 0
 		save.version = 2
+	end
+	-- 3: a rank starts with run speed of its own (Config/Rebirths `startSpeed`), which a
+	-- rebirth leaves its player with from now on. Those who hold a rank already are given
+	-- the same, so that nobody is slower than their rank starts.
+	if save.version < 3 then
+		save.speedLevel = math.max(save.speedLevel, Rebirth.startSpeed(save.rebirths))
+		save.version = 3
 	end
 	return save.version ~= from
 end

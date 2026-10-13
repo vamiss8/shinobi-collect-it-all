@@ -2,12 +2,14 @@
 -- Rebirth: a player whose Chakra has reached what their next rebirth asks (Config/Rebirths)
 -- starts over, without their Chakra, shinobi, Ryo or run speed, for what a rebirth pays for
 -- good: more Ryo, more Chakra from every rep and better luck with mutations (Logic/Rebirth,
--- by way of Logic/Boosts), and the next rank. Their kunai, their dojo's pads and floors and
--- their Bingo Book are left alone. The client only asks; whether they may is decided here.
+-- by way of Logic/Boosts), the next rank, and the run speed that rank starts with. Their
+-- kunai, their dojo's pads and floors and their Bingo Book are left alone. The client only
+-- asks; whether they may is decided here.
 --
 -- Logic/Rebirth.apply changes the save. What is done here is the rest of the world catching
 -- up with it: the shinobi come off the pads and out of the player's hands, the runner slows
--- to a walk and loses their speed's look, and their rank changes over their head.
+-- to the speed their new rank starts with and wears that speed's look, and their rank changes
+-- over their head.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -46,14 +48,16 @@ local function rebirth(player: Player)
 	Inventory.sync(player)
 	-- The amount they had chosen to throw with was of the Chakra they no longer have.
 	Session.of(player).throwChakra = 0
-	-- Run speed is back to none. (Nobody is frozen here: a throw was ruled out above.)
+	-- Run speed is back to what the new rank starts with. (Nobody is frozen here: a throw
+	-- was ruled out above.)
 	local character = player.Character
 	local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
 	if character and humanoid then
+		local level = Economy.runLevel(data.speedLevel, data.runAt)
 		if humanoid.WalkSpeed > 0 then
-			humanoid.WalkSpeed = Economy.walkSpeed(0)
+			humanoid.WalkSpeed = Economy.walkSpeed(level)
 		end
-		SpeedLook.apply(character, 0)
+		SpeedLook.apply(character, level)
 	end
 	Titles.dress(player)
 	State.push(player)

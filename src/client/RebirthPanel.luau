@@ -2,8 +2,9 @@
 -- Rebirth, on the player's side: a tile on the left edge of the screen, where the games this
 -- one is kin to keep theirs, and the window it opens. On the window's left stand all the ranks
 -- in their colors, the player's own marked; on its right, the rank to come on a scroll, how
--- far the player's Chakra is towards it, what it pays for good, what it resets and what stays,
--- and the one button that does it. The server decides whether it may be done
+-- far the player's Chakra is towards it, what it pays for good, the run speed it starts with,
+-- what it resets and what stays, and the one button that does it. The server decides whether
+-- it may be done
 -- (Services/Rebirth); a rebirth that went through is celebrated on the same scroll a new speed
 -- stage is (client StageFlash).
 --
@@ -12,6 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
@@ -20,6 +22,7 @@ local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Rebirths = require(ReplicatedStorage.Shared.Config.Rebirths)
 local Remotes = require("./Remotes")
+local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local StageFlash = require("./StageFlash")
 local Store = require("./Store")
 local Strings = require("./Strings")
@@ -52,11 +55,12 @@ local ROW_GAP = 4
 -- The right side, top to bottom: where each piece begins and how tall it is.
 local RIGHT = LIST_WIDTH + 16
 local SCROLL = { top = 14, height = 120 }
-local BAR = { top = 156, height = 62 }
-local CARDS = { top = 236, height = 150 }
-local RESETS_TOP = 404
-local STAYS_TOP = 446
-local LINE_HEIGHT = 38
+local BAR = { top = 148, height = 58 }
+local CARDS = { top = 218, height = 136 }
+local START = { top = 364, height = 48 }
+local RESETS_TOP = 420
+local STAYS_TOP = 458
+local LINE_HEIGHT = 36
 local BUTTON = { top = 504, height = 110 }
 local GAP = 12
 
@@ -247,6 +251,33 @@ function RebirthPanel.start()
 		Ui.make("UITextSizeConstraint", { MaxTextSize = 46 }, changes[index])
 	end
 
+	-- The run speed the rank to come starts with (Config/Rebirths `startSpeed`): a slip of
+	-- parchment with the stage's emblem on it, the stage's color on its outline, the words
+	-- in ink.
+	local start = Ui.make("Frame", {
+		Position = UDim2.fromOffset(RIGHT, START.top),
+		Size = UDim2.new(1, -RIGHT, 0, START.height),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, body)
+	Ui.corner(start, 8)
+	local startEdge = Ui.stroke(start, Ui.EDGE, 3)
+	local startEmblem = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		Size = UDim2.fromOffset(38, 38),
+		BackgroundTransparency = 1,
+	}, start)
+	local startDrawn: number? = nil
+	local startWords = Ui.text(start, {
+		Position = UDim2.fromOffset(58, 5),
+		Size = UDim2.new(1, -70, 1, -10),
+		TextScaled = true,
+		TextColor3 = Ui.INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 27 }, startWords)
+
 	-- What it resets and what stays, a line each.
 	local function line(top: number, key: string)
 		local words = Ui.text(body, {
@@ -314,6 +345,23 @@ function RebirthPanel.start()
 			Icons.rank(emblem, shown)
 		end
 		title.Text = string.upper(Rebirth.title(shown))
+
+		-- What the rank to come starts with; nothing to say of it once there is none to come.
+		start.Visible = following ~= nil
+		if following then
+			local level = Rebirth.startSpeed(shown)
+			local stage, place = SpeedStages.at(level)
+			if startDrawn ~= place then
+				startDrawn = place
+				startEmblem:ClearAllChildren()
+				Icons.stage(startEmblem, stage)
+			end
+			startEdge.Color = if level > 0 then Color3.fromHex(stage.color) else Ui.EDGE
+			startWords.Text = if level > 0
+				then Strings.get("RebirthStarts", stage.name, Economy.walkSpeed(level))
+				else Strings.get("RebirthStartsNone", Economy.walkSpeed(level))
+		end
+
 		if not following then
 			now.Text = Strings.get("RebirthAllDone")
 			progress.Text = Strings.get("HudChakra", state.chakra)

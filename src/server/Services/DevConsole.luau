@@ -139,7 +139,9 @@ function commands.rebirths(_, data, value)
 		return nil
 	end
 	data.rebirths = count
-	return `Rebirths: {count}, {Rebirth.title(count)}`
+	-- A rank is never without the run speed it starts with.
+	data.speedLevel = math.max(data.speedLevel, Rebirth.startSpeed(count))
+	return `Rebirths: {count}, {Rebirth.title(count)}, run speed level {data.speedLevel}`
 end
 
 function commands.speed(_, data, value)

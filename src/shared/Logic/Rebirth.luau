@@ -3,7 +3,7 @@
 --
 -- A rebirth is offered once the player's Chakra reaches what it asks. Taking it starts them
 -- over, Chakra, shinobi, Ryo and run speed (`apply` has exactly what), and what it pays is for
--- good and grows with every rebirth.
+-- good and grows with every rebirth: the multipliers, and the run speed the rank starts with.
 
 local Legends = require("../Config/Legends")
 local Rebirths = require("../Config/Rebirths")
@@ -79,6 +79,13 @@ function Rebirth.mutationLuck(count: number?): number
 	return if last then last.mutationLuck else 1
 end
 
+-- The level of run speed a player who has done `count` rebirths starts with, and is never
+-- without: none, for the first ranks.
+function Rebirth.startSpeed(count: number?): number
+	local last = Rebirths[Rebirth.done(count)]
+	return if last then last.startSpeed else 0
+end
+
 -- The fields of a save a rebirth touches.
 export type Save = {
 	rebirths: number,
@@ -92,8 +99,9 @@ export type Save = {
 
 -- Does a rebirth on a save, in place: one more is counted, and the player starts over. Gone
 -- are their Chakra, every shinobi they threw for (on a pad or not), their Ryo and their run
--- speed. (Ryo goes with the rest: kept, it would buy the run speed straight back, and the way
--- to rebirth would be to sell the dojo first.) Left alone are their kunai, the pads and floors
+-- speed, but for what the new rank starts with (`startSpeed`). (Ryo goes with the rest: kept,
+-- it would buy the run speed straight back, and the way to rebirth would be to sell the dojo
+-- first.) Left alone are their kunai, the pads and floors
 -- they have bought, their Bingo Book, their potions and their count of throws, and the
 -- legendary shinobi (Config/Legends), which stay on their pads at the levels bought for them:
 -- they were paid for in Robux, and the first rebirths come within minutes. Whoever calls this
@@ -102,7 +110,7 @@ function Rebirth.apply(save: Save)
 	save.rebirths = Rebirth.done(save.rebirths) + 1
 	save.chakra = Rebirth.START_CHAKRA
 	save.ryo = 0
-	save.speedLevel = 0
+	save.speedLevel = Rebirth.startSpeed(save.rebirths)
 	save.runAt = -1
 	for unitId, unit in save.units do
 		if not KEPT[unit.character] then
