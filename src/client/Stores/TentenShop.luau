@@ -61,7 +61,7 @@ function TentenShop.build(): Ui.Window
 	window.title.Text = Strings.get("ShopTentenTitle")
 	local body = window.body
 
-	Ui.note(body, {}).Text = Strings.get("ShopTentenHint")
+	Ui.note(body, {}, 900 - 32, Strings.get("ShopTentenHint"))
 
 	-- The kunai in use on the left, the way to the next one on the right.
 	local header = Ui.panel(body, {

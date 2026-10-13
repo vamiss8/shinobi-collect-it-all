@@ -73,7 +73,7 @@ function SpeedStore.build(): Ui.Window
 	window.title.Text = Strings.get("ShopSpeedTitle")
 	local body = window.body
 
-	Ui.note(body, {}).Text = Strings.get("ShopSpeedHint")
+	Ui.note(body, {}, 900 - 32, Strings.get("ShopSpeedHint"))
 
 	-- The stage reached on the left, the way to the next level on the right.
 	local header = Ui.panel(body, {

@@ -26,7 +26,7 @@ function SellStall.build(): Ui.Window
 	local window = Ui.window("SellStall", Vector2.new(770, 620))
 	window.title.Text = Strings.get("SellTitle")
 
-	Ui.note(window.body, {}).Text = Strings.get("SellHint")
+	Ui.note(window.body, {}, 770 - 32, Strings.get("SellHint"))
 	local sellAll = Ui.button(window.body, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, Ui.NOTE_HEIGHT + 10),
@@ -61,7 +61,6 @@ function SellStall.build(): Ui.Window
 		Size = UDim2.new(1, -40, 0, 70),
 		TextSize = 25,
 		TextColor3 = Ui.PARCHMENT,
-		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		Text = Strings.get("SellEmptyMore"),

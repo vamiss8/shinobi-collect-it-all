@@ -3,6 +3,7 @@
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
@@ -172,13 +173,44 @@ function Ui.text(parent: Instance, properties: { [string]: any }): TextLabel
 end
 
 -- What a window is for, said at its top: a slip of parchment in a red outline with a round red
--- seal, the words in ink. `properties` place the slip; the label that is returned takes the
--- words. (It was pale small text on the dark window, which the owner could hardly read.)
+-- seal, the words in ink. `properties` place the slip, `wide` is how wide it is, layout pixels.
+-- (It was pale small text on the dark window, which the owner could hardly read.)
+--
+-- THE WORDS ARE CUT INTO LINES HERE AND NOT LEFT TO WRAP. A window is scaled as it pops open
+-- and text is drawn at whole sizes, so wrapped text is fitted anew at every step of the pop:
+-- a word went to the next line and came back, and the owner saw the text at the top of every
+-- shop "a little larger for a moment, then as it was" (2026-10-13). Lines that are cut once
+-- stay as they are, whatever the scale.
 Ui.NOTE_HEIGHT = 68
+local NOTE_LINES = 2
+local NOTE_SIZES = { 22, 21, 20, 19, 18 }
+local NOTE_LEFT = 64
+local NOTE_RIGHT = 14
+-- Lines are cut a little short of the slip, so that a size rounded up still fits.
+local NOTE_FILL = 0.96
 
-function Ui.note(parent: Instance, properties: { [string]: any }): TextLabel
+local function cut(text: string, size: number, room: number): { string }
+	local lines: { string } = {}
+	local line = ""
+	for word in string.gmatch(text, "%S+") do
+		local longer = if line == "" then word else line .. " " .. word
+		local wide = TextService:GetTextSize(longer, size, Ui.FONT, Vector2.new(1e5, 1e5)).X
+		if line ~= "" and wide > room then
+			table.insert(lines, line)
+			line = word
+		else
+			line = longer
+		end
+	end
+	if line ~= "" then
+		table.insert(lines, line)
+	end
+	return lines
+end
+
+function Ui.note(parent: Instance, properties: { [string]: any }, wide: number, text: string): Frame
 	local sheet = Ui.make("Frame", {
-		Size = UDim2.new(1, 0, 0, Ui.NOTE_HEIGHT),
+		Size = UDim2.fromOffset(wide, Ui.NOTE_HEIGHT),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
 	}, parent)
@@ -202,13 +234,26 @@ function Ui.note(parent: Instance, properties: { [string]: any }): TextLabel
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = "!",
 	})
-	return Ui.text(sheet, {
-		Position = UDim2.fromOffset(64, 0),
-		Size = UDim2.new(1, -76, 1, 0),
-		TextSize = 22,
+
+	-- The largest writing at which the words take no more lines than the slip has.
+	local room = (wide - NOTE_LEFT - NOTE_RIGHT) * NOTE_FILL
+	local size = NOTE_SIZES[#NOTE_SIZES]
+	local lines = cut(text, size, room)
+	for _, try in NOTE_SIZES do
+		local cutAt = cut(text, try, room)
+		if #cutAt <= NOTE_LINES then
+			size, lines = try, cutAt
+			break
+		end
+	end
+	Ui.text(sheet, {
+		Position = UDim2.fromOffset(NOTE_LEFT, 0),
+		Size = UDim2.new(1, -NOTE_LEFT - NOTE_RIGHT, 1, 0),
+		TextSize = size,
 		TextColor3 = Ui.INK,
-		TextWrapped = true,
+		Text = table.concat(lines, "\n"),
 	})
+	return sheet
 end
 
 -- How a button answers the pointer: it swells a little under it, dips when pressed and springs
@@ -585,11 +630,10 @@ local windows: { Window } = {}
 local hiders: { [Window]: () -> () } = {}
 local openedListeners: { () -> () } = {}
 
--- A window pops up from a little under its size and shrinks a little as it goes: how far
--- under, and how long each takes, seconds. It does not spring past its size: text is drawn at
--- whole sizes, so for the moment of the overshoot a window's words stood a size larger and
--- were wrapped anew (owner, 2026-10-13: "the text at the top is a little larger for a
--- millisecond, then comes back").
+-- A window pops up from a little under its size, springing a little past it, and shrinks a
+-- little as it goes: how far under, and how long each takes, seconds. Everything in a window
+-- is scaled through the pop, so TEXT IN A WINDOW IS NOT LEFT TO WRAP where it can be helped
+-- (see Ui.note).
 local POP_FROM = 0.86
 local POP_SECONDS = 0.24
 local SHUT_TO = 0.92
@@ -685,7 +729,7 @@ function Ui.window(name: string, size: Vector2): Window
 				scale.Scale = fit * POP_FROM
 				TweenService:Create(
 					scale,
-					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 					{ Scale = fit }
 				):Play()
 			end
