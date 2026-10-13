@@ -16,10 +16,10 @@ local PlaytestGate = {}
 
 -- Roblox user ids of the testers. An id is the number in the address of a profile page:
 -- roblox.com/users/<id>/profile
-local ALLOWED: { number } = {
-	2893192350, -- owner
-	9144243296, -- co-author
-}
+-- Empty since 2026-10-13: the owner opened the game to his friends for testing, and who gets
+-- in is Roblox's audience setting alone. The two it held: 2893192350 (owner), 9144243296
+-- (co-author).
+local ALLOWED: { number } = {}
 
 local function check(player: Player)
 	if not table.find(ALLOWED, player.UserId) then
