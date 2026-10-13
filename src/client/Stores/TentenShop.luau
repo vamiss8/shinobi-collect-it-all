@@ -15,7 +15,7 @@ local Ui = require("../Ui")
 
 local TentenShop = {}
 
-local HINT_HEIGHT = 48
+local HINT_HEIGHT = Ui.NOTE_HEIGHT + 6
 local HEADER_HEIGHT = 128
 local HEADER_ICON = 100
 local ROW_HEIGHT = 86
@@ -61,14 +61,7 @@ function TentenShop.build(): Ui.Window
 	window.title.Text = Strings.get("ShopTentenTitle")
 	local body = window.body
 
-	Ui.text(body, {
-		Size = UDim2.new(1, 0, 0, HINT_HEIGHT),
-		TextSize = 19,
-		TextColor3 = Ui.MUTED,
-		TextWrapped = true,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = Strings.get("ShopTentenHint"),
-	})
+	Ui.note(body, {}).Text = Strings.get("ShopTentenHint")
 
 	-- The kunai in use on the left, the way to the next one on the right.
 	local header = Ui.panel(body, {
@@ -83,8 +76,8 @@ function TentenShop.build(): Ui.Window
 	Ui.text(header, {
 		Position = UDim2.fromOffset(headerText, 12),
 		Size = UDim2.new(0.5, -headerText, 0, 22),
-		TextSize = 18,
-		TextColor3 = Ui.MUTED,
+		TextSize = 20,
+		TextColor3 = Ui.GOLD,
 		Text = Strings.get("ShopYourKunai"),
 	})
 	local currentName = Ui.text(header, {

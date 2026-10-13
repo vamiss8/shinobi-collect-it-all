@@ -26,22 +26,45 @@ function SellStall.build(): Ui.Window
 	local window = Ui.window("SellStall", Vector2.new(770, 620))
 	window.title.Text = Strings.get("SellTitle")
 
-	local hint = Ui.text(window.body, {
-		Size = UDim2.new(1, -300, 0, 44),
-		TextSize = 19,
-		TextColor3 = Ui.MUTED,
-		TextWrapped = true,
-	})
+	Ui.note(window.body, {}).Text = Strings.get("SellHint")
 	local sellAll = Ui.button(window.body, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(290, 42),
+		Position = UDim2.new(1, 0, 0, Ui.NOTE_HEIGHT + 10),
+		Size = UDim2.fromOffset(340, 48),
 		BackgroundColor3 = Ui.RED,
-		TextSize = 19,
+		TextSize = 23,
 	})
+	local listTop = Ui.NOTE_HEIGHT + 68
 	local list = Ui.scroll(window.body, {
-		Position = UDim2.fromOffset(0, 54),
-		Size = UDim2.new(1, 0, 1, -54),
+		Position = UDim2.fromOffset(0, listTop),
+		Size = UDim2.new(1, 0, 1, -listTop),
+	})
+	-- What stands where the cards would, when there is nobody to send.
+	local empty = Ui.make("Frame", {
+		Position = UDim2.fromOffset(0, listTop),
+		Size = UDim2.new(1, 0, 1, -listTop),
+		BackgroundTransparency = 1,
+		Visible = false,
+	}, window.body)
+	Ui.text(empty, {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0.5, -6),
+		Size = UDim2.new(1, -40, 0, 50),
+		TextSize = 40,
+		TextColor3 = Ui.GOLD,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("SellEmpty"),
+	})
+	Ui.text(empty, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.5, 6),
+		Size = UDim2.new(1, -40, 0, 70),
+		TextSize = 25,
+		TextColor3 = Ui.PARCHMENT,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Text = Strings.get("SellEmptyMore"),
 	})
 	Ui.make("UIGridLayout", {
 		CellSize = UDim2.fromOffset(UnitCard.SIZE.X, UnitCard.SIZE.Y),
@@ -100,7 +123,7 @@ function SellStall.build(): Ui.Window
 			table.insert(cards, card)
 		end
 
-		hint.Text = if #ids == 0 then Strings.get("SellEmpty") else Strings.get("SellHint")
+		empty.Visible = #ids == 0
 		drawSellAll()
 	end
 

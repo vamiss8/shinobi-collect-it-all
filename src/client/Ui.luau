@@ -171,6 +171,46 @@ function Ui.text(parent: Instance, properties: { [string]: any }): TextLabel
 	return label
 end
 
+-- What a window is for, said at its top: a slip of parchment in a red outline with a round red
+-- seal, the words in ink. `properties` place the slip; the label that is returned takes the
+-- words. (It was pale small text on the dark window, which the owner could hardly read.)
+Ui.NOTE_HEIGHT = 68
+
+function Ui.note(parent: Instance, properties: { [string]: any }): TextLabel
+	local sheet = Ui.make("Frame", {
+		Size = UDim2.new(1, 0, 0, Ui.NOTE_HEIGHT),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+	}, parent)
+	for name, value in properties do
+		sheet[name] = value
+	end
+	Ui.corner(sheet, 8)
+	Ui.stroke(sheet, Ui.SEAL, 2)
+	local seal = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, sheet)
+	Ui.corner(seal, 20)
+	Ui.text(seal, {
+		Size = UDim2.fromScale(1, 1),
+		TextSize = 28,
+		TextColor3 = Ui.PARCHMENT,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = "!",
+	})
+	return Ui.text(sheet, {
+		Position = UDim2.fromOffset(64, 0),
+		Size = UDim2.new(1, -76, 1, 0),
+		TextSize = 22,
+		TextColor3 = Ui.INK,
+		TextWrapped = true,
+	})
+end
+
 -- How a button answers the pointer: it swells a little under it, dips when pressed and springs
 -- back when let go. A button that a list or a grid lays out would pull its neighbors along as
 -- it dipped, so it is given a place of its own in the list and dips inside that.
@@ -546,7 +586,10 @@ local hiders: { [Window]: () -> () } = {}
 local openedListeners: { () -> () } = {}
 
 -- A window pops up from a little under its size and shrinks a little as it goes: how far
--- under, and how long each takes, seconds.
+-- under, and how long each takes, seconds. It does not spring past its size: text is drawn at
+-- whole sizes, so for the moment of the overshoot a window's words stood a size larger and
+-- were wrapped anew (owner, 2026-10-13: "the text at the top is a little larger for a
+-- millisecond, then comes back").
 local POP_FROM = 0.86
 local POP_SECONDS = 0.24
 local SHUT_TO = 0.92
@@ -642,7 +685,7 @@ function Ui.window(name: string, size: Vector2): Window
 				scale.Scale = fit * POP_FROM
 				TweenService:Create(
 					scale,
-					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					TweenInfo.new(POP_SECONDS, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
 					{ Scale = fit }
 				):Play()
 			end

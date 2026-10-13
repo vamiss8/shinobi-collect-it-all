@@ -25,7 +25,7 @@ local Ui = require("../Ui")
 
 local SpeedStore = {}
 
-local HINT_HEIGHT = 48
+local HINT_HEIGHT = Ui.NOTE_HEIGHT + 6
 local HEADER_HEIGHT = 150
 local HEADER_SEAL = 100
 local PACE_HEIGHT = 62
@@ -73,14 +73,7 @@ function SpeedStore.build(): Ui.Window
 	window.title.Text = Strings.get("ShopSpeedTitle")
 	local body = window.body
 
-	Ui.text(body, {
-		Size = UDim2.new(1, 0, 0, HINT_HEIGHT),
-		TextSize = 19,
-		TextColor3 = Ui.MUTED,
-		TextWrapped = true,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		Text = Strings.get("ShopSpeedHint"),
-	})
+	Ui.note(body, {}).Text = Strings.get("ShopSpeedHint")
 
 	-- The stage reached on the left, the way to the next level on the right.
 	local header = Ui.panel(body, {
@@ -97,8 +90,8 @@ function SpeedStore.build(): Ui.Window
 	Ui.text(header, {
 		Position = UDim2.fromOffset(headerText, 16),
 		Size = UDim2.new(0.5, -headerText, 0, 22),
-		TextSize = 18,
-		TextColor3 = Ui.MUTED,
+		TextSize = 20,
+		TextColor3 = Ui.GOLD,
 		Text = Strings.get("ShopSpeedStage"),
 	})
 	local stageName = Ui.text(header, {
