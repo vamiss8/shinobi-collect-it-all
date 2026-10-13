@@ -14,6 +14,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
@@ -293,6 +294,31 @@ function commands.event(_, _, id)
 	return if Events.force(id) then `Event started: {id}` else nil
 end
 
+-- "say": a line for everyone on this server, shown on each client's large scroll (client
+-- StageFlash). Words one player writes for others to read go through Roblox's filter first,
+-- a developer's like anyone's; what the filter will not answer for is not sent.
+local SAY_LONGEST = 90
+
+function commands.say(player, _, text)
+	if typeof(text) ~= "string" then
+		return nil
+	end
+	local words = string.sub(string.gsub(text, "%s+", " "), 1, SAY_LONGEST)
+	if string.match(words, "^%s*$") then
+		return "Nothing to say"
+	end
+	local passed, filtered = pcall(function()
+		return TextService
+			:FilterStringAsync(words, player.UserId, Enum.TextFilterContext.PublicChat)
+			:GetNonChatStringForBroadcastAsync()
+	end)
+	if not passed or typeof(filtered) ~= "string" then
+		return "Roblox's text filter did not answer; nothing was sent"
+	end
+	Remotes.Announce:FireAllClients(filtered)
+	return `Said to {#Players:GetPlayers()}: {filtered}`
+end
+
 -- "reset": the save as a new player's, but for the legendary shinobi and the Bingo Book.
 function commands.reset(player, data)
 	commands.clear(player, data)
@@ -311,7 +337,7 @@ end
 
 -- The commands that touch no save, and so can be given in the middle of a throw: an event is
 -- the server's, and how one looks to a player who is throwing is a thing to be tried.
-local ANY_TIME = { event = true }
+local ANY_TIME = { event = true, say = true }
 
 local function run(player: Player, name: unknown, ...: unknown)
 	if not allowed(player) then

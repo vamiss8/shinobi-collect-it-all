@@ -41,6 +41,9 @@ Net.Events = {
 	-- For the game's developers alone (server Developers). Up: a command of the developer
 	-- console and its arguments. Down: a line saying what came of it.
 	Dev = "Dev",
+	-- server -> all clients: a line a developer wrote in the console for everyone on the server,
+	-- already through Roblox's text filter.
+	Announce = "Announce",
 }
 
 -- Attributes the server keeps on every Player for every client to read: the rebirths they have

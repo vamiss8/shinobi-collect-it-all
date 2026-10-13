@@ -27,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Icons = require("./Icons")
+local Remotes = require("./Remotes")
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 local Store = require("./Store")
 local Strings = require("./Strings")
@@ -39,6 +40,7 @@ local FLASH_SECONDS = 0.9 -- for the flash to fade
 -- through stages faster than a flash fades, and the screen stood in color all the while.
 local FLASH_APART = 1.5
 local HOLD_SECONDS = 2.4 -- the scroll stays this long
+local ANNOUNCE_SECONDS = 6 -- and this long for a line from the developers, which is read
 -- About how long the scroll takes to open on new words and to roll up again: with
 -- HOLD_SECONDS, how long one announcement has it. And how often one that waits looks whether
 -- its turn has come, seconds.
@@ -60,11 +62,20 @@ type Waiting = {
 	still: (() -> boolean)?,
 	flash: boolean,
 	slot: string?,
+	-- How long the scroll stays, seconds, when that is not HOLD_SECONDS.
+	hold: number?,
 }
 
 -- Set by start(): puts up the scroll, flashing the screen with it or not; and flashes the
 -- screen alone.
-local present: ((color: Color3, stamp: Stamp, title: string, words: string, flash: boolean) -> ())? =
+local present: ((
+	color: Color3,
+	stamp: Stamp,
+	title: string,
+	words: string,
+	flash: boolean,
+	hold: number?
+) -> ())? =
 	nil
 local glare: ((color: Color3) -> ())? = nil
 -- Those waiting, in the order they came; whether something is seeing them through; and when
@@ -102,7 +113,7 @@ local function enqueue(entry: Waiting)
 			else
 				local due = table.remove(waiting, 1)
 				if due and (not due.still or due.still()) then
-					show(due.color, due.stamp, due.title, due.words, due.flash)
+					show(due.color, due.stamp, due.title, due.words, due.flash, due.hold)
 				end
 			end
 		end
@@ -231,11 +242,13 @@ function StageFlash.start()
 		stamp: Stamp,
 		title: string,
 		words: string,
-		withFlash: boolean
+		withFlash: boolean,
+		hold: number?
 	)
 		token += 1
 		local mine = token
-		busyUntil = os.clock() + HOLD_SECONDS + TURN_SECONDS
+		local stays = hold or HOLD_SECONDS
+		busyUntil = os.clock() + stays + TURN_SECONDS
 		if withFlash then
 			flashScreen(color)
 		end
@@ -253,12 +266,27 @@ function StageFlash.start()
 			paper.edge.Color = color
 			paper.seal.BackgroundColor3 = color
 		end)
-		task.delay(HOLD_SECONDS, function()
+		task.delay(stays, function()
 			if token == mine then
 				Ui.rollUp(paper)
 			end
 		end)
 	end
+
+	-- A line from the game's developers to everyone on the server (the developer console's
+	-- "Say"). It waits its turn like an event's scroll, and stays long enough to be read.
+	Remotes.Announce.OnClientEvent:Connect(function(text: unknown)
+		if typeof(text) == "string" and text ~= "" then
+			enqueue({
+				color = Ui.SEAL,
+				stamp = "!",
+				title = Strings.get("AnnounceTitle"),
+				words = text,
+				flash = true,
+				hold = ANNOUNCE_SECONDS,
+			})
+		end
+	end)
 
 	local shownLevel: number? = nil
 	Store.onChange(function(state)

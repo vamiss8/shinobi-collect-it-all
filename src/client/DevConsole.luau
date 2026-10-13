@@ -345,6 +345,26 @@ local function build()
 		end)
 	end
 
+	-- A line for everyone on this server, on their large scroll. Enter sends it too.
+	do
+		local frame, take = row("Say")
+		local field = box(frame, take(560), 560, "")
+		field.PlaceholderText = "A message to everyone on this server"
+		field.TextXAlignment = Enum.TextXAlignment.Left
+		local function say()
+			if field.Text ~= "" then
+				send("say", field.Text)
+				field.Text = ""
+			end
+		end
+		press(frame, take(120), 120, "Send", Ui.SEAL, say)
+		field.FocusLost:Connect(function(entered)
+			if entered then
+				say()
+			end
+		end)
+	end
+
 	-- What the server said of the last command.
 	local log = Ui.text(body, {
 		AnchorPoint = Vector2.new(0, 1),

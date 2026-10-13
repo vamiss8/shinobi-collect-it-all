@@ -100,6 +100,8 @@ local TEXT: { [string]: string } = {
 	ShopSpeedMaxed = "All Eight Gates are open",
 	-- On the scroll that names a new speed stage, under its name.
 	StageGateOpened = "Gate %s of %s is open!  Run speed %s",
+	-- Over a line the developers wrote for everyone on the server (the developer console).
+	AnnounceTitle = "ANNOUNCEMENT",
 	StageReached = "A new stage of training!  Run speed %s",
 	PitchSpeed = "Improve your run speed here!",
 	DuyHello1 = "Run faster and you get home from the farther zones!",
