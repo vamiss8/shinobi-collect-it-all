@@ -64,7 +64,7 @@ function UnitCard.build(
 		TextYAlignment = Enum.TextYAlignment.Top,
 		Text = if not known
 			then Strings.get("CardUnknown")
-			elseif character then character.name
+			elseif character then Strings.name(character.name)
 			else unit.character,
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 22, MinTextSize = 14 }, name)
@@ -78,7 +78,7 @@ function UnitCard.build(
 		TextSize = 19,
 		TextColor3 = Ui.PANEL,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Text = if rank then rank.name else "",
+		Text = if rank then Strings.name(rank.name) else "",
 		Visible = rank ~= nil,
 	})
 	Ui.corner(plate, 6)
@@ -94,7 +94,7 @@ function UnitCard.build(
 			Size = UDim2.new(1, -20, 0, 22),
 			TextSize = 18,
 			TextColor3 = if known then Color3.fromHex(mutation.color) else Ui.GRAY,
-			Text = string.upper(mutation.name),
+			Text = Strings.upper(Strings.name(mutation.name)),
 		})
 		if known then
 			Lettering.dress(words, Looks.key("mutation", mutation.id))

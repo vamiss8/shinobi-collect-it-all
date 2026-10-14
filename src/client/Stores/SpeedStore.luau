@@ -293,7 +293,7 @@ function SpeedStore.build(): Ui.Window
 			TextSize = 26,
 			TextColor3 = Ui.PARCHMENT,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			Text = stage.name,
+			Text = Strings.name(stage.name),
 		})
 		Ui.text(frame, {
 			Position = UDim2.fromOffset(TEXT_LEFT, 38),
@@ -381,7 +381,7 @@ function SpeedStore.build(): Ui.Window
 			headerSeal:ClearAllChildren()
 			Icons.stage(headerSeal, stage)
 		end
-		stageName.Text = stage.name
+		stageName.Text = Strings.name(stage.name)
 		stageName.TextColor3 = if stage.gate > 0 then color else Ui.PARCHMENT
 		levelLabel.Text = Strings.get("ShopSpeedLevel", Economy.walkSpeed(bought), bought, maxLevel)
 

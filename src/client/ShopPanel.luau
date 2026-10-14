@@ -14,7 +14,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
-local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
 local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
@@ -85,7 +84,7 @@ local function what(key: string): string
 	elseif product.kind == "bundle" then
 		return Strings.get("GoodsWhat_" .. key, product.minutes or 0)
 	elseif product.kind == "ryo" then
-		return Strings.get("GoodsWhat_" .. key, Format.duration((product.incomeMinutes or 0) * 60))
+		return Strings.get("GoodsWhat_" .. key, Strings.duration((product.incomeMinutes or 0) * 60))
 	end
 	return Strings.get("GoodsWhat_" .. key)
 end
@@ -379,7 +378,7 @@ function ShopPanel.start()
 			local button, status = card(
 				legendGrid,
 				legend.id,
-				legend.name,
+				Strings.name(legend.name),
 				Strings.get("ShopLegendWhat"),
 				Color3.fromHex(Catalog.legendRank.color),
 				order

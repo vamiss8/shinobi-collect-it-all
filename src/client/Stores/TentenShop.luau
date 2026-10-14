@@ -154,7 +154,7 @@ function TentenShop.build(): Ui.Window
 			TextSize = 26,
 			TextColor3 = Ui.PARCHMENT,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			Text = kunai.name,
+			Text = Strings.name(kunai.name),
 		})
 		local perRep = Ui.text(frame, {
 			Position = UDim2.fromOffset(TEXT_LEFT, 46),

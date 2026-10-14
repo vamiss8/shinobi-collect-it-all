@@ -91,7 +91,7 @@ type Seal = {
 local function zoneName(zoneId: string): string
 	for _, zone in Catalog.zones do
 		if zone.id == zoneId then
-			return zone.name
+			return Strings.name(zone.name)
 		end
 	end
 	return zoneId

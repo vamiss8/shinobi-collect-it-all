@@ -308,7 +308,7 @@ function StageFlash.start()
 			else Strings.get("StageReached", speed)
 		StageFlash.show(color, function(holder)
 			Icons.stage(holder, stage)
-		end, string.upper(stage.name), words, "stage")
+		end, Strings.upper(Strings.name(stage.name)), words, "stage")
 	end)
 end
 

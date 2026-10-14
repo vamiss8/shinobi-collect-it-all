@@ -15,7 +15,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
-local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local Strings = require("./Strings")
@@ -61,7 +60,7 @@ function WelcomeBack.start()
 		Text = Strings.get(
 			"OfflineNote",
 			Tuning.Dojo.offlineRate * 100,
-			Format.duration(Tuning.Dojo.offlineCapHours * 3600)
+			Strings.duration(Tuning.Dojo.offlineCapHours * 3600)
 		),
 	})
 	-- The offer to have them twice stands beside Collect once it is on sale.
@@ -114,7 +113,7 @@ function WelcomeBack.start()
 			end
 			return
 		end
-		away.Text = Strings.get("OfflineAway", Format.duration(offline.away))
+		away.Text = Strings.get("OfflineAway", Strings.duration(offline.away))
 		earned.Text = Strings.get("OfflineEarned", offline.earned)
 		if twice then
 			twice.Visible = true

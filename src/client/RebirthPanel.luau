@@ -88,7 +88,7 @@ local function rankRow(list: Instance, count: number): Row
 		Size = UDim2.new(1, -118, 1, -8),
 		TextScaled = true,
 		TextColor3 = color,
-		Text = string.upper(Rebirth.title(count)),
+		Text = Strings.upper(Strings.name(Rebirth.title(count))),
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 26, MinTextSize = 15 }, name)
 	Lettering.dress(name, Looks.key("title", tostring(count)))
@@ -344,7 +344,7 @@ function RebirthPanel.start()
 			emblem:ClearAllChildren()
 			Icons.rank(emblem, shown)
 		end
-		title.Text = string.upper(Rebirth.title(shown))
+		title.Text = Strings.upper(Strings.name(Rebirth.title(shown)))
 
 		-- What the rank to come starts with; nothing to say of it once there is none to come.
 		start.Visible = following ~= nil
@@ -417,7 +417,7 @@ function RebirthPanel.start()
 				function(holder)
 					Icons.rank(holder, done)
 				end,
-				string.upper(Rebirth.title(done)),
+				Strings.upper(Strings.name(Rebirth.title(done))),
 				Strings.get(
 					"RebirthDone",
 					Rebirth.ryo(done),

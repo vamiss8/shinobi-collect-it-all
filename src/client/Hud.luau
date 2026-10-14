@@ -121,7 +121,7 @@ end
 
 local function enemyName(zoneId: string): string
 	local zone = Catalog.zoneById[zoneId]
-	return if zone then zone.enemy.name else zoneId
+	return if zone then Strings.name(zone.enemy.name) else zoneId
 end
 
 -- A readout: an icon, a big number and a smaller line under it, on a dark plaque outlined in
@@ -322,7 +322,7 @@ function Hud.start()
 	end)
 
 	Remotes.RunEnd.OnClientEvent:Connect(function(run: Net.RunEnd)
-		local title = Catalog.unitTitle(run.character, run.mutation, 1)
+		local title = Strings.title(run.character, run.mutation, 1)
 		if not run.escaped then
 			Hud.toast(Strings.get("RunCaught", enemyName(run.zone), title, run.reward), Ui.RED)
 		elseif run.isNew then

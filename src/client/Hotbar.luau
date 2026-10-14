@@ -232,8 +232,8 @@ function Hotbar.start()
 			local found = findTool(tool.name)
 			local what = if found then found.ToolTip else ""
 			return if what ~= ""
-				then Strings.get("HotbarTip", string.upper(tool.name), what)
-				else string.upper(tool.name)
+				then Strings.get("HotbarTip", Strings.upper(Strings.name(tool.name)), what)
+				else Strings.upper(Strings.name(tool.name))
 		end)
 		toolSlots[index] = slot
 	end
@@ -265,10 +265,10 @@ function Hotbar.start()
 			if not unit then
 				return Strings.get("HotbarEmpty")
 			end
-			local title = Catalog.unitTitle(unit.character, unit.mutation, unit.level, unit.upgrade)
+			local title = Strings.title(unit.character, unit.mutation, unit.level, unit.upgrade)
 			return Strings.get(
 				"HotbarTip",
-				string.upper(title),
+				Strings.upper(title),
 				Strings.get("CardIncome", Economy.unitIncome(unit))
 			)
 		end)

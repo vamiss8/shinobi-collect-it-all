@@ -6,7 +6,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
-local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
@@ -158,7 +157,7 @@ function InventoryPanel.start()
 		local heldUnit = if held then inventory[held] else nil
 		carried.Visible = heldUnit ~= nil
 		if heldUnit then
-			local title = Catalog.unitTitle(
+			local title = Strings.title(
 				heldUnit.character,
 				heldUnit.mutation,
 				heldUnit.level,

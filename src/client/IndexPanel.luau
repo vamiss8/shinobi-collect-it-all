@@ -26,7 +26,7 @@ local TAB_WIDTH = 230
 local function pageLook(page: string): (string, Color3)
 	local mutation = Catalog.mutationById[page]
 	if mutation then
-		return mutation.name, Color3.fromHex(mutation.color)
+		return Strings.name(mutation.name), Color3.fromHex(mutation.color)
 	end
 	return Strings.get("IndexPlain"), Ui.WHITE
 end

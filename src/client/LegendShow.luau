@@ -50,7 +50,7 @@ function LegendShow.start()
 			prompt.Enabled = not owned[id]
 			local legend = Catalog.legendById[id]
 			if legend and mine[id] then
-				prompt.ObjectText = `{legend.name}  |  {mine[id]}`
+				prompt.ObjectText = `{Strings.name(legend.name)}  |  {mine[id]}`
 			end
 		end
 	end

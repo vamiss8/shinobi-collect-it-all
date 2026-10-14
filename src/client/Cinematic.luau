@@ -496,8 +496,8 @@ end
 -- swings back, says what to do about it.
 local function narrate(mine: Stage)
 	local zone = Catalog.zoneById[mine.reveal.zone]
-	local enemy = if zone then zone.enemy.name else mine.reveal.zone
-	announce(string.upper(enemy), Strings.get("ChaseWarn"), Ui.SEAL)
+	local enemy = if zone then Strings.name(zone.enemy.name) else mine.reveal.zone
+	announce(Strings.upper(enemy), Strings.get("ChaseWarn"), Ui.SEAL)
 	task.wait(math.max(mine.reveal.intro - SWING_SECONDS, 0.1))
 	if stage == mine then
 		announce(Strings.get("ChaseRun"), Strings.get("ChaseRunFrom", enemy), Ui.GOLD, Ui.INK)

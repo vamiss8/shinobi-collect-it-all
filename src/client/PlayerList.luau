@@ -135,7 +135,7 @@ local function band(sheet: Instance, done: number): Band
 		Size = UDim2.new(1, -(SEAL + 20), 1, 0),
 		TextSize = 19,
 		TextColor3 = Color3.fromHex(Rebirth.color(done)),
-		Text = string.upper(Rebirth.title(done)),
+		Text = Strings.upper(Strings.name(Rebirth.title(done))),
 	})
 	Lettering.dress(name, Looks.key("title", tostring(done)))
 	return { frame = frame }

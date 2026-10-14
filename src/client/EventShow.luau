@@ -645,7 +645,7 @@ function EventShow.start()
 		Mood.hold(event.light, HOLD_SECONDS)
 		colorize()
 
-		title.Text = string.upper(event.name)
+		title.Text = Strings.upper(Strings.name(event.name))
 		paper.edge.Color = color
 		paper.seal.BackgroundColor3 = color
 		emblem:ClearAllChildren()
@@ -660,7 +660,7 @@ function EventShow.start()
 				function(holder)
 					Icons.event(holder, event.shows)
 				end,
-				string.upper(event.name),
+				Strings.upper(Strings.name(event.name)),
 				Strings.get(
 					"EventBegins",
 					if mutation then mutation.name else event.mutation,
