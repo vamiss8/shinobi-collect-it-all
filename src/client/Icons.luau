@@ -595,6 +595,21 @@ local BADGES: { [string]: string } = {
 	ExtraPads = "+4",
 }
 
+-- A gear, for the settings: a wheel of teeth round a hub with a hole in it.
+function Icons.gear(holder: Instance)
+	for tooth = 0, 7 do
+		bar(holder, 0.5, 0.5, 0.20, 0.92, tooth * 22.5, OUTLINE, 0.2)
+	end
+	for tooth = 0, 7 do
+		bar(holder, 0.5, 0.5, 0.13, 0.84, tooth * 22.5, STEEL, 0.2)
+	end
+	dot(holder, 0.5, 0.5, 0.70, OUTLINE)
+	dot(holder, 0.5, 0.5, 0.62, STEEL)
+	dot(holder, 0.5, 0.5, 0.34, OUTLINE)
+	dot(holder, 0.5, 0.5, 0.26, NIGHT)
+	overlay(holder, Art.goods.gear)
+end
+
 -- The tile of the shop where things are bought for Robux: a purse with a coin before it.
 function Icons.shop(holder: Instance)
 	purse(holder, 0.08)

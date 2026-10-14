@@ -190,12 +190,40 @@ local NOTE_RIGHT = 14
 -- Lines are cut a little short of the slip, so that a size rounded up still fits.
 local NOTE_FILL = 0.96
 
+-- The face words are measured in when they are cut into lines: the brush, unless client Fonts
+-- writes this player's words in another (Ui.measureWith).
+local measureFace: Font? = nil
+
+-- How wide a line of words is at `size`, layout pixels.
+local function width(text: string, size: number): number
+	local face = measureFace
+	if face then
+		local params = Instance.new("GetTextBoundsParams")
+		params.Text = text
+		params.Font = face
+		params.Size = size
+		params.Width = 1e5
+		local ok, bounds = pcall(function()
+			return TextService:GetTextBoundsAsync(params)
+		end)
+		if ok then
+			return bounds.X
+		end
+	end
+	return TextService:GetTextSize(text, size, Ui.FONT, Vector2.new(1e5, 1e5)).X
+end
+
+-- Measures words in that face from now on, or in the brush for nil (client Fonts).
+function Ui.measureWith(face: Font?)
+	measureFace = face
+end
+
 local function cut(text: string, size: number, room: number): { string }
 	local lines: { string } = {}
 	local line = ""
 	for word in string.gmatch(text, "%S+") do
 		local longer = if line == "" then word else line .. " " .. word
-		local wide = TextService:GetTextSize(longer, size, Ui.FONT, Vector2.new(1e5, 1e5)).X
+		local wide = width(longer, size)
 		if line ~= "" and wide > room then
 			table.insert(lines, line)
 			line = word
