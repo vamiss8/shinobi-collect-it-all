@@ -37,9 +37,9 @@ local CONTROL = 250
 local STEP = 56
 -- A change is sent to the server once the player has stopped changing things for this long.
 local SEND_AFTER = 0.4
--- The gear: its size, and how far up it stands on a touch screen, where Roblox's jump button
--- has the corner.
-local GEAR = 84
+-- The gear's tile, the size of the window tiles on the edges (Hud.sideButton), and how far up
+-- it stands on a touch screen, where Roblox's jump button has the corner.
+local TILE = Vector2.new(112, 116)
 local TOUCH_LIFT = 230
 
 -- The two groups every sound of the game is to play in, made if they are not there.
@@ -83,25 +83,35 @@ function SettingsPanel.start()
 	window.title.Text = Strings.get("SettingsTitle")
 	local body = window.body
 
-	-- The gear that opens it.
+	-- The tile that opens it: a gear and the word under it, as the window tiles on the edges
+	-- are drawn (the owner's own Dev tile among them).
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	local layer = Ui.screen("SettingsButton", 10)
-	local gear = Ui.button(layer, {
+	local tile = Ui.button(layer, {
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -12, 1, if touch then -TOUCH_LIFT else -12),
-		Size = UDim2.fromOffset(GEAR, GEAR),
+		Size = UDim2.fromOffset(TILE.X, TILE.Y),
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
 	})
-	Ui.stroke(gear, Ui.EDGE, 3)
+	Ui.stroke(tile, Ui.MUTED, 3)
 	local holder = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(58, 58),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		Size = UDim2.fromOffset(68, 68),
 		BackgroundTransparency = 1,
-	}, gear)
+	}, tile)
 	Icons.gear(holder)
-	gear.Activated:Connect(window.toggle)
+	Ui.text(tile, {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.new(1, -8, 0, 28),
+		TextColor3 = Ui.MUTED,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("SettingsTitle"),
+	})
+	tile.Activated:Connect(window.toggle)
 
 	-- Sends the settings once the player has stopped changing them.
 	local sent = 0

@@ -347,8 +347,8 @@ local function seal(holder: Instance, face: Color3, gilt: boolean?)
 end
 
 -- A dot centered on a point of the holder.
-local function dot(parent: Instance, x: number, y: number, size: number, color: Color3)
-	bar(parent, x, y, size, size, 0, color, 0.5)
+local function dot(parent: Instance, x: number, y: number, size: number, color: Color3): Frame
+	return bar(parent, x, y, size, size, 0, color, 0.5)
 end
 
 -- A chevron, point up, centered on a point of the holder: a stripe of rank.
@@ -595,18 +595,30 @@ local BADGES: { [string]: string } = {
 	ExtraPads = "+4",
 }
 
--- A gear, for the settings: a wheel of teeth round a hub with a hole in it.
+-- A gear, for the settings: the developer console's gear of eight broad teeth (the owner
+-- read that one at once and found the first one here unclear), forged of steel and outlined in
+-- ink, with a red seal at its hub stamped with 設, the first sign of "settings", as a name seal
+-- (hanko) is stamped.
 function Icons.gear(holder: Instance)
-	for tooth = 0, 7 do
-		bar(holder, 0.5, 0.5, 0.20, 0.92, tooth * 22.5, OUTLINE, 0.2)
+	for turn = 0, 135, 45 do
+		bar(holder, 0.5, 0.5, 0.25, 0.97, turn, OUTLINE, 0.15)
 	end
-	for tooth = 0, 7 do
-		bar(holder, 0.5, 0.5, 0.13, 0.84, tooth * 22.5, STEEL, 0.2)
+	dot(holder, 0.5, 0.5, 0.76, OUTLINE)
+	for turn = 0, 135, 45 do
+		bar(holder, 0.5, 0.5, 0.17, 0.89, turn, STEEL, 0.15)
 	end
-	dot(holder, 0.5, 0.5, 0.70, OUTLINE)
-	dot(holder, 0.5, 0.5, 0.62, STEEL)
-	dot(holder, 0.5, 0.5, 0.34, OUTLINE)
-	dot(holder, 0.5, 0.5, 0.26, NIGHT)
+	dot(holder, 0.5, 0.5, 0.68, STEEL)
+	dot(holder, 0.5, 0.5, 0.48, OUTLINE)
+	local stamp = dot(holder, 0.5, 0.5, 0.42, SEAL_RED)
+	Ui.text(stamp, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.52),
+		Size = UDim2.fromScale(0.78, 0.78),
+		TextScaled = true,
+		TextColor3 = PARCHMENT,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = "設",
+	})
 	overlay(holder, Art.goods.gear)
 end
 
