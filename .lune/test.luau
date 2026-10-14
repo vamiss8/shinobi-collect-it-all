@@ -35,9 +35,11 @@ local specs: { [string]: Spec } = {
 	Roll = require("../tests/Roll.spec"),
 	Roster = require("../tests/Roster.spec"),
 	Saves = require("../tests/Saves.spec"),
+	Settings = require("../tests/Settings.spec"),
 	SpeedStages = require("../tests/SpeedStages.spec"),
 	Strings = require("../tests/Strings.spec"),
 	ThrowMoves = require("../tests/ThrowMoves.spec"),
+	Words = require("../tests/Words.spec"),
 	ZoneArt = require("../tests/ZoneArt.spec"),
 	ZoneBuild = require("../tests/ZoneBuild.spec"),
 }
