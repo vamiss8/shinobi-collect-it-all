@@ -32,10 +32,10 @@ Languages.list = {
 		name = "Русский",
 		locales = { "ru" },
 		countries = { "RU", "BY", "KZ", "KG" },
-		-- Marhey, from the Creator Store: hand-lettered with a broad stroke, the nearest to the
-		-- brush of the faces Roblox has with Cyrillic. Amatic SC (rbxasset://fonts/families/
-		-- AmaticSC.json, weight 700) is the one shipped with Roblox, thinner.
-		font = "rbxassetid://12187364648",
+		-- Caveat, from the Creator Store, a handwriting with Cyrillic: the owner's choice of the
+		-- faces scripts/studio/font-samples.lua showed him (2026-10-15). Marhey, which was tried
+		-- first as the nearest to the brush, he found poor.
+		font = "rbxassetid://12187369802",
 		weight = 700,
 	},
 	{

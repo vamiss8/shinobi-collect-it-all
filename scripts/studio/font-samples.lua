@@ -6,7 +6,7 @@
 -- The brush the game is written in (Permanent Marker) has no Cyrillic, so Russian needs another
 -- face. The candidates: Marhey and Caveat from the Creator Store, by their font ids, and the
 -- ones shipped with Roblox. Each line is written in its face; the last is the brush with Latin
--- for comparison.
+-- for comparison. The game writes Russian in Caveat (Config/Languages), the owner's choice.
 
 local StarterGui = game:GetService("StarterGui")
 
@@ -19,11 +19,20 @@ end
 
 local SAMPLE = "Лавка Тентен  +1.2K Рё/с  ВРАТА ОТКРЫТИЯ"
 local FACES = {
-	{ "Marhey (Creator Store 12187364648)", Font.new("rbxassetid://12187364648", Enum.FontWeight.Bold) },
-	{ "Caveat (Creator Store 12187369802)", Font.new("rbxassetid://12187369802", Enum.FontWeight.Bold) },
+	{
+		"Marhey (Creator Store 12187364648)",
+		Font.new("rbxassetid://12187364648", Enum.FontWeight.Bold),
+	},
+	{
+		"Caveat (Creator Store 12187369802)",
+		Font.new("rbxassetid://12187369802", Enum.FontWeight.Bold),
+	},
 	{ "Amatic SC Bold", Font.new("rbxasset://fonts/families/AmaticSC.json", Enum.FontWeight.Bold) },
 	{ "Oswald Bold", Font.new("rbxasset://fonts/families/Oswald.json", Enum.FontWeight.Bold) },
-	{ "Montserrat Bold (the plain face)", Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold) },
+	{
+		"Montserrat Bold (the plain face)",
+		Font.new("rbxasset://fonts/families/Montserrat.json", Enum.FontWeight.Bold),
+	},
 	{ "Permanent Marker (the brush, Latin)", Font.fromEnum(Enum.Font.PermanentMarker) },
 }
 
@@ -48,7 +57,9 @@ for index, entry in FACES do
 	line.TextSize = 40
 	line.TextXAlignment = Enum.TextXAlignment.Left
 	line.TextColor3 = Color3.fromRGB(58, 40, 30)
-	line.Text = if index == #FACES then "Tenten's Ninja Tools  +1.2K Ryo/s  GATE OF OPENING" else SAMPLE
+	line.Text = if index == #FACES
+		then "Tenten's Ninja Tools  +1.2K Ryo/s  GATE OF OPENING"
+		else SAMPLE
 	line.Parent = sheet
 	local caption = Instance.new("TextLabel")
 	caption.Position = UDim2.fromOffset(20, 64 + (index - 1) * 90)
