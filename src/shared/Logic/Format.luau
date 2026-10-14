@@ -134,4 +134,24 @@ function Format.duration(seconds: number): string
 	return `{whole}s`
 end
 
+-- Words in capitals, for any letter of the languages here: string.upper knows only the
+-- English ones, and left "luna carmesí" as "LUNA CARMESí" and Russian as it was.
+function Format.upper(text: string): string
+	local out = {}
+	for _, point in utf8.codes(text) do
+		local latin = point >= 0x61 and point <= 0x7A
+		local cyrillic = point >= 0x430 and point <= 0x44F -- а..я
+		local accented = point >= 0xE0 and point <= 0xFE and point ~= 0xF7 -- à..þ
+		if latin or cyrillic or accented then
+			point -= 0x20
+		elseif point == 0x451 then
+			point = 0x401 -- ё
+		elseif point == 0x153 then
+			point = 0x152 -- œ
+		end
+		table.insert(out, utf8.char(point))
+	end
+	return table.concat(out)
+end
+
 return Format
