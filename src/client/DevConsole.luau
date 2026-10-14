@@ -24,7 +24,7 @@ local Ui = require("./Ui")
 
 local DevConsole = {}
 
-local SIZE = Vector2.new(860, 640)
+local SIZE = Vector2.new(860, 700)
 local ROW = 46
 local GAP = 10
 local LABEL = 92
@@ -330,6 +330,35 @@ local function build()
 				send("legend", legend.id, false)
 			end)
 		end
+	end
+
+	-- What is sold for Robux, without Robux: a pass, a potion, a product sold once.
+	do
+		local frame, take = row("Goods")
+		local keys, called = {}, {}
+		for _, pass in Catalog.passes do
+			if pass.kind ~= "legend" then
+				table.insert(keys, pass.key)
+				table.insert(called, pass.name)
+			end
+		end
+		for _, potion in Catalog.potions do
+			table.insert(keys, potion.id)
+			table.insert(called, potion.name)
+		end
+		for _, product in Catalog.products do
+			if product.once then
+				table.insert(keys, product.key)
+				table.insert(called, product.name)
+			end
+		end
+		local chosen = stepper(frame, take(360), 360, called)
+		press(frame, take(150), 150, "Give", Ui.GREEN, function()
+			send("goods", keys[chosen()], true)
+		end)
+		press(frame, take(150), 150, "Take", Ui.GRAY, function()
+			send("goods", keys[chosen()], false)
+		end)
 	end
 
 	-- An event started by hand, for everyone on this server, and stopped again.

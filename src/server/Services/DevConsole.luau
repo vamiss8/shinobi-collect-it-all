@@ -27,6 +27,7 @@ local Inventory = require("./Inventory")
 local Kicking = require("./Kicking")
 local Legends = require("./Legends")
 local Net = require(ReplicatedStorage.Shared.Net)
+local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -284,6 +285,45 @@ function commands.legend(player, data, legendId, give)
 		end
 	end
 	return `{legend.name}: taken`
+end
+
+-- "goods": what is sold for Robux, without Robux: a game pass given or taken (the legendary
+-- shinobi have "legend"), a potion started for its minutes or stopped, a product sold once
+-- marked as had or not.
+function commands.goods(_, data, key, give)
+	if typeof(key) ~= "string" then
+		return nil
+	end
+	local given = give == true
+	local done = if given then "given" else "taken"
+	local pass = Catalog.passByKey[key]
+	if pass and pass.kind ~= "legend" then
+		if given then
+			data.passes[key] = true
+		else
+			data.passes[key] = nil
+		end
+		return `{pass.name}: {done}`
+	end
+	local potion = Catalog.potionById[key]
+	if potion then
+		if given then
+			PurchaseLogic.drink(data.potions, potion.id, os.time(), potion.minutes)
+		else
+			data.potions[potion.id] = nil
+		end
+		return `{potion.name}: {done}`
+	end
+	local product = Catalog.productByKey[key]
+	if product and product.once then
+		if given then
+			data.bought[key] = true
+		else
+			data.bought[key] = nil
+		end
+		return `{product.name}: {if given then "had" else "not had"}`
+	end
+	return nil
 end
 
 -- "event": an event started on this server for everyone on it, or with no id the one started

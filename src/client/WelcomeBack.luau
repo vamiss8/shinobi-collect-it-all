@@ -4,13 +4,17 @@
 -- it is dismissed; as a toast the same news was gone before it could be read.
 --
 -- The Ryo are paid out when the window closes, whichever way it is closed, so the player sees
--- their purse grow; the server also pays them out by itself if the player leaves first. An
--- offer to multiply them for Robux is planned next to the Collect button: it will act on the
--- amount while it still waits on the server (Session.offline).
+-- their purse grow; the server also pays them out by itself if the player leaves first. Beside
+-- the Collect button the same Ryo are offered a second time for Robux (Config/Products
+-- "DoubleOffline"): bought, the server pays them once more (Services/Purchases), whether the
+-- window is still open or not, and the window, if it is, shows what comes in all.
 
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
@@ -60,21 +64,61 @@ function WelcomeBack.start()
 			Format.duration(Tuning.Dojo.offlineCapHours * 3600)
 		),
 	})
+	-- The offer to have them twice stands beside Collect once it is on sale.
+	local double = Catalog.productByKey.DoubleOffline
+	local selling = double ~= nil and double.assetId > 0
 	local collect = Ui.button(body, {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.fromScale(0.5, 1),
-		Size = UDim2.fromOffset(260, 60),
+		AnchorPoint = if selling then Vector2.new(1, 1) else Vector2.new(0.5, 1),
+		Position = if selling then UDim2.new(0.5, -8, 1, 0) else UDim2.fromScale(0.5, 1),
+		Size = UDim2.fromOffset(if selling then 224 else 260, 60),
 		TextSize = 30,
 		Text = Strings.get("OfflineCollect"),
 	})
 	collect.Activated:Connect(window.close)
+	local twice: TextButton? = nil
+	if double and selling then
+		local offer = Ui.button(body, {
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0.5, 8, 1, 0),
+			Size = UDim2.fromOffset(244, 60),
+			BackgroundColor3 = Ui.GOLD,
+			TextColor3 = Ui.INK,
+			TextSize = 28,
+			Text = Strings.get("OfflineDouble", "..."),
+		})
+		offer.Activated:Connect(function()
+			MarketplaceService:PromptProductPurchase(Players.LocalPlayer, double.assetId)
+		end)
+		task.spawn(function()
+			local ok, info = pcall(function()
+				return MarketplaceService:GetProductInfo(double.assetId, Enum.InfoType.Product)
+			end)
+			local robux = if ok and typeof(info) == "table" then info.PriceInRobux else nil
+			if typeof(robux) == "number" then
+				offer.Text = Strings.get("OfflineDouble", tostring(robux))
+			end
+		end)
+		twice = offer
+	end
 
 	-- True from the offer until the window closes. Closing it is what collects, be it by the
 	-- button, the X, Enter, or another window opening over it.
 	local waiting = false
 	Remotes.Offline.OnClientEvent:Connect(function(offline: Net.Offline)
+		if offline.doubled then
+			-- Bought twice over: what comes in all. A window already closed stays so; the
+			-- message on the scroll says it.
+			earned.Text = Strings.get("OfflineEarned", offline.earned)
+			if twice then
+				twice.Visible = false
+			end
+			return
+		end
 		away.Text = Strings.get("OfflineAway", Format.duration(offline.away))
 		earned.Text = Strings.get("OfflineEarned", offline.earned)
+		if twice then
+			twice.Visible = true
+		end
 		waiting = true
 		window.open()
 	end)

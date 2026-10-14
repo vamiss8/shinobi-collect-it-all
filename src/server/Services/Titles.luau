@@ -18,6 +18,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Data = require("../Data")
 local Lettering = require(ReplicatedStorage.Shared.Config.Lettering)
 local Loadout = require("./Loadout")
@@ -63,8 +64,12 @@ local function line(board: BillboardGui, from: number, share: number, text: stri
 	return label
 end
 
--- Hangs the tag over the head: the rank, and the player's name under it.
-local function tag(head: BasePart, name: string, count: number)
+-- The gold the VIP mark before a name is written in.
+local VIP_GOLD = "#FFCA28"
+
+-- Hangs the tag over the head: the rank, and the player's name under it, marked VIP for a
+-- player with the Daimyo's favor (Config/Products).
+local function tag(head: BasePart, name: string, count: number, vip: boolean)
 	local board = mark(Instance.new("BillboardGui"))
 	board.Name = "RankTag"
 	board.Size = UDim2.fromScale(TAG.X, TAG.Y)
@@ -79,7 +84,11 @@ local function tag(head: BasePart, name: string, count: number)
 		rank:SetAttribute(Net.LETTERING_ATTRIBUTE, lettering)
 		CollectionService:AddTag(rank, Net.LETTERING_TAG)
 	end
-	line(board, RANK_SHARE, 1 - RANK_SHARE, name)
+	local own = line(board, RANK_SHARE, 1 - RANK_SHARE, name)
+	if vip then
+		own.RichText = true
+		own.Text = `<font color="{VIP_GOLD}">VIP</font> {name}`
+	end
 	board.Parent = head
 end
 
@@ -95,7 +104,7 @@ function Titles.dress(player: Player)
 	clear(character)
 	if head and head:IsA("BasePart") then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		tag(head, player.DisplayName, Rebirth.done(data.rebirths))
+		tag(head, player.DisplayName, Rebirth.done(data.rebirths), data.passes[Boosts.VIP] == true)
 	end
 end
 

@@ -5,15 +5,17 @@
 --   lune run sim 10     stop after 10 hours
 --   lune run sim 40 plain   the same player never doing a rebirth, to see what rebirths change
 --   lune run sim 40 legends the player who bought the three legendary shinobi at the start
+--   lune run sim 40 passes  the player who bought every game pass but those at the start
 --
 -- The game's own math is used throughout (Logic/*), so the result follows the config. What is
 -- modelled here is the player: how well they press, how they split their time and what they
--- buy (see PROFILES and `shop`). Only time spent playing counts: offline income, meditation,
--- game passes and potions are left out, and all of them make a real player faster than this.
+-- buy (see PROFILES and `shop`). Only time spent playing counts: offline income, meditation
+-- and potions are left out, and all of them make a real player faster than this.
 
 local process = require("@lune/process")
 
 local Animations = require("../src/shared/Config/Animations")
+local Boosts = require("../src/shared/Logic/Boosts")
 local Catalog = require("../src/shared/Config/Catalog")
 local Chase = require("../src/shared/Logic/Chase")
 local DojoPlan = require("../src/shared/Logic/DojoPlan")
@@ -59,6 +61,17 @@ local REBIRTHS = process.args[2] ~= "plain"
 -- Whether the player owns the legendary shinobi (Config/Legends), all three from the first
 -- second: what Robux buy, at its most.
 local LEGENDS = process.args[2] == "legends"
+-- Whether the player owns every game pass sold (Config/Products) but the legendary shinobi,
+-- from the first second: x2 Ryo, Chakra, luck and mutation luck, the VIP and the four pads.
+local OWNED: { [string]: boolean } = {}
+if process.args[2] == "passes" then
+	for _, pass in Catalog.passes do
+		if pass.kind ~= "legend" then
+			OWNED[pass.key] = true
+		end
+	end
+end
+local EXTRA_PADS = if OWNED.ExtraPads then Tuning.Dojo.gamePassPads else 0
 
 -- Time that goes on things the config does not describe, seconds.
 local RING_OVERHEAD = 0.25 -- from a press to watching the next ring
@@ -134,12 +147,24 @@ local function barPosition(profile: Profile, r: number): number
 	return 0
 end
 
+-- What the player's rebirths and passes multiply, as the game reckons it (Logic/Boosts); the
+-- Bingo Book's bonus is left out.
+local function boosts(player: Player): Boosts.Multipliers
+	return Boosts.compute({
+		passes = OWNED,
+		potions = {},
+		now = 0,
+		indexBonus = 0,
+		rebirths = player.rebirths,
+	})
+end
+
 local function income(player: Player): number
 	local total = 0
 	for _, unit in player.pads do
 		total += Economy.unitIncome(unit)
 	end
-	return total * Rebirth.ryo(player.rebirths)
+	return total * boosts(player).ryo
 end
 
 local function pass(player: Player, seconds: number)
@@ -189,7 +214,7 @@ local function keep(player: Player, unit: Unit)
 		end
 	end
 
-	if #player.pads < Tuning.Dojo.startPads + player.padsBought then
+	if #player.pads < Tuning.Dojo.startPads + player.padsBought + EXTRA_PADS then
 		table.insert(player.pads, unit)
 		return
 	end
@@ -215,9 +240,15 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	player.spins += 1
 
 	local distance = math.max(result.distance, MIN_LANDING)
-	local mutationLuck = Rebirth.mutationLuck(player.rebirths)
+	local multipliers = boosts(player)
 	local lucky = Roll.spinLuck(player.spins)
-	local drop = Roll.drop(result.distance, lucky, mutationLuck * lucky, nil, rng)
+	local drop = Roll.drop(
+		result.distance,
+		lucky * multipliers.luck,
+		multipliers.mutationLuck * lucky,
+		nil,
+		rng
+	)
 	local zone = Catalog.zoneById[drop.zone]
 	local unit: Unit = { character = drop.character, mutation = drop.mutation, level = 1 }
 
@@ -358,7 +389,7 @@ local function play(profile: Profile, seed: number, hours: number): Player
 	while player.time < hours * 3600 do
 		throw(player, profile, rng)
 		shop(player)
-		player.chakra += rate * Economy.chakraPerRep(player.kunai) * Rebirth.chakra(player.rebirths) * profile.trainPerThrow
+		player.chakra += rate * Economy.chakraPerRep(player.kunai) * boosts(player).chakra * profile.trainPerThrow
 		pass(player, profile.trainPerThrow)
 		-- A rebirth is taken as soon as it is offered, and starts the player over as
 		-- Rebirth.apply does: no Chakra, no shinobi, no Ryo, the run speed their new rank

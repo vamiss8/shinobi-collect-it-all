@@ -86,4 +86,9 @@ Art.kunai = {
 	truth_seeking = 98861102875126,
 } :: { [string]: number }
 
+-- Pictures of what the shop sells (Config/Products), by the pass's or product's key, and of
+-- the shop's own tile under "shop". None is uploaded yet: each is drawn from frames until then
+-- (Icons.goods).
+Art.goods = {} :: { [string]: number }
+
 return Art

@@ -174,4 +174,17 @@ return {
 		discoveryRewardSeconds = 10, -- first find pays this many seconds of the unit's income
 		pageCompleteBonus = 0.1, -- +10% income per fully collected page (one per mutation)
 	},
+
+	-- What is sold for Robux (Config/Products). The Daimyo's favor, the game's VIP pass: the
+	-- feudal lord who keeps the village in money takes a liking to the player's dojo. It
+	-- multiplies the dojo's income, on top of x2 Ryo, and what the dojo earns while the
+	-- player is away (half its income, Tuning.Dojo.offlineRate, becomes three quarters), and
+	-- marks its owner's name with a gold seal for everyone to see.
+	Shop = {
+		vipIncome = 1.5,
+		vipOffline = 1.5,
+		-- Purchase ids kept in a save, newest last, so that a purchase Roblox offers again is
+		-- not granted twice. Roblox only offers again those it was not told were granted.
+		receiptsKept = 50,
+	},
 }

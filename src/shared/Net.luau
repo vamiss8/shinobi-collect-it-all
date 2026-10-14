@@ -51,6 +51,9 @@ Net.Events = {
 -- PlayerList), and the orbs of a player's rank (client RankOrbs).
 Net.PLAYER_REBIRTHS = "Rebirths"
 Net.PLAYER_INCOME = "Income"
+-- Boolean: the player has the VIP pass (the Daimyo's favor), which marks their name in the list
+-- of players with a gold seal.
+Net.PLAYER_VIP = "Vip"
 -- Boolean attribute on the Player of a developer: their client builds the developer console.
 -- It opens nothing by itself: the server checks who is asking on every command.
 Net.DEVELOPER_ATTRIBUTE = "Developer"
@@ -162,6 +165,9 @@ export type Snapshot = {
 	training: string?, -- "meditate" | "focus" while training
 	trainBoost: number, -- multiplier from a popped bubble, 1 if none
 	throwChakra: number, -- Chakra the player chose to throw with, 0 for all of it
+	passes: { string }, -- keys of the game passes owned (Config/Products), legends aside
+	potions: { [string]: number }, -- seconds left on each potion running, by potion id
+	bought: { string }, -- keys of the products sold once that the player has had
 }
 
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.
@@ -231,6 +237,9 @@ export type Upgraded = {
 export type Offline = {
 	earned: number, -- Ryo
 	away: number, -- seconds since the player was last seen
+	-- Sent again once the Ryo were bought a second time (Config/Products "DoubleOffline"):
+	-- `earned` is then what the player gets in all.
+	doubled: boolean?,
 }
 
 export type Bubble = {

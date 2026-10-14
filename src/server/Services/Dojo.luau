@@ -12,9 +12,12 @@
 -- pass's pads come last and say so. The dojo grows with them: when a floor's pads are all
 -- bought, the next floor goes up (Logic/DojoPlan.floorsFor).
 
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -162,13 +165,19 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	local isOpen = pad.index <= unlocked
 	-- The first locked pad can be bought by walking up to it.
 	local forSale = data ~= nil and isForSale(pad, data)
-	-- The game pass's pads come after all those sold for Ryo.
+	-- The game pass's pads come after all those sold for Ryo. Once the pass is bought they
+	-- count at once (Stats.unlockedPads), and these are only more pads to buy for Ryo.
 	local d = Tuning.Dojo
-	local forPass = data ~= nil and not isOpen and pad.index > d.startPads + d.buyablePads
+	local forPass = data ~= nil
+		and not isOpen
+		and pad.index > d.startPads + d.buyablePads
+		and not data.passes.ExtraPads
+	-- The first of them carries the sign, and offers the pass.
+	local passSign = forPass and pad.index == d.startPads + d.buyablePads + 1
 	local unitId = if data then data.pads[tostring(pad.index)] else nil
 	local unit = if data and unitId then data.units[unitId] else nil
 
-	pad.prompt.Enabled = isOpen or forSale
+	pad.prompt.Enabled = isOpen or forSale or passSign
 	pad.part.Transparency = if isOpen or forSale then 0 elseif forPass then 0.35 else 0.6
 	pad.part.Material = if forSale then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	pad.part.Color = if forSale
@@ -179,7 +188,7 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 		else PAD_EMPTY
 
 	-- Only the first of the pass's pads carries the sign, so the floor is not covered in them.
-	pad.tagGui.Enabled = forSale or (forPass and pad.index == d.startPads + d.buyablePads + 1)
+	pad.tagGui.Enabled = forSale or passSign
 	if data and forSale then
 		drawPrice(pad, data)
 	elseif forPass then
@@ -192,6 +201,9 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	if data and forSale then
 		pad.prompt.ActionText = "Unlock"
 		pad.prompt.ObjectText = `{Format.short(Economy.padPrice(data.padsBought))} Ryo`
+	elseif passSign then
+		pad.prompt.ActionText = "Buy"
+		pad.prompt.ObjectText = `+{d.gamePassPads} Pads`
 	elseif unit then
 		local figure = Figure.build(unit)
 		figure:PivotTo(pad.stand)
@@ -248,8 +260,19 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 	end
 
 	local unlocked = Stats.unlockedPads(data)
-	if pad.index == unlocked + 1 and data.padsBought < Tuning.Dojo.buyablePads then
+	local d = Tuning.Dojo
+	if pad.index == unlocked + 1 and data.padsBought < d.buyablePads then
 		unlockPad(player, data)
+		return
+	elseif pad.index > d.startPads + d.buyablePads and not data.passes.ExtraPads then
+		-- The pass's pads: Roblox's own purchase window. Services/Purchases opens them once
+		-- the pass is bought.
+		local pass = Catalog.passByKey.ExtraPads
+		if pass and pass.assetId > 0 then
+			MarketplaceService:PromptGamePassPurchase(player, pass.assetId)
+		else
+			State.notify(player, "GoodsSoon")
+		end
 		return
 	elseif pad.index > unlocked then
 		return
@@ -432,10 +455,14 @@ function Dojo.start()
 		if data.lastSeen > 0 then
 			local away = os.time() - data.lastSeen
 			local earned = Economy.offlineEarnings(Stats.income(data), away)
+				* Boosts.offline(data.passes)
 			if earned >= 1 and away >= WELCOME_AFTER then
 				-- The Ryo wait for the player to collect them in the welcome-back window,
-				-- so that the purse visibly grows when they do.
-				Session.of(player).offline = earned
+				-- so that the purse visibly grows when they do. The window also offers to
+				-- pay them a second time for Robux (Services/Purchases).
+				local session = Session.of(player)
+				session.offline = earned
+				session.offlineOffer = earned
 				local offline: Net.Offline = { earned = earned, away = away }
 				Remotes.Offline:FireClient(player, offline)
 			else

@@ -5,6 +5,7 @@
 
 local Catalog = require("../Config/Catalog")
 local Rebirth = require("./Rebirth")
+local Tuning = require("../Config/Tuning")
 
 local Boosts = {}
 
@@ -42,6 +43,8 @@ local PASSES: { [string]: string } = {
 	DoubleLuck = "luck",
 	DoubleMutationLuck = "mutationLuck",
 }
+-- The VIP pass (the Daimyo's favor): more income, and more of it while away.
+Boosts.VIP = "Vip"
 
 function Boosts.compute(state: State): Multipliers
 	local m: Multipliers = {
@@ -55,6 +58,9 @@ function Boosts.compute(state: State): Multipliers
 			apply(m, effect, 2)
 		end
 	end
+	if state.passes[Boosts.VIP] then
+		m.ryo *= Tuning.Shop.vipIncome
+	end
 	for potionId, expiresAt in state.potions do
 		local potion = Catalog.potionById[potionId]
 		if potion and expiresAt > state.now then
@@ -62,6 +68,12 @@ function Boosts.compute(state: State): Multipliers
 		end
 	end
 	return m
+end
+
+-- What the passes owned multiply the dojo's offline income by: its income as it stands
+-- already counts every multiplier; the VIP pass adds to the share of it paid while away.
+function Boosts.offline(passes: { [string]: boolean }): number
+	return if passes[Boosts.VIP] then Tuning.Shop.vipOffline else 1
 end
 
 -- New expiry after buying a potion: extends an active one, starts fresh otherwise.

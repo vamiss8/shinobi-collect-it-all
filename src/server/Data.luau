@@ -36,6 +36,13 @@ export type Data = {
 	found: Index.Found,
 	potions: { [string]: number }, -- potion id -> expiry, unix seconds
 	lastSeen: number, -- unix seconds; 0 for a brand new save
+	-- Game passes owned, by key (Config/Products), legends aside: kept here as well as asked of
+	-- Roblox at every join, so that what they give does not wait on Roblox or fail with it.
+	passes: { [string]: boolean },
+	-- Products sold once (Config/Products `once`) that the player has had, by key.
+	bought: { [string]: boolean },
+	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
+	receipts: { string },
 }
 
 local TEMPLATE: Data = {
@@ -57,6 +64,9 @@ local TEMPLATE: Data = {
 	found = {},
 	potions = {},
 	lastSeen = 0,
+	passes = {},
+	bought = {},
+	receipts = {},
 }
 
 type Callback = (player: Player, data: Data) -> ()
@@ -101,6 +111,30 @@ function Data.addUnit(data: Data, unit: Economy.Unit): string
 	data.nextUnit += 1
 	data.units[id] = unit
 	return id
+end
+
+-- Saves the player's save now and waits until a save has gone out in which `kept` finds what
+-- it looks for (a purchase's id, say). True once one has; false when the player has left, or
+-- after `seconds`. A purchase is told to Roblox as granted only once it is safe in the
+-- DataStore: a server that went down in between would otherwise lose it.
+function Data.saveAndWait(player: Player, kept: (saved: any) -> boolean, seconds: number): boolean
+	local profile = profiles[player]
+	if not profile then
+		return false
+	end
+	local done = false
+	local connection = profile.OnAfterSave:Connect(function(saved)
+		if kept(saved) then
+			done = true
+		end
+	end)
+	profile:Save()
+	local deadline = os.clock() + seconds
+	while not done and os.clock() < deadline and profiles[player] == profile do
+		task.wait(0.1)
+	end
+	connection:Disconnect()
+	return done
 end
 
 local function load(player: Player)

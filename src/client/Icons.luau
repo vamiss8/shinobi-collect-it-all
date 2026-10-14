@@ -546,6 +546,183 @@ function Icons.stage(holder: Instance, stage: SpeedStages.Stage, reached: boolea
 	)
 end
 
+-- A small round seal in the holder's top right corner with a few words on it ("x2", "+4"):
+-- what a pass or a product multiplies by. Drawn over any picture laid on the icon.
+local function badge(holder: Instance, words: string, color: Color3)
+	local ring = shape(holder, 0.58, 0.0, 0.42, 0.42, OUTLINE, 0.5)
+	ring.ZIndex = 6
+	local face = shape(holder, 0.615, 0.035, 0.35, 0.35, color, 0.5)
+	face.ZIndex = 6
+	local label = Ui.text(face, {
+		Size = UDim2.fromScale(1, 1),
+		TextScaled = true,
+		TextColor3 = WHITE,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 7,
+		Text = words,
+	})
+	Ui.make(
+		"UIPadding",
+		{ PaddingLeft = UDim.new(0.12, 0), PaddingRight = UDim.new(0.12, 0) },
+		label
+	)
+end
+
+-- A purse of cloth tied at the neck, gold showing at its mouth; `fat` makes it rounder.
+local function purse(holder: Instance, fat: number)
+	local width = 0.56 + fat
+	local left = 0.5 - width / 2
+	shape(holder, left, 0.34, width, 0.56, DARK_WOOD, 0.5)
+	shape(holder, left + 0.04, 0.38, width - 0.08, 0.48, WOOD, 0.5)
+	shape(holder, 0.36, 0.22, 0.28, 0.16, DARK_WOOD, 0.4)
+	shape(holder, 0.33, 0.33, 0.34, 0.06, SEAL_RED, 0.5)
+	shape(holder, 0.40, 0.17, 0.20, 0.09, GOLD, 0.5)
+end
+
+-- A gold coin with its square hole, centered on a point of the holder.
+local function smallCoin(holder: Instance, x: number, y: number, size: number)
+	dot(holder, x, y, size, DARK_GOLD)
+	dot(holder, x, y, size * 0.84, GOLD)
+	bar(holder, x, y, size * 0.24, size * 0.24, 0, DARK_GOLD, 0.1)
+end
+
+-- The seal in the corner of a pass that multiplies something, by the pass's key.
+local BADGES: { [string]: string } = {
+	DoubleRyo = "x2",
+	DoubleChakra = "x2",
+	DoubleLuck = "x2",
+	DoubleMutationLuck = "x2",
+	ExtraPads = "+4",
+}
+
+-- The tile of the shop where things are bought for Robux: a purse with a coin before it.
+function Icons.shop(holder: Instance)
+	purse(holder, 0.08)
+	smallCoin(holder, 0.72, 0.74, 0.34)
+	overlay(holder, Art.goods.shop)
+end
+
+-- What the shop sells (Config/Products), by key; a legendary shinobi is its portrait.
+function Icons.goods(holder: Instance, key: string)
+	local green = Color3.fromRGB(67, 160, 71)
+	local pale_green = Color3.fromRGB(129, 199, 132)
+	local violet = Color3.fromRGB(126, 87, 194)
+	local pale_violet = Color3.fromRGB(209, 196, 233)
+	if key == "Vip" then
+		seal(holder, GOLD, true)
+		Ui.text(holder, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.52),
+			Size = UDim2.fromScale(0.62, 0.36),
+			TextScaled = true,
+			TextColor3 = DEEP_RED,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = "VIP",
+		})
+	elseif key == "DoubleRyo" then
+		Icons.coin(holder)
+	elseif key == "DoubleChakra" then
+		Icons.chakra(holder)
+	elseif key == "DoubleLuck" then
+		-- A four-leaf clover on its stem.
+		bar(holder, 0.56, 0.74, 0.07, 0.36, -24, Color3.fromRGB(46, 125, 50), 0.5)
+		for _, leaf in { { 0.38, 0.36 }, { 0.62, 0.36 }, { 0.38, 0.60 }, { 0.62, 0.60 } } do
+			dot(holder, leaf[1], leaf[2], 0.30, green)
+			dot(holder, leaf[1], leaf[2], 0.16, pale_green)
+		end
+	elseif key == "DoubleMutationLuck" then
+		-- An orb of changing chakra, with sparks about it.
+		dot(holder, 0.48, 0.54, 0.66, violet)
+		dot(holder, 0.42, 0.46, 0.32, pale_violet)
+		bar(holder, 0.84, 0.30, 0.12, 0.12, 45, WHITE, 0.1)
+		bar(holder, 0.14, 0.82, 0.09, 0.09, 45, WHITE, 0.1)
+		bar(holder, 0.80, 0.84, 0.07, 0.07, 45, PALE_GOLD, 0.1)
+	elseif key == "ExtraPads" then
+		-- Four pads of a dojo, seen from above, on its boards.
+		shape(holder, 0.08, 0.16, 0.84, 0.76, DARK_WOOD, 0.12)
+		for _, x in { 0.16, 0.54 } do
+			for _, y in { 0.24, 0.56 } do
+				shape(holder, x, y, 0.30, 0.28, PARCHMENT, 0.2)
+				shape(holder, x + 0.09, y + 0.08, 0.12, 0.12, GOLD, 0.5)
+			end
+		end
+	elseif key == "SoldierPill" then
+		-- A soldier pill: a round brown pill with a shine.
+		dot(holder, 0.5, 0.52, 0.64, Color3.fromRGB(93, 64, 55))
+		dot(holder, 0.5, 0.52, 0.54, Color3.fromRGB(161, 110, 76))
+		dot(holder, 0.40, 0.42, 0.14, Color3.fromRGB(215, 175, 140))
+	elseif key == "IchirakuRamen" then
+		-- A bowl of ramen: noodles, a slice of fish cake, chopsticks laid across.
+		bar(holder, 0.62, 0.30, 0.05, 0.56, 62, DARK_WOOD, 0.5)
+		bar(holder, 0.66, 0.36, 0.05, 0.56, 62, WOOD, 0.5)
+		shape(holder, 0.10, 0.44, 0.80, 0.12, Color3.fromRGB(255, 224, 178), 0.5)
+		for _, x in { 0.24, 0.40, 0.56, 0.72 } do
+			bar(holder, x, 0.50, 0.12, 0.05, 20, PALE_GOLD, 0.5)
+		end
+		dot(holder, 0.34, 0.47, 0.12, WHITE)
+		dot(holder, 0.34, 0.47, 0.05, Color3.fromRGB(240, 98, 146))
+		shape(holder, 0.12, 0.50, 0.76, 0.34, DEEP_RED, 0.5)
+		shape(holder, 0.16, 0.54, 0.68, 0.10, SEAL_RED, 0.5)
+		shape(holder, 0.36, 0.82, 0.28, 0.08, DEEP_RED, 0.3)
+	elseif key == "GamaCharm" then
+		-- Gama-chan, the toad purse: green, with eyes on top of its head.
+		dot(holder, 0.5, 0.58, 0.70, green)
+		dot(holder, 0.5, 0.62, 0.50, pale_green)
+		for _, x in { 0.32, 0.68 } do
+			dot(holder, x, 0.28, 0.24, green)
+			dot(holder, x, 0.28, 0.15, WHITE)
+			dot(holder, x, 0.29, 0.07, OUTLINE)
+		end
+		bar(holder, 0.5, 0.56, 0.34, 0.04, 0, OUTLINE, 0.5)
+		dot(holder, 0.5, 0.74, 0.14, GOLD)
+	elseif key == "SageOil" then
+		-- A flask of the toads' oil: a cork, a neck, a round body of glass, the oil inside.
+		shape(holder, 0.42, 0.06, 0.16, 0.10, WOOD, 0.3)
+		shape(holder, 0.40, 0.14, 0.20, 0.20, PALE_BLUE, 0.2)
+		dot(holder, 0.5, 0.60, 0.66, PALE_BLUE)
+		dot(holder, 0.5, 0.64, 0.54, Color3.fromRGB(255, 143, 0))
+		dot(holder, 0.40, 0.52, 0.12, PALE_GOLD)
+	elseif key == "AcademyBundle" then
+		-- A parcel wrapped in paper and tied with a red cord.
+		shape(holder, 0.12, 0.26, 0.76, 0.62, DARK_WOOD, 0.1)
+		shape(holder, 0.15, 0.29, 0.70, 0.56, PARCHMENT, 0.1)
+		shape(holder, 0.45, 0.29, 0.10, 0.56, SEAL_RED, 0)
+		shape(holder, 0.15, 0.52, 0.70, 0.10, SEAL_RED, 0)
+		bar(holder, 0.40, 0.20, 0.20, 0.12, -30, SEAL_RED, 0.5)
+		bar(holder, 0.60, 0.20, 0.20, 0.12, 30, SEAL_RED, 0.5)
+	elseif key == "RyoPouch" then
+		purse(holder, 0)
+	elseif key == "RyoPurse" then
+		purse(holder, 0.14)
+		smallCoin(holder, 0.20, 0.80, 0.28)
+		smallCoin(holder, 0.80, 0.80, 0.28)
+	elseif key == "RyoChest" then
+		-- A chest of coins, its lid thrown back.
+		shape(holder, 0.10, 0.16, 0.80, 0.30, DARK_WOOD, 0.2)
+		for _, spot in
+			{ { 0.30, 0.44 }, { 0.50, 0.40 }, { 0.70, 0.44 }, { 0.40, 0.50 }, { 0.60, 0.50 } }
+		do
+			smallCoin(holder, spot[1], spot[2], 0.22)
+		end
+		shape(holder, 0.10, 0.50, 0.80, 0.40, DARK_WOOD, 0.1)
+		shape(holder, 0.14, 0.54, 0.72, 0.32, WOOD, 0.1)
+		shape(holder, 0.10, 0.62, 0.80, 0.06, GOLD, 0)
+		shape(holder, 0.44, 0.58, 0.12, 0.16, GOLD, 0.2)
+	elseif Catalog.legendById[key] then
+		Icons.shinobi(holder, key, Color3.fromHex(Catalog.legendRank.color))
+		return
+	end
+	-- The coin and the flame have the readouts' pictures laid on them already.
+	if key ~= "DoubleRyo" and key ~= "DoubleChakra" then
+		overlay(holder, Art.goods[key])
+	end
+	-- What the pass multiplies by, drawn after any picture so that it stays over one.
+	local words = BADGES[key]
+	if words then
+		badge(holder, words, SEAL_RED)
+	end
+end
+
 -- The seal of an event (Config/Events), by what the event hangs in the sky: a red moon, red
 -- clouds, a leaf of gold.
 function Icons.event(holder: Instance, shows: string)

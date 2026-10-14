@@ -10,8 +10,11 @@ export type Session = {
 	boost: number, -- training multiplier from the last popped bubble
 	boostUntil: number, -- os.clock() time the boost runs out
 	-- Ryo the dojo earned while the player was away, waiting to be collected in the
-	-- welcome-back window; 0 once collected. An offer to multiply it acts on this number.
+	-- welcome-back window; 0 once collected.
 	offline: number,
+	-- What was earned while away, as offered in that window; kept after it is collected, for
+	-- the offer to pay it a second time (Services/Purchases), which may come in later.
+	offlineOffer: number,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -19,7 +22,7 @@ local sessions: { [Player]: Session } = {}
 function Session.of(player: Player): Session
 	local session = sessions[player]
 	if not session then
-		session = { boost = 1, boostUntil = 0, throwChakra = 0, offline = 0 }
+		session = { boost = 1, boostUntil = 0, throwChakra = 0, offline = 0, offlineOffer = 0 }
 		sessions[player] = session
 	end
 	return session

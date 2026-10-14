@@ -20,6 +20,8 @@ export type Kunai = KunaiList.Kunai
 export type Legend = Legends.Legend
 export type Mutation = Mutations.Mutation
 export type Potion = Potions.Potion
+export type GamePass = Products.GamePass
+export type Product = Products.Product
 export type Rank = Ranks.Rank
 export type Zone = Zones.Zone
 
@@ -55,6 +57,28 @@ Catalog.potionById = {} :: { [string]: Potion }
 Catalog.zoneById = {} :: { [string]: Zone }
 Catalog.zoneOrder = {} :: { [string]: number }
 Catalog.keeperById = {} :: { [string]: Keeper }
+-- What is sold for Robux (Config/Products), by key and by the id Roblox knows it by. An item
+-- not made yet (id 0) has no entry by id.
+Catalog.passes = Products.GamePasses
+Catalog.products = Products.Products
+Catalog.passByKey = {} :: { [string]: GamePass }
+Catalog.passById = {} :: { [number]: GamePass }
+Catalog.productByKey = {} :: { [string]: Product }
+Catalog.productById = {} :: { [number]: Product }
+
+for _, pass in Products.GamePasses do
+	Catalog.passByKey[pass.key] = pass
+	if pass.assetId > 0 then
+		Catalog.passById[pass.assetId] = pass
+	end
+end
+
+for _, product in Products.Products do
+	Catalog.productByKey[product.key] = product
+	if product.assetId > 0 then
+		Catalog.productById[product.assetId] = product
+	end
+end
 
 for _, keeper in Keepers do
 	Catalog.keeperById[keeper.id] = keeper
@@ -232,8 +256,36 @@ function Catalog.validate(): { string }
 	end
 
 	local passes: { [string]: boolean } = {}
+	local ids: { [number]: string } = {}
 	for _, pass in Products.GamePasses do
+		check(not passes[pass.key], `duplicate game pass {pass.key}`)
 		passes[pass.key] = true
+		check(pass.assetId == 0 or ids[pass.assetId] == nil, `{pass.key} shares its id`)
+		ids[pass.assetId] = pass.key
+	end
+	local products: { [string]: boolean } = {}
+	for _, product in Products.Products do
+		check(not products[product.key], `duplicate product {product.key}`)
+		products[product.key] = true
+		check(product.assetId == 0 or ids[product.assetId] == nil, `{product.key} shares its id`)
+		ids[product.assetId] = product.key
+		if product.kind == "potion" then
+			check(
+				product.potion ~= nil and Catalog.potionById[product.potion] ~= nil,
+				`{product.key} sells a potion there is not`
+			)
+		elseif product.kind == "bundle" then
+			check((product.minutes or 0) > 0, `{product.key} lasts no time`)
+			local potions: { string } = product.potions or {}
+			for _, potionId in potions do
+				check(
+					Catalog.potionById[potionId] ~= nil,
+					`{product.key} holds a potion there is not`
+				)
+			end
+		elseif product.kind == "ryo" then
+			check((product.incomeMinutes or 0) > 0, `{product.key} pays nothing`)
+		end
 	end
 	for _, legend in Legends do
 		check(not seen[legend.id], `legendary shinobi {legend.id} is also on the roster`)

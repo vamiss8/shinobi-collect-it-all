@@ -3,6 +3,7 @@
 -- there is shown as the key itself, which nothing else would catch outside Studio.
 local fs = require("@lune/fs")
 
+local Catalog = require("../src/shared/Config/Catalog")
 local SpeedStages = require("../src/shared/Config/SpeedStages")
 local T = require("./harness")
 
@@ -78,6 +79,20 @@ return {
 		for key in string.gmatch(shops, '"(%w+Hello%d)"') do
 			local words = value(key)
 			T.ok(words ~= nil and #words <= 62, `{key} is too long for the scroll's small line`)
+		end
+	end,
+
+	-- The shop names everything it sells by key (client ShopPanel: "Goods_" .. key).
+	["everything sold for Robux has a name and says what it does"] = function()
+		for _, pass in Catalog.passes do
+			if pass.kind ~= "legend" then
+				T.ok(has("Goods_" .. pass.key), `no name for {pass.key}`)
+				T.ok(has("GoodsWhat_" .. pass.key), `nothing says what {pass.key} does`)
+			end
+		end
+		for _, product in Catalog.products do
+			T.ok(has("Goods_" .. product.key), `no name for {product.key}`)
+			T.ok(has("GoodsWhat_" .. product.key), `nothing says what {product.key} does`)
 		end
 	end,
 

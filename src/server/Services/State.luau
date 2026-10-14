@@ -6,7 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Purchases = require(ReplicatedStorage.Shared.Logic.Purchases)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -15,12 +17,25 @@ local Stats = require("./Stats")
 local State = {}
 
 -- Puts what every other player sees of this one where their clients can read it: the rebirths
--- done and what the dojo earns a second, as attributes of the Player. The game's own list of
--- players is drawn from them (client PlayerList). An attribute set to the value it has is not
--- sent again.
-local function post(player: Player, rebirths: number, income: number)
+-- done, what the dojo earns a second and whether they are a VIP, as attributes of the Player.
+-- The game's own list of players is drawn from them (client PlayerList). An attribute set to
+-- the value it has is not sent again.
+local function post(player: Player, rebirths: number, income: number, vip: boolean)
 	player:SetAttribute(Net.PLAYER_REBIRTHS, rebirths)
 	player:SetAttribute(Net.PLAYER_INCOME, income)
+	player:SetAttribute(Net.PLAYER_VIP, vip)
+end
+
+-- The keys of the products sold once that the player has had.
+local function bought(data: Data.Data): { string }
+	local list = {}
+	for key, has in data.bought do
+		if has then
+			table.insert(list, key)
+		end
+	end
+	table.sort(list)
+	return list
 end
 
 -- The legendary shinobi in a save, by id, in the order of the config.
@@ -46,7 +61,7 @@ function State.push(player: Player)
 	if not data then
 		return
 	end
-	post(player, Rebirth.done(data.rebirths), Stats.income(data))
+	post(player, Rebirth.done(data.rebirths), Stats.income(data), data.passes[Boosts.VIP] == true)
 	local session = Session.of(player)
 	local snapshot: Net.Snapshot = {
 		ryo = data.ryo,
@@ -65,6 +80,9 @@ function State.push(player: Player)
 		training = session.training,
 		trainBoost = Session.boost(player),
 		throwChakra = session.throwChakra,
+		passes = Purchases.owned(data.passes),
+		potions = Purchases.potionsLeft(data.potions, os.time()),
+		bought = bought(data),
 	}
 	Remotes.State:FireClient(player, snapshot)
 end

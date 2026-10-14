@@ -257,6 +257,12 @@ function Ui.note(parent: Instance, properties: { [string]: any }, wide: number, 
 	return sheet
 end
 
+-- Words cut into lines that fit `room` layout pixels at `size`, joined by line breaks: text
+-- in a window is cut once and not left to wrap (see Ui.note).
+function Ui.lines(text: string, size: number, room: number): string
+	return table.concat(cut(text, size, room * NOTE_FILL), "\n")
+end
+
 -- How a button answers the pointer: it swells a little under it, dips when pressed and springs
 -- back when let go. A button that a list or a grid lays out would pull its neighbors along as
 -- it dipped, so it is given a place of its own in the list and dips inside that.

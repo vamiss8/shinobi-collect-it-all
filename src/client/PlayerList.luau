@@ -50,9 +50,14 @@ local INDENT = 14
 local INCOME = 96
 -- Where the scroll's top is from the top of the screen. The window buttons stand at the middle
 -- of the same edge (client Hud): the scroll's foot keeps this far above the middle of the
--- screen. However short the window, this much of the lines is shown.
+-- screen, half the column of three tiles (Shop, Inventory, Bingo Book) and a margin. However
+-- short the window, this much of the lines is shown.
 local TOP = 16
-local CLEAR_OF_BUTTONS = 150
+local CLEAR_OF_BUTTONS = 214
+-- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
+-- the name stands in to make room for it.
+local VIP = Vector2.new(36, 18)
+local VIP_ROOM = 48
 local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
@@ -68,6 +73,7 @@ type Row = {
 	edge: UIStroke,
 	name: TextLabel,
 	income: TextLabel,
+	vip: TextLabel,
 }
 
 -- The band of a rank.
@@ -161,7 +167,20 @@ local function row(sheet: Instance): Row
 		TextXAlignment = Enum.TextXAlignment.Right,
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 13 }, income)
-	return { frame = frame, edge = edge, name = name, income = income }
+	local vip = Ui.text(frame, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.fromOffset(VIP.X, VIP.Y),
+		BackgroundColor3 = Ui.GOLD,
+		BackgroundTransparency = 0,
+		TextSize = 14,
+		TextColor3 = Ui.INK,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("PlayersVip"),
+		Visible = false,
+	})
+	Ui.corner(vip, 9)
+	return { frame = frame, edge = edge, name = name, income = income, vip = vip }
 end
 
 function PlayerList.start()
@@ -282,6 +301,11 @@ function PlayerList.start()
 			line.frame.BackgroundTransparency = if own then 0.9 else 1
 			line.edge.Transparency = if own then 0 else 1
 			line.name.Text = player.DisplayName
+			local isVip = player:GetAttribute(Net.PLAYER_VIP) == true
+			local inset = if isVip then VIP_ROOM else 8
+			line.vip.Visible = isVip
+			line.name.Position = UDim2.fromOffset(inset, 2)
+			line.name.Size = UDim2.new(1, -(inset + INCOME + 12), 1, -4)
 			-- To a tenth: "1.2B" tells two dojos apart where "1B" did not.
 			line.income.Text =
 				Strings.get("PlayersIncome", Format.short(number(player, Net.PLAYER_INCOME), 1))
@@ -301,6 +325,7 @@ function PlayerList.start()
 	local function adopt(player: Player)
 		player:GetAttributeChangedSignal(Net.PLAYER_REBIRTHS):Connect(draw)
 		player:GetAttributeChangedSignal(Net.PLAYER_INCOME):Connect(draw)
+		player:GetAttributeChangedSignal(Net.PLAYER_VIP):Connect(draw)
 		draw()
 	end
 	Players.PlayerAdded:Connect(adopt)
