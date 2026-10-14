@@ -12,6 +12,7 @@ local Index = require(ReplicatedStorage.Shared.Logic.Index)
 local ProfileStore = require("./Vendor/ProfileStore")
 local Roster = require(ReplicatedStorage.Shared.Logic.Roster)
 local Saves = require(ReplicatedStorage.Shared.Logic.Saves)
+local Settings = require(ReplicatedStorage.Shared.Logic.Settings)
 
 local Data = {}
 
@@ -43,6 +44,8 @@ export type Data = {
 	bought: { [string]: boolean },
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
+	-- The player's settings (client SettingsPanel): language, font, volumes.
+	settings: Settings.Settings,
 }
 
 local TEMPLATE: Data = {
@@ -67,6 +70,7 @@ local TEMPLATE: Data = {
 	passes = {},
 	bought = {},
 	receipts = {},
+	settings = Settings.defaults(),
 }
 
 type Callback = (player: Player, data: Data) -> ()

@@ -44,6 +44,10 @@ Net.Events = {
 	-- server -> all clients: a line a developer wrote in the console for everyone on the server,
 	-- already through Roblox's text filter.
 	Announce = "Announce",
+	-- client -> server: Settings (Logic/Settings), the player's settings as they now are.
+	Settings = "Settings",
+	-- client -> server: send me back into this server (for a new language to take).
+	Rejoin = "Rejoin",
 }
 
 -- Attributes the server keeps on every Player for every client to read: the rebirths they have
@@ -57,6 +61,12 @@ Net.PLAYER_VIP = "Vip"
 -- Boolean attribute on the Player of a developer: their client builds the developer console.
 -- It opens nothing by itself: the server checks who is asking on every command.
 Net.DEVELOPER_ATTRIBUTE = "Developer"
+-- A player's saved settings (Logic/Settings), as attributes of their Player that the server
+-- sets once their save has loaded: the client waits for the language before it writes a word.
+Net.SETTING_LANGUAGE = "SettingLanguage"
+Net.SETTING_FONT = "SettingFont"
+Net.SETTING_MUSIC = "SettingMusic"
+Net.SETTING_EFFECTS = "SettingEffects"
 -- The folder in Workspace with the legendary shinobi on show (Services/Legends): their figures
 -- and, for each, a price tag, a BillboardGui with the attribute below naming the shinobi and a
 -- label named LEGEND_PRICE that each client rewrites for a player who owns it. The same
@@ -142,6 +152,10 @@ Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
 Net.TEST_SPEED_ATTRIBUTE = "Speed"
 -- Number attribute on the folder: in a Studio test, how many rebirths the tester has done.
 Net.TEST_REBIRTHS_ATTRIBUTE = "Rebirths"
+-- String attribute on the folder: in a Studio test, the language the game is written in (a
+-- code of Config/Languages: ru, es, pt, fr, de, en), whatever the settings say. Saves in Studio
+-- last one session, so a language chosen in the settings is gone by the next.
+Net.TEST_LANGUAGE_ATTRIBUTE = "Language"
 -- Boolean attribute on the folder: the showroom's shinobi wear the mutations in turn, so that
 -- every aura and every lettering can be looked over without rolling for it.
 Net.TEST_AURAS_ATTRIBUTE = "Auras"

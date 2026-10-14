@@ -44,6 +44,8 @@ local Remotes = {
 	Collect = event(Net.Events.Collect),
 	Dev = event(Net.Events.Dev),
 	Announce = event(Net.Events.Announce),
+	Settings = event(Net.Events.Settings),
+	Rejoin = event(Net.Events.Rejoin),
 }
 
 folder.Parent = ReplicatedStorage
