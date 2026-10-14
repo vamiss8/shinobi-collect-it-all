@@ -9,6 +9,12 @@
 -- Also here: no text of the game is translated by Roblox's machine translation (AutoLocalize
 -- off on every interface and prompt). The game carries its own words (client/Lang); the
 -- machine's mangled their sense and lost their face (owner, 2026-10-15).
+--
+-- AND WORDS NEVER RUN OUT OF THEIR BOX. The interface was laid out for English in the brush;
+-- another face is wider (the plain one ran out of windows: owner, 2026-10-15), and another
+-- language longer. A label written at a size of its own whose words do not fit it (Roblox's
+-- TextFits) is given leave to shrink to fit, never past the size it was given: where the
+-- words fit nothing changes.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24,6 +30,10 @@ local BRUSH = Font.fromEnum(Enum.Font.PermanentMarker)
 -- the face it was given (Fonts.keep).
 local WAS_BRUSH = "WasBrush"
 local KEEP = "KeepFace"
+-- Marks a label given leave to shrink, and how far it may: a share of the size it was given.
+local FITTED = "Fitted"
+local SHRINK_TO = 0.55
+local SMALLEST = 9
 
 local language = Languages.DEFAULT
 local face = "brush"
@@ -80,6 +90,31 @@ local function dress(object: Instance)
 	end
 end
 
+-- Lets a label of the interface shrink its words to fit it, once they do not.
+local function fit(object: Instance)
+	if not (object:IsA("TextLabel") or object:IsA("TextButton")) then
+		return
+	end
+	local text = object :: TextLabel
+	if text.TextScaled or text:GetAttribute(FITTED) then
+		return
+	end
+	local function check()
+		if text.TextFits or text.TextScaled or text.Text == "" or text:GetAttribute(FITTED) then
+			return
+		end
+		text:SetAttribute(FITTED, true)
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = math.max(math.floor(text.TextSize), 1)
+		limit.MinTextSize =
+			math.min(math.max(math.floor(text.TextSize * SHRINK_TO), SMALLEST), limit.MaxTextSize)
+		limit.Parent = text
+		text.TextScaled = true
+	end
+	text:GetPropertyChangedSignal("TextFits"):Connect(check)
+	task.defer(check)
+end
+
 local function dressAll()
 	for _, root in roots do
 		for _, object in root:GetDescendants() do
@@ -95,11 +130,17 @@ function Fonts.start(code: string, choice: string?)
 	target = wanted()
 	Ui.measureWith(target)
 	local player = Players.LocalPlayer
-	roots = { player:WaitForChild("PlayerGui"), Workspace }
+	local screen = player:WaitForChild("PlayerGui")
+	roots = { screen, Workspace }
 	for _, root in roots do
 		root.DescendantAdded:Connect(dress)
 	end
 	dressAll()
+	-- The world's writing is scaled to its boards already; the interface's is fitted.
+	screen.DescendantAdded:Connect(fit)
+	for _, object in screen:GetDescendants() do
+		fit(object)
+	end
 end
 
 -- Writes a label in the face a choice of the settings would give ("brush" or "plain"), and
