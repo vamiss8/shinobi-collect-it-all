@@ -238,25 +238,36 @@ local function stance(
 	return result
 end
 
--- Half-lotus blocking: one shin is tucked more tightly across the opposite thigh.
--- The editor should refine this on the actual avatar proportions to avoid intersections.
-local lotus = {
+-- Asymmetric half-lotus: one foot rests across the other thigh. The editor should refine it
+-- on the actual avatar proportions to avoid intersections. (The co-author's smooth meditation,
+-- 2026-10-15: the same as scripts/studio/meditation-smooth.lua.)
+local lotus: { [string]: Rotation } = {
 	LowerTorso = { 0, 0, 0 },
-	UpperTorso = { -4, 0, 0 },
-	Head = { 4, 0, 0 },
-	RightUpperLeg = { 72, 25, -38 },
-	RightLowerLeg = { -118, 0, 0 },
-	RightFoot = { 20, -15, 0 },
-	LeftUpperLeg = { 86, -30, 42 },
-	LeftLowerLeg = { -132, 0, 0 },
-	LeftFoot = { 25, 20, 0 },
-	RightUpperArm = { 30, 0, -18 },
-	RightLowerArm = { 85, 0, 0 },
-	RightHand = { -10, 30, -15 },
-	LeftUpperArm = { 30, 0, 18 },
-	LeftLowerArm = { 85, 0, 0 },
-	LeftHand = { -10, -30, 15 },
+	UpperTorso = { -3, 0, 0 },
+	Head = { 3, 0, 0 },
+	RightUpperLeg = { 77, 26, -37 },
+	RightLowerLeg = { -118, -4, 5 },
+	RightFoot = { 21, -13, 3 },
+	LeftUpperLeg = { 83, -29, 41 },
+	LeftLowerLeg = { -125, 4, -4 },
+	LeftFoot = { 11, 17, -3 },
+	RightUpperArm = { 25, 0, -14 },
+	RightLowerArm = { 73, 0, 0 },
+	RightHand = { -8, 22, -8 },
+	LeftUpperArm = { 25, 0, 14 },
+	LeftLowerArm = { 73, 0, 0 },
+	LeftHand = { -8, -22, 8 },
 }
+
+-- The lotus folded only so far, 0 standing and 1 the whole pose: the body folds while it
+-- rises, rather than switching between two poses.
+local function meditationPose(alpha: number): { [string]: Rotation }
+	local result: { [string]: Rotation } = {}
+	for part, rotation in lotus do
+		result[part] = { rotation[1] * alpha, rotation[2] * alpha, rotation[3] * alpha }
+	end
+	return result
+end
 
 -- Positive Z at the right hip and negative Z at the left hip widen the stance.
 -- Shoulder Z rotates inward so the bent forearms meet in front of the chest.
@@ -420,19 +431,14 @@ local drafts: { Draft } = {
 		priority = Enum.AnimationPriority.Action,
 		looped = false,
 		frames = {
-			{ time = 0, rotations = {} },
-			{
-				time = 0.25,
-				position = Vector3.new(0, 0.25, 0),
-				rotations = stance(lotus, {
-					RightUpperLeg = { 42, 12, -20 },
-					RightLowerLeg = { -70, 0, 0 },
-					LeftUpperLeg = { 50, -18, 25 },
-					LeftLowerLeg = { -80, 0, 0 },
-				}),
-			},
-			{ time = 0.55, position = Vector3.new(0, 0.9, 0), rotations = stance(lotus) },
-			{ time = 0.7, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
+			-- The torso rises slowly as the legs fold: no separate snap.
+			{ time = 0, position = Vector3.new(0, 0, 0), rotations = meditationPose(0) },
+			{ time = 0.30, position = Vector3.new(0, 0.06, 0), rotations = meditationPose(0.07) },
+			{ time = 0.65, position = Vector3.new(0, 0.22, 0), rotations = meditationPose(0.23) },
+			{ time = 1.00, position = Vector3.new(0, 0.46, 0), rotations = meditationPose(0.47) },
+			{ time = 1.35, position = Vector3.new(0, 0.73, 0), rotations = meditationPose(0.73) },
+			{ time = 1.70, position = Vector3.new(0, 0.93, 0), rotations = meditationPose(0.92) },
+			{ time = 2.05, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
 		},
 	},
 	{
@@ -440,19 +446,9 @@ local drafts: { Draft } = {
 		priority = Enum.AnimationPriority.Action,
 		looped = true,
 		frames = {
+			-- The pose MeditateStart ends in, held still: no jump where the two meet.
 			{ time = 0, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
-			{
-				time = 0.75,
-				position = Vector3.new(0, 1.12, 0),
-				rotations = stance(lotus, { UpperTorso = { -6, 0, 2 }, Head = { 6, 0, -2 } }),
-			},
 			{ time = 1.5, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
-			{
-				time = 2.25,
-				position = Vector3.new(0, 0.9, 0),
-				rotations = stance(lotus, { UpperTorso = { -2, 0, -2 }, Head = { 2, 0, 2 } }),
-			},
-			{ time = 3, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
 		},
 	},
 	{
