@@ -28,9 +28,9 @@ Animations.player = {
 	Throw = "125462351590146",
 	-- Meditation: sitting down into a half lotus and rising a little off the ground, the pose
 	-- held in a loop (rising and sinking a little), and getting up again.
-	MeditateStart = "99975334289797",
-	MeditateLoop = "113446100346058",
-	MeditateEnd = "98808882494147",
+	MeditateStart = "107735620630961",
+	MeditateLoop = "97944826181322",
+	MeditateEnd = "99568278029851",
 	-- Chakra control: gathering chakra between the palms, in a loop, and a short jolt on a hit.
 	ChakraLoop = "108390209612212",
 	ChakraHit = "119045030931691",
