@@ -102,12 +102,19 @@ end
 -- times smaller than the screen and then drawn that many times larger. Its children lay
 -- themselves out on a design-size screen and come out scaled as a whole, offsets from the
 -- screen's edges included.
+-- Marks a ScreenGui as one of the game's own layers. Roblox puts interfaces of its own into
+-- PlayerGui too (the proximity prompts' "ProximityPrompts", a phone's TouchGui), which are
+-- not to be touched (client Fonts).
+Ui.LAYER = "ShinobiLayer"
+
 function Ui.screen(name: string, order: number): Frame
 	local gui = Ui.make("ScreenGui", {
 		Name = name,
 		ResetOnSpawn = false,
 		DisplayOrder = order,
-	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
+	})
+	gui:SetAttribute(Ui.LAYER, true)
+	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 	local root: Frame = Ui.make("Frame", {
 		Name = "Layer",
 		BackgroundTransparency = 1,

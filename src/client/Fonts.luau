@@ -90,17 +90,30 @@ local function dress(object: Instance)
 	end
 end
 
+-- Whether a label is the game's own. Roblox lays out the words of its own interfaces in
+-- PlayerGui itself: a proximity prompt's do not fit while it slides in, and fitted here the
+-- name of Tenten's shop came out scaled and wrapped in three lines over "Open" for good
+-- (owner, 2026-10-15). So only labels in the game's layers (Ui.screen) are fitted, and the
+-- game's billboards, which are in no ScreenGui.
+local function ours(text: Instance): boolean
+	local layer = text:FindFirstAncestorWhichIsA("ScreenGui")
+	return layer == nil or layer:GetAttribute(Ui.LAYER) == true
+end
+
 -- Lets a label of the interface shrink its words to fit it, once they do not.
 local function fit(object: Instance)
 	if not (object:IsA("TextLabel") or object:IsA("TextButton")) then
 		return
 	end
 	local text = object :: TextLabel
-	if text.TextScaled or text:GetAttribute(FITTED) then
+	if text.TextScaled or text:GetAttribute(FITTED) or not ours(text) then
 		return
 	end
 	local function check()
 		if text.TextFits or text.TextScaled or text.Text == "" or text:GetAttribute(FITTED) then
+			return
+		end
+		if not ours(text) then
 			return
 		end
 		text:SetAttribute(FITTED, true)
