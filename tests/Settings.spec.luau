@@ -8,27 +8,28 @@ local T = require("./harness")
 
 return {
 	["a chosen language is kept, whatever the player's Roblox is in"] = function()
-		T.eq(Settings.language("ru", "pt-br", "BR"), "ru")
-		T.eq(Settings.language("en", "ru-ru", "RU"), "en")
+		T.eq(Settings.language("ru", { "pt-br", "pt-br", "pt-br" }), "ru")
+		T.eq(Settings.language("en", { "ru-ru", "ru-ru", "ru-ru" }), "en")
 	end,
 
 	["with none chosen, the language of the player's Roblox"] = function()
-		T.eq(Settings.language(Languages.AUTO, "pt-br", "US"), "pt")
-		T.eq(Settings.language(nil, "ru-ru", nil), "ru")
-		T.eq(Settings.language(nil, "es-es", "BR"), "es", "the locale goes before the country")
-		T.eq(Settings.language(nil, "fr-ca", nil), "fr")
-		T.eq(Settings.language(nil, "de-de", nil), "de")
+		T.eq(Settings.language(Languages.AUTO, { "pt-br", "en-us", "en-us" }), "pt")
+		T.eq(Settings.language(nil, { "ru-ru" }), "ru")
+		T.eq(Settings.language(nil, { "es-es", "fr-fr", "de-de" }), "es", "the first one counts")
+		T.eq(Settings.language(nil, { "fr-ca" }), "fr")
+		T.eq(Settings.language(nil, { "de-de" }), "de")
 	end,
 
-	-- The owner's word: a player from Brazil is given Portuguese at once.
-	["a player whose Roblox is in English is given their country's language"] = function()
-		T.eq(Settings.language(nil, "en-us", "BR"), "pt")
-		T.eq(Settings.language(nil, "en-us", "mx"), "es", "the country is read in any case")
-		T.eq(Settings.language(nil, "en-us", "RU"), "ru")
-		T.eq(Settings.language(nil, "en-us", "US"), "en")
-		T.eq(Settings.language(nil, "en-us", nil), "en")
-		T.eq(Settings.language(nil, "ja-jp", "JP"), "en", "a language the game has not is English")
-		T.eq(Settings.language("klingon", "en-us", "BR"), "pt", "an unknown choice is no choice")
+	-- Roblox's own interface may not be written in the account's language.
+	["an English Roblox gives way to the account's or the device's language"] = function()
+		T.eq(Settings.language(nil, { "ru-ru", "en-us", "en-us" }), "ru")
+		T.eq(Settings.language(nil, { "en-us", "en-us", "ru-ru" }), "ru")
+		T.eq(Settings.language(nil, { "en-us", "en-us", "pt-br" }), "pt")
+		T.eq(Settings.language(nil, { nil, "en-us", "es-mx" }), "es", "a locale may be missing")
+		T.eq(Settings.language(nil, { "en-us", "en-gb", "en-us" }), "en")
+		T.eq(Settings.language(nil, {}), "en")
+		T.eq(Settings.language(nil, { "ja-jp", "ja-jp" }), "en", "a language the game has not")
+		T.eq(Settings.language("klingon", { "en-us", "de-de" }), "de", "an unknown choice is none")
 	end,
 
 	["what a client sends is kept only as far as it may be"] = function()
