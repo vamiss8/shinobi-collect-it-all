@@ -12,7 +12,9 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
+local Animations = require(ReplicatedStorage.Shared.Config.Animations)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Focus = require(ReplicatedStorage.Shared.Logic.Focus)
@@ -166,14 +168,35 @@ end
 -- to hold them higher, and the lotus is the animation's alone. The root rises too, and with
 -- it whatever goes by the root: the rank's orbs, a runner's effects, a carried shinobi, the
 -- camera. The server sets it and it is every client's to see.
+--
+-- The body is raised over as long as the animation takes to fold the legs
+-- (Animations.MEDITATE_RISE), eased at both ends as the animation is: raised in one step it
+-- jumped two studs and then floated the animation's last stud (owner, 2026-10-15: "it rises
+-- in pieces"). It comes down at once, since the player is walking off.
 local hipRest: { [Humanoid]: number } = setmetatable({}, { __mode = "k" }) :: any
+local hipRise: { [Humanoid]: Tween } = setmetatable({}, { __mode = "k" }) :: any
 
 local function hover(humanoid: Humanoid, up: boolean)
 	local rest = hipRest[humanoid]
+	local rising = hipRise[humanoid]
+	if rising then
+		hipRise[humanoid] = nil
+		rising:Cancel()
+	end
 	if up then
 		local from = rest or humanoid.HipHeight
 		hipRest[humanoid] = from
-		humanoid.HipHeight = from + Tuning.Training.meditateLift
+		local rise = TweenService:Create(
+			humanoid,
+			TweenInfo.new(
+				Animations.MEDITATE_RISE,
+				Enum.EasingStyle.Sine,
+				Enum.EasingDirection.InOut
+			),
+			{ HipHeight = from + Tuning.Training.meditateLift }
+		)
+		hipRise[humanoid] = rise
+		rise:Play()
 	elseif rest then
 		hipRest[humanoid] = nil
 		humanoid.HipHeight = rest

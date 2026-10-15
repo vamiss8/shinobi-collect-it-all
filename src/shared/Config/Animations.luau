@@ -40,6 +40,11 @@ Animations.player = {
 -- "Release" marker sits. The server lets the kunai fly this long after the press, so that every
 -- client sees it leave the hand; with no throw animation it flies at once, as it always did.
 Animations.THROW_RELEASE = 0.75
+-- How long MeditateStart takes to fold the legs and lift the body, seconds. The server raises
+-- the character's HipHeight over the same time (Services/Training), so that the two are one
+-- rise and not a jump and then a float. It is the drafts' RISE_SECONDS
+-- (scripts/studio/meditation-smooth.lua): a clip retimed in the editor changes this too.
+Animations.MEDITATE_RISE = 2.05
 -- How many times longer than it was made the throw is played (owner, 2026-10-12: "make the
 -- throw's animation 1.5 to 2 times longer"). The clip is not made anew for it: it is played
 -- that much slower (client PlayerMoves), and the kunai leaves the hand that much later.
