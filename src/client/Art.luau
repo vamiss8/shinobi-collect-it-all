@@ -14,8 +14,8 @@ local Art = {}
 Art.icons = {
 	coin = 116508526878923, -- the Ryo readout; assets/icons/coin.png
 	chakra = 112681131536613, -- the Chakra readout; assets/icons/chakra.png
-	scroll = 112573281784616, -- the Inventory tile; assets/icons/scroll.png
-	book = 134344077361427, -- the Bingo Book tile; assets/icons/book.png
+	scroll = 119733981224160, -- the Inventory tile; assets/icons/scroll.png
+	book = 72698298357064, -- the Bingo Book tile; assets/icons/book.png
 	meditate = 123433743975781, -- slot 1; assets/icons/meditate.png
 	focus = 74944362570117, -- slot 2, Chakra Control; assets/icons/focus.png
 	rebirth = 78996990936807, -- the Rebirth tile; assets/icons/rebirth.png
@@ -91,10 +91,29 @@ Art.kunai = {
 -- frames until its id is here (Icons.goods). The pictures are kept in assets/icons under the
 -- names of .claude/prompts/shop-icons.md (SoldierPill is soldier_pill.png, and so on). The
 -- passes' pictures carry their own "2x" or "+4" (Icons.goods draws none over them).
-Art.goods = {} :: { [string]: number }
+Art.goods = {
+	shop = 84767559637402, -- the Shop tile
+	gear = 105112090801655, -- the Settings tile
+	Vip = 139545539204628,
+	DoubleLuck = 124056034646144,
+	DoubleMutationLuck = 71132914936250,
+	ExtraPads = 123604037273291,
+	SoldierPill = 103813341998312,
+	IchirakuRamen = 111433545126260,
+	GamaCharm = 132195486435381,
+	SageOil = 74602436295392,
+	AcademyBundle = 116716826258194,
+	RyoPouch = 120040385882874,
+	RyoPurse = 76414446844099,
+	RyoChest = 128851552757113,
+} :: { [string]: number }
 
 -- The emblems of the events (Config/Events), by the event's id, each a whole round badge that
 -- takes the drawn seal's place (Icons.event): assets/icons/event_<id>.png.
-Art.events = {} :: { [string]: number }
+Art.events = {
+	leaf_festival = 102436450401213,
+	akatsuki_raid = 124305656124397,
+	crimson_moon = 140158958609522,
+} :: { [string]: number }
 
 return Art
