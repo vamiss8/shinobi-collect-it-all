@@ -6,6 +6,7 @@
 --   lune run sim 40 plain   the same player never doing a rebirth, to see what rebirths change
 --   lune run sim 40 legends the player who bought the three legendary shinobi at the start
 --   lune run sim 40 passes  the player who bought every game pass but those at the start
+--   lune run sim 40 pass Vip  the player who bought that one pass at the start
 --
 -- The game's own math is used throughout (Logic/*), so the result follows the config. What is
 -- modelled here is the player: how well they press, how they split their time and what they
@@ -70,6 +71,9 @@ if process.args[2] == "passes" then
 			OWNED[pass.key] = true
 		end
 	end
+elseif process.args[2] == "pass" then
+	-- One pass alone, by its key: `lune run sim 220 pass DoubleRyo`.
+	OWNED[process.args[3] or ""] = true
 end
 local EXTRA_PADS = if OWNED.ExtraPads then Tuning.Dojo.gamePassPads else 0
 
