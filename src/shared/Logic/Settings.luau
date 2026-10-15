@@ -22,23 +22,22 @@ function Settings.defaults(): Settings
 	return { language = Languages.AUTO, font = "brush", music = 0.6, effects = 0.8 }
 end
 
--- The language a player is given: the one they chose, or else that of their Roblox (its locale,
--- as "pt-br"), or else, when that is English or not one of ours, the one of their country (as
--- "BR"), or else English.
-function Settings.language(choice: string?, locale: string?, country: string?): string
+-- The language a player is given: the one they chose, or else the first of their locales (as
+-- "pt-br", in the order given: their Roblox account's, Roblox's own, their device's) that is
+-- one of ours and not English, or else English. English settles nothing, since it is where
+-- Roblox and a device start, chosen or not. Where the player plays from is not asked: it is
+-- read off the IP, which a VPN changes (owner, 2026-10-15: a French VPN gave French), and
+-- Roblox is reached from Russia through one.
+function Settings.language(choice: string?, locales: { string? }): string
 	if choice and Languages.byCode[choice] then
 		return choice
 	end
-	local spoken = string.lower(string.match(locale or "", "^%a+") or "")
-	for _, language in Languages.list do
-		if language.code ~= Languages.DEFAULT and table.find(language.locales, spoken) then
-			return language.code
-		end
-	end
-	local from = string.upper(country or "")
-	for _, language in Languages.list do
-		if table.find(language.countries, from) then
-			return language.code
+	for index = 1, #locales do
+		local spoken = string.lower(string.match(locales[index] or "", "^%a+") or "")
+		for _, language in Languages.list do
+			if language.code ~= Languages.DEFAULT and table.find(language.locales, spoken) then
+				return language.code
+			end
 		end
 	end
 	return Languages.DEFAULT

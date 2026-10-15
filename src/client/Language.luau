@@ -1,7 +1,8 @@
 --!strict
 -- Chooses the language the game is written in for this player (Logic/Settings.language), before
--- anything is written: the one they chose in the settings, or else that of their Roblox, or
--- else, when their Roblox is in English, that of the country they play from. Their choice is in
+-- anything is written: the one they chose in the settings, or else the language of their Roblox
+-- account, of Roblox itself or of their device, whichever first is one of ours and not English.
+-- Never by where they play from (an IP's country), which a VPN changes. Their choice is in
 -- their save, which the server puts on their Player once it has loaded: it is waited for a
 -- moment, and a save slow to come leaves the language worked out without it.
 
@@ -24,13 +25,6 @@ local WAIT_FOR_SAVE = 4
 local detected = Languages.DEFAULT
 local chosen = Languages.DEFAULT
 
-local function country(player: Player): string?
-	local ok, code = pcall(function()
-		return LocalizationService:GetCountryRegionForPlayerAsync(player)
-	end)
-	return if ok and typeof(code) == "string" then code else nil
-end
-
 function Language.start(): string
 	local player = Players.LocalPlayer
 	local deadline = os.clock() + WAIT_FOR_SAVE
@@ -39,12 +33,13 @@ function Language.start(): string
 	end
 	local choice = player:GetAttribute(Net.SETTING_LANGUAGE)
 	local saved = if typeof(choice) == "string" and Languages.byCode[choice] then choice else nil
-	local locale = LocalizationService.RobloxLocaleId
-	-- The country is asked only when the locale does not settle it: it is a call that waits.
-	local byLocale = Settings.language(nil, locale, nil)
-	detected = if byLocale ~= Languages.DEFAULT
-		then byLocale
-		else Settings.language(nil, locale, country(player))
+	-- The account's language can be one Roblox's own interface is not written in, and then
+	-- RobloxLocaleId is English while LocaleId is not (Roblox's docs).
+	detected = Settings.language(nil, {
+		player.LocaleId,
+		LocalizationService.RobloxLocaleId,
+		LocalizationService.SystemLocaleId,
+	})
 	chosen = saved or detected
 	-- A Studio tester can have any language (Net.TEST_LANGUAGE_ATTRIBUTE).
 	local models = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
