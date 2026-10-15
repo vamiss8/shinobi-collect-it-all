@@ -37,6 +37,8 @@ type PoseFrame = {
 	position: Vector3?,
 	rotations: { [string]: Rotation },
 	release: boolean?,
+	-- How the pose moves on to the next key; Cubic InOut when not given.
+	easing: Enum.PoseEasingStyle?,
 }
 type Draft = {
 	name: string,
@@ -269,6 +271,59 @@ local function meditationPose(alpha: number): { [string]: Rotation }
 	return result
 end
 
+-- The way into the lotus and out of it is one curve that eases at its two ends only, keyed
+-- often and drawn straight (Linear) from key to key. A pose eases on to the NEXT key, so
+-- easing in and out at every key stopped the body at each of them on its way up (owner,
+-- 2026-10-15: "it rises in pieces, not smoothly"). The same as meditation-smooth.lua.
+local MEDITATE_RISE = 2.05 -- seconds; the game's Animations.MEDITATE_RISE must match it
+local MEDITATE_SETTLE = 0.5 -- the way down plays over the walk off, so it is short
+-- One breath of the loop, in and out, and how far the body rises on it, studs ("in the loop
+-- it levitates quite still, not even swaying").
+local BREATH = 3.6
+local BOB = 0.18
+
+-- What a breath in adds to the lotus at its top: the chest straightens a little, the head
+-- stays level with it, the elbows drift out.
+local breathIn: { [string]: Rotation } = {
+	UpperTorso = { 3, 0, 0 },
+	Head = { -3, 0, 0 },
+	RightUpperArm = { 0, 0, 3 },
+	LeftUpperArm = { 0, 0, -3 },
+}
+
+local function ease(share: number): number
+	return (1 - math.cos(math.pi * share)) / 2
+end
+
+-- From one depth of the lotus to another along `ease`, in `steps` straight pieces.
+local function glide(seconds: number, steps: number, from: number, to: number): { PoseFrame }
+	local frames: { PoseFrame } = {}
+	for step = 0, steps do
+		local amount = from + (to - from) * ease(step / steps)
+		table.insert(frames, {
+			time = seconds * step / steps,
+			position = Vector3.new(0, amount, 0),
+			rotations = meditationPose(amount),
+			easing = Enum.PoseEasingStyle.Linear,
+		})
+	end
+	return frames
+end
+
+-- The full lotus with `share` of a breath in.
+local function breathing(share: number): { [string]: Rotation }
+	local result = stance(lotus)
+	for part, rotation in breathIn do
+		local base = result[part] or { 0, 0, 0 }
+		result[part] = {
+			base[1] + rotation[1] * share,
+			base[2] + rotation[2] * share,
+			base[3] + rotation[3] * share,
+		}
+	end
+	return result
+end
+
 -- Positive Z at the right hip and negative Z at the left hip widen the stance.
 -- Shoulder Z rotates inward so the bent forearms meet in front of the chest.
 local chakra = {
@@ -430,49 +485,26 @@ local drafts: { Draft } = {
 		name = "MeditateStart",
 		priority = Enum.AnimationPriority.Action,
 		looped = false,
-		frames = {
-			-- The torso rises slowly as the legs fold: no separate snap.
-			{ time = 0, position = Vector3.new(0, 0, 0), rotations = meditationPose(0) },
-			{ time = 0.30, position = Vector3.new(0, 0.06, 0), rotations = meditationPose(0.07) },
-			{ time = 0.65, position = Vector3.new(0, 0.22, 0), rotations = meditationPose(0.23) },
-			{ time = 1.00, position = Vector3.new(0, 0.46, 0), rotations = meditationPose(0.47) },
-			{ time = 1.35, position = Vector3.new(0, 0.73, 0), rotations = meditationPose(0.73) },
-			{ time = 1.70, position = Vector3.new(0, 0.93, 0), rotations = meditationPose(0.92) },
-			{ time = 2.05, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
-		},
+		-- The torso rises as the legs fold, and ends at rest where the loop begins.
+		frames = glide(MEDITATE_RISE, 12, 0, 1),
 	},
 	{
 		name = "MeditateLoop",
 		priority = Enum.AnimationPriority.Action,
 		looped = true,
+		-- A breath in and out from the pose MeditateStart ends in. Keys only where the motion
+		-- turns, so easing between them is a sway.
 		frames = {
-			-- The pose MeditateStart ends in, held still: no jump where the two meet.
-			{ time = 0, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
-			{ time = 1.5, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
+			{ time = 0, position = Vector3.new(0, 1, 0), rotations = breathing(0) },
+			{ time = BREATH / 2, position = Vector3.new(0, 1 + BOB, 0), rotations = breathing(1) },
+			{ time = BREATH, position = Vector3.new(0, 1, 0), rotations = breathing(0) },
 		},
 	},
 	{
 		name = "MeditateEnd",
 		priority = Enum.AnimationPriority.Action,
 		looped = false,
-		frames = {
-			{ time = 0, position = Vector3.new(0, 1, 0), rotations = stance(lotus) },
-			{
-				time = 0.25,
-				position = Vector3.new(0, 0.3, 0),
-				rotations = {
-					RightUpperLeg = { 35, 10, -18 },
-					RightLowerLeg = { -60, 0, 0 },
-					LeftUpperLeg = { 40, -10, 20 },
-					LeftLowerLeg = { -65, 0, 0 },
-					RightUpperArm = { 20, 0, -10 },
-					RightLowerArm = { 40, 0, 0 },
-					LeftUpperArm = { 20, 0, 10 },
-					LeftLowerArm = { 40, 0, 0 },
-				},
-			},
-			{ time = 0.5, rotations = {} },
-		},
+		frames = glide(MEDITATE_SETTLE, 4, 1, 0),
 	},
 	{
 		name = "ChakraLoop",
@@ -548,7 +580,7 @@ for _, draft in drafts do
 				if partName == "LowerTorso" then frame.position else nil
 			)
 			pose.Weight = if partName == "HumanoidRootPart" then 0 else 1
-			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
+			pose.EasingStyle = frame.easing or Enum.PoseEasingStyle.Cubic
 			pose.EasingDirection = Enum.PoseEasingDirection.InOut
 			pose.Parent = if parentName == "" then keyframe else poses[parentName]
 			poses[partName] = pose

@@ -1,10 +1,21 @@
 --!strict
--- Smooth R15 meditation drafts for Shinobi: Collect It All!
--- Run ONCE from Roblox Studio > View > Command Bar while Play/Run is stopped.
--- It creates a NEW independent R15 rig with MeditateStart, MeditateLoop and MeditateEnd.
--- Does not overwrite existing rigs, upload animations, touch DataStores or commit anything.
--- Publish each clip from Animation Editor and replace its ID in
--- src/shared/Config/Animations.luau for the actual game to play these new motions.
+-- Smooth R15 meditation drafts for Shinobi: Collect It All! The co-author's (2026-10-15),
+-- reworked the same day at the owner's word: "it rises into the pose in pieces, not smoothly,
+-- though the moves themselves are not bad; and in the loop it levitates quite still, not even
+-- swaying".
+--
+-- Run from Roblox Studio's Command Bar while Play/Run is stopped. It makes a NEW R15 rig,
+-- MeditationSmoothRig, with MeditateStart, MeditateLoop and MeditateEnd in its AnimSaves, and
+-- touches nothing else. Publish each from the Animation Editor and put its id into
+-- src/shared/Config/Animations.luau.
+--
+-- WHY IT ROSE IN PIECES: a pose's easing is how it moves on to the NEXT key, and every pose
+-- eased in and out (Cubic InOut), so the body came to a stop at each of the seven keys on its
+-- way up. Now the way up is one curve that eases at its two ends only, keyed often and drawn
+-- straight (Linear) from key to key.
+--
+-- The game lifts the character as well (Humanoid.HipHeight, Services/Training), over
+-- Animations.MEDITATE_RISE seconds, which is RISE_SECONDS here: change the two together.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,6 +23,16 @@ local Selection = game:GetService("Selection")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 
 assert(not RunService:IsRunning(), "Stop Play/Run before creating meditation drafts")
+
+-- The way up: how long, and how many straight pieces it is drawn in.
+local RISE_SECONDS = 2.05
+local RISE_STEPS = 12
+-- The way down, when the player walks off or jumps: short, since it plays over the walk.
+local END_SECONDS = 0.5
+local END_STEPS = 4
+-- One breath of the loop, in and out, and how far the body rises on the breath in, studs.
+local BREATH_SECONDS = 3.6
+local BOB = 0.18
 
 local hierarchy = {
 	{ "HumanoidRootPart", "" },
@@ -53,35 +74,64 @@ local halfLotus: { [string]: { number } } = {
 	LeftHand = { -8, -22, 8 },
 }
 
--- No two-pose snap: lift and folding happen together, across SEVEN keyframes.
--- rise: torso offset in studs; fold: fraction of final half-lotus pose.
--- Both finish gently. First and last loop keys EXACTLY match the start's last key.
-local startFrames = {
-	{ time = 0.00, rise = 0.00, fold = 0.00 },
-	{ time = 0.30, rise = 0.06, fold = 0.07 },
-	{ time = 0.65, rise = 0.22, fold = 0.23 },
-	{ time = 1.00, rise = 0.46, fold = 0.47 },
-	{ time = 1.35, rise = 0.73, fold = 0.73 },
-	{ time = 1.70, rise = 0.93, fold = 0.92 },
-	{ time = 2.05, rise = 1.00, fold = 1.00 },
+-- What a breath in adds to the lotus at its top: the chest straightens a little, the head
+-- stays level with it, the elbows drift out. A positive turn about X tips an upright part back.
+local breathIn: { [string]: { number } } = {
+	UpperTorso = { 3, 0, 0 },
+	Head = { -3, 0, 0 },
+	RightUpperArm = { 0, 0, 3 },
+	LeftUpperArm = { 0, 0, -3 },
 }
 
-local loopFrames = {
-	{ time = 0.00, rise = 1.00, fold = 1.00 },
-	{ time = 1.50, rise = 1.00, fold = 1.00 },
+-- rise: the torso's offset in studs; fold: the share of the lotus; breath: the share of a
+-- breath in; easing: how the pose moves on to the next key.
+type Frame = {
+	time: number,
+	rise: number,
+	fold: number,
+	breath: number,
+	easing: Enum.PoseEasingStyle,
 }
 
-local endFrames = {
-	{ time = 0.00, rise = 1.00, fold = 1.00 },
-	{ time = 0.35, rise = 0.93, fold = 0.92 },
-	{ time = 0.70, rise = 0.73, fold = 0.73 },
-	{ time = 1.05, rise = 0.46, fold = 0.47 },
-	{ time = 1.40, rise = 0.22, fold = 0.23 },
-	{ time = 1.75, rise = 0.06, fold = 0.07 },
-	{ time = 2.05, rise = 0.00, fold = 0.00 },
+-- 0 at rest, 1 at the end, slow at both ends and nowhere else.
+local function ease(share: number): number
+	return (1 - math.cos(math.pi * share)) / 2
+end
+
+-- From one depth of the pose to another along `ease`, in `steps` straight pieces.
+local function glide(seconds: number, steps: number, from: number, to: number): { Frame }
+	local frames: { Frame } = {}
+	for step = 0, steps do
+		local amount = from + (to - from) * ease(step / steps)
+		table.insert(frames, {
+			time = seconds * step / steps,
+			rise = amount,
+			fold = amount,
+			breath = 0,
+			easing = Enum.PoseEasingStyle.Linear,
+		})
+	end
+	return frames
+end
+
+-- The way up ends at rest in the full pose, which is where the loop begins, also at rest.
+local startFrames = glide(RISE_SECONDS, RISE_STEPS, 0, 1)
+local endFrames = glide(END_SECONDS, END_STEPS, 1, 0)
+-- A breath in and out. Its keys are only where the motion turns, so easing in and out between
+-- them is what a sway is.
+local loopFrames: { Frame } = {
+	{ time = 0, rise = 1, fold = 1, breath = 0, easing = Enum.PoseEasingStyle.Cubic },
+	{
+		time = BREATH_SECONDS / 2,
+		rise = 1 + BOB,
+		fold = 1,
+		breath = 1,
+		easing = Enum.PoseEasingStyle.Cubic,
+	},
+	{ time = BREATH_SECONDS, rise = 1, fold = 1, breath = 0, easing = Enum.PoseEasingStyle.Cubic },
 }
 
-local function makeSequence(name: string, frames, looped: boolean): KeyframeSequence
+local function makeSequence(name: string, frames: { Frame }, looped: boolean): KeyframeSequence
 	local seq = Instance.new("KeyframeSequence")
 	seq.Name = name
 	seq.Loop = looped
@@ -99,14 +149,15 @@ local function makeSequence(name: string, frames, looped: boolean): KeyframeSequ
 			local partName, parentName = entry[1], entry[2]
 			local pose = Instance.new("Pose")
 			pose.Name = partName
-			local angles = halfLotus[partName]
-			local x = if angles then math.rad(angles[1] * frame.fold) else 0
-			local y = if angles then math.rad(angles[2] * frame.fold) else 0
-			local z = if angles then math.rad(angles[3] * frame.fold) else 0
+			local lotus = halfLotus[partName] or { 0, 0, 0 }
+			local breath = breathIn[partName] or { 0, 0, 0 }
+			local function turn(axis: number): number
+				return math.rad(lotus[axis] * frame.fold + breath[axis] * frame.breath)
+			end
 			local displacement = if partName == "LowerTorso" then frame.rise else 0
-			pose.CFrame = CFrame.new(0, displacement, 0) * CFrame.Angles(x, y, z)
+			pose.CFrame = CFrame.new(0, displacement, 0) * CFrame.Angles(turn(1), turn(2), turn(3))
 			pose.Weight = if partName == "HumanoidRootPart" then 0 else 1
-			pose.EasingStyle = Enum.PoseEasingStyle.Cubic
+			pose.EasingStyle = frame.easing
 			pose.EasingDirection = Enum.PoseEasingDirection.InOut
 			pose.Parent = if parentName == "" then key else poses[parentName]
 			poses[partName] = pose
