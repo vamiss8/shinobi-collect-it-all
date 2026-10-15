@@ -187,23 +187,25 @@ function Icons.book(holder: Instance)
 	overlay(holder, Art.icons.book)
 end
 
--- A Ryo coin: gold, with a rim and a square hole to string it by.
-function Icons.coin(holder: Instance)
+-- A Ryo coin: gold, with a rim and a square hole to string it by. `bare` leaves its picture
+-- off, for one that another picture is to take the place of.
+function Icons.coin(holder: Instance, bare: boolean?)
 	shape(holder, 0.08, 0.08, 0.84, 0.84, DARK_GOLD, 0.5)
 	shape(holder, 0.13, 0.13, 0.74, 0.74, GOLD, 0.5)
 	shape(holder, 0.24, 0.24, 0.52, 0.52, DARK_GOLD, 0.5)
 	shape(holder, 0.28, 0.28, 0.44, 0.44, PALE_GOLD, 0.5)
 	shape(holder, 0.41, 0.41, 0.18, 0.18, NIGHT, 0.12)
-	overlay(holder, Art.icons.coin)
+	overlay(holder, if bare then nil else Art.icons.coin)
 end
 
--- Chakra: a blue flame, a round body under a pointed tip, with a paler heart.
-function Icons.chakra(holder: Instance)
+-- Chakra: a blue flame, a round body under a pointed tip, with a paler heart. `bare` as for
+-- the coin.
+function Icons.chakra(holder: Instance, bare: boolean?)
 	shape(holder, 0.36, 0.10, 0.28, 0.28, BLUE, 0.1).Rotation = 45
 	shape(holder, 0.18, 0.28, 0.64, 0.64, BLUE, 0.5)
 	shape(holder, 0.43, 0.36, 0.14, 0.14, PALE_BLUE, 0.1).Rotation = 45
 	shape(holder, 0.34, 0.50, 0.32, 0.32, PALE_BLUE, 0.5)
-	overlay(holder, Art.icons.chakra)
+	overlay(holder, if bare then nil else Art.icons.chakra)
 end
 
 -- Meditation: a figure sitting cross-legged, hands on its knees, inside a glow.
@@ -647,9 +649,9 @@ function Icons.goods(holder: Instance, key: string)
 			Text = "VIP",
 		})
 	elseif key == "DoubleRyo" then
-		Icons.coin(holder)
+		Icons.coin(holder, Art.goods[key] ~= nil)
 	elseif key == "DoubleChakra" then
-		Icons.chakra(holder)
+		Icons.chakra(holder, Art.goods[key] ~= nil)
 	elseif key == "DoubleLuck" then
 		-- A four-leaf clover on its stem.
 		bar(holder, 0.56, 0.74, 0.07, 0.36, -24, Color3.fromRGB(46, 125, 50), 0.5)
@@ -739,17 +741,15 @@ function Icons.goods(holder: Instance, key: string)
 		Icons.shinobi(holder, key, Color3.fromHex(Catalog.legendRank.color))
 		return
 	end
-	-- What the pass multiplies by. A pass's own picture has it painted on (x2 Luck, x2
-	-- Mutation Luck, +4 Pads), so the seal is drawn before the picture and goes with the
-	-- drawing when the picture comes; the coin and the flame are the readouts' pictures, laid
-	-- on already, and keep the seal over them.
+	-- What the pass multiplies by. A pass's own picture has it painted on, so the seal is
+	-- drawn before the picture and goes with the drawing when the picture comes. Without a
+	-- picture of their own, x2 Ryo and x2 Chakra show the readouts' coin and flame, which
+	-- keep the seal over them.
 	local words = BADGES[key]
 	if words then
 		badge(holder, words, SEAL_RED)
 	end
-	if key ~= "DoubleRyo" and key ~= "DoubleChakra" then
-		overlay(holder, Art.goods[key])
-	end
+	overlay(holder, Art.goods[key])
 end
 
 -- The seal of an event (Config/Events), by what the event hangs in the sky: a red moon, red
