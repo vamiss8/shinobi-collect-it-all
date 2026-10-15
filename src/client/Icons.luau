@@ -739,20 +739,22 @@ function Icons.goods(holder: Instance, key: string)
 		Icons.shinobi(holder, key, Color3.fromHex(Catalog.legendRank.color))
 		return
 	end
-	-- The coin and the flame have the readouts' pictures laid on them already.
-	if key ~= "DoubleRyo" and key ~= "DoubleChakra" then
-		overlay(holder, Art.goods[key])
-	end
-	-- What the pass multiplies by, drawn after any picture so that it stays over one.
+	-- What the pass multiplies by. A pass's own picture has it painted on (x2 Luck, x2
+	-- Mutation Luck, +4 Pads), so the seal is drawn before the picture and goes with the
+	-- drawing when the picture comes; the coin and the flame are the readouts' pictures, laid
+	-- on already, and keep the seal over them.
 	local words = BADGES[key]
 	if words then
 		badge(holder, words, SEAL_RED)
 	end
+	if key ~= "DoubleRyo" and key ~= "DoubleChakra" then
+		overlay(holder, Art.goods[key])
+	end
 end
 
 -- The seal of an event (Config/Events), by what the event hangs in the sky: a red moon, red
--- clouds, a leaf of gold.
-function Icons.event(holder: Instance, shows: string)
+-- clouds, a leaf of gold; its picture (Art.events, by the event's id) takes the seal's place.
+function Icons.event(holder: Instance, shows: string, id: string?)
 	if shows == "moon" then
 		seal(holder, Color3.fromRGB(40, 8, 16))
 		dot(holder, 0.5, 0.5, 0.60, Color3.fromRGB(255, 82, 82))
@@ -776,6 +778,7 @@ function Icons.event(holder: Instance, shows: string)
 		bar(holder, 0.5, 0.5, 0.26, 0.54, 38, Color3.fromRGB(124, 179, 66), 0.5)
 		bar(holder, 0.5, 0.5, 0.035, 0.56, 38, Color3.fromRGB(46, 125, 50), 0.5)
 	end
+	overlay(holder, if id then Art.events[id] else nil)
 end
 
 return Icons

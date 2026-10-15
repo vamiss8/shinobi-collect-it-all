@@ -649,7 +649,7 @@ function EventShow.start()
 		paper.edge.Color = color
 		paper.seal.BackgroundColor3 = color
 		emblem:ClearAllChildren()
-		Icons.event(emblem, event.shows)
+		Icons.event(emblem, event.shows, event.id)
 		Ui.unroll(paper)
 
 		if fresh then
@@ -658,7 +658,7 @@ function EventShow.start()
 			StageFlash.queue(
 				color,
 				function(holder)
-					Icons.event(holder, event.shows)
+					Icons.event(holder, event.shows, event.id)
 				end,
 				Strings.upper(Strings.name(event.name)),
 				Strings.get(

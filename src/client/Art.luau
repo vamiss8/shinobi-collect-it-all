@@ -86,9 +86,15 @@ Art.kunai = {
 	truth_seeking = 98861102875126,
 } :: { [string]: number }
 
--- Pictures of what the shop sells (Config/Products), by the pass's or product's key, and of
--- the shop's own tile under "shop". None is uploaded yet: each is drawn from frames until then
--- (Icons.goods).
+-- Pictures of what the shop sells (Config/Products), by the pass's or product's key, of the
+-- shop's own tile under "shop" and of the settings' gear under "gear". Each is drawn from
+-- frames until its id is here (Icons.goods). The pictures are kept in assets/icons under the
+-- names of .claude/prompts/shop-icons.md (SoldierPill is soldier_pill.png, and so on). The
+-- passes' pictures carry their own "2x" or "+4" (Icons.goods draws none over them).
 Art.goods = {} :: { [string]: number }
+
+-- The emblems of the events (Config/Events), by the event's id, each a whole round badge that
+-- takes the drawn seal's place (Icons.event): assets/icons/event_<id>.png.
+Art.events = {} :: { [string]: number }
 
 return Art
