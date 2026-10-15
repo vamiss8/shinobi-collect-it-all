@@ -199,7 +199,7 @@ return {
 		ShopLegendWhat = "A legendary shinobi for your dojo, yours through every rebirth.",
 		ShopLegendIncome = "Lvl 1: %s Ryo/s",
 		ShopVipTitle = "DAIMYO VIP",
-		ShopVipIncome = "Dojo income x%s, for good",
+		ShopVipIncome = "Dojo income x%s",
 		ShopVipOffline = "Offline income x%s",
 		ShopVipSeal = "A gold VIP seal by your name",
 		-- What is sold, by its key in Config/Products: its name, and what it does.

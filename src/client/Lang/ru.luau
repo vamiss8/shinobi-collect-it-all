@@ -185,7 +185,7 @@ return {
 		ShopLegendWhat = "Легендарный шиноби для твоего додзё, с тобой через все перерождения.",
 		ShopLegendIncome = "Ур. 1: %s Рё/с",
 		ShopVipTitle = "VIP ДАЙМЁ",
-		ShopVipIncome = "Доход додзё x%s навсегда",
+		ShopVipIncome = "Доход додзё x%s",
 		ShopVipOffline = "Доход вне игры x%s",
 		ShopVipSeal = "Золотая печать VIP у твоего имени",
 		Goods_Vip = "VIP Даймё",

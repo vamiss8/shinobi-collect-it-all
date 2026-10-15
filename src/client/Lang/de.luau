@@ -185,7 +185,7 @@ return {
 		ShopLegendWhat = "Ein legendärer Shinobi für dein Dojo, bei jeder Wiedergeburt deins.",
 		ShopLegendIncome = "Stufe 1: %s Ryo/s",
 		ShopVipTitle = "DAIMYO-VIP",
-		ShopVipIncome = "Dojo-Einkommen x%s, für immer",
+		ShopVipIncome = "Dojo-Einkommen x%s",
 		ShopVipOffline = "Offline-Einkommen x%s",
 		ShopVipSeal = "Ein goldenes VIP-Siegel an deinem Namen",
 		Goods_Vip = "Daimyo-VIP",
