@@ -44,12 +44,12 @@ export type Product = {
 }
 
 local GamePasses: { GamePass } = {
-	{ key = "Vip", name = "Daimyo VIP", assetId = 0, kind = "vip" },
-	{ key = "DoubleRyo", name = "x2 Ryo", assetId = 0, kind = "boost" },
-	{ key = "DoubleChakra", name = "x2 Chakra", assetId = 0, kind = "boost" },
-	{ key = "DoubleLuck", name = "x2 Luck", assetId = 0, kind = "boost" },
-	{ key = "DoubleMutationLuck", name = "x2 Mutation Luck", assetId = 0, kind = "boost" },
-	{ key = "ExtraPads", name = "+4 Pads", assetId = 0, kind = "pads" },
+	{ key = "Vip", name = "Daimyo VIP", assetId = 2037590762, kind = "vip" },
+	{ key = "DoubleRyo", name = "x2 Ryo", assetId = 2037938811, kind = "boost" },
+	{ key = "DoubleChakra", name = "x2 Chakra", assetId = 2037500777, kind = "boost" },
+	{ key = "DoubleLuck", name = "x2 Luck", assetId = 2036912767, kind = "boost" },
+	{ key = "DoubleMutationLuck", name = "x2 Mutation Luck", assetId = 2037194736, kind = "boost" },
+	{ key = "ExtraPads", name = "+4 Pads", assetId = 2036216754, kind = "pads" },
 	-- The legendary shinobi (Config/Legends), a pass each: bought once, kept for good.
 	{ key = "LegendTsunade", name = "Tsunade", assetId = 2022434275, kind = "legend" },
 	{ key = "LegendTobirama", name = "Tobirama", assetId = 2022398273, kind = "legend" },
