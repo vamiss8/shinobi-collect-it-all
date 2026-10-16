@@ -57,9 +57,13 @@ local CLEAR_OF_BUTTONS = 214
 -- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
 -- the name stands in to make room for it.
 local VIP = Vector2.new(36, 18)
--- The dark violet the developer's DEV is edged in.
+-- The dark violet the developer's FOUNDER is edged in, and the pill it is on, which is wider
+-- than the VIP's for a longer word (owner, 2026-10-16: "change Dev to Founder"), and how far
+-- the name stands in beside it.
 local DEV_EDGE = Color3.fromRGB(34, 7, 74)
 local VIP_ROOM = 48
+local FOUNDER = Vector2.new(78, 18)
+local FOUNDER_ROOM = FOUNDER.X + 12
 local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
@@ -326,7 +330,7 @@ function PlayerList.start()
 			line.frame.BackgroundTransparency = if own then 0.9 else 1
 			line.edge.Transparency = if own then 0 else 1
 			line.name.Text = player.DisplayName
-			-- The developer's DEV takes the VIP's place (Net.DEVELOPER_ATTRIBUTE is on the
+			-- The developer's FOUNDER takes the VIP's place (Net.DEVELOPER_ATTRIBUTE is on the
 			-- developer's Player alone): a violet pill with a band of light running through it
 			-- (Config/Lettering `badges`, as a plate), white letters edged in dark violet over
 			-- it. The name beside it is written plain. The pill was the lettered word's own
@@ -335,8 +339,11 @@ function PlayerList.start()
 			-- passes too").
 			local isDev = player:GetAttribute(Net.DEVELOPER_ATTRIBUTE) == true
 			local isVip = player:GetAttribute(Net.PLAYER_VIP) == true
-			local inset = if isVip or isDev then VIP_ROOM else 8
+			local inset = if isDev then FOUNDER_ROOM elseif isVip then VIP_ROOM else 8
 			line.vip.Visible = isVip or isDev
+			line.vip.Size = if isDev
+				then UDim2.fromOffset(FOUNDER.X, FOUNDER.Y)
+				else UDim2.fromOffset(VIP.X, VIP.Y)
 			line.vipWord.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
 			line.vipWord.TextColor3 = if isDev then Ui.WHITE else Ui.INK
 			line.vipEdge.Enabled = isDev
