@@ -57,8 +57,8 @@ local CLEAR_OF_BUTTONS = 214
 -- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
 -- the name stands in to make room for it.
 local VIP = Vector2.new(36, 18)
--- The deep violet of the developer's pill.
-local DEV_PILL = Color3.fromRGB(74, 20, 140)
+-- The dark violet the developer's DEV is edged in.
+local DEV_EDGE = Color3.fromRGB(34, 7, 74)
 local VIP_ROOM = 48
 local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
@@ -75,7 +75,9 @@ type Row = {
 	edge: UIStroke,
 	name: TextLabel,
 	income: TextLabel,
-	vip: TextLabel,
+	vip: TextLabel, -- the pill itself, with no writing: the developer's is lettered as a plate
+	vipWord: TextLabel, -- what it says, over it and out of reach of its gradient
+	vipEdge: UIStroke,
 }
 
 -- The band of a rank.
@@ -175,14 +177,35 @@ local function row(sheet: Instance): Row
 		Size = UDim2.fromOffset(VIP.X, VIP.Y),
 		BackgroundColor3 = Ui.GOLD,
 		BackgroundTransparency = 0,
+		Text = "",
+		Visible = false,
+	})
+	Ui.corner(vip, 9)
+	-- A gradient colors the object it is in and not what that holds: the word is held by the
+	-- pill so that the pill's colors run under it and never over it.
+	local vipWord = Ui.text(vip, {
+		Size = UDim2.fromScale(1, 1),
 		TextSize = 14,
 		TextColor3 = Ui.INK,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = Strings.get("PlayersVip"),
-		Visible = false,
+		ZIndex = vip.ZIndex + 1,
 	})
-	Ui.corner(vip, 9)
-	return { frame = frame, edge = edge, name = name, income = income, vip = vip }
+	local vipEdge = Instance.new("UIStroke")
+	vipEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	vipEdge.Color = DEV_EDGE
+	vipEdge.Thickness = 1.5
+	vipEdge.Enabled = false
+	vipEdge.Parent = vipWord
+	return {
+		frame = frame,
+		edge = edge,
+		name = name,
+		income = income,
+		vip = vip,
+		vipWord = vipWord,
+		vipEdge = vipEdge,
+	}
 end
 
 function PlayerList.start()
@@ -304,16 +327,23 @@ function PlayerList.start()
 			line.edge.Transparency = if own then 0 else 1
 			line.name.Text = player.DisplayName
 			-- The developer's DEV takes the VIP's place (Net.DEVELOPER_ATTRIBUTE is on the
-			-- developer's Player alone): light letters running with violet on a deep violet
-			-- pill (Config/Lettering `badges`), whose gradient makes the pill shimmer with them.
-			-- The name beside it is written plain.
+			-- developer's Player alone): a violet pill with a band of light running through it
+			-- (Config/Lettering `badges`, as a plate), white letters edged in dark violet over
+			-- it. The name beside it is written plain. The pill was the lettered word's own
+			-- background first, and the gradient that colored the letters darkened the deep
+			-- violet under them into a black band (owner: "besides the white glint a black one
+			-- passes too").
 			local isDev = player:GetAttribute(Net.DEVELOPER_ATTRIBUTE) == true
 			local isVip = player:GetAttribute(Net.PLAYER_VIP) == true
 			local inset = if isVip or isDev then VIP_ROOM else 8
 			line.vip.Visible = isVip or isDev
-			line.vip.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
-			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil)
-			line.vip.BackgroundColor3 = if isDev then DEV_PILL else Ui.GOLD
+			line.vipWord.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
+			line.vipWord.TextColor3 = if isDev then Ui.WHITE else Ui.INK
+			line.vipEdge.Enabled = isDev
+			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil, true)
+			if not isDev then
+				line.vip.BackgroundColor3 = Ui.GOLD
+			end
 			line.name.Position = UDim2.fromOffset(inset, 2)
 			line.name.Size = UDim2.new(1, -(inset + INCOME + 12), 1, -4)
 			-- To a tenth: "1.2B" tells two dojos apart where "1B" did not.
