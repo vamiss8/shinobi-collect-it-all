@@ -59,7 +59,7 @@ return {
 
 	["the bundle starts every potion it holds for its minutes"] = function()
 		local bundle = Catalog.productByKey.AcademyBundle
-		T.ok(bundle ~= nil and bundle.once == true, "the bundle is not sold once")
+		T.ok(bundle ~= nil and bundle.once ~= true, "the bundle is sold once only")
 		local potions: { [string]: number } = { sage_oil = NOW + 100 }
 		Purchases.drinkBundle(potions, bundle, NOW)
 		local minutes = bundle.minutes or 0

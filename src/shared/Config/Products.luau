@@ -79,8 +79,8 @@ local Products: { Product } = {
 		potion = "gama_charm",
 	},
 	{ key = "SageOil", name = "Sage Oil", assetId = 0, kind = "potion", potion = "sage_oil" },
-	-- All four potions for half an hour each, for less than the four cost: a first purchase
-	-- made easy, and so sold once.
+	-- All four potions for half an hour each, for less than the four cost. Sold any number of
+	-- times (owner, 2026-10-16: once a player "is nonsense, let purchases be endless").
 	{
 		key = "AcademyBundle",
 		name = "Academy Bundle",
@@ -88,7 +88,6 @@ local Products: { Product } = {
 		kind = "bundle",
 		potions = { "soldier_pill", "ichiraku_ramen", "gama_charm", "sage_oil" },
 		minutes = 30,
-		once = true,
 	},
 	-- Minutes of the dojo's income, so that a pack is worth as much late in the game as early.
 	{ key = "RyoPouch", name = "Ryo Pouch", assetId = 0, kind = "ryo", incomeMinutes = 30 },
