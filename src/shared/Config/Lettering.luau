@@ -168,14 +168,17 @@ local TITLES: { [string]: Style } = {
 
 -- Marks a player wears by their name. "dev" is the developer's (server/Developers), in place
 -- of the VIP's gold (owner, 2026-10-16: "for my account only, Dev instead of VIP, colorful and
--- noticeable"): every color running through it.
+-- noticeable"). The whole rainbow stands still across the word, red to violet, in soft
+-- colors, and a glint crosses it now and again. It first ran through the word as "flow" in
+-- six loud colors every 2 s: "not every color of the rainbow, strange, and it hurts the eyes
+-- to look at for long".
 local BADGES: { [string]: Style } = {
 	dev = {
-		fill = { "#FF1744", "#FF9100", "#FFEA00", "#00E676", "#00B0FF", "#D500F9" },
-		edge = "#14002E",
+		fill = { "#FF6B6B", "#FFA94D", "#FFE066", "#69DB7C", "#4DABF7", "#748FFC", "#DA77F2" },
+		edge = "#1A1033",
 		flare = "#FFFFFF",
-		motion = "flow",
-		period = 2.0,
+		motion = "sheen",
+		period = 4.5,
 	},
 }
 
