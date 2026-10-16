@@ -496,6 +496,10 @@ function KickBar.start()
 		if result.sage then
 			text = Strings.get("KickSage") .. text
 		end
+		-- What the throw brought towards potions (Tuning.Herbs).
+		if result.herbs > 0 then
+			text ..= Strings.get("KickHerbs", result.herbs)
+		end
 		Hud.toast(text, color)
 	end)
 end

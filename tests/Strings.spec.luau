@@ -143,7 +143,7 @@ return {
 			count += 1
 			T.ok(has(key), `no words for {key}`)
 		end
-		T.eq(count, 3, "a shop without a pitch")
+		T.eq(count, 4, "a shop without a pitch")
 		for key in string.gmatch(shops, '"(%w+Hello%d)"') do
 			T.ok(has(key), `no words for {key}`)
 		end

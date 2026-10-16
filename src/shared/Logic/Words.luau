@@ -37,7 +37,8 @@ export type Book = {
 }
 
 -- Keys of the interface's words that are written in the world too, besides the World_* ones.
-local SHARED_WITH_WORLD = { "ShopTentenTitle", "SellTitle", "ShopSpeedTitle", "ShopMax" }
+local SHARED_WITH_WORLD =
+	{ "ShopTentenTitle", "SellTitle", "ShopSpeedTitle", "ShopMax", "HerbTitle" }
 
 function Words.book(english: Pack, pack: Pack?): Book
 	return { english = english, pack = pack }

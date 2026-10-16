@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local HerbShop = require("./Stores/HerbShop")
 local Net = require(ReplicatedStorage.Shared.Net)
 local SellStall = require("./Stores/SellStall")
 local Speech = require("./Speech")
@@ -73,6 +74,12 @@ local TALK: { [string]: Talk } = {
 		mark = "D",
 		lines = { "DuyHello1", "DuyHello2", "DuyHello3", "DuyHello4" },
 	},
+	herbs = {
+		pitch = "PitchHerbs",
+		keeper = "herbalist",
+		mark = "H",
+		lines = { "HerbsHello1", "HerbsHello2", "HerbsHello3", "HerbsHello4" },
+	},
 }
 
 -- A shop's counter, with what its keeper says over it.
@@ -93,6 +100,7 @@ function Shops.start()
 		tenten = TentenShop.build(),
 		speed = SpeedStore.build(),
 		sell = SellStall.build(),
+		herbs = HerbShop.build(),
 	}
 
 	-- The window that was opened from a counter, and that counter.

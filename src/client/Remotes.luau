@@ -30,6 +30,8 @@ return {
 	RingPress = event(Net.Events.RingPress),
 	RingResult = event(Net.Events.RingResult),
 	Buy = event(Net.Events.Buy),
+	BuyPotion = event(Net.Events.BuyPotion),
+	Drink = event(Net.Events.Drink),
 	RunAt = event(Net.Events.RunAt),
 	Rebirth = event(Net.Events.Rebirth),
 	Upgrade = event(Net.Events.Upgrade),

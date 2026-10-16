@@ -208,6 +208,21 @@ function Icons.chakra(holder: Instance, bare: boolean?)
 	overlay(holder, if bare then nil else Art.icons.chakra)
 end
 
+-- A Herb, what potions are bought with: a sprig of three leaves on a stem, each leaf edged
+-- darker and split by a pale vein.
+function Icons.herb(holder: Instance)
+	local dark = Color3.fromRGB(46, 125, 50)
+	local leaf = Color3.fromRGB(102, 187, 106)
+	local vein = Color3.fromRGB(200, 230, 201)
+	bar(holder, 0.5, 0.68, 0.07, 0.5, 8, dark, 0.5)
+	for _, at in { { 0.32, 0.52, -52 }, { 0.68, 0.44, 52 }, { 0.5, 0.27, 4 } } do
+		bar(holder, at[1], at[2], 0.27, 0.43, at[3], dark, 0.5)
+		bar(holder, at[1], at[2], 0.2, 0.36, at[3], leaf, 0.5)
+		bar(holder, at[1], at[2], 0.035, 0.3, at[3], vein, 0.5)
+	end
+	overlay(holder, Art.icons.herb)
+end
+
 -- Meditation: a figure sitting cross-legged, hands on its knees, inside a glow.
 function Icons.meditate(holder: Instance)
 	shape(holder, 0.10, 0.12, 0.80, 0.80, DEEP_BLUE, 0.5).BackgroundTransparency = 0.55

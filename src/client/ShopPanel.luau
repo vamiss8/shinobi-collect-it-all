@@ -1,8 +1,10 @@
 --!strict
 -- The shop where things are bought for Robux (Config/Products): a tile on the right edge,
 -- over the Inventory's, and the window it opens. Four pages under tabs: the passes, with the
--- Daimyo's VIP on a sheet of its own at the head; the potions that boost for a while; Ryo; and
--- the legendary shinobi, which stand on the plaza too.
+-- Daimyo's VIP on a sheet of its own at the head; the potions that boost for a while, with the
+-- pouch they go into and a button to drink one, anywhere; Ryo; and the legendary shinobi,
+-- which stand on the plaza too. Potions are sold for Herbs as well, at the Herb Shop on the
+-- plaza (Stores/HerbShop).
 --
 -- The window only opens Roblox's own purchase window; what a purchase gives the server decides
 -- (Services/Purchases, Services/Legends) and the next snapshot shows. No price is written in
@@ -16,7 +18,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Hud = require("./Hud")
 local Icons = require("./Icons")
+local Prices = require("./Prices")
 local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
+local Remotes = require("./Remotes")
 local Store = require("./Store")
 local Strings = require("./Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -39,6 +43,10 @@ local WHAT_ROOM = CARD.X - 28
 local VIP_HEIGHT = 214
 -- The slip over the passes, as wide as the VIP's sheet under it.
 local NOTE_WIDE = SIZE.X - 32 - 28
+-- A potion's card has two buttons side by side, this far apart.
+local TWIN_GAP = 10
+-- The line of the Herbs the player has, over the potions.
+local HERBS_ROW = 44
 local VIP_LINE = 24
 
 type Page = string
@@ -61,11 +69,9 @@ type Item = {
 	pass: boolean, -- a game pass, bought once; or else a developer product
 	button: TextButton,
 	status: TextLabel?,
+	drink: TextButton?, -- for a potion: drinks one out of the pouch
 	mode: Mode,
 }
-
--- Prices as Roblox gives them to this player, by asset id.
-local prices: { [number]: number } = {}
 
 -- "12:05" for seconds.
 local function clock(seconds: number): string
@@ -84,7 +90,7 @@ local function what(key: string): string
 		local potion = Catalog.potionById[product.potion]
 		return Strings.get("GoodsWhat_" .. key, if potion then potion.minutes else 0)
 	elseif product.kind == "bundle" then
-		return Strings.get("GoodsWhat_" .. key, product.minutes or 0)
+		return Strings.get("GoodsWhat_" .. key, product.each or 0)
 	elseif product.kind == "ryo" then
 		return Strings.get("GoodsWhat_" .. key, Strings.duration((product.incomeMinutes or 0) * 60))
 	end
@@ -92,15 +98,17 @@ local function what(key: string): string
 end
 
 -- A card for one thing: its icon, its name, what it does in a few short lines, a line of how
--- it stands (a potion's time, what a pack pays), and the button that buys it.
+-- it stands (a potion's pouch and time, what a pack pays), and the button that buys it; with
+-- `twin`, a potion's, a button to drink one beside it.
 local function card(
 	parent: Instance,
 	key: string,
 	title: string,
 	words: string,
 	edge: Color3,
-	order: number
-): (TextButton, TextLabel)
+	order: number,
+	twin: boolean?
+): (TextButton, TextLabel, TextButton?)
 	local frame = Ui.panel(parent, {
 		Size = UDim2.fromOffset(CARD.X, CARD.Y),
 		BackgroundColor3 = Ui.CARD,
@@ -138,16 +146,58 @@ local function card(
 		TextSize = 22,
 		TextColor3 = Ui.GOLD,
 		TextXAlignment = Enum.TextXAlignment.Center,
+		RichText = true,
+	})
+	if not twin then
+		local button = Ui.button(frame, {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -12),
+			Size = UDim2.fromOffset(CARD.X - 40, 54),
+			BackgroundColor3 = Ui.GOLD,
+			TextColor3 = Ui.INK,
+			TextSize = 27,
+		})
+		return button, status, nil
+	end
+	local half = (CARD.X - 40 - TWIN_GAP) / 2
+	local drink = Ui.button(frame, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 20, 1, -12),
+		Size = UDim2.fromOffset(half, 54),
+		BackgroundColor3 = Ui.GREEN,
+		TextColor3 = Ui.WHITE,
+		TextSize = 24,
 	})
 	local button = Ui.button(frame, {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(CARD.X - 40, 54),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -20, 1, -12),
+		Size = UDim2.fromOffset(half, 54),
 		BackgroundColor3 = Ui.GOLD,
 		TextColor3 = Ui.INK,
-		TextSize = 27,
+		TextSize = 24,
 	})
-	return button, status
+	return button, status, drink
+end
+
+-- The head of the Boosts page: what the pouch is, and the Herbs the player has.
+local function pouchHead(page: Instance): TextLabel
+	Ui.note(page, { LayoutOrder = 0 }, NOTE_WIDE, Strings.get("ShopPouchNote"))
+	local row = Ui.make("Frame", {
+		Size = UDim2.fromOffset(NOTE_WIDE, HERBS_ROW),
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+	}, page)
+	local icon = Ui.make("Frame", {
+		Size = UDim2.fromOffset(HERBS_ROW, HERBS_ROW),
+		BackgroundTransparency = 1,
+	}, row)
+	Icons.herb(icon)
+	return Ui.text(row, {
+		Position = UDim2.fromOffset(HERBS_ROW + 10, 0),
+		Size = UDim2.new(1, -HERBS_ROW - 10, 1, 0),
+		TextSize = 28,
+		TextColor3 = Ui.GREEN,
+	})
 end
 
 -- The cards of a page, three to a row, under whatever stands at its head.
@@ -240,7 +290,8 @@ function ShopPanel.start()
 		assetId: number,
 		pass: boolean,
 		button: TextButton,
-		status: TextLabel?
+		status: TextLabel?,
+		drink: TextButton?
 	)
 		local item: Item = {
 			key = key,
@@ -248,9 +299,20 @@ function ShopPanel.start()
 			pass = pass,
 			button = button,
 			status = status,
+			drink = drink,
 			mode = "soon",
 		}
 		table.insert(items, item)
+		local product = Catalog.productByKey[key]
+		local potionId = if product then product.potion else nil
+		if drink and potionId then
+			drink.Activated:Connect(function()
+				local state = Store.get()
+				if state and (state.stock[potionId] or 0) > 0 then
+					Remotes.Drink:FireServer(potionId)
+				end
+			end)
+		end
 		button.Activated:Connect(function()
 			if item.mode ~= "buy" then
 				return
@@ -343,17 +405,19 @@ function ShopPanel.start()
 			table.insert(packs, product)
 		end
 	end
-	local boostGrid = grid(pages.boosts, #boosts, 1)
+	local herbsLine = pouchHead(pages.boosts)
+	local boostGrid = grid(pages.boosts, #boosts, 2)
 	for order, product in boosts do
-		local button, status = card(
+		local button, status, drink = card(
 			boostGrid,
 			product.key,
 			Strings.get("Goods_" .. product.key),
 			what(product.key),
 			Ui.BLUE,
-			order
+			order,
+			product.kind == "potion"
 		)
-		add(product.key, product.assetId, false, button, status)
+		add(product.key, product.assetId, false, button, status, drink)
 	end
 	local packGrid = grid(pages.ryo, #packs, 1)
 	for order, product in packs do
@@ -410,6 +474,7 @@ function ShopPanel.start()
 		for _, key in state.bought do
 			had[key] = true
 		end
+		herbsLine.Text = Strings.get("ShopHerbsHave", state.herbs)
 
 		for _, item in items do
 			local product = Catalog.productByKey[item.key]
@@ -425,7 +490,7 @@ function ShopPanel.start()
 			end
 			item.mode = mode
 
-			local price = prices[item.assetId]
+			local price = Prices.get(item.assetId)
 			local button = item.button
 			button.Text = if mode == "soon"
 				then Strings.get("GoodsSoonButton")
@@ -443,9 +508,22 @@ function ShopPanel.start()
 			local status = item.status
 			if status and product then
 				if product.kind == "potion" and product.potion then
+					-- How many are in the pouch, and how long the one running has left.
+					local count = state.stock[product.potion] or 0
 					local running = state.potions[product.potion]
-					status.Text = if running then Strings.get("ShopActive", clock(running)) else ""
-					status.TextColor3 = Ui.GREEN
+					local text = Strings.get("PouchCount", count)
+					if running then
+						local active = Strings.get("ShopActive", clock(running))
+						text ..= `   <font color="#{Ui.GREEN:ToHex()}">{active}</font>`
+					end
+					status.Text = text
+					status.TextColor3 = Ui.GOLD
+					local drink = item.drink
+					if drink then
+						drink.Text = Strings.get("PotionDrink")
+						drink.BackgroundColor3 = if count > 0 then Ui.GREEN else Ui.GRAY
+						drink.AutoButtonColor = count > 0
+					end
 				elseif product.kind == "bundle" then
 					status.Text = if mode == "bought"
 						then ""
@@ -467,23 +545,14 @@ function ShopPanel.start()
 	-- did not come.
 	local function fetchPrices()
 		for _, item in items do
-			if item.assetId > 0 and not prices[item.assetId] then
-				task.spawn(function()
-					local ok, info = pcall(function()
-						return MarketplaceService:GetProductInfo(
-							item.assetId,
-							if item.pass then Enum.InfoType.GamePass else Enum.InfoType.Product
-						)
-					end)
-					local robux = if ok and typeof(info) == "table" then info.PriceInRobux else nil
-					if typeof(robux) == "number" then
-						prices[item.assetId] = robux
-						draw()
-					end
-				end)
-			end
+			Prices.ask(item.assetId, item.pass)
 		end
 	end
+	Prices.onChange(function()
+		if window.isOpen() then
+			draw()
+		end
+	end)
 	window.frame:GetPropertyChangedSignal("Visible"):Connect(function()
 		if window.frame.Visible then
 			fetchPrices()
