@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Ui = {}
@@ -42,20 +43,39 @@ end
 
 -- The interface is laid out for a screen this many pixels tall and at least this wide, and
 -- drawn larger on a bigger one, so that on a 1440p or 4K monitor it keeps its share of the
--- screen instead of shrinking into the corners. It is never drawn smaller than laid out: a
--- phone is short, and its layout is already as tight as it gets.
+-- screen instead of shrinking into the corners. On a computer it is never drawn smaller than
+-- laid out.
 local DESIGN_HEIGHT = 900
 local DESIGN_WIDTH = 1500
 local MAX_SCALE = 2.6
+-- A touch screen is drawn as one this tall and wide, and so smaller than laid out on a phone.
+-- Drawn at its full size there (a phone is some 390 pixels tall as Roblox counts them), the
+-- interface was two and a half screens high and lay on itself (the owner's tester, 2026-10-16,
+-- on a phone); this gives a phone about 0.6, so that 24 pixels of writing come out as 15. Its
+-- own corners are laid out apart too (client Hud): Roblox's stick and jump button are there.
+local TOUCH_HEIGHT = 640
+local TOUCH_WIDTH = 1100
+local TOUCH_SMALLEST = 0.5
 
 local function viewport(): Vector2
 	local camera = Workspace.CurrentCamera
 	return if camera then camera.ViewportSize else Vector2.new(DESIGN_WIDTH, DESIGN_HEIGHT)
 end
 
+-- Whether this is a touch screen with no keyboard: a phone or a tablet. Its interface is drawn
+-- to a scale of its own and some of it stands elsewhere, out of the way of Roblox's stick in
+-- the lower left corner and its jump button in the lower right.
+function Ui.touch(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
 -- How many times larger than laid out the interface is drawn on this screen.
 function Ui.scale(): number
 	local view = viewport()
+	if Ui.touch() then
+		local fit = math.min(view.Y / TOUCH_HEIGHT, view.X / TOUCH_WIDTH)
+		return math.clamp(fit, TOUCH_SMALLEST, MAX_SCALE)
+	end
 	return math.clamp(math.min(view.Y / DESIGN_HEIGHT, view.X / DESIGN_WIDTH), 1, MAX_SCALE)
 end
 

@@ -2,10 +2,15 @@
 -- The always-visible UI, split by purpose: Chakra and the throw power in the bottom-left
 -- corner with Ryo stacked right above them, window buttons on the right edge, and short
 -- messages written on a scroll at the top.
+--
+-- A touch screen has Roblox's stick in its lower left corner and the jump button in its lower
+-- right (owner's tester, 2026-10-16: the readouts lay over the stick, which could not be
+-- found). There Ryo and Chakra stand in the upper left corner, the throw power slider opening
+-- under them, and every window tile, the left column's too, stands in the upper right corner,
+-- two to a row and a little smaller.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -28,6 +33,17 @@ local READOUT_WIDTH = 400
 local RYO_HEIGHT = 80
 local CHAKRA_HEIGHT = 144
 local READOUT_GAP = 10
+-- On a touch screen: how far down from the top the readouts begin, how much smaller the tiles
+-- are drawn, and how many stand in a row.
+local TOUCH_TOP = 10
+local TOUCH_TILES = 0.85
+local TOUCH_ROW = 2
+local TILE = Vector2.new(112, 116)
+local TILE_GAP = 12
+
+-- Where the readouts end on a touch screen, from the top: what stands under them goes by it
+-- (client EventShow's timer).
+Hud.TOUCH_FOOT = TOUCH_TOP + RYO_HEIGHT + READOUT_GAP + CHAKRA_HEIGHT
 
 -- The scroll messages are written on: the parchment and its words. A message's color goes to
 -- the parchment's outline and seal.
@@ -81,7 +97,7 @@ function Hud.sideButton(
 	local column = if left then leftColumn else sideColumn
 	assert(column, "Hud.start() has not run yet")
 	local tile = Ui.button(column, {
-		Size = UDim2.fromOffset(112, 116),
+		Size = UDim2.fromOffset(TILE.X, TILE.Y),
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
 	})
@@ -190,16 +206,17 @@ function Hud.start()
 	local screen = Ui.screen("Hud", 10)
 
 	-- Chakra and the throw power, bottom-left. Touch screens have the movement stick there, so
-	-- on those the stack sits halfway up the left edge instead. `chakraBottom` is where the
+	-- on those the stack stands in the upper left corner instead. `chakraBottom` is where the
 	-- Chakra readout's lower edge is, as a share of the screen's height plus an offset.
-	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-	local chakraBottom = if touch then UDim.new(0.5, CHAKRA_HEIGHT - 10) else UDim.new(1, -12)
+	local touch = Ui.touch()
+	local chakraBottom = if touch then UDim.new(0, Hud.TOUCH_FOOT) else UDim.new(1, -12)
 	local chakraPlaque, chakraAmount, chakraDetail = readout(screen, Icons.chakra, Ui.BLUE, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(UDim.new(0, 12), chakraBottom),
 		Size = UDim2.fromOffset(READOUT_WIDTH, CHAKRA_HEIGHT),
 	})
-	local slider = ThrowPower.attach(chakraPlaque)
+	-- On a touch screen the slider opens downwards, there being no room over the readouts.
+	local slider = ThrowPower.attach(chakraPlaque, touch)
 
 	-- Ryo, right above Chakra. When the throw power slider opens over the Chakra readout, Ryo
 	-- moves up to sit above the slider.
@@ -210,7 +227,7 @@ function Hud.start()
 	ryoDetail.TextColor3 = Ui.GREEN
 	local function stack()
 		local lift = CHAKRA_HEIGHT + READOUT_GAP
-		if slider.Visible then
+		if slider.Visible and not touch then
 			-- The slider's own gap above the readout is the offset it is placed with.
 			lift += slider.Size.Y.Offset - slider.Position.Y.Offset
 		end
@@ -225,37 +242,64 @@ function Hud.start()
 	ryoAmount.Text = Strings.get("HudLoading")
 	chakraAmount.Text = Strings.get("HudLoading")
 
-	-- Window buttons, on the right edge.
+	-- Window buttons, on the right edge; on a touch screen in its upper right corner, two to a
+	-- row, out of the way of the jump button, with the left column's among them.
+	if touch then
+		local wide = TOUCH_ROW * TILE.X + (TOUCH_ROW - 1) * TILE_GAP
+		local grid = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -12, 0, TOUCH_TOP),
+			Size = UDim2.fromOffset(wide, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+		}, screen)
+		Ui.make("UIGridLayout", {
+			CellSize = UDim2.fromOffset(TILE.X, TILE.Y),
+			CellPadding = UDim2.fromOffset(TILE_GAP, TILE_GAP),
+			FillDirectionMaxCells = TOUCH_ROW,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, grid)
+		Ui.make("UIScale", { Scale = TOUCH_TILES }, grid)
+		sideColumn = grid
+		leftColumn = grid
+	end
 	local column = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
-		Size = UDim2.fromOffset(112, 0),
+		Size = UDim2.fromOffset(TILE.X, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
+		Visible = not touch,
 	}, screen)
 	Ui.make("UIListLayout", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 12),
+		Padding = UDim.new(0, TILE_GAP),
 	}, column)
-	sideColumn = column
+	if not touch then
+		sideColumn = column
+	end
 	-- And a column on the left edge, for Rebirth, which the games of this kind keep there. It
-	-- stands at the middle of the edge, over the readouts; on a touch screen the readouts are
-	-- there themselves, so it stands above them.
+	-- stands at the middle of the edge, over the readouts. (On a touch screen its tiles are
+	-- among the others, above.)
 	local left = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0, if touch then 0 else 0.5),
-		Position = UDim2.new(0, 12, if touch then 0.12 else 0.5, 0),
-		Size = UDim2.fromOffset(112, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		Size = UDim2.fromOffset(TILE.X, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
+		Visible = not touch,
 	}, screen)
 	Ui.make("UIListLayout", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 12),
+		Padding = UDim.new(0, TILE_GAP),
 	}, left)
-	leftColumn = left
+	if not touch then
+		leftColumn = left
+	end
 	-- The throw power slider opens upwards over the readouts, and Ryo moves up over it: into
 	-- where this column stands. So the column makes way too, to just above Ryo, and comes
-	-- back when the slider shuts. (On a touch screen it stands above all of that already.)
+	-- back when the slider shuts. (A touch screen has no such column.)
 	if not touch then
 		local function makeWay()
 			local goal = UDim2.new(0, 12, 0.5, 0)

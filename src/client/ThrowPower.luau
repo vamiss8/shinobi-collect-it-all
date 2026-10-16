@@ -57,7 +57,7 @@ end
 
 -- Adds the throw power row to the Chakra readout, and the slider that opens above it. Returns
 -- the slider's panel, so whatever sits above the readout can make way while it is open.
-function ThrowPower.attach(pill: Frame): Frame
+function ThrowPower.attach(pill: Frame, below: boolean?): Frame
 	local row = Ui.button(pill, {
 		Position = UDim2.new(0, 10, 1, -52),
 		Size = UDim2.new(1, -20, 0, 42),
@@ -66,9 +66,11 @@ function ThrowPower.attach(pill: Frame): Frame
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
 
+	-- It opens over the readout, or under it where the readout stands at the top of the screen
+	-- (a touch screen's: client Hud).
 	local popup = Ui.panel(pill, {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromOffset(0, -8),
+		AnchorPoint = Vector2.new(0, if below then 0 else 1),
+		Position = if below then UDim2.new(0, 0, 1, 8) else UDim2.fromOffset(0, -8),
 		Size = UDim2.new(1, 0, 0, 250),
 		BackgroundTransparency = 0.05,
 		Visible = false,

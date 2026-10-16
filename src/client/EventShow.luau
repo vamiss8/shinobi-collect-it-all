@@ -373,8 +373,11 @@ end
 
 function EventShow.start()
 	local layer = Ui.screen("Event", 12)
+	-- In the upper left corner; on a touch screen, where the readouts are, under them.
 	local paper = Ui.parchment(layer, {
-		Position = UDim2.fromOffset(28, 18),
+		Position = if Ui.touch()
+			then UDim2.fromOffset(12, Hud.TOUCH_FOOT + 12)
+			else UDim2.fromOffset(28, 18),
 		Size = UDim2.fromOffset(TIMER.X, TIMER.Y),
 		Visible = false,
 	}, TIMER_SEAL)
