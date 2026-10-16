@@ -275,7 +275,7 @@ function Catalog.validate(): { string }
 				`{product.key} sells a potion there is not`
 			)
 		elseif product.kind == "bundle" then
-			check((product.minutes or 0) > 0, `{product.key} lasts no time`)
+			check((product.each or 0) >= 1, `{product.key} holds nothing`)
 			local potions: { string } = product.potions or {}
 			for _, potionId in potions do
 				check(

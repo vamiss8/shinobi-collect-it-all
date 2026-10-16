@@ -13,6 +13,7 @@ local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Inventory = require("./Inventory")
 local Loadout = require("./Loadout")
 local Market = require("../World/Market")
+local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local Remotes = require("../Remotes")
 local SpeedLook = require("./SpeedLook")
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
@@ -177,8 +178,24 @@ local function sell(player: Player, unitIds: unknown)
 	State.push(player)
 end
 
+-- Buys a potion for Herbs, into the pouch: at the Herb Shop's counter.
+local function buyPotion(player: Player, potionId: unknown)
+	local data = Data.get(player)
+	local potion = if typeof(potionId) == "string" then Catalog.potionById[potionId] else nil
+	if not data or not potion or not Market.playerAt(player, "herbs") then
+		return
+	end
+	if Pouch.buy(data, potion.id) then
+		State.notify(player, "PotionStocked", potion.name)
+	else
+		State.notify(player, "NotEnoughHerbs")
+	end
+	State.push(player)
+end
+
 function Shop.start()
 	Remotes.Buy.OnServerEvent:Connect(buy)
+	Remotes.BuyPotion.OnServerEvent:Connect(buyPotion)
 	Remotes.RunAt.OnServerEvent:Connect(runAt)
 	Remotes.Sell.OnServerEvent:Connect(sell)
 

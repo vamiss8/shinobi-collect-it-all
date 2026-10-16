@@ -1,7 +1,7 @@
 --!strict
 -- The arithmetic of what is sold for Robux (Config/Products), kept apart from Roblox so that it
 -- can be tested: what a pack of Ryo pays, how long the potions a player drinks have left, and
--- the record of purchases already granted.
+-- the record of purchases already granted. What is in the pouch is Logic/Pouch's.
 
 local Boosts = require("./Boosts")
 local Catalog = require("../Config/Catalog")
@@ -32,14 +32,6 @@ function Purchases.drink(
 	minutes: number
 )
 	potions[potionId] = Boosts.extend(potions[potionId], now, minutes)
-end
-
--- Every potion in a bundle, each for the bundle's minutes.
-function Purchases.drinkBundle(potions: { [string]: number }, product: Catalog.Product, now: number)
-	local held: { string } = product.potions or {}
-	for _, potionId in held do
-		Purchases.drink(potions, potionId, now, product.minutes or 0)
-	end
 end
 
 -- Whether a purchase of that id has been granted already.

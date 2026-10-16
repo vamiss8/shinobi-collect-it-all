@@ -23,6 +23,7 @@ local DojoPlan = require("../src/shared/Logic/DojoPlan")
 local Economy = require("../src/shared/Logic/Economy")
 local Format = require("../src/shared/Logic/Format")
 local Kick = require("../src/shared/Logic/Kick")
+local Pouch = require("../src/shared/Logic/Pouch")
 local Rebirth = require("../src/shared/Logic/Rebirth")
 local Roll = require("../src/shared/Logic/Roll")
 local T = require("../tests/harness")
@@ -102,6 +103,7 @@ type Player = {
 	ryo: number,
 	spins: number,
 	streak: number,
+	herbs: number, -- earned by throws, all of them (Tuning.Herbs); none are spent here
 	pads: { Unit },
 	caught: number,
 	reached: { [number]: number }, -- zone number -> when its threshold was first met
@@ -242,6 +244,7 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	local result = Kick.resolve(aim(player), barPosition(profile, rng()), player.streak)
 	player.streak = result.streak
 	player.spins += 1
+	player.herbs += Pouch.earned(result.grade)
 
 	local distance = math.max(result.distance, MIN_LANDING)
 	local multipliers = boosts(player)
@@ -374,6 +377,7 @@ local function play(profile: Profile, seed: number, hours: number): Player
 		ryo = 0,
 		spins = 0,
 		streak = 0,
+		herbs = 0,
 		pads = {},
 		caught = 0,
 		reached = { [1] = 0 },
@@ -616,6 +620,14 @@ local function printProfile(profile: Profile, hours: number)
 	print(
 		`after {hours} h: {Format.short(player.chakra)} Chakra, {Format.short(income(player))} Ryo/s,`
 			.. ` speed level {player.speedLevel}, {player.spins} throws, {player.caught} lost to enemies`
+	)
+	local cheapest, dearest = math.huge, 0
+	for _, potion in Catalog.potions do
+		cheapest, dearest = math.min(cheapest, potion.herbs), math.max(dearest, potion.herbs)
+	end
+	print(
+		`Herbs: {player.herbs} earned, {string.format("%.0f", player.herbs / hours)} an hour`
+			.. ` (a potion costs {cheapest} to {dearest})`
 	)
 	print("")
 end

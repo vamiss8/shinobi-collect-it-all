@@ -64,7 +64,15 @@ local function fixture(): any
 			return 0
 		end,
 	}
-	local data = { chakra = 10, streak = 0, spins = 0, kunai = "wood", speedLevel = 0, runAt = 0 }
+	local data = {
+		chakra = 10,
+		streak = 0,
+		spins = 0,
+		herbs = 0,
+		kunai = "wood",
+		speedLevel = 0,
+		runAt = 0,
+	}
 	local remotes: { [string]: any } = {}
 	for _, name in
 		{
@@ -167,6 +175,11 @@ local function fixture(): any
 					end,
 				},
 				Index = {},
+				Pouch = {
+					earned = function(): number
+						return 1
+					end,
+				},
 				Kick = {
 					reconcileElapsed = function(): number
 						return 0

@@ -34,6 +34,7 @@ local Inventory = require("./Inventory")
 local Kick = require(ReplicatedStorage.Shared.Logic.Kick)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Plots = require("../World/Plots")
+local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local Remotes = require("../Remotes")
 local Roll = require(ReplicatedStorage.Shared.Logic.Roll)
 local Session = require("../Session")
@@ -290,6 +291,9 @@ local function press(player: Player, claimed: unknown)
 
 	data.streak = result.streak
 	data.spins += 1
+	-- Every throw brings Herbs, a Perfect one more (Tuning.Herbs).
+	local herbs = Pouch.earned(result.grade)
+	data.herbs += herbs
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)
@@ -377,6 +381,7 @@ local function press(player: Player, claimed: unknown)
 		sage = result.sage,
 		zone = drop.zone,
 		luck = spinLuck,
+		herbs = herbs,
 	}
 	Remotes.KickResult:FireClient(player, payload)
 	State.push(player)

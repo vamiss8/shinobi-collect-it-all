@@ -24,7 +24,7 @@ local Ui = require("./Ui")
 
 local DevConsole = {}
 
-local SIZE = Vector2.new(860, 700)
+local SIZE = Vector2.new(860, 756)
 local ROW = 46
 local GAP = 10
 local LABEL = 92
@@ -204,9 +204,9 @@ local function build()
 		return Format.parse(field.Text) or otherwise
 	end
 
-	-- Ryo and Chakra: an amount as a player types one ("1.5M"), put in place of what is there
-	-- or added to it.
-	for _, what in { { "Ryo", "ryo" }, { "Chakra", "chakra" } } do
+	-- Ryo, Chakra and Herbs: an amount as a player types one ("1.5M"), put in place of what is
+	-- there or added to it.
+	for _, what in { { "Ryo", "ryo" }, { "Chakra", "chakra" }, { "Herbs", "herbs" } } do
 		local frame, take = row(what[1])
 		local field = box(frame, take(240), 240, "1M")
 		press(frame, take(110), 110, "Set", Ui.GREEN, function()

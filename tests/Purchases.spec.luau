@@ -57,18 +57,6 @@ return {
 		T.eq(Purchases.potionsLeft(potions, NOW + 1800).gama_charm, nil, "a spent potion is shown")
 	end,
 
-	["the bundle starts every potion it holds for its minutes"] = function()
-		local bundle = Catalog.productByKey.AcademyBundle
-		T.ok(bundle ~= nil and bundle.once ~= true, "the bundle is sold once only")
-		local potions: { [string]: number } = { sage_oil = NOW + 100 }
-		Purchases.drinkBundle(potions, bundle, NOW)
-		local minutes = bundle.minutes or 0
-		for _, potionId in bundle.potions or {} do
-			local from = if potionId == "sage_oil" then NOW + 100 else NOW
-			T.eq(potions[potionId], from + minutes * 60, `{potionId} was not started`)
-		end
-	end,
-
 	["a purchase is remembered, and only the newest are kept"] = function()
 		local receipts: { string } = {}
 		T.eq(Purchases.granted(receipts, "a"), false)

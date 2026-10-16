@@ -29,6 +29,7 @@ local specs: { [string]: Spec } = {
 	Market = require("../tests/Market.spec"),
 	Plaza = require("../tests/Plaza.spec"),
 	PlazaPlan = require("../tests/PlazaPlan.spec"),
+	Pouch = require("../tests/Pouch.spec"),
 	Purchases = require("../tests/Purchases.spec"),
 	RankLook = require("../tests/RankLook.spec"),
 	Rebirth = require("../tests/Rebirth.spec"),

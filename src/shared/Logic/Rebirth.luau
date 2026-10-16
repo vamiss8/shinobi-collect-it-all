@@ -102,7 +102,8 @@ export type Save = {
 -- speed, but for what the new rank starts with (`startSpeed`). (Ryo goes with the rest: kept,
 -- it would buy the run speed straight back, and the way to rebirth would be to sell the dojo
 -- first.) Left alone are their kunai, the pads and floors
--- they have bought, their Bingo Book, their potions and their count of throws, and the
+-- they have bought, their Bingo Book, their potions (running and in the pouch), their Herbs and
+-- their count of throws, and the
 -- legendary shinobi (Config/Legends), which stay on their pads at the levels bought for them:
 -- they were paid for in Robux, and the first rebirths come within minutes. Whoever calls this
 -- has checked that the rebirth may be done.

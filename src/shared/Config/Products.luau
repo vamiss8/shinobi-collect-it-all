@@ -26,8 +26,8 @@ export type GamePass = {
 }
 
 export type ProductKind =
-	"potion" -- one potion of Config/Potions, for its minutes
-	| "bundle" -- several potions at once, each for `minutes`; once a player
+	"potion" -- one potion of Config/Potions into the pouch, to be drunk when the player likes
+	| "bundle" -- `each` of several potions into the pouch
 	| "ryo" -- `incomeMinutes` of the dojo's income as it stands, paid at once
 	| "offline" -- the welcome-back window's Ryo paid a second time
 
@@ -38,7 +38,7 @@ export type Product = {
 	kind: ProductKind,
 	potion: string?, -- potion id, for a potion
 	potions: { string }?, -- potion ids, for a bundle
-	minutes: number?, -- how long a bundle's potions last
+	each: number?, -- how many of each of its potions a bundle holds
 	incomeMinutes: number?, -- for Ryo
 	once: boolean?, -- sold to a player once only
 }
@@ -79,15 +79,15 @@ local Products: { Product } = {
 		potion = "gama_charm",
 	},
 	{ key = "SageOil", name = "Sage Oil", assetId = 0, kind = "potion", potion = "sage_oil" },
-	-- All four potions for half an hour each, for less than the four cost. Sold any number of
-	-- times (owner, 2026-10-16: once a player "is nonsense, let purchases be endless").
+	-- Two of each of the four potions, for less than the eight cost. Sold any number of times
+	-- (owner, 2026-10-16: once a player "is nonsense, let purchases be endless").
 	{
 		key = "AcademyBundle",
 		name = "Academy Bundle",
 		assetId = 0,
 		kind = "bundle",
 		potions = { "soldier_pill", "ichiraku_ramen", "gama_charm", "sage_oil" },
-		minutes = 30,
+		each = 2,
 	},
 	-- Minutes of the dojo's income, so that a pack is worth as much late in the game as early.
 	{ key = "RyoPouch", name = "Ryo Pouch", assetId = 0, kind = "ryo", incomeMinutes = 30 },

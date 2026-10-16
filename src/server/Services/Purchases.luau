@@ -14,6 +14,9 @@
 -- once that save has gone out to the DataStore is Roblox told so; an id already in the save
 -- is not granted again. A purchase that cannot be granted yet (its buyer has left, or a pack of
 -- Ryo for a dojo that earns nothing) is left for Roblox to offer again later.
+--
+-- Potions bought for Robux go into the pouch (Logic/Pouch), as those bought for Herbs do, and
+-- are drunk out of it from here too, wherever the player is.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -24,6 +27,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local Dojo = require("./Dojo")
 local Net = require(ReplicatedStorage.Shared.Net)
+local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -69,20 +73,19 @@ end
 
 -- Gives what a product buys. Says whether it could be given now.
 local function grant(player: Player, data: Data.Data, product: Catalog.Product): boolean
-	local now = os.time()
 	if product.kind == "potion" then
 		local potion = if product.potion then Catalog.potionById[product.potion] else nil
 		if not potion then
 			return false
 		end
-		PurchaseLogic.drink(data.potions, potion.id, now, potion.minutes)
-		State.notify(player, "PotionBought", potion.name, potion.minutes)
+		Pouch.add(data.stock, potion.id, 1)
+		State.notify(player, "PotionStocked", potion.name)
 	elseif product.kind == "bundle" then
-		PurchaseLogic.drinkBundle(data.potions, product, now)
+		Pouch.bundle(data.stock, product)
 		if product.once then
 			data.bought[product.key] = true
 		end
-		State.notify(player, "BundleBought", product.name, product.minutes or 0)
+		State.notify(player, "BundleStocked", product.name, product.each or 0)
 	elseif product.kind == "ryo" then
 		local amount = PurchaseLogic.ryoPack(Stats.income(data), product.incomeMinutes or 0)
 		if amount < 1 then
@@ -134,8 +137,22 @@ local function processReceipt(info: { [string]: any }): Enum.ProductPurchaseDeci
 		else Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
+-- Drinks a potion out of the pouch: anywhere, at any time.
+local function drink(player: Player, potionId: unknown)
+	local data = Data.get(player)
+	local potion = if typeof(potionId) == "string" then Catalog.potionById[potionId] else nil
+	if not data or not potion then
+		return
+	end
+	if Pouch.drink(data, potion.id, os.time()) then
+		State.notify(player, "PotionDrunk", potion.name, potion.minutes)
+		State.push(player)
+	end
+end
+
 function Purchases.start()
 	Data.onLoaded(check)
+	Remotes.Drink.OnServerEvent:Connect(drink)
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 		local pass = Catalog.passById[passId]
 		local data = Data.get(player)

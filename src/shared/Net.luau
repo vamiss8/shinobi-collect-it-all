@@ -30,6 +30,8 @@ Net.Events = {
 	RingPress = "RingPress", -- client -> server: seconds the client watched the ring
 	RingResult = "RingResult", -- server -> client: RingResult; its `next` ring starts on receipt
 	Buy = "Buy", -- client -> server: "kunai" | "speed"
+	BuyPotion = "BuyPotion", -- client -> server: a potion id, bought for Herbs at the Herb Shop
+	Drink = "Drink", -- client -> server: a potion id, drunk out of the pouch
 	RunAt = "RunAt", -- client -> server: the speed level to run at, -1 for the fastest bought
 	Rebirth = "Rebirth", -- client -> server: do the next rebirth (no payload)
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
@@ -181,6 +183,8 @@ export type Snapshot = {
 	throwChakra: number, -- Chakra the player chose to throw with, 0 for all of it
 	passes: { string }, -- keys of the game passes owned (Config/Products), legends aside
 	potions: { [string]: number }, -- seconds left on each potion running, by potion id
+	herbs: number, -- the potions' own currency (Tuning.Herbs)
+	stock: { [string]: number }, -- potions in the pouch, by potion id; none there are left out
 	bought: { string }, -- keys of the products sold once that the player has had
 }
 
@@ -196,6 +200,7 @@ export type KickResult = {
 	sage: boolean,
 	zone: string,
 	luck: number, -- milestone luck of this throw, 1 if none
+	herbs: number, -- Herbs the throw brought
 }
 
 -- A kunai in the air. Every client draws it.

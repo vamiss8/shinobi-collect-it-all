@@ -27,7 +27,7 @@ local Inventory = require("./Inventory")
 local Kicking = require("./Kicking")
 local Legends = require("./Legends")
 local Net = require(ReplicatedStorage.Shared.Net)
-local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
+local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -113,7 +113,8 @@ type Command = (player: Player, data: Data.Data, ...unknown) -> string?
 
 local commands: { [string]: Command } = {}
 
--- "ryo" and "chakra": an amount, and whether it is added to what is there or put in its place.
+-- "ryo", "chakra" and "herbs": an amount, and whether it is added to what is there or put in
+-- its place.
 function commands.ryo(_, data, value, add)
 	local given = amount(value)
 	if not given then
@@ -121,6 +122,15 @@ function commands.ryo(_, data, value, add)
 	end
 	data.ryo = math.min(if add == true then data.ryo + given else given, MOST)
 	return `Ryo: {Format.short(data.ryo)}`
+end
+
+function commands.herbs(_, data, value, add)
+	local given = amount(value)
+	if not given then
+		return nil
+	end
+	data.herbs = math.floor(math.min(if add == true then data.herbs + given else given, MOST))
+	return `Herbs: {Format.short(data.herbs)}`
 end
 
 function commands.chakra(player, data, value, add)
@@ -288,8 +298,8 @@ function commands.legend(player, data, legendId, give)
 end
 
 -- "goods": what is sold for Robux, without Robux: a game pass given or taken (the legendary
--- shinobi have "legend"), a potion started for its minutes or stopped, a product sold once
--- marked as had or not.
+-- shinobi have "legend"), a potion put into the pouch or the pouch's and the running one taken
+-- away, a product sold once marked as had or not.
 function commands.goods(_, data, key, give)
 	if typeof(key) ~= "string" then
 		return nil
@@ -308,11 +318,12 @@ function commands.goods(_, data, key, give)
 	local potion = Catalog.potionById[key]
 	if potion then
 		if given then
-			PurchaseLogic.drink(data.potions, potion.id, os.time(), potion.minutes)
+			Pouch.add(data.stock, potion.id, 1)
 		else
+			data.stock[potion.id] = nil
 			data.potions[potion.id] = nil
 		end
-		return `{potion.name}: {done}`
+		return `{potion.name}: {if given then "one more in the pouch" else "none left"}`
 	end
 	local product = Catalog.productByKey[key]
 	if product and product.once then
@@ -373,6 +384,8 @@ function commands.reset(player, data)
 	data.padsBought = 0
 	data.spins = 0
 	data.streak = 0
+	data.herbs = 0
+	data.stock = {}
 	Session.of(player).throwChakra = 0
 	return "Save reset"
 end

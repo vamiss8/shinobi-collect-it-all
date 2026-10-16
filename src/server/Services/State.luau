@@ -8,6 +8,7 @@ local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Net = require(ReplicatedStorage.Shared.Net)
+local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local Purchases = require(ReplicatedStorage.Shared.Logic.Purchases)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
@@ -82,6 +83,8 @@ function State.push(player: Player)
 		throwChakra = session.throwChakra,
 		passes = Purchases.owned(data.passes),
 		potions = Purchases.potionsLeft(data.potions, os.time()),
+		herbs = data.herbs,
+		stock = Pouch.contents(data.stock),
 		bought = bought(data),
 	}
 	Remotes.State:FireClient(player, snapshot)

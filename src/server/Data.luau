@@ -36,6 +36,10 @@ export type Data = {
 	pads: { [string]: string }, -- pad index -> unit id standing on it
 	found: Index.Found,
 	potions: { [string]: number }, -- potion id -> expiry, unix seconds
+	-- Herbs, earned by throws and spent on potions at the Herb Shop (Tuning.Herbs), and the
+	-- potions in the pouch, not drunk yet, by potion id (Logic/Pouch).
+	herbs: number,
+	stock: { [string]: number },
 	lastSeen: number, -- unix seconds; 0 for a brand new save
 	-- Game passes owned, by key (Config/Products), legends aside: kept here as well as asked of
 	-- Roblox at every join, so that what they give does not wait on Roblox or fail with it.
@@ -66,6 +70,8 @@ local TEMPLATE: Data = {
 	pads = {},
 	found = {},
 	potions = {},
+	herbs = 0,
+	stock = {},
 	lastSeen = 0,
 	passes = {},
 	bought = {},
