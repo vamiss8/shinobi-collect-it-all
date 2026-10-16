@@ -1,7 +1,8 @@
 --!strict
--- The window of the Herb Shop (World/HerbShop): the Herbs the player has at the top, and under
--- them every potion with how many are in the pouch and how long the one running has left, and
--- three buttons: buy one for Herbs, buy one for Robux, drink one. Last, the bundle, for Robux.
+-- The window of Kabuto's Remedies (World/PotionStall), the potions' shop: the Herbs the player
+-- has at the top, and under them every potion with how many are in the pouch and how long the
+-- one running has left, and three buttons: buy one for Herbs, buy one for Robux, drink one.
+-- Last, the bundle, for Robux.
 -- What is bought goes into the pouch (Logic/Pouch); the server checks the Herbs, and that the
 -- player is at the counter for a purchase in Herbs. Drinking is the same as from the Shop
 -- window's Boosts page, which works anywhere.

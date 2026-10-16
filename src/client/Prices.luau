@@ -2,7 +2,7 @@
 -- Prices in Robux as Roblox gives them to this player, by asset id: asked once each and kept.
 -- No price is written in the game (Config/Products): the owner may switch on regional pricing,
 -- and a player may then be offered less than the pass's own price. Both the Shop window
--- (client ShopPanel) and the Herb Shop's (Stores/HerbShop) read them here.
+-- (client ShopPanel) and Kabuto's Remedies' (Stores/HerbShop) read them here.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 

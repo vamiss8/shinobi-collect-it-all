@@ -76,9 +76,16 @@ local TALK: { [string]: Talk } = {
 	},
 	herbs = {
 		pitch = "PitchHerbs",
-		keeper = "herbalist",
-		mark = "H",
-		lines = { "HerbsHello1", "HerbsHello2", "HerbsHello3", "HerbsHello4" },
+		keeper = "kabuto_shop",
+		mark = "K",
+		lines = {
+			"KabutoHello1",
+			"KabutoHello2",
+			"KabutoHello3",
+			"KabutoHello4",
+			"KabutoHello5",
+			"KabutoHello6",
+		},
 	},
 }
 

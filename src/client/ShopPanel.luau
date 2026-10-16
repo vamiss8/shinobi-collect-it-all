@@ -3,7 +3,7 @@
 -- over the Inventory's, and the window it opens. Four pages under tabs: the passes, with the
 -- Daimyo's VIP on a sheet of its own at the head; the potions that boost for a while, with the
 -- pouch they go into and a button to drink one, anywhere; Ryo; and the legendary shinobi,
--- which stand on the plaza too. Potions are sold for Herbs as well, at the Herb Shop on the
+-- which stand on the plaza too. Potions are sold for Herbs as well, at Kabuto's Remedies on the
 -- plaza (Stores/HerbShop).
 --
 -- The window only opens Roblox's own purchase window; what a purchase gives the server decides
