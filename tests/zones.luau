@@ -599,8 +599,13 @@ function Zones.market(): (any, { any })
 			return hub
 		end
 		local name = string.match(path, "^%./(%w+)$")
-		local shops =
-			{ ShopHouse = true, TentenShop = true, MissionDesk = true, TrainingGround = true }
+		local shops = {
+			ShopHouse = true,
+			TentenShop = true,
+			MissionDesk = true,
+			TrainingGround = true,
+			HerbShop = true,
+		}
 		if name and shops[name] then
 			if loaded[name] == nil then
 				loaded[name] = run(fs.readFile(`src/server/World/{name}.luau`), name, world)

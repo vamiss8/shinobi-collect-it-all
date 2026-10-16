@@ -34,6 +34,8 @@ PlazaPlan.YARD_HALF = PlazaPlan.HALF_WIDTH + DojoPlan.DEPTH
 export type Spot = {
 	along: number,
 	side: number,
+	-- For a shop that does not look at the fountain: which way it looks out of its front.
+	looks: Spot?,
 }
 
 -- Where the middle of a dojo's front edge is, and which side of the plaza it stands on: `side`
@@ -85,6 +87,10 @@ PlazaPlan.shops = {
 	tenten = round(0),
 	sell = round(120),
 	speed = round(-120),
+	-- The Herb Shop (the shop "herbs"), where potions are bought for Herbs, is off the ring: in
+	-- the back quarter on the left, between the training ground and the well, its front on the
+	-- middle path. My place for a stand-in (2026-10-16); the owners make the shop.
+	herbs = { along = -175, side = -17, looks = { along = 0, side = 1 } },
 } :: { [string]: Spot }
 
 -- The legendary shinobi (Config/Legends) stand on show on pedestals of their own, on the middle
@@ -103,8 +109,13 @@ PlazaPlan.pedestals = {
 	{ along = -44, side = 0, height = 6 },
 } :: { Pedestal }
 
--- Which way a shop looks out of its front, as a step along and a step across: at the fountain.
+-- Which way a shop looks out of its front, as a step along and a step across: at the fountain,
+-- unless it is said to look elsewhere.
 function PlazaPlan.facing(shop: Spot): Spot
+	local looks = shop.looks
+	if looks then
+		return looks
+	end
 	local along = PlazaPlan.FOUNTAIN.along - shop.along
 	local side = PlazaPlan.FOUNTAIN.side - shop.side
 	local length = math.sqrt(along * along + side * side)

@@ -2,7 +2,8 @@
 -- The market round the fountain, checked on what its builder makes (tests/zones runs it outside
 -- Roblox): the three shops, Tenten's Ninja Tools, the Mission Desk and the Youth Training
 -- Ground, stand where the plan puts them (Logic/PlazaPlan), open towards the fountain, keep
--- inside the ground the plan gives them, and can be used from in front of their counters.
+-- inside the ground the plan gives them, and can be used from in front of their counters. The
+-- Herb Shop, off the ring, is held to the same but for where it looks.
 
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local T = require("./harness")
@@ -15,7 +16,14 @@ local REACH = 8
 local SLACK = 0.05
 
 -- Which folder each shop is built in.
-local SHOPS = { tenten = "TentenShop", sell = "MissionDesk", speed = "TrainingGround" }
+local SHOPS = {
+	tenten = "TentenShop",
+	sell = "MissionDesk",
+	speed = "TrainingGround",
+	herbs = "HerbShop",
+}
+-- The shops round the fountain.
+local RING = { tenten = true, sell = true, speed = true }
 
 local market: any, keepers: { any } = nil, {}
 local function build(): any
@@ -72,8 +80,8 @@ return {
 			T.ok(shop ~= nil, `the {id} shop is built`)
 			T.ok(shop:FindFirstChild("Counter") ~= nil, `the {id} shop has a counter`)
 		end
-		-- Tenten; Shizune and Tonton; Might Duy and his turtle.
-		T.eq(#keepers, 5)
+		-- Tenten; Shizune and Tonton; Might Duy and his turtle; the herbalist.
+		T.eq(#keepers, 6)
 		for _, keeper in keepers do
 			T.ok(keeper.at ~= nil, `{keeper.id} is stood somewhere`)
 		end
@@ -101,13 +109,19 @@ return {
 			local spot = PlazaPlan.shops[id]
 			local counter = folder:FindFirstChild(name):FindFirstChild("Counter")
 			local at = counter.CFrame.Position
-			local toCounter = math.sqrt((at.X - fountain.along) ^ 2 + (at.Z - fountain.side) ^ 2)
-			T.ok(
-				toCounter > PlazaPlan.SHOP_RING and toCounter < PlazaPlan.SHOP_RING + 4,
-				`the {id} counter stands just inside the open front`
-			)
-			-- A customer in front of the counter reaches the prompt; one passing beside does not.
 			local out = PlazaPlan.facing(spot)
+			-- How far in from the line of the front the counter stands.
+			local inward = -((at.X - spot.along) * out.along + (at.Z - spot.side) * out.side)
+			T.ok(inward > 0 and inward < 4, `the {id} counter stands just inside the open front`)
+			if RING[id] then
+				local toCounter =
+					math.sqrt((at.X - fountain.along) ^ 2 + (at.Z - fountain.side) ^ 2)
+				T.ok(
+					toCounter > PlazaPlan.SHOP_RING and toCounter < PlazaPlan.SHOP_RING + 4,
+					`the {id} counter is on the ring`
+				)
+			end
+			-- A customer in front of the counter reaches the prompt; one passing beside does not.
 			local porch = { along = spot.along + out.along * 1, side = spot.side + out.side * 1 }
 			local fromPorch = math.sqrt((at.X - porch.along) ^ 2 + (at.Z - porch.side) ^ 2)
 			T.ok(fromPorch <= REACH - 2, `the {id} counter is in reach from the porch`)
@@ -123,6 +137,9 @@ return {
 			local towards = look.X * (fountain.along - at.X) + look.Z * (fountain.side - at.Z)
 			T.ok(towards > 0, `{keeper.id} looks towards the fountain`)
 		end
+		local herbs = PlazaPlan.facing(PlazaPlan.shops.herbs)
+		T.eq(herbs.along, 0, "the Herb Shop looks across the plaza")
+		T.ok(herbs.side * PlazaPlan.shops.herbs.side < 0, "at the middle path")
 	end,
 
 	["nothing in a shop flickers"] = function()

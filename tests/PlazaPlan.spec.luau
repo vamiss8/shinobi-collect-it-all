@@ -100,6 +100,31 @@ return {
 		T.ok(tenten.along > PlazaPlan.FOUNTAIN.along, "on the lane's side")
 	end,
 
+	["the Herb Shop stands off the ring with room to pass everywhere"] = function()
+		local herbs = PlazaPlan.shops.herbs
+		T.ok(herbs ~= nil, "no place for the Herb Shop")
+		local corners = PlazaPlan.shopCorners(herbs)
+		for _, corner in corners do
+			T.ok(
+				PlazaPlan.HALF_WIDTH - math.abs(corner.side) >= 2 * PASSAGE,
+				"room between the Herb Shop and the dojos"
+			)
+			-- The middle path is 18 wide: the shop's porch keeps off it.
+			T.ok(math.abs(corner.side) >= 9 + 3, "the Herb Shop keeps off the middle path")
+			T.ok(corner.along < 0 and corner.along > -PlazaPlan.DEPTH, "on the plaza")
+		end
+		T.ok(
+			distance(herbs, PlazaPlan.FOUNTAIN) > PlazaPlan.SHOP_RING + PlazaPlan.SHOP.back,
+			"behind the ring"
+		)
+		for _, id in { "tenten", "speed", "sell" } do
+			T.ok(
+				PlazaPlan.apart(corners, PlazaPlan.shopCorners(PlazaPlan.shops[id])) >= PASSAGE,
+				`the Herb Shop and the {id} shop keep apart`
+			)
+		end
+	end,
+
 	["a pedestal stands for every legendary shinobi, on the way to the lane, clear of all"] = function()
 		T.eq(#PlazaPlan.pedestals, #Catalog.legends, "a pedestal for each, and no more")
 		local half = PlazaPlan.PEDESTAL / 2

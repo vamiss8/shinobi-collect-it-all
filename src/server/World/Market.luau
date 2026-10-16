@@ -2,7 +2,8 @@
 -- The market: three shops round the fountain in the middle of the plaza (Logic/PlazaPlan says
 -- where), each with its open front to the fountain. Tenten's Ninja Tools (World/TentenShop)
 -- sells kunai and the Mission Desk (World/MissionDesk) buys shinobi, both in houses; the Youth
--- Training Ground (World/TrainingGround), an open yard, sells run speed. Walking up to a
+-- Training Ground (World/TrainingGround), an open yard, sells run speed. Off the ring, the Herb
+-- Shop (World/HerbShop) sells potions for Herbs. Walking up to a
 -- counter and using its prompt opens that shop's window on the client (the prompt's attribute
 -- says which). The server only needs to know whether a player is standing at a counter when
 -- they ask to buy or sell there.
@@ -13,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Build = require(ReplicatedStorage.Shared.View.Build)
+local HerbShop = require("./HerbShop")
 local Hub = require("./Hub")
 local MissionDesk = require("./MissionDesk")
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -32,11 +34,13 @@ local SHOPS: { { id: string, title: string, build: (folder: Folder, place: CFram
 	{ id = "tenten", title = "Tenten's Ninja Tools", build = TentenShop.build },
 	{ id = "sell", title = "Mission Desk", build = MissionDesk.build },
 	{ id = "speed", title = "Youth Training Ground", build = TrainingGround.build },
+	{ id = "herbs", title = "Herb Shop", build = HerbShop.build },
 }
 
 local counters: { [string]: Part } = {}
 
--- Where a shop stands: the middle of its front on the ground, looking at the fountain.
+-- Where a shop stands: the middle of its front on the ground, looking out of it (at the
+-- fountain, for those round it).
 local function place(id: string): CFrame
 	local shop = PlazaPlan.shops[id]
 	local out = PlazaPlan.facing(shop)
@@ -45,7 +49,8 @@ local function place(id: string): CFrame
 end
 
 -- Whether the player is standing at the counter of the given shop: "tenten" (Tenten's Ninja
--- Tools), "speed" (the Youth Training Ground) or "sell" (the Mission Desk).
+-- Tools), "speed" (the Youth Training Ground), "sell" (the Mission Desk) or "herbs" (the Herb
+-- Shop).
 function Market.playerAt(player: Player, shopId: string): boolean
 	local counter = counters[shopId]
 	local character = player.Character
