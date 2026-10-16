@@ -166,16 +166,34 @@ local TITLES: { [string]: Style } = {
 	},
 }
 
+-- Marks a player wears by their name. "dev" is the developer's (server/Developers), in place
+-- of the VIP's gold (owner, 2026-10-16: "for my account only, Dev instead of VIP, colorful and
+-- noticeable"): every color running through it.
+local BADGES: { [string]: Style } = {
+	dev = {
+		fill = { "#FF1744", "#FF9100", "#FFEA00", "#00E676", "#00B0FF", "#D500F9" },
+		edge = "#14002E",
+		flare = "#FFFFFF",
+		motion = "flow",
+		period = 2.0,
+	},
+}
+
 Lettering.mutations = MUTATIONS
 Lettering.ranks = RANKS
 Lettering.titles = TITLES
+Lettering.badges = BADGES
 
 local SEPARATOR = ":"
 
 -- The key of the lettering a mutation's or a rank's name is written in, or nil when it is
 -- written in its plain color. The key is what a label is marked with for the client to find.
-function Lettering.key(kind: "mutation" | "rank" | "title", id: string): string?
-	local styles = if kind == "mutation" then MUTATIONS elseif kind == "rank" then RANKS else TITLES
+function Lettering.key(kind: "mutation" | "rank" | "title" | "badge", id: string): string?
+	local styles = if kind == "mutation"
+		then MUTATIONS
+		elseif kind == "rank" then RANKS
+		elseif kind == "badge" then BADGES
+		else TITLES
 	return if styles[id] then kind .. SEPARATOR .. id else nil
 end
 
@@ -188,6 +206,8 @@ function Lettering.style(key: string): Style?
 		return RANKS[id :: string]
 	elseif kind == "title" then
 		return TITLES[id :: string]
+	elseif kind == "badge" then
+		return BADGES[id :: string]
 	end
 	return nil
 end

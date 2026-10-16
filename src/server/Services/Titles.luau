@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Data = require("../Data")
+local Developers = require("../Developers")
 local Lettering = require(ReplicatedStorage.Shared.Config.Lettering)
 local Loadout = require("./Loadout")
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -68,8 +69,9 @@ end
 local VIP_GOLD = "#FFCA28"
 
 -- Hangs the tag over the head: the rank, and the player's name under it, marked VIP for a
--- player with the Daimyo's favor (Config/Products).
-local function tag(head: BasePart, name: string, count: number, vip: boolean)
+-- player with the Daimyo's favor (Config/Products), and DEV for the developer, whose whole
+-- line is lettered in running colors instead (Config/Lettering `badges`).
+local function tag(head: BasePart, name: string, count: number, vip: boolean, dev: boolean)
 	local board = mark(Instance.new("BillboardGui"))
 	board.Name = "RankTag"
 	board.Size = UDim2.fromScale(TAG.X, TAG.Y)
@@ -85,7 +87,12 @@ local function tag(head: BasePart, name: string, count: number, vip: boolean)
 		CollectionService:AddTag(rank, Net.LETTERING_TAG)
 	end
 	local own = line(board, RANK_SHARE, 1 - RANK_SHARE, name)
-	if vip then
+	local badge = if dev then Lettering.key("badge", "dev") else nil
+	if badge then
+		own.Text = `DEV {name}`
+		own:SetAttribute(Net.LETTERING_ATTRIBUTE, badge)
+		CollectionService:AddTag(own, Net.LETTERING_TAG)
+	elseif vip then
 		own.RichText = true
 		own.Text = `<font color="{VIP_GOLD}">VIP</font> {name}`
 	end
@@ -104,7 +111,13 @@ function Titles.dress(player: Player)
 	clear(character)
 	if head and head:IsA("BasePart") then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		tag(head, player.DisplayName, Rebirth.done(data.rebirths), data.passes[Boosts.VIP] == true)
+		tag(
+			head,
+			player.DisplayName,
+			Rebirth.done(data.rebirths),
+			data.passes[Boosts.VIP] == true,
+			table.find(Developers, player.UserId) ~= nil
+		)
 	end
 end
 

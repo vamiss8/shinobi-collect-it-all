@@ -301,9 +301,15 @@ function PlayerList.start()
 			line.frame.BackgroundTransparency = if own then 0.9 else 1
 			line.edge.Transparency = if own then 0 else 1
 			line.name.Text = player.DisplayName
+			-- The developer's DEV takes the VIP's place, in running colors (Config/Lettering
+			-- `badges`); Net.DEVELOPER_ATTRIBUTE is put on the developer's Player alone.
+			local isDev = player:GetAttribute(Net.DEVELOPER_ATTRIBUTE) == true
 			local isVip = player:GetAttribute(Net.PLAYER_VIP) == true
-			local inset = if isVip then VIP_ROOM else 8
-			line.vip.Visible = isVip
+			local inset = if isVip or isDev then VIP_ROOM else 8
+			line.vip.Visible = isVip or isDev
+			line.vip.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
+			line.vip.BackgroundColor3 = Ui.GOLD
+			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil, true)
 			line.name.Position = UDim2.fromOffset(inset, 2)
 			line.name.Size = UDim2.new(1, -(inset + INCOME + 12), 1, -4)
 			-- To a tenth: "1.2B" tells two dojos apart where "1B" did not.
@@ -326,6 +332,7 @@ function PlayerList.start()
 		player:GetAttributeChangedSignal(Net.PLAYER_REBIRTHS):Connect(draw)
 		player:GetAttributeChangedSignal(Net.PLAYER_INCOME):Connect(draw)
 		player:GetAttributeChangedSignal(Net.PLAYER_VIP):Connect(draw)
+		player:GetAttributeChangedSignal(Net.DEVELOPER_ATTRIBUTE):Connect(draw)
 		draw()
 	end
 	Players.PlayerAdded:Connect(adopt)
