@@ -57,6 +57,8 @@ local CLEAR_OF_BUTTONS = 214
 -- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
 -- the name stands in to make room for it.
 local VIP = Vector2.new(36, 18)
+-- The deep violet of the developer's pill.
+local DEV_PILL = Color3.fromRGB(74, 20, 140)
 local VIP_ROOM = 48
 local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
@@ -308,8 +310,10 @@ function PlayerList.start()
 			local inset = if isVip or isDev then VIP_ROOM else 8
 			line.vip.Visible = isVip or isDev
 			line.vip.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
-			line.vip.BackgroundColor3 = Ui.GOLD
-			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil, true)
+			-- The developer's: light letters running with violet on a deep violet pill (the
+			-- lettering's gradient lies over the pill too, and makes it shimmer with them).
+			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil)
+			line.vip.BackgroundColor3 = if isDev then DEV_PILL else Ui.GOLD
 			line.name.Position = UDim2.fromOffset(inset, 2)
 			line.name.Size = UDim2.new(1, -(inset + INCOME + 12), 1, -4)
 			-- To a tenth: "1.2B" tells two dojos apart where "1B" did not.

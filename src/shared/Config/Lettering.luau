@@ -168,17 +168,17 @@ local TITLES: { [string]: Style } = {
 
 -- Marks a player wears by their name. "dev" is the developer's (server/Developers), in place
 -- of the VIP's gold (owner, 2026-10-16: "for my account only, Dev instead of VIP, colorful and
--- noticeable"). The whole rainbow stands still across the word, red to violet, in soft
--- colors, and a glint crosses it now and again. It first ran through the word as "flow" in
--- six loud colors every 2 s: "not every color of the rainbow, strange, and it hurts the eyes
--- to look at for long".
+-- noticeable"). VIOLET, with a band of light running through it: shades of one color, so it
+-- shimmers without flashing. (A loud six-color "flow" first: "strange, and it hurts the eyes";
+-- then a still rainbow with a glint: "make violet the main color and add animation; now the
+-- right part is just green".)
 local BADGES: { [string]: Style } = {
 	dev = {
-		fill = { "#FF6B6B", "#FFA94D", "#FFE066", "#69DB7C", "#4DABF7", "#748FFC", "#DA77F2" },
-		edge = "#1A1033",
+		fill = { "#9D5CFF", "#C9A3FF", "#F6EDFF", "#C9A3FF", "#9D5CFF", "#7B3FE4" },
+		edge = "#22074A",
 		flare = "#FFFFFF",
-		motion = "sheen",
-		period = 4.5,
+		motion = "flow",
+		period = 3.2,
 	},
 }
 
