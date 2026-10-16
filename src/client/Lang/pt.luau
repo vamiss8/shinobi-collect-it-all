@@ -273,7 +273,6 @@ return {
 		PlayersTitle = "ONLINE  %s/%s",
 		PlayersIncome = "%s/s",
 		PlayersVip = "VIP",
-		PlayersDev = "DEV",
 
 		-- The legendary shinobi on their pedestals
 		LegendYours = "SEU",

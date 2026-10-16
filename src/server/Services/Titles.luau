@@ -69,8 +69,8 @@ end
 local VIP_GOLD = "#FFCA28"
 
 -- Hangs the tag over the head: the rank, and the player's name under it, marked VIP for a
--- player with the Daimyo's favor (Config/Products), and DEV for the developer, whose whole
--- line is lettered in running colors instead (Config/Lettering `badges`).
+-- player with the Daimyo's favor (Config/Products); the developer's name is lettered instead,
+-- violet with light running through it, and has no mark (Config/Lettering `badges`).
 local function tag(head: BasePart, name: string, count: number, vip: boolean, dev: boolean)
 	local board = mark(Instance.new("BillboardGui"))
 	board.Name = "RankTag"
@@ -89,7 +89,6 @@ local function tag(head: BasePart, name: string, count: number, vip: boolean, de
 	local own = line(board, RANK_SHARE, 1 - RANK_SHARE, name)
 	local badge = if dev then Lettering.key("badge", "dev") else nil
 	if badge then
-		own.Text = `DEV {name}`
 		own:SetAttribute(Net.LETTERING_ATTRIBUTE, badge)
 		CollectionService:AddTag(own, Net.LETTERING_TAG)
 	elseif vip then
