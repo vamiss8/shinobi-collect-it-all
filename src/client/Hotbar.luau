@@ -337,18 +337,47 @@ function Hotbar.start()
 		end
 	end)
 
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed then
-			return
-		end
-		local number = table.find(KEYS, input.KeyCode)
-		if not number then
-			return
-		end
+	-- Presses the slot of that number, as its key or a click does.
+	local function press(number: number)
 		if number <= #TOOLS then
 			toggleTool(TOOLS[number].name)
 		else
 			pickUp(number - #TOOLS)
+		end
+	end
+
+	-- A gamepad has no number keys: its shoulder buttons step along the bar, as they do along
+	-- Roblox's own, R1 to the next slot that holds something and L1 back, and press it. The
+	-- step starts from the slot last pressed so.
+	local stepped = 0
+	local function step(by: number)
+		local count = #TOOLS + QUICK_SLOTS
+		-- Before the first step, R1 goes to the first slot and L1 to the last.
+		local at = if stepped == 0 and by < 0 then count + 1 else stepped
+		for _ = 1, count do
+			at = (at - 1 + by) % count + 1
+			if at <= #TOOLS or quickUnits[at - #TOOLS] then
+				stepped = at
+				press(at)
+				return
+			end
+		end
+	end
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.ButtonR1 then
+			step(1)
+			return
+		elseif input.KeyCode == Enum.KeyCode.ButtonL1 then
+			step(-1)
+			return
+		end
+		local number = table.find(KEYS, input.KeyCode)
+		if number then
+			press(number)
 		end
 	end)
 end
