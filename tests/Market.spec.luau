@@ -2,8 +2,8 @@
 -- The market round the fountain, checked on what its builder makes (tests/zones runs it outside
 -- Roblox): the three shops, Tenten's Ninja Tools, the Mission Desk and the Youth Training
 -- Ground, stand where the plan puts them (Logic/PlazaPlan), open towards the fountain, keep
--- inside the ground the plan gives them, and can be used from in front of their counters. The
--- Herb Shop, off the ring, is held to the same but for where it looks.
+-- inside the ground the plan gives them, and can be used from in front of their counters.
+-- Kabuto's cart, off the ring, is held to the same but for where it looks.
 
 local PlazaPlan = require("../src/shared/Logic/PlazaPlan")
 local T = require("./harness")
@@ -20,7 +20,7 @@ local SHOPS = {
 	tenten = "TentenShop",
 	sell = "MissionDesk",
 	speed = "TrainingGround",
-	herbs = "HerbShop",
+	herbs = "PotionStall",
 }
 -- The shops round the fountain.
 local RING = { tenten = true, sell = true, speed = true }
@@ -80,8 +80,13 @@ return {
 			T.ok(shop ~= nil, `the {id} shop is built`)
 			T.ok(shop:FindFirstChild("Counter") ~= nil, `the {id} shop has a counter`)
 		end
-		-- Tenten; Shizune and Tonton; Might Duy and his turtle; the herbalist.
+		-- Tenten; Shizune and Tonton; Might Duy and his turtle; Kabuto at his cart.
 		T.eq(#keepers, 6)
+		local kabuto = false
+		for _, keeper in keepers do
+			kabuto = kabuto or keeper.id == "kabuto_shop"
+		end
+		T.ok(kabuto, "Kabuto stands at his cart")
 		for _, keeper in keepers do
 			T.ok(keeper.at ~= nil, `{keeper.id} is stood somewhere`)
 		end
@@ -138,7 +143,7 @@ return {
 			T.ok(towards > 0, `{keeper.id} looks towards the fountain`)
 		end
 		local herbs = PlazaPlan.facing(PlazaPlan.shops.herbs)
-		T.eq(herbs.along, 0, "the Herb Shop looks across the plaza")
+		T.eq(herbs.along, 0, "Kabuto's cart looks across the plaza")
 		T.ok(herbs.side * PlazaPlan.shops.herbs.side < 0, "at the middle path")
 	end,
 

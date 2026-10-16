@@ -31,11 +31,16 @@ PlazaPlan.DEPTH = PlazaPlan.FRONT_GAP
 -- From the middle line to the backs of the dojos: the fence of the yard runs there.
 PlazaPlan.YARD_HALF = PlazaPlan.HALF_WIDTH + DojoPlan.DEPTH
 
+-- The ground a shop covers from the middle of its front: to either side, out in front, behind.
+export type Size = { half: number, front: number, back: number }
+
 export type Spot = {
 	along: number,
 	side: number,
 	-- For a shop that does not look at the fountain: which way it looks out of its front.
 	looks: Spot?,
+	-- For a shop smaller than the ring's houses: the ground it covers (PlazaPlan.SHOP else).
+	size: Size?,
 }
 
 -- Where the middle of a dojo's front edge is, and which side of the plaza it stands on: `side`
@@ -75,7 +80,10 @@ PlazaPlan.FOUNTAIN_RADIUS = 18
 -- fountain's middle; from the line of its front it reaches SHOP.half to either side, SHOP.front
 -- out towards the fountain (a porch, eaves) and SHOP.back away from it.
 PlazaPlan.SHOP_RING = 34.5
-PlazaPlan.SHOP = { half = 11.8, front = 3, back = 14 }
+PlazaPlan.SHOP = { half = 11.8, front = 3, back = 14 } :: Size
+-- Kabuto's cart (World/PotionStall), far less than a shop: from its front it reaches 5.2 to
+-- either side, 1.6 out in front (its eaves and lanterns) and 6.6 behind.
+PlazaPlan.STALL = { half = 5.2, front = 1.6, back = 6.6 } :: Size
 local function round(turn: number): Spot
 	local angle = math.rad(turn)
 	return {
@@ -87,10 +95,16 @@ PlazaPlan.shops = {
 	tenten = round(0),
 	sell = round(120),
 	speed = round(-120),
-	-- The Herb Shop (the shop "herbs"), where potions are bought for Herbs, is off the ring: in
-	-- the back quarter on the left, between the training ground and the well, its front on the
-	-- middle path. My place for a stand-in (2026-10-16); the owners make the shop.
-	herbs = { along = -175, side = -17, looks = { along = 0, side = 1 } },
+	-- Kabuto's Remedies (the shop "herbs", World/PotionStall), where potions are bought, is a
+	-- cart and off the ring (the owner, 2026-10-17: "not in the middle with the others, it is
+	-- smaller and matters less"): in the back quarter on the left, between the training ground
+	-- and the well, its front on the middle path, where the walk to the back gate passes it.
+	herbs = {
+		along = -175,
+		side = -17,
+		looks = { along = 0, side = 1 },
+		size = PlazaPlan.STALL,
+	},
 } :: { [string]: Spot }
 
 -- The legendary shinobi (Config/Legends) stand on show on pedestals of their own, on the middle
@@ -126,7 +140,7 @@ end
 function PlazaPlan.shopCorners(shop: Spot): { Spot }
 	local out = PlazaPlan.facing(shop)
 	local across = { along = -out.side, side = out.along }
-	local size = PlazaPlan.SHOP
+	local size = shop.size or PlazaPlan.SHOP
 	local corners = {}
 	for _, corner in
 		{

@@ -604,7 +604,7 @@ function Zones.market(): (any, { any })
 			TentenShop = true,
 			MissionDesk = true,
 			TrainingGround = true,
-			HerbShop = true,
+			PotionStall = true,
 		}
 		if name and shops[name] then
 			if loaded[name] == nil then

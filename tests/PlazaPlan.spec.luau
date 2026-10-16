@@ -100,10 +100,18 @@ return {
 		T.ok(tenten.along > PlazaPlan.FOUNTAIN.along, "on the lane's side")
 	end,
 
-	["the Herb Shop stands off the ring with room to pass everywhere"] = function()
+	["Kabuto's cart stands off the ring, small, with room to pass everywhere"] = function()
 		local herbs = PlazaPlan.shops.herbs
-		T.ok(herbs ~= nil, "no place for the Herb Shop")
+		T.ok(herbs ~= nil, "no place for Kabuto's cart")
+		local size, shop = PlazaPlan.STALL, PlazaPlan.SHOP
+		T.eq(herbs.size, size, "the cart covers a cart's ground")
+		local area = 2 * size.half * (size.front + size.back)
+		T.ok(
+			area <= 2 * shop.half * (shop.front + shop.back) / 3,
+			"the cart is far less than a shop"
+		)
 		local corners = PlazaPlan.shopCorners(herbs)
+		T.near(distance(corners[1], corners[2]), 2 * size.half, 1e-6, "as wide as the plan says")
 		for _, corner in corners do
 			T.ok(
 				PlazaPlan.HALF_WIDTH - math.abs(corner.side) >= 2 * PASSAGE,
