@@ -177,7 +177,7 @@ return {
 		GoodsSoonButton = "СКОРО",
 		GoodsOwned = "КУПЛЕНО",
 		GoodsBought = "КУПЛЕНО",
-		ShopForGood = "Навсегда твоё",
+		ShopForGood = "Каждый пасс твой навсегда и остаётся после любого перерождения.",
 		ShopOnce = "Один раз на игрока",
 		ShopActive = "Действует: ещё %s",
 		ShopRyoPays = "+%s Рё сейчас",

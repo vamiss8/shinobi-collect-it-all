@@ -37,6 +37,8 @@ local WHAT_SIZE = 20
 local WHAT_ROOM = CARD.X - 28
 -- The VIP's sheet at the head of the passes.
 local VIP_HEIGHT = 214
+-- The slip over the passes, as wide as the VIP's sheet under it.
+local NOTE_WIDE = SIZE.X - 32 - 28
 local VIP_LINE = 24
 
 type Page = string
@@ -303,7 +305,9 @@ function ShopPanel.start()
 		tabs[page] = tab
 	end
 
-	-- The passes: the VIP at the head, the others under it.
+	-- The passes: a word that every one of them is for good, the VIP, the others under it. The
+	-- word is said once over the page rather than under every card (owner, 2026-10-16).
+	Ui.note(pages.passes, { LayoutOrder = 0 }, NOTE_WIDE, Strings.get("ShopForGood"))
 	local vip = Catalog.passByKey.Vip
 	if vip then
 		add(vip.key, vip.assetId, true, vipSheet(pages.passes), nil)
@@ -327,7 +331,6 @@ function ShopPanel.start()
 			Ui.GOLD,
 			order
 		)
-		status.Text = Strings.get("ShopForGood")
 		add(pass.key, pass.assetId, true, button, status)
 	end
 
@@ -444,7 +447,10 @@ function ShopPanel.start()
 					status.Text = if running then Strings.get("ShopActive", clock(running)) else ""
 					status.TextColor3 = Ui.GREEN
 				elseif product.kind == "bundle" then
-					status.Text = if mode == "bought" then "" else Strings.get("ShopOnce")
+					status.Text = if mode == "bought"
+						then ""
+						elseif product.once then Strings.get("ShopOnce")
+						else ""
 					status.TextColor3 = Ui.GOLD
 				elseif product.kind == "ryo" then
 					local pays = PurchaseLogic.ryoPack(state.income, product.incomeMinutes or 0)

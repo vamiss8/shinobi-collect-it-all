@@ -191,7 +191,7 @@ return {
 		GoodsSoonButton = "COMING SOON",
 		GoodsOwned = "OWNED",
 		GoodsBought = "BOUGHT",
-		ShopForGood = "Yours for good",
+		ShopForGood = "Every pass is yours permanently and stays through every rebirth.",
 		ShopOnce = "Once per player",
 		ShopActive = "Active: %s left",
 		ShopRyoPays = "+%s Ryo now",

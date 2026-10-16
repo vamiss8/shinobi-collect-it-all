@@ -177,7 +177,7 @@ return {
 		GoodsSoonButton = "PRÓXIMAMENTE",
 		GoodsOwned = "TUYO",
 		GoodsBought = "COMPRADO",
-		ShopForGood = "Tuyo para siempre",
+		ShopForGood = "Cada pase es tuyo para siempre y se conserva en cada renacimiento.",
 		ShopOnce = "Una vez por jugador",
 		ShopActive = "Activo: quedan %s",
 		ShopRyoPays = "+%s Ryo ahora",
