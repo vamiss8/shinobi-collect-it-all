@@ -60,41 +60,65 @@ local Products: { Product } = {
 	{
 		key = "SoldierPill",
 		name = "Soldier Pill",
-		assetId = 0,
+		assetId = 3719214829,
 		kind = "potion",
 		potion = "soldier_pill",
 	},
 	{
 		key = "IchirakuRamen",
 		name = "Ichiraku Ramen",
-		assetId = 0,
+		assetId = 3719214429,
 		kind = "potion",
 		potion = "ichiraku_ramen",
 	},
 	{
 		key = "GamaCharm",
 		name = "Gama-chan Charm",
-		assetId = 0,
+		assetId = 3719214343,
 		kind = "potion",
 		potion = "gama_charm",
 	},
-	{ key = "SageOil", name = "Sage Oil", assetId = 0, kind = "potion", potion = "sage_oil" },
+	{
+		key = "SageOil",
+		name = "Sage Oil",
+		assetId = 3719214713,
+		kind = "potion",
+		potion = "sage_oil",
+	},
 	-- Two of each of the four potions, for less than the eight cost. Sold any number of times
 	-- (owner, 2026-10-16: once a player "is nonsense, let purchases be endless").
 	{
 		key = "AcademyBundle",
 		name = "Academy Bundle",
-		assetId = 0,
+		assetId = 3719214172,
 		kind = "bundle",
 		potions = { "soldier_pill", "ichiraku_ramen", "gama_charm", "sage_oil" },
 		each = 2,
 	},
 	-- Minutes of the dojo's income, so that a pack is worth as much late in the game as early.
-	{ key = "RyoPouch", name = "Ryo Pouch", assetId = 0, kind = "ryo", incomeMinutes = 30 },
-	{ key = "RyoPurse", name = "Ryo Purse", assetId = 0, kind = "ryo", incomeMinutes = 120 },
-	{ key = "RyoChest", name = "Ryo Chest", assetId = 0, kind = "ryo", incomeMinutes = 480 },
+	{
+		key = "RyoPouch",
+		name = "Ryo Pouch",
+		assetId = 3719214587,
+		kind = "ryo",
+		incomeMinutes = 30,
+	},
+	{
+		key = "RyoPurse",
+		name = "Ryo Purse",
+		assetId = 3719214651,
+		kind = "ryo",
+		incomeMinutes = 120,
+	},
+	{
+		key = "RyoChest",
+		name = "Ryo Chest",
+		assetId = 3719214524,
+		kind = "ryo",
+		incomeMinutes = 480,
+	},
 	-- Offered in the welcome-back window only.
-	{ key = "DoubleOffline", name = "x2 Offline Ryo", assetId = 0, kind = "offline" },
+	{ key = "DoubleOffline", name = "x2 Offline Ryo", assetId = 3719214262, kind = "offline" },
 }
 
 return {
