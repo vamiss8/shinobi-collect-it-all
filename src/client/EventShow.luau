@@ -67,6 +67,9 @@ local Weather = require("./Weather")
 
 local EventShow = {}
 
+-- The timer's scroll once started, for client ActiveBoosts, whose scrolls stand under it.
+EventShow.timer = nil :: Frame?
+
 -- The scroll with the countdown, in the top left corner.
 local TIMER = Vector2.new(330, 78)
 local TIMER_SEAL = 56
@@ -382,6 +385,7 @@ function EventShow.start()
 		Size = UDim2.fromOffset(TIMER.X, TIMER.Y),
 		Visible = false,
 	}, TIMER_SEAL)
+	EventShow.timer = paper.frame
 	local emblem: Frame = Ui.make("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
