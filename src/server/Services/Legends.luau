@@ -23,6 +23,7 @@ local Build = require(ReplicatedStorage.Shared.View.Build)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
+local Gifts = require("../Gifts")
 local Hub = require("../World/Hub")
 local Inventory = require("./Inventory")
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -115,8 +116,15 @@ local function bought(player: Player, legend: Catalog.Legend)
 	end
 end
 
--- Makes good a save that lacks a legendary shinobi its player has the pass for.
+-- Makes good a save that lacks a legendary shinobi its player has the pass for, or was given
+-- by the owner (server/Gifts).
 local function restore(player: Player, data: Data.Data)
+	for _, legendId in Gifts[player.UserId] or {} do
+		local legend = Catalog.legendById[legendId]
+		if legend and Legends.grant(player, legendId) then
+			State.notify(player, "LegendJoined", legend.name)
+		end
+	end
 	for _, legend in Catalog.legends do
 		local pass = passOf[legend.id]
 		if pass > 0 and not Legends.unitOf(data, legend.id) then
