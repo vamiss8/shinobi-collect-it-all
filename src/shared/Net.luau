@@ -200,7 +200,6 @@ export type KickResult = {
 	sage: boolean,
 	zone: string,
 	luck: number, -- milestone luck of this throw, 1 if none
-	herbs: number, -- Herbs the throw brought
 }
 
 -- A kunai in the air. Every client draws it.
@@ -242,6 +241,7 @@ export type RunEnd = {
 	zone: string,
 	isNew: boolean, -- first time this character + mutation pair was found
 	reward: number, -- Ryo: discovery reward on an escape, consolation when caught
+	herbs: number, -- Herbs paid for bringing the catch home; 0 when caught
 }
 
 -- A shinobi standing on a pad has been levelled up at its console. Every client plays it.

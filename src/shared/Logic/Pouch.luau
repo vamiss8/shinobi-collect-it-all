@@ -18,7 +18,7 @@ export type Save = {
 	potions: { [string]: number }, -- potion id -> when the one running ends, unix seconds
 }
 
--- Herbs a throw brings, by the grade of its press (Logic/Kick).
+-- Herbs a throw pays once its catch is brought home, by the grade of its press (Logic/Kick).
 function Pouch.earned(grade: string): number
 	local herbs = Tuning.Herbs
 	return herbs.perThrow + (if grade == "Perfect" then herbs.perfect else 0)

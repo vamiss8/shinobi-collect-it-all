@@ -244,7 +244,6 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	local result = Kick.resolve(aim(player), barPosition(profile, rng()), player.streak)
 	player.streak = result.streak
 	player.spins += 1
-	player.herbs += Pouch.earned(result.grade)
 
 	local distance = math.max(result.distance, MIN_LANDING)
 	local multipliers = boosts(player)
@@ -272,6 +271,8 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	if Chase.escapes(runSpeed, enemySpeed, distance) then
 		pass(player, WALK_TO_STRIP + AIMING + staged + distance / Chase.onLane(runSpeed) + DOJO)
 		keep(player, unit)
+		-- Herbs are paid for a catch brought home, not for a throw.
+		player.herbs += Pouch.earned(result.grade)
 		local number = Catalog.zoneOrder[zone.id]
 		if not player.caughtFirst[number] then
 			player.caughtFirst[number] = {

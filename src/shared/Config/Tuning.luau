@@ -189,8 +189,9 @@ return {
 	},
 
 	-- Herbs, the potions' own currency (owner, 2026-10-16: "farmed while throwing kunai"):
-	-- every throw brings `perThrow`, a Perfect press `perfect` more, whatever the zone, so a
-	-- new player earns them as fast as an old one. Spent at the Herb Shop on potions
+	-- every throw whose catch is brought home pays `perThrow`, a Perfect press `perfect` more,
+	-- whatever the zone, so a new player earns them as fast as an old one; a runner who is
+	-- caught gets none (owner, 2026-10-17: "added once you have run home"). Spent at the Herb Shop on potions
 	-- (Config/Potions `herbs`); kept through every rebirth, like the potions in the pouch.
 	Herbs = {
 		perThrow = 1,

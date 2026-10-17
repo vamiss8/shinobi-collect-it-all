@@ -67,6 +67,7 @@ type Run = {
 	releaseAt: number, -- os.clock() time the player may start running
 	released: boolean,
 	chaseFrom: number, -- os.clock() time the enemy starts moving
+	herbs: number, -- what bringing the catch home pays (Tuning.Herbs): nothing if caught
 }
 
 local rng = Random.new()
@@ -136,9 +137,13 @@ local function endRun(player: Player, escaped: boolean)
 
 	local unit = run.unit
 	local isNew, reward = false, 0
+	local herbs = 0
 	if escaped then
-		-- The player arrives carrying their catch, ready to put it on a pad.
+		-- The player arrives carrying their catch, ready to put it on a pad, and is paid the
+		-- throw's Herbs for it (owner, 2026-10-17: "let Herbs be added once you have run home").
 		Inventory.hold(player, Inventory.add(player, data, unit))
+		herbs = run.herbs
+		data.herbs += herbs
 		isNew = Index.record(data.found, unit.character, unit.mutation)
 		if isNew then
 			reward = Index.discoveryReward(unit.character, unit.mutation)
@@ -160,6 +165,7 @@ local function endRun(player: Player, escaped: boolean)
 		zone = run.zone.id,
 		isNew = isNew,
 		reward = reward,
+		herbs = herbs,
 	}
 	Remotes.RunEnd:FireClient(player, payload)
 	State.push(player)
@@ -167,7 +173,13 @@ end
 
 -- Teleports the player to where the kunai landed, facing home, with the rolled unit over their
 -- head and the zone's enemy behind them. They stay frozen while the client shows the enemy.
-local function startRun(player: Player, drop: Roll.Drop, landing: Vector3, enemyAt: Vector3)
+local function startRun(
+	player: Player,
+	drop: Roll.Drop,
+	landing: Vector3,
+	enemyAt: Vector3,
+	herbs: number
+)
 	local character, root, humanoid = bodyOf(player)
 	local zone = Catalog.zoneById[drop.zone]
 	if not Data.get(player) or not character or not root or not humanoid or not zone then
@@ -208,6 +220,7 @@ local function startRun(player: Player, drop: Roll.Drop, landing: Vector3, enemy
 		releaseAt = releaseAt,
 		released = false,
 		chaseFrom = releaseAt + Tuning.Chase.enemyDelay,
+		herbs = herbs,
 	}
 
 	local payload: Net.RunStart = {
@@ -291,9 +304,9 @@ local function press(player: Player, claimed: unknown)
 
 	data.streak = result.streak
 	data.spins += 1
-	-- Every throw brings Herbs, a Perfect one more (Tuning.Herbs).
+	-- What the throw will pay in Herbs, a Perfect one more (Tuning.Herbs): paid when the catch
+	-- is brought home (endRun), not now.
 	local herbs = Pouch.earned(result.grade)
-	data.herbs += herbs
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)
@@ -381,7 +394,6 @@ local function press(player: Player, claimed: unknown)
 		sage = result.sage,
 		zone = drop.zone,
 		luck = spinLuck,
-		herbs = herbs,
 	}
 	Remotes.KickResult:FireClient(player, payload)
 	State.push(player)
@@ -390,7 +402,7 @@ local function press(player: Player, claimed: unknown)
 	task.delay(windup + duration + chase.rollSeconds + chase.holdSeconds, function()
 		if flights[player] == token then
 			flights[player] = nil
-			startRun(player, drop, landing, enemyAt)
+			startRun(player, drop, landing, enemyAt, herbs)
 		end
 	end)
 end

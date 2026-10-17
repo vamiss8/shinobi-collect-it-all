@@ -490,10 +490,16 @@ function Hud.start()
 		local title = Strings.title(run.character, run.mutation, 1)
 		if not run.escaped then
 			Hud.toast(Strings.get("RunCaught", enemyName(run.zone), title, run.reward), Ui.RED)
-		elseif run.isNew then
-			Hud.toast(Strings.get("RunEscapedNew", title, run.reward), Hud.rankColor(run.character))
 		else
-			Hud.toast(Strings.get("RunEscaped", title), Hud.rankColor(run.character))
+			-- Home safe: what the catch is, and the Herbs it paid (Tuning.Herbs), which the
+			-- chip in the Ryo readout greets at the same moment.
+			local text = if run.isNew
+				then Strings.get("RunEscapedNew", title, run.reward)
+				else Strings.get("RunEscaped", title)
+			if run.herbs > 0 then
+				text ..= Strings.get("KickHerbs", run.herbs)
+			end
+			Hud.toast(text, Hud.rankColor(run.character))
 		end
 	end)
 end
