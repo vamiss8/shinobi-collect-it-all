@@ -119,7 +119,8 @@ end
 -- Makes good a save that lacks a legendary shinobi its player has the pass for, or was given
 -- by the owner (server/Gifts).
 local function restore(player: Player, data: Data.Data)
-	for _, legendId in Gifts[player.UserId] or {} do
+	local gifts: { string } = Gifts[player.UserId] or {}
+	for _, legendId in gifts do
 		local legend = Catalog.legendById[legendId]
 		if legend and Legends.grant(player, legendId) then
 			State.notify(player, "LegendJoined", legend.name)

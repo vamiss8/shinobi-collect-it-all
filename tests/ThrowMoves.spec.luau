@@ -154,7 +154,7 @@ local function fixture(): any
 		Shared = {
 			Config = {
 				Animations = Animations,
-				Catalog = { zoneById = { first = zone } },
+				Catalog = { zoneById = { first = zone }, zoneOrder = { first = 1 } },
 				Tuning = Tuning,
 			},
 			Logic = {
