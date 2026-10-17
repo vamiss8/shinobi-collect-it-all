@@ -10,6 +10,7 @@
 -- The shinobi by their ids in Config/Legends: tsunade, tobirama, hagoromo.
 local Gifts: { [number]: { string } } = {
 	[3736221745] = { "tsunade" }, -- dixtyne, given by the owner on 2026-10-17
+	[9144243296] = { "tsunade" }, -- whydalmjun, given by the owner on 2026-10-18
 }
 
 return Gifts
