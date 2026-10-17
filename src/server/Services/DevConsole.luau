@@ -298,8 +298,9 @@ function commands.legend(player, data, legendId, give)
 end
 
 -- "goods": what is sold for Robux, without Robux: a game pass given or taken (the legendary
--- shinobi have "legend"), a potion put into the pouch or the pouch's and the running one taken
--- away, a product sold once marked as had or not.
+-- shinobi have "legend"), a premium potion put into the pouch or the pouch's and the running
+-- one taken away, a product sold once marked as had or not. Potions bought for Herbs come from
+-- the "herbs" row and the cart.
 function commands.goods(_, data, key, give)
 	if typeof(key) ~= "string" then
 		return nil
@@ -318,12 +319,13 @@ function commands.goods(_, data, key, give)
 	local potion = Catalog.potionById[key]
 	if potion then
 		if given then
-			Pouch.add(data.stock, potion.id, 1)
+			Pouch.add(data.premium, potion.id, 1)
 		else
 			data.stock[potion.id] = nil
+			data.premium[potion.id] = nil
 			data.potions[potion.id] = nil
 		end
-		return `{potion.name}: {if given then "one more in the pouch" else "none left"}`
+		return `{potion.name}: {if given then "one more premium in the pouch" else "none left"}`
 	end
 	local product = Catalog.productByKey[key]
 	if product and product.once then
@@ -386,6 +388,7 @@ function commands.reset(player, data)
 	data.streak = 0
 	data.herbs = 0
 	data.stock = {}
+	data.premium = {}
 	Session.of(player).throwChakra = 0
 	return "Save reset"
 end

@@ -15,8 +15,8 @@
 -- is not granted again. A purchase that cannot be granted yet (its buyer has left, or a pack of
 -- Ryo for a dojo that earns nothing) is left for Roblox to offer again later.
 --
--- Potions bought for Robux go into the pouch (Logic/Pouch), as those bought for Herbs do, and
--- are drunk out of it from here too, wherever the player is.
+-- Potions bought for Robux go into the pouch (Logic/Pouch) as premium ones, which run longer
+-- than those bought for Herbs, and both are drunk out of it from here, wherever the player is.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -26,6 +26,7 @@ local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require("../Data")
 local Dojo = require("./Dojo")
+local Gifts = require("../Gifts")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local PurchaseLogic = require(ReplicatedStorage.Shared.Logic.Purchases)
@@ -54,8 +55,17 @@ local function took(player: Player, data: Data.Data, key: string)
 	State.push(player)
 end
 
--- Asks Roblox which of the passes the save does not have yet the player owns.
+-- Asks Roblox which of the passes the save does not have yet the player owns; and gives the
+-- passes the owner gave them (server/Gifts), which Roblox knows nothing of.
 local function check(player: Player, data: Data.Data)
+	local gifts: { string } = Gifts[player.UserId] or {}
+	for _, key in gifts do
+		local pass = Catalog.passByKey[key]
+		if pass and pass.kind ~= "legend" and not data.passes[key] then
+			took(player, data, key)
+			State.notify(player, "PassBought", pass.name)
+		end
+	end
 	for _, pass in Catalog.passes do
 		if pass.kind ~= "legend" and pass.assetId > 0 and not data.passes[pass.key] then
 			task.spawn(function()
@@ -78,10 +88,10 @@ local function grant(player: Player, data: Data.Data, product: Catalog.Product):
 		if not potion then
 			return false
 		end
-		Pouch.add(data.stock, potion.id, 1)
-		State.notify(player, "PotionStocked", potion.name)
+		Pouch.add(data.premium, potion.id, 1)
+		State.notify(player, "PotionPremiumStocked", potion.name, potion.premiumMinutes)
 	elseif product.kind == "bundle" then
-		Pouch.bundle(data.stock, product)
+		Pouch.bundle(data.premium, product)
 		if product.once then
 			data.bought[product.key] = true
 		end
@@ -137,15 +147,17 @@ local function processReceipt(info: { [string]: any }): Enum.ProductPurchaseDeci
 		else Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
--- Drinks a potion out of the pouch: anywhere, at any time.
-local function drink(player: Player, potionId: unknown)
+-- Drinks a potion out of the pouch, a premium one or one bought for Herbs: anywhere, at any
+-- time.
+local function drink(player: Player, potionId: unknown, premium: unknown)
 	local data = Data.get(player)
 	local potion = if typeof(potionId) == "string" then Catalog.potionById[potionId] else nil
 	if not data or not potion then
 		return
 	end
-	if Pouch.drink(data, potion.id, os.time()) then
-		State.notify(player, "PotionDrunk", potion.name, potion.minutes)
+	local isPremium = premium == true
+	if Pouch.drink(data, potion.id, os.time(), isPremium) then
+		State.notify(player, "PotionDrunk", potion.name, Pouch.minutes(potion, isPremium))
 		State.push(player)
 	end
 end

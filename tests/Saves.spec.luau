@@ -6,6 +6,22 @@ local T = require("./harness")
 local Tuning = require("../src/shared/Config/Tuning")
 
 return {
+	-- The owner, 2026-10-18: potions bought for Robux are premium and run 15 minutes. Every
+	-- potion in a pouch before then was bought to run 15 minutes.
+	["the potions in a pouch from before premium ones are premium"] = function()
+		local save = {
+			version = 3,
+			speedLevel = 0,
+			stock = { soldier_pill = 2 } :: { [string]: number },
+			premium = { soldier_pill = 1, sage_oil = 1 } :: { [string]: number },
+		}
+		T.ok(Saves.bring(save), "nothing was done")
+		T.eq(save.premium.soldier_pill, 3)
+		T.eq(save.premium.sage_oil, 1)
+		T.eq(next(save.stock), nil, "a potion left as one bought for Herbs")
+		T.eq(save.version, Saves.VERSION)
+	end,
+
 	["a save from before the rules were numbered keeps the run speed it paid for"] = function()
 		-- A level was two studs a second then, and there were twenty of them.
 		for _, level in { 0, 1, 7, 20 } do

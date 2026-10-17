@@ -266,7 +266,8 @@ function Audio.start()
 		if state.herbs > before.herbs then
 			Audio.play("herbs")
 		end
-		local had, has = total(before.stock), total(state.stock)
+		local had = total(before.stock) + total(before.premium)
+		local has = total(state.stock) + total(state.premium)
 		if has > had then
 			Audio.play("potion")
 		elseif has < had then

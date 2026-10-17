@@ -3,7 +3,9 @@
 -- Roblox so that it can be tested. Potions are kept, not drunk, when they come (owner,
 -- 2026-10-16: "potions as a stock"): bought for Herbs at the Herb Shop, bought for Robux, or
 -- several at once in a bundle, they go into the pouch, and the player drinks one when they
--- like, from the Herb Shop or from the Shop window anywhere.
+-- like, from the Herb Shop or from the Shop window anywhere. Those bought for Robux are premium
+-- and run longer (Config/Potions `premiumMinutes`): they are kept apart, and the player says
+-- which of the two to drink.
 
 local Catalog = require("../Config/Catalog")
 local Purchases = require("./Purchases")
@@ -14,7 +16,8 @@ local Pouch = {}
 -- The fields of a save the pouch keeps.
 export type Save = {
 	herbs: number,
-	stock: { [string]: number }, -- potion id -> how many are in the pouch
+	stock: { [string]: number }, -- potion id -> how many bought for Herbs are in the pouch
+	premium: { [string]: number }, -- potion id -> how many premium ones, bought for Robux
 	potions: { [string]: number }, -- potion id -> when the one running ends, unix seconds
 }
 
@@ -55,21 +58,27 @@ function Pouch.buy(save: Save, potionId: string): boolean
 	return true
 end
 
--- Drinks one of a potion out of the pouch: it runs for its minutes, or on from where the one
--- running ends. Says whether there was one to drink.
-function Pouch.drink(save: Save, potionId: string, now: number): boolean
+-- How long a potion runs once drunk: a premium one, bought for Robux, longer.
+function Pouch.minutes(potion: Catalog.Potion, premium: boolean?): number
+	return if premium then potion.premiumMinutes else potion.minutes
+end
+
+-- Drinks one of a potion out of the pouch, a premium one or one bought for Herbs: it runs for
+-- its minutes, or on from where the one running ends. Says whether there was one to drink.
+function Pouch.drink(save: Save, potionId: string, now: number, premium: boolean?): boolean
 	local potion = Catalog.potionById[potionId]
-	local count = Pouch.count(save.stock, potionId)
+	local stock = if premium then save.premium else save.stock
+	local count = Pouch.count(stock, potionId)
 	if not potion or count < 1 then
 		return false
 	end
 	-- An empty slot is taken out, so that the save keeps only what there is.
 	if count > 1 then
-		save.stock[potionId] = count - 1
+		stock[potionId] = count - 1
 	else
-		save.stock[potionId] = nil
+		stock[potionId] = nil
 	end
-	Purchases.drink(save.potions, potionId, now, potion.minutes)
+	Purchases.drink(save.potions, potionId, now, Pouch.minutes(potion, premium))
 	return true
 end
 

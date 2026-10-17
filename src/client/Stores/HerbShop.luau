@@ -1,8 +1,9 @@
 --!strict
 -- The window of Kabuto's Remedies (World/PotionStall), the potions' shop: the Herbs the player
 -- has at the top, and under them every potion with how many are in the pouch and how long the
--- one running has left, and three buttons: buy one for Herbs, buy one for Robux, drink one.
--- Last, the bundle, for Robux.
+-- one running has left, and four buttons in two pairs: buy one for Herbs and drink one bought
+-- for Herbs (5 minutes); buy one for Robux and drink a premium one, bought for Robux (15
+-- minutes; Config/Potions). Last, the bundle, for Robux, whose potions are premium.
 -- What is bought goes into the pouch (Logic/Pouch); the server checks the Herbs, and that the
 -- player is at the counter for a purchase in Herbs. Drinking is the same as from the Shop
 -- window's Boosts page, which works anywhere.
@@ -29,9 +30,13 @@ local HEADER_ICON = 88
 local ROW_HEIGHT = 128
 local ROW_GAP = 8
 local ROW_ICON = 88
--- The buttons at a row's right: buying for Herbs over buying for Robux, drinking beside them.
+-- The buttons at a row's right: buying for Herbs over buying for Robux, and beside each the
+-- button that drinks what it buys.
 local BUY = Vector2.new(180, 52)
 local DRINK = Vector2.new(150, 112)
+-- A premium potion's button, and its count in a row's status line.
+local PREMIUM = Color3.fromRGB(142, 86, 214)
+local PREMIUM_INK = Color3.fromRGB(200, 166, 255)
 local BUTTON_GAP = 8
 local TEXT_LEFT = 116
 local TEXT_ROOM = SIZE.X - 32 - 16 - TEXT_LEFT - BUY.X - DRINK.X - BUTTON_GAP - 36
@@ -50,6 +55,7 @@ type Row = {
 	herbs: TextButton?,
 	robux: TextButton,
 	drink: TextButton?,
+	premiumDrink: TextButton?,
 }
 
 -- The product that sells a potion for Robux.
@@ -74,7 +80,8 @@ function HerbShop.build(): Ui.Window
 	window.title.Text = Strings.get("HerbTitle")
 	local body = window.body
 
-	Ui.note(body, {}, SIZE.X - 32, Strings.get("HerbHint"))
+	local sample = Catalog.potions[1]
+	Ui.note(body, {}, SIZE.X - 32, Strings.get("HerbHint", sample.minutes, sample.premiumMinutes))
 
 	-- The Herbs the player has, and how they are earned.
 	local header = Ui.panel(body, {
@@ -172,20 +179,36 @@ function HerbShop.build(): Ui.Window
 
 		local right = -14
 		local drink: TextButton? = nil
+		local premiumDrink: TextButton? = nil
 		if potion then
-			local button = Ui.button(frame, {
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, right, 0.5, 0),
-				Size = UDim2.fromOffset(DRINK.X, DRINK.Y),
-				TextSize = 25,
-			})
-			button.Activated:Connect(function()
-				local state = Store.get()
-				if state and (state.stock[potion.id] or 0) > 0 then
-					Remotes.Drink:FireServer(potion.id)
-				end
-			end)
-			drink = button
+			-- Drinking one bought for Herbs beside the Herbs price, a premium one beside the
+			-- Robux price.
+			local function drinkButton(premium: boolean): TextButton
+				local button = Ui.button(frame, {
+					AnchorPoint = Vector2.new(1, if premium then 1 else 0),
+					Position = if premium
+						then UDim2.new(1, right, 1, -(ROW_HEIGHT - DRINK.Y) / 2)
+						else UDim2.new(1, right, 0, (ROW_HEIGHT - DRINK.Y) / 2),
+					Size = UDim2.fromOffset(DRINK.X, BUY.Y),
+					TextSize = 22,
+					Text = Strings.get(
+						"PotionDrinkFor",
+						if premium then potion.premiumMinutes else potion.minutes
+					),
+				})
+				button.Activated:Connect(function()
+					local state = Store.get()
+					local stock = if state
+						then (if premium then state.premium else state.stock)
+						else nil
+					if stock and (stock[potion.id] or 0) > 0 then
+						Remotes.Drink:FireServer(potion.id, premium)
+					end
+				end)
+				return button
+			end
+			drink = drinkButton(false)
+			premiumDrink = drinkButton(true)
 			right -= DRINK.X + BUTTON_GAP
 		end
 		local herbs: TextButton? = nil
@@ -225,6 +248,7 @@ function HerbShop.build(): Ui.Window
 			herbs = herbs,
 			robux = robux,
 			drink = drink,
+			premiumDrink = premiumDrink,
 		}
 		table.insert(rows, entry)
 		return entry
@@ -256,8 +280,13 @@ function HerbShop.build(): Ui.Window
 			local product = entry.product
 			if potion then
 				local count = state.stock[potion.id] or 0
+				local premium = state.premium[potion.id] or 0
 				local running = state.potions[potion.id]
 				local text = Strings.get("PouchCount", count)
+				if premium > 0 then
+					local more = Strings.get("PouchPremium", premium)
+					text ..= `   <font color="#{PREMIUM_INK:ToHex()}">{more}</font>`
+				end
 				if running then
 					local active = Strings.get("ShopActive", clock(running))
 					text ..= `     <font color="#{Ui.GREEN:ToHex()}">{active}</font>`
@@ -265,10 +294,11 @@ function HerbShop.build(): Ui.Window
 				entry.status.Text = text
 				local drink = entry.drink
 				if drink then
-					drink.Text = if count > 0
-						then Strings.get("PotionDrinkCount", count)
-						else Strings.get("PotionDrink")
 					ready(drink, count > 0, Ui.GREEN)
+				end
+				local premiumDrink = entry.premiumDrink
+				if premiumDrink then
+					ready(premiumDrink, premium > 0, PREMIUM)
 				end
 				local herbs = entry.herbs
 				if herbs then

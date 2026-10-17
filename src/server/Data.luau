@@ -40,6 +40,8 @@ export type Data = {
 	-- potions in the pouch, not drunk yet, by potion id (Logic/Pouch).
 	herbs: number,
 	stock: { [string]: number },
+	-- Premium potions in the pouch, bought for Robux, which run longer (Config/Potions).
+	premium: { [string]: number },
 	lastSeen: number, -- unix seconds; 0 for a brand new save
 	-- Game passes owned, by key (Config/Products), legends aside: kept here as well as asked of
 	-- Roblox at every join, so that what they give does not wait on Roblox or fail with it.
@@ -72,6 +74,7 @@ local TEMPLATE: Data = {
 	potions = {},
 	herbs = 0,
 	stock = {},
+	premium = {},
 	lastSeen = 0,
 	passes = {},
 	bought = {},

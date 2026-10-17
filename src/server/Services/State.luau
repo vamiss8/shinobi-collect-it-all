@@ -86,6 +86,7 @@ function State.push(player: Player)
 		potions = Purchases.potionsLeft(data.potions, os.time()),
 		herbs = data.herbs,
 		stock = Pouch.contents(data.stock),
+		premium = Pouch.contents(data.premium),
 		bought = bought(data),
 	}
 	Remotes.State:FireClient(player, snapshot)

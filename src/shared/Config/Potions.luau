@@ -16,8 +16,12 @@
 -- FIVE MINUTES A POTION AT A THIRD OF THE PRICE (owner, 2026-10-18: "let us make all the
 -- potions five minutes and lower the price three times"). They were 15 minutes for 480, 400,
 -- 240 and 320 Herbs. A minute of a boost costs what it did, so a potion is drunk three times as
--- often and an hour of play buys three or four of them. The Robux prices are on Roblox and are
--- not changed by this.
+-- often and an hour of play buys three or four of them.
+--
+-- ONE BOUGHT FOR ROBUX IS PREMIUM AND RUNS `premiumMinutes`, 15 (owner, the same day: "let the
+-- versions for Robux stay at 15 minutes, a premium version; the price stays, and the shop says
+-- so"). A potion product or the bundle puts premium ones into the pouch (Data `premium`), kept
+-- apart from those bought for Herbs, and the player picks which to drink.
 
 export type Effect = "ryo" | "chakra" | "luck" | "mutationLuck"
 
@@ -26,7 +30,8 @@ export type Potion = {
 	name: string,
 	effect: Effect,
 	multiplier: number,
-	minutes: number,
+	minutes: number, -- how long one bought for Herbs runs
+	premiumMinutes: number, -- how long one bought for Robux runs
 	herbs: number,
 }
 
@@ -37,6 +42,7 @@ local Potions: { Potion } = {
 		effect = "chakra",
 		multiplier = 2,
 		minutes = 5,
+		premiumMinutes = 15,
 		herbs = 160,
 	},
 	{
@@ -45,6 +51,7 @@ local Potions: { Potion } = {
 		effect = "ryo",
 		multiplier = 2,
 		minutes = 5,
+		premiumMinutes = 15,
 		herbs = 135,
 	},
 	{
@@ -53,6 +60,7 @@ local Potions: { Potion } = {
 		effect = "luck",
 		multiplier = 2,
 		minutes = 5,
+		premiumMinutes = 15,
 		herbs = 80,
 	},
 	{
@@ -61,6 +69,7 @@ local Potions: { Potion } = {
 		effect = "mutationLuck",
 		multiplier = 2,
 		minutes = 5,
+		premiumMinutes = 15,
 		herbs = 105,
 	},
 }

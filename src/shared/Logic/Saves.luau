@@ -8,13 +8,15 @@ local Rebirth = require("./Rebirth")
 local Saves = {}
 
 -- The rules a save is written under today.
-Saves.VERSION = 3
+Saves.VERSION = 4
 
 -- The fields of a save that the steps below touch.
 export type Save = {
 	version: number, -- 0 for a save from before the rules were numbered, and for a new one
 	speedLevel: number,
 	rebirths: number?,
+	stock: { [string]: number }?,
+	premium: { [string]: number }?,
 }
 
 -- Brings a save up to today's rules, in place, and says whether anything had to be done.
@@ -39,6 +41,19 @@ function Saves.bring(save: Save): boolean
 	if save.version < 3 then
 		save.speedLevel = math.max(save.speedLevel, Rebirth.startSpeed(save.rebirths))
 		save.version = 3
+	end
+	-- 4: a potion bought for Robux is premium and runs 15 minutes, one bought for Herbs 5
+	-- (Config/Potions). Every potion in a pouch before then was bought to run 15 minutes,
+	-- whatever it was paid with, so all of them are premium.
+	if save.version < 4 then
+		local stock, premium = save.stock, save.premium
+		if stock and premium then
+			for potionId, count in stock do
+				premium[potionId] = (premium[potionId] or 0) + count
+			end
+			table.clear(stock)
+		end
+		save.version = 4
 	end
 	return save.version ~= from
 end

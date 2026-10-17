@@ -45,6 +45,10 @@ local VIP_HEIGHT = 214
 local NOTE_WIDE = SIZE.X - 32 - 28
 -- A potion's card has two buttons side by side, this far apart.
 local TWIN_GAP = 10
+-- A premium potion's drink button, and its count in a card's status line: what the Shop sells
+-- is premium (Config/Potions `premiumMinutes`).
+local PREMIUM = Color3.fromRGB(142, 86, 214)
+local PREMIUM_INK = Color3.fromRGB(200, 166, 255)
 -- The line of the Herbs the player has, over the potions.
 local HERBS_ROW = 44
 local VIP_LINE = 24
@@ -88,7 +92,7 @@ local function what(key: string): string
 	end
 	if product.kind == "potion" and product.potion then
 		local potion = Catalog.potionById[product.potion]
-		return Strings.get("GoodsWhat_" .. key, if potion then potion.minutes else 0)
+		return Strings.get("GoodsWhat_" .. key, if potion then potion.premiumMinutes else 0)
 	elseif product.kind == "bundle" then
 		return Strings.get("GoodsWhat_" .. key, product.each or 0)
 	elseif product.kind == "ryo" then
@@ -181,7 +185,13 @@ end
 
 -- The head of the Boosts page: what the pouch is, and the Herbs the player has.
 local function pouchHead(page: Instance): TextLabel
-	Ui.note(page, { LayoutOrder = 0 }, NOTE_WIDE, Strings.get("ShopPouchNote"))
+	local sample = Catalog.potions[1]
+	Ui.note(
+		page,
+		{ LayoutOrder = 0 },
+		NOTE_WIDE,
+		Strings.get("ShopPouchNote", sample.premiumMinutes, sample.minutes)
+	)
 	local row = Ui.make("Frame", {
 		Size = UDim2.fromOffset(NOTE_WIDE, HERBS_ROW),
 		BackgroundTransparency = 1,
@@ -306,10 +316,16 @@ function ShopPanel.start()
 		local product = Catalog.productByKey[key]
 		local potionId = if product then product.potion else nil
 		if drink and potionId then
+			-- A premium one first; one bought for Herbs when there is none.
 			drink.Activated:Connect(function()
 				local state = Store.get()
-				if state and (state.stock[potionId] or 0) > 0 then
-					Remotes.Drink:FireServer(potionId)
+				if not state then
+					return
+				end
+				if (state.premium[potionId] or 0) > 0 then
+					Remotes.Drink:FireServer(potionId, true)
+				elseif (state.stock[potionId] or 0) > 0 then
+					Remotes.Drink:FireServer(potionId, false)
 				end
 			end)
 		end
@@ -510,8 +526,13 @@ function ShopPanel.start()
 				if product.kind == "potion" and product.potion then
 					-- How many are in the pouch, and how long the one running has left.
 					local count = state.stock[product.potion] or 0
+					local premium = state.premium[product.potion] or 0
 					local running = state.potions[product.potion]
 					local text = Strings.get("PouchCount", count)
+					if premium > 0 then
+						local more = Strings.get("PouchPremium", premium)
+						text ..= `  <font color="#{PREMIUM_INK:ToHex()}">{more}</font>`
+					end
 					if running then
 						local active = Strings.get("ShopActive", clock(running))
 						text ..= `   <font color="#{Ui.GREEN:ToHex()}">{active}</font>`
@@ -519,10 +540,18 @@ function ShopPanel.start()
 					status.Text = text
 					status.TextColor3 = Ui.GOLD
 					local drink = item.drink
-					if drink then
-						drink.Text = Strings.get("PotionDrink")
-						drink.BackgroundColor3 = if count > 0 then Ui.GREEN else Ui.GRAY
-						drink.AutoButtonColor = count > 0
+					local potion = Catalog.potionById[product.potion]
+					if drink and potion then
+						-- It drinks a premium one first, and says how long what it drinks runs.
+						local minutes = if premium > 0 or count < 1
+							then potion.premiumMinutes
+							else potion.minutes
+						drink.Text = Strings.get("PotionDrinkFor", minutes)
+						drink.BackgroundColor3 = if premium > 0
+							then PREMIUM
+							elseif count > 0 then Ui.GREEN
+							else Ui.GRAY
+						drink.AutoButtonColor = premium > 0 or count > 0
 					end
 				elseif product.kind == "bundle" then
 					status.Text = if mode == "bought"

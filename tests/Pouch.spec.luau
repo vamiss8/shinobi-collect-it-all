@@ -9,7 +9,7 @@ local Tuning = require("../src/shared/Config/Tuning")
 local NOW = 1_000_000
 
 local function save(herbs: number): Pouch.Save
-	return { herbs = herbs, stock = {}, potions = {} }
+	return { herbs = herbs, stock = {}, premium = {}, potions = {} }
 end
 
 return {
@@ -56,6 +56,18 @@ return {
 		T.eq(Pouch.drink(mine, oil.id, NOW + 60), true)
 		T.eq(mine.potions[oil.id], NOW + 2 * oil.minutes * 60, "the second does not add on")
 		T.eq(mine.stock[oil.id], nil, "an empty slot is kept in the save")
+	end,
+
+	-- The owner: potions for Robux are premium, 15 minutes, those for Herbs 5.
+	["a premium potion is kept apart and runs longer"] = function()
+		local pill = Catalog.potionById.soldier_pill
+		T.ok(pill.premiumMinutes > pill.minutes, "a premium potion runs no longer")
+		local mine = save(0)
+		Pouch.add(mine.premium, pill.id, 1)
+		T.eq(Pouch.drink(mine, pill.id, NOW), false, "a premium one drunk as one for Herbs")
+		T.eq(Pouch.drink(mine, pill.id, NOW, true), true)
+		T.eq(mine.potions[pill.id], NOW + pill.premiumMinutes * 60)
+		T.eq(mine.premium[pill.id], nil, "an empty slot is kept in the save")
 	end,
 
 	["the bundle puts its count of every potion it holds into the pouch"] = function()
