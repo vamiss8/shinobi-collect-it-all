@@ -1,13 +1,14 @@
 --!strict
--- A mark over the player's own dojo, for their eyes alone (owner, 2026-10-17: "show which dojo
--- is yours more plainly; one forgets, and has to look high up to make out one's dojo"). The
--- dojo's name is written on its roof and floats over it, which is where the eye does not go
--- from the plaza. So a slip of parchment hangs over the dojo's stairs, 12 studs up: the
--- player's own face on a red seal, "YOUR DOJO" in ink, and a point under it at the door. It
--- rises and falls a little, is seen through other dojos and from across the plaza at the same
--- size on the screen, and is taken down while its owner is inside.
--- The server marks the dojo given to the player and puts an unseen part as large as its floor
--- in it, with the point the mark hangs at (World/Plots, Net.HOME_PART).
+-- The player's own dojo, outlined for their eyes alone (owner, 2026-10-17: "show which dojo is
+-- yours more plainly; one forgets, and has to look high up to make out one's dojo"). Its name
+-- is written on its roof, which is where the eye does not go from the plaza. A slip saying
+-- "your dojo" over its stairs was tried first and turned down: it was seen through everything
+-- on the run home and looked cheap; "maybe outline your dojo, in white lines pulsing a little;
+-- when you come close let it go". So the whole dojo has a white outline, which breathes, seen
+-- only where the dojo itself is seen; it fades out as the player comes within a few strides of
+-- it and is gone inside, and it is not drawn from farther than the plaza reaches.
+-- The server makes the dojo a Model and marks it with its owner, and puts in it an unseen part
+-- as large as its floor that distances are measured from (World/Plots, Net.HOME_PART).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,144 +16,99 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Net = require(ReplicatedStorage.Shared.Net)
-local Strings = require("./Strings")
-local Ui = require("./Ui")
 
 local HomeMark = {}
 
--- The slip's size on the screen, in layout pixels, and its face.
-local SIZE = Vector2.new(250, 64)
-local FACE = 52
--- How far it rises and falls, studs, and how long a rise and fall takes.
-local BOB = 0.5
-local BOB_SECONDS = 2.4
--- Inside the dojo's floor and this much round it, the mark is taken down.
-local INSIDE_MARGIN = 3
-local LOOK = 0.25
-local FARTHEST = 700
+local WHITE = Color3.new(1, 1, 1)
+-- How far out from the dojo's floor the outline is gone, and where it is whole, studs; and
+-- the farthest it is drawn from.
+local GONE = 22
+local WHOLE = 42
+local FARTHEST = 300
+-- The outline's breath: how see-through it is at its strongest and its faintest, and how
+-- long a breath takes.
+local STRONG = 0.1
+local FAINT = 0.65
+local BREATH = 2.2
+local LOOK = 0.5
 
--- The unseen floor of the dojo given to this player, once the server has given one.
-local function homeOf(userId: number): BasePart?
+-- The dojo given to this player and its unseen floor, once the server has given one.
+local function homeOf(userId: number): (Model?, BasePart?)
 	for _, child in Workspace:GetChildren() do
-		if child:GetAttribute(Net.DOJO_OWNER_ATTRIBUTE) == userId then
+		if child:IsA("Model") and child:GetAttribute(Net.DOJO_OWNER_ATTRIBUTE) == userId then
 			local part = child:FindFirstChild(Net.HOME_PART)
-			return if part and part:IsA("BasePart") then part else nil
+			return child, if part and part:IsA("BasePart") then part else nil
 		end
 	end
-	return nil
+	return nil, nil
+end
+
+-- How far a point is from the dojo's floor, sideways, studs: 0 on it.
+local function away(floor: BasePart, point: Vector3): number
+	local spot = floor.CFrame:PointToObjectSpace(point)
+	local dx = math.max(math.abs(spot.X) - floor.Size.X / 2, 0)
+	local dz = math.max(math.abs(spot.Z) - floor.Size.Z / 2, 0)
+	return math.sqrt(dx * dx + dz * dz)
 end
 
 function HomeMark.start()
 	local me = Players.LocalPlayer
+	local dojo: Model? = nil
+	local floor: BasePart? = nil
+	local glow: Highlight? = nil
 
-	local board = Instance.new("BillboardGui")
-	board.Name = "HomeMark"
-	board.AlwaysOnTop = true
-	board.LightInfluence = 0
-	board.MaxDistance = FARTHEST
-	board.ResetOnSpawn = false
-	board.Enabled = false
-
-	-- Laid out at its size in layout pixels and scaled as the interface is.
-	local root = Ui.make("Frame", {
-		Size = UDim2.fromOffset(SIZE.X, SIZE.Y),
-		BackgroundTransparency = 1,
-	}, board)
-	local fit: UIScale = Ui.make("UIScale", {}, root)
-
-	local slip = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.new(1, 0, 1, -12),
-		BackgroundColor3 = Ui.PARCHMENT,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	}, root)
-	Ui.corner(slip, 10)
-	Ui.stroke(slip, Ui.SEAL, 3)
-	-- The point under it, at the door: a square turned on its corner, half behind the slip.
-	local point = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.fromOffset(20, 20),
-		Rotation = 45,
-		BackgroundColor3 = Ui.PARCHMENT,
-		BorderSizePixel = 0,
-		ZIndex = 1,
-	}, root)
-	Ui.stroke(point, Ui.SEAL, 3)
-
-	-- The player's own face on a red seal.
-	local seal = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.fromOffset(FACE, FACE),
-		BackgroundColor3 = Ui.SEAL,
-		BorderSizePixel = 0,
-		ZIndex = 3,
-	}, slip)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
-	Ui.stroke(seal, Ui.INK, 2)
-	local face = Ui.make("ImageLabel", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.9, 0.9),
-		BackgroundTransparency = 1,
-		Image = `rbxthumb://type=AvatarHeadShot&id={me.UserId}&w=150&h=150`,
-		ZIndex = 4,
-	}, seal)
-	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, face)
-	local words = Ui.text(slip, {
-		Position = UDim2.fromOffset(FACE + 14, 6),
-		Size = UDim2.new(1, -(FACE + 24), 1, -12),
-		TextScaled = true,
-		TextColor3 = Ui.INK,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		ZIndex = 3,
-		Text = Strings.get("HomeMark"),
-	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 30 }, words)
-
-	-- Drawn as large on the screen as the rest of the interface, from near and far alike.
-	Ui.onResize(function()
-		local scale = Ui.scale()
-		board.Size = UDim2.fromOffset(SIZE.X * scale, SIZE.Y * scale)
-		fit.Scale = scale
-	end)
-	board.Parent = me:WaitForChild("PlayerGui")
-
-	local home: BasePart? = nil
-	local mark = Vector3.zero
 	task.spawn(function()
 		while true do
-			if not home or not home.Parent then
-				home = homeOf(me.UserId)
-				if home then
-					board.Adornee = home
-					local at = home:GetAttribute(Net.HOME_MARK_ATTRIBUTE)
-					mark = if typeof(at) == "Vector3" then at - home.Position else Vector3.zero
+			local current = dojo
+			if not current or not current.Parent then
+				local found, part = homeOf(me.UserId)
+				dojo, floor = found, part
+				local old = glow
+				if old then
+					old:Destroy()
+					glow = nil
+				end
+				if found then
+					-- Made here, so it is this client's alone.
+					local made = Instance.new("Highlight")
+					made.Name = "HomeMark"
+					made.FillTransparency = 1
+					made.OutlineColor = WHITE
+					made.OutlineTransparency = 1
+					made.DepthMode = Enum.HighlightDepthMode.Occluded
+					made.Enabled = false
+					made.Adornee = found
+					made.Parent = found
+					glow = made
 				end
 			end
-			-- Down while the player is inside it or about to step in.
-			local part = home
-			local character = me.Character
-			local body = if character then character:FindFirstChild("HumanoidRootPart") else nil
-			local inside = false
-			if part and body and body:IsA("BasePart") then
-				local spot = part.CFrame:PointToObjectSpace(body.Position)
-				inside = math.abs(spot.X) < part.Size.X / 2 + INSIDE_MARGIN
-					and math.abs(spot.Z) < part.Size.Z / 2 + INSIDE_MARGIN
-			end
-			board.Enabled = part ~= nil and not inside
 			task.wait(LOOK)
 		end
 	end)
 
 	RunService.Heartbeat:Connect(function()
-		if board.Enabled then
-			local rise = BOB * math.sin(os.clock() * 2 * math.pi / BOB_SECONDS)
-			board.StudsOffsetWorldSpace = mark + Vector3.new(0, rise, 0)
+		local made = glow
+		local part = floor
+		if not made or not part then
+			return
 		end
+		local character = me.Character
+		local body = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		if not body or not body:IsA("BasePart") then
+			made.Enabled = false
+			return
+		end
+		local distance = away(part, body.Position)
+		-- Whole from WHOLE studs out, gone at GONE and nearer, and gone past FARTHEST.
+		local near = math.clamp((distance - GONE) / (WHOLE - GONE), 0, 1)
+		if near <= 0 or distance > FARTHEST then
+			made.Enabled = false
+			return
+		end
+		made.Enabled = true
+		local breath = (math.cos(os.clock() * 2 * math.pi / BREATH) + 1) / 2
+		local faintness = STRONG + (FAINT - STRONG) * breath
+		made.OutlineTransparency = 1 - (1 - faintness) * near
 	end)
 end
 
