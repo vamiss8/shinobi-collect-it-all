@@ -6,6 +6,12 @@
 --
 -- There is no keyboard key for it: the seal has to be found on the screen and clicked. A
 -- gamepad has no pointer to click with, so its X button stands in.
+--
+-- A seal waiting to be broken breathes, a little larger and back, and sends a ring of its
+-- color out round it, the rarer the quicker; broken, it swells and is gone in a burst of its
+-- color, a ring thrown wide and sparks flying out (owner, 2026-10-17: "small pulsing
+-- animations on the x2 x5 x10 buttons that come up, and animations when they are pressed").
+-- How long the boost has left is shown over the bar of slots (client BoostTimer).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -24,24 +30,52 @@ local Bubbles = {}
 
 local INK = Color3.fromRGB(58, 40, 30)
 
--- How each multiplier looks: the color of its rim and how wide the seal is.
-local LOOKS: { [number]: { color: Color3, size: number } } = {
-	[2] = { color = Ui.GREEN, size = 140 },
-	[5] = { color = Ui.BLUE, size = 154 },
-	[10] = { color = Ui.GOLD, size = 170 },
+-- How each multiplier looks: the color of its rim, how wide the seal is, and how long one of
+-- its breaths takes.
+type Look = { color: Color3, size: number, breath: number }
+local LOOKS: { [number]: Look } = {
+	[2] = { color = Ui.GREEN, size = 140, breath = 1.2 },
+	[5] = { color = Ui.BLUE, size = 154, breath = 1.0 },
+	[10] = { color = Ui.GOLD, size = 170, breath = 0.8 },
 }
 -- How far from the middle of the screen a seal's middle keeps, in layout pixels.
 local CLEAR_OF_MIDDLE = 250
-local PLAIN = { color = Ui.GREEN, size = 140 }
+local PLAIN: Look = { color = Ui.GREEN, size = 140, breath = 1.2 }
+-- How much larger a seal grows at the top of a breath, and how far its ring goes out.
+local SWELL = 1.07
+local RING_OUT = 1.55
+-- The burst when one is broken: how many sparks, how far they fly as a share of the seal's
+-- width, and how long it lasts.
+local SPARKS = 10
+local SPARK_REACH = 0.95
+local BURST_SECONDS = 0.5
 
-type Shown = { id: number, multiplier: number, button: TextButton }
+type Shown = {
+	id: number,
+	multiplier: number,
+	button: TextButton,
+	pop: UIScale, -- the seal's own scale, which it breathes and bursts by
+	breathing: Tween,
+	spot: UDim2, -- where its middle is
+}
+
+-- The color of a multiplier's seal; the boost's timer goes by the same (client BoostTimer).
+function Bubbles.colorOf(multiplier: number): Color3
+	return (LOOKS[multiplier] or PLAIN).color
+end
 
 local function round(frame: Instance)
 	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
 end
 
--- Draws the seal as a button under `parent`, centered on a point given in shares of the screen.
-local function draw(parent: Instance, offer: Net.Bubble, x: number, y: number): TextButton
+-- Draws the seal as a button under `parent`, centered on a point given in shares of the screen,
+-- and sets it breathing. Returns the button, its scale and the breath's tween.
+local function draw(
+	parent: Instance,
+	offer: Net.Bubble,
+	x: number,
+	y: number
+): (TextButton, UIScale, Tween)
 	local look = LOOKS[offer.multiplier] or PLAIN
 
 	local button: TextButton = Ui.make("TextButton", {
@@ -106,13 +140,101 @@ local function draw(parent: Instance, offer: Net.Bubble, x: number, y: number): 
 		Size = UDim2.fromScale(0, 1),
 	}):Play()
 
-	-- The seal snaps open rather than just appearing, so it catches the eye.
+	-- A ring of its color goes out from under the rim and fades, over and over.
+	local ring = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 0,
+	}, button)
+	round(ring)
+	local ringEdge = Ui.stroke(ring, look.color, 5)
+	local spread = TweenInfo.new(look.breath, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, -1)
+	TweenService:Create(ring, spread, { Size = UDim2.fromScale(RING_OUT, RING_OUT) }):Play()
+	TweenService:Create(ringEdge, spread, { Transparency = 1, Thickness = 1 }):Play()
+
+	-- The seal snaps open rather than just appearing, so it catches the eye, and then breathes.
 	local pop: UIScale = Ui.make("UIScale", { Scale = 0.5 }, button)
 	TweenService:Create(pop, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Scale = 1,
 	}):Play()
+	local breathing = TweenService:Create(
+		pop,
+		TweenInfo.new(look.breath / 2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{ Scale = SWELL }
+	)
+	task.delay(0.2, function()
+		if button.Parent then
+			breathing:Play()
+		end
+	end)
 
-	return button
+	return button, pop, breathing
+end
+
+-- A broken seal's burst, where it stood: a ring of its color thrown wide and sparks flying
+-- out from its middle, all fading. Takes care of itself.
+local function burst(parent: Instance, spot: UDim2, multiplier: number)
+	local look = LOOKS[multiplier] or PLAIN
+	local made: { Instance } = {}
+	local out = TweenInfo.new(BURST_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+	local ring = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = spot,
+		Size = UDim2.fromOffset(look.size, look.size),
+		BackgroundTransparency = 1,
+	}, parent)
+	round(ring)
+	local edge = Ui.stroke(ring, look.color, 8)
+	TweenService:Create(ring, out, {
+		Size = UDim2.fromOffset(look.size * 2.2, look.size * 2.2),
+	}):Play()
+	TweenService:Create(edge, out, { Transparency = 1, Thickness = 1 }):Play()
+	table.insert(made, ring)
+
+	local flash = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = spot,
+		Size = UDim2.fromOffset(look.size * 0.8, look.size * 0.8),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+	}, parent)
+	round(flash)
+	TweenService
+		:Create(flash, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Size = UDim2.fromOffset(look.size * 1.3, look.size * 1.3),
+			BackgroundTransparency = 1,
+		})
+		:Play()
+	table.insert(made, flash)
+
+	local reach = look.size * SPARK_REACH
+	for index = 1, SPARKS do
+		local angle = (index - 0.5) / SPARKS * 2 * math.pi
+		local spark = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = spot,
+			Size = UDim2.fromOffset(16, 16),
+			BackgroundColor3 = if index % 2 == 0 then Ui.PARCHMENT else look.color,
+			BorderSizePixel = 0,
+		}, parent)
+		round(spark)
+		TweenService:Create(spark, out, {
+			Position = spot + UDim2.fromOffset(math.cos(angle) * reach, math.sin(angle) * reach),
+			Size = UDim2.fromOffset(4, 4),
+			BackgroundTransparency = 1,
+		}):Play()
+		table.insert(made, spark)
+	end
+
+	task.delay(BURST_SECONDS + 0.05, function()
+		for _, piece in made do
+			piece:Destroy()
+		end
+	end)
 end
 
 function Bubbles.start()
@@ -120,11 +242,42 @@ function Bubbles.start()
 	local rng = Random.new()
 	local shown: Shown? = nil
 
-	local function remove(bubble: Shown)
-		bubble.button:Destroy()
+	-- Takes a seal down: it shrinks away, or, broken, swells and bursts.
+	local function remove(bubble: Shown, broken: boolean?)
 		if shown == bubble then
 			shown = nil
 		end
+		local button = bubble.button
+		if not button.Parent then
+			return
+		end
+		button.Active = false
+		bubble.breathing:Cancel()
+		if broken then
+			burst(screen, bubble.spot, bubble.multiplier)
+			local swell = TweenService:Create(
+				bubble.pop,
+				TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ Scale = 1.3 }
+			)
+			swell.Completed:Connect(function()
+				TweenService:Create(
+					bubble.pop,
+					TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+					{ Scale = 0 }
+				):Play()
+			end)
+			swell:Play()
+		else
+			TweenService:Create(
+				bubble.pop,
+				TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+				{ Scale = 0 }
+			):Play()
+		end
+		task.delay(0.25, function()
+			button:Destroy()
+		end)
 	end
 
 	local function pop()
@@ -132,7 +285,7 @@ function Bubbles.start()
 		if not bubble then
 			return
 		end
-		remove(bubble)
+		remove(bubble, true)
 		Remotes.BubblePop:FireServer(bubble.id)
 		Audio.play("bubble")
 
@@ -159,8 +312,16 @@ function Bubbles.start()
 		local gap = math.min(CLEAR_OF_MIDDLE / Ui.room().X, 0.2)
 		local side = if rng:NextInteger(0, 1) == 0 then -1 else 1
 		local x = 0.5 + side * rng:NextNumber(gap, math.max(gap, 0.3))
-		local button = draw(screen, offer, x, rng:NextNumber(0.3, 0.5))
-		local bubble: Shown = { id = offer.id, multiplier = offer.multiplier, button = button }
+		local y = rng:NextNumber(0.3, 0.5)
+		local button, scale, breathing = draw(screen, offer, x, y)
+		local bubble: Shown = {
+			id = offer.id,
+			multiplier = offer.multiplier,
+			button = button,
+			pop = scale,
+			breathing = breathing,
+			spot = UDim2.fromScale(x, y),
+		}
 		shown = bubble
 		button.Activated:Connect(pop)
 		task.delay(offer.seconds, function()

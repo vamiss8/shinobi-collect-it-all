@@ -498,11 +498,9 @@ function Hud.start()
 				perRep * Focus.bestReps()
 			)
 			else Strings.get("HudIdle")
-		if state.trainBoost > 1 then
-			detail ..= Strings.get("HudBoost", state.trainBoost)
-		end
+		-- A broken seal's boost is counted in the rate and told by its own timer over the bar
+		-- of slots (client BoostTimer), not here.
 		chakraDetail.Text = detail
-		chakraDetail.TextColor3 = if state.trainBoost > 1 then Ui.GOLD else Ui.MUTED
 	end)
 
 	Remotes.Notify.OnClientEvent:Connect(function(key: string, ...: any)
