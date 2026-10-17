@@ -49,8 +49,10 @@ local TILE_GAP = 12
 
 -- The Herbs' chip in the Ryo readout, and the slip that rises off it when some come: how
 -- far, how long.
-local HERBS = Vector2.new(112, 30)
+local HERBS_TALL = 30 -- the chip's height; its width follows the count
 local HERBS_ICON = 26
+local HERBS_GAP = 4
+local HERBS_TEXT = 20
 local GAIN = Vector2.new(56, 30)
 local GAIN_RISE = 40
 local GAIN_SECONDS = 0.9
@@ -354,44 +356,68 @@ function Hud.start()
 	-- Herbs: a small chip in the Ryo readout's lower right corner, where the income line
 	-- leaves room for it: a leaf and the count, in a muted green, on a sheet a little lighter
 	-- than the readout. Less than Ryo on purpose, and nothing more on the screen.
-	ryoDetail.Size = UDim2.new(1, -(94 + HERBS.X + 8), 0, 28)
+	-- The chip is as wide as what it holds (owner, 2026-10-17: with 50 Herbs a fixed width
+	-- left "a heap of room" and looked bad): it grows leftwards from the corner with the count,
+	-- and the income line gives way to it.
 	local herbsPlaque = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -8, 1, -6),
-		Size = UDim2.fromOffset(HERBS.X, HERBS.Y),
+		Size = UDim2.fromOffset(0, HERBS_TALL),
+		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundColor3 = Ui.CARD,
 		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
 	}, ryoPlaque)
 	Ui.corner(herbsPlaque, 15)
 	Ui.stroke(herbsPlaque, Ui.GREEN, 1.5).Transparency = 0.35
+	Ui.make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, HERBS_GAP),
+	}, herbsPlaque)
+	Ui.make("UIPadding", {
+		PaddingLeft = UDim.new(0, 4),
+		PaddingRight = UDim.new(0, 10),
+	}, herbsPlaque)
 	local herbsIcon = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 4, 0.5, 0),
 		Size = UDim2.fromOffset(HERBS_ICON, HERBS_ICON),
 		BackgroundTransparency = 1,
+		LayoutOrder = 1,
 	}, herbsPlaque)
 	Icons.herb(herbsIcon)
 	local herbsPop: UIScale = Ui.make("UIScale", {}, herbsIcon)
 	local herbsAmount = Ui.text(herbsPlaque, {
-		Position = UDim2.fromOffset(HERBS_ICON + 8, 2),
-		Size = UDim2.new(1, -(HERBS_ICON + 14), 1, -4),
-		TextScaled = true,
+		Size = UDim2.fromOffset(0, HERBS_TALL - 4),
+		AutomaticSize = Enum.AutomaticSize.X,
+		TextSize = HERBS_TEXT,
 		TextColor3 = Color3.fromRGB(165, 214, 167),
+		LayoutOrder = 2,
 	})
-	Ui.make("UITextSizeConstraint", { MaxTextSize = 22 }, herbsAmount)
+	-- The income line ends where the chip begins, however wide the chip has grown. The chip's
+	-- width on the screen is the layer's scale times its width as laid out.
+	local function giveWay()
+		local wide = herbsPlaque.AbsoluteSize.X / Ui.scale()
+		ryoDetail.Size = UDim2.new(1, -(94 + wide + 8), 0, 28)
+	end
+	herbsPlaque:GetPropertyChangedSignal("AbsoluteSize"):Connect(giveWay)
+	giveWay()
 
 	-- A slip of parchment with "+N" in ink rises off the readout and fades, and the leaf
 	-- jumps: in the style of the upgrade's tag, not bare colored words.
+	-- It is a child of the Ryo readout, not of the chip, whose list would lay it out: it starts
+	-- over the chip's middle, wherever that is as the chip's width follows the count.
 	local function gained(count: number)
+		local middle = -8 - herbsPlaque.AbsoluteSize.X / Ui.scale() / 2
+		local top = -6 - HERBS_TALL - 4
 		local slip = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(1, -GAIN.X / 2 - 6, 0, -4),
+			Position = UDim2.new(1, middle, 1, top),
 			Size = UDim2.fromOffset(GAIN.X, GAIN.Y),
 			BackgroundColor3 = Ui.PARCHMENT,
 			BorderSizePixel = 0,
 			ZIndex = 4,
-		}, herbsPlaque)
+		}, ryoPlaque)
 		Ui.corner(slip, 8)
 		local edge = Ui.stroke(slip, Ui.GREEN, 2)
 		local words = Ui.text(slip, {
@@ -404,7 +430,7 @@ function Hud.start()
 		})
 		local rise = TweenInfo.new(GAIN_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		TweenService:Create(slip, rise, {
-			Position = UDim2.new(1, -GAIN.X / 2 - 6, 0, -4 - GAIN_RISE),
+			Position = UDim2.new(1, middle, 1, top - GAIN_RISE),
 		}):Play()
 		local fade = TweenInfo.new(GAIN_FADE, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		task.delay(GAIN_SECONDS - GAIN_FADE, function()
