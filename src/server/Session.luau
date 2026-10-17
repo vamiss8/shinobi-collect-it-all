@@ -37,6 +37,16 @@ function Session.boost(player: Player): number
 	return 1
 end
 
+-- Seconds left on the bubble boost running, 0 if none (the client counts it down on the
+-- screen: client BoostTimer).
+function Session.boostLeft(player: Player): number
+	local session = sessions[player]
+	if session then
+		return math.max(session.boostUntil - os.clock(), 0)
+	end
+	return 0
+end
+
 function Session.clear(player: Player)
 	sessions[player] = nil
 end

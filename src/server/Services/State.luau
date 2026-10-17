@@ -80,6 +80,7 @@ function State.push(player: Player)
 		multipliers = Stats.multipliers(data),
 		training = session.training,
 		trainBoost = Session.boost(player),
+		trainBoostLeft = Session.boostLeft(player),
 		throwChakra = session.throwChakra,
 		passes = Purchases.owned(data.passes),
 		potions = Purchases.potionsLeft(data.potions, os.time()),

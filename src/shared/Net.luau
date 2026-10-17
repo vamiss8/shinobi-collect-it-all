@@ -157,6 +157,11 @@ Net.TEST_SPEED_ATTRIBUTE = "Speed"
 -- (Services/Dojo). A client finds its own dojo and pads by them (client MergeGlow).
 Net.DOJO_OWNER_ATTRIBUTE = "DojoOwner"
 Net.PAD_ATTRIBUTE = "Pad"
+-- An unseen part in every dojo's folder as large as the dojo's floor (World/Plots), and the
+-- Vector3 attribute on it that is the point over the dojo's stairs where its owner's client
+-- hangs the mark that says whose it is (client HomeMark).
+Net.HOME_PART = "HomeMark"
+Net.HOME_MARK_ATTRIBUTE = "Mark"
 -- Number attribute on the folder: in a Studio test, how many rebirths the tester has done.
 Net.TEST_REBIRTHS_ATTRIBUTE = "Rebirths"
 -- String attribute on the folder: in a Studio test, the language the game is written in (a
@@ -185,6 +190,7 @@ export type Snapshot = {
 	multipliers: Boosts.Multipliers,
 	training: string?, -- "meditate" | "focus" while training
 	trainBoost: number, -- multiplier from a popped bubble, 1 if none
+	trainBoostLeft: number, -- seconds that boost has left when sent, 0 if none
 	throwChakra: number, -- Chakra the player chose to throw with, 0 for all of it
 	passes: { string }, -- keys of the game passes owned (Config/Products), legends aside
 	potions: { [string]: number }, -- seconds left on each potion running, by potion id

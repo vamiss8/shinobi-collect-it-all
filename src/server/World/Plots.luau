@@ -85,6 +85,10 @@ local UP = Vector3.new(0, 1, 0)
 
 local STONE = Color3.fromRGB(99, 95, 98)
 local BOARD = Color3.fromRGB(62, 44, 36)
+-- Where the mark that tells a player their own dojo hangs: this high over the plaza, this far
+-- out over it from the foot of the stairs (client HomeMark).
+local HOME_MARK_UP = 12
+local HOME_MARK_OUT = 5
 local BUTTON = Color3.fromRGB(105, 102, 98)
 local STAND = Color3.fromRGB(93, 64, 55)
 local PARCHMENT = Color3.fromRGB(236, 220, 188)
@@ -401,6 +405,24 @@ local function build(index: number): Plot
 	local folder = Instance.new("Folder")
 	folder.Name = `Dojo{index}`
 	local hall = DojoHall.build(folder, frame)
+
+	-- The dojo's floor, unseen and touched by nothing, for its owner's client: it hangs a mark
+	-- saying "your dojo" over the stairs, at the point the attribute gives, and takes it down
+	-- while its owner is inside (client HomeMark). The owner is put on the folder (setOwner).
+	local middle = frame.at(0, 0.5, DojoPlan.BACK / 2)
+	local along = frame.at(1, 0.5, DojoPlan.BACK / 2) - middle
+	local home = Instance.new("Part")
+	home.Name = Net.HOME_PART
+	home.Anchored = true
+	home.CanCollide = false
+	home.CanQuery = false
+	home.CanTouch = false
+	home.CastShadow = false
+	home.Transparency = 1
+	home.Size = Vector3.new(DojoPlan.WIDTH, 1, DojoPlan.BACK)
+	home.CFrame = CFrame.fromMatrix(middle, along.Unit, Vector3.yAxis)
+	home:SetAttribute(Net.HOME_MARK_ATTRIBUTE, frame.at(0, HOME_MARK_UP, -HOME_MARK_OUT))
+	home.Parent = folder
 
 	-- Each pad goes up and comes down with its floor.
 	local pads: { Pad } = {}
