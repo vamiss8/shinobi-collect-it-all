@@ -3,6 +3,11 @@
 -- corner with Ryo stacked right above them, window buttons on the right edge, and short
 -- messages written on a scroll at the top.
 --
+-- The window buttons stand low on the right edge, a gap over the Settings tile in its corner
+-- (client SettingsPanel), so that the list of players over them has room for more lines
+-- (owner, 2026-10-17: "a little lower than settings, but not right against it"). They stood at
+-- the middle of the edge.
+--
 -- A touch screen has Roblox's stick in its lower left corner and the jump button in its lower
 -- right (owner's tester, 2026-10-16: the readouts lay over the stick, which could not be
 -- found). There Ryo and Chakra stand in the upper left corner, the throw power slider opening
@@ -46,6 +51,9 @@ local TOUCH_TILES = 0.85
 local TOUCH_ROW = 2
 local TILE = Vector2.new(112, 116)
 local TILE_GAP = 12
+-- How far over the foot of the screen the column of window tiles on the right ends: the
+-- Settings tile's margin and height (client SettingsPanel: 12 and TILE.Y), and a gap.
+local RIGHT_FOOT = 12 + TILE.Y + 28
 
 -- The Herbs' chip in the Ryo readout, and the slip that rises off it when some come: how
 -- far, how long.
@@ -70,6 +78,9 @@ local scroll: Scroll? = nil
 local messageToken = 0
 local sideColumn: Frame? = nil
 local leftColumn: Frame? = nil
+-- The column on the right edge as a keyboard and mouse have it, and how many tiles are in it.
+local rightColumn: Frame? = nil
+local rightTiles = 0
 
 -- Shows a message on the scroll at the top of the screen for a few seconds: the scroll unrolls
 -- with it and rolls up again after. A newer message takes its place, the scroll shutting for
@@ -113,6 +124,9 @@ function Hud.sideButton(
 ): (TextButton, TextLabel)
 	local column = if left then leftColumn else sideColumn
 	assert(column, "Hud.start() has not run yet")
+	if column == rightColumn then
+		rightTiles += 1
+	end
 	local tile = Ui.button(column, {
 		Size = UDim2.fromOffset(TILE.X, TILE.Y),
 		BackgroundColor3 = Ui.PANEL,
@@ -150,6 +164,13 @@ function Hud.sideButton(
 	})
 	Ui.corner(counter, 12)
 	return tile, counter
+end
+
+-- Where the column of window tiles on the right edge begins, from the top of the screen in
+-- layout pixels: the list of players hangs over it (client PlayerList).
+function Hud.rightTop(): number
+	local count = math.max(rightTiles, 1)
+	return Ui.room().Y - RIGHT_FOOT - count * TILE.Y - (count - 1) * TILE_GAP
 end
 
 local function enemyName(zoneId: string): string
@@ -282,8 +303,8 @@ function Hud.start()
 		leftColumn = grid
 	end
 	local column = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -12, 0.5, 0),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -RIGHT_FOOT),
 		Size = UDim2.fromOffset(TILE.X, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -295,6 +316,7 @@ function Hud.start()
 	}, column)
 	if not touch then
 		sideColumn = column
+		rightColumn = column
 	end
 	-- And a column on the left edge, for Rebirth, which the games of this kind keep there. It
 	-- stands at the middle of the edge, over the readouts. (On a touch screen its tiles are
@@ -498,6 +520,10 @@ function Hud.start()
 				else Strings.get("RunEscaped", title)
 			if run.herbs > 0 then
 				text ..= Strings.get("KickHerbs", run.herbs)
+			end
+			-- A twin of it stands on a pad, and glows there (client MergeGlow).
+			if run.twin then
+				text ..= Strings.get("RunMerge")
 			end
 			Hud.toast(text, Hud.rankColor(run.character))
 		end

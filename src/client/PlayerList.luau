@@ -13,11 +13,12 @@
 -- The numbers are read off the Players themselves, where the server keeps them as attributes
 -- (Services/State). Tab hides the list and brings it back, as it does Roblox's.
 --
--- IT NEVER REACHES THE WINDOW BUTTONS, which stand at the middle of the same edge (client
--- Hud). The corner over them has room for nine lines or so, and six players of five ranks are
--- eleven: the scroll is then as long as the corner lets it be, and its lines are turned
--- through with the wheel. (It first hung left of the buttons when it grew; the owner would
--- rather have it stay where it is and scroll.)
+-- IT NEVER REACHES THE WINDOW BUTTONS, which stand low on the same edge (client Hud). The
+-- corner over them has room for a dozen lines or so on a screen of 900, and six players of
+-- five ranks are eleven: when there are more than fit, the scroll is as long as the corner
+-- lets it be, and its lines are turned through with the wheel. (It first hung left of the
+-- buttons when it grew; the owner would rather have it stay where it is and scroll. The
+-- buttons stood at the middle of the edge until they were moved down to give it more room.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
+local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Lettering = require("./Lettering")
 local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
@@ -48,12 +50,11 @@ local SEAL = 24
 local INDENT = 14
 -- What a line's income may take of its width.
 local INCOME = 96
--- Where the scroll's top is from the top of the screen. The window buttons stand at the middle
--- of the same edge (client Hud): the scroll's foot keeps this far above the middle of the
--- screen, half the column of three tiles (Shop, Inventory, Bingo Book) and a margin. However
--- short the window, this much of the lines is shown.
+-- Where the scroll's top is from the top of the screen, and how far its foot keeps above the
+-- window buttons on the same edge (client Hud.rightTop). However short the window, SHOWN_LEAST
+-- of the lines is shown.
 local TOP = 16
-local CLEAR_OF_BUTTONS = 214
+local CLEAR_OF_BUTTONS = 28
 -- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
 -- the name stands in to make room for it.
 local VIP = Vector2.new(36, 18)
@@ -360,7 +361,7 @@ function PlayerList.start()
 		end
 
 		-- As much of the lines as fits between the title and the window buttons.
-		local room = Ui.room().Y / 2 - CLEAR_OF_BUTTONS - TOP - HEADER - FOOT
+		local room = Hud.rightTop() - CLEAR_OF_BUTTONS - TOP - HEADER - FOOT
 		local shown = math.min(y, math.max(room, SHOWN_LEAST))
 		lines.CanvasSize = UDim2.fromOffset(0, y)
 		lines.Size = UDim2.new(1, 0, 0, shown)
