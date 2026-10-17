@@ -3,6 +3,7 @@
 -- into a player's multipliers.
 local Boosts = require("../src/shared/Logic/Boosts")
 local Catalog = require("../src/shared/Config/Catalog")
+local Kick = require("../src/shared/Logic/Kick")
 local Rebirth = require("../src/shared/Logic/Rebirth")
 local Rebirths = require("../src/shared/Config/Rebirths")
 local SpeedStages = require("../src/shared/Config/SpeedStages")
@@ -20,13 +21,43 @@ return {
 		T.eq(Rebirth.title(nil), Rebirth.FIRST_TITLE)
 	end,
 
-	["each asks ten times the Chakra of the one before, from a thousand"] = function()
+	-- Tenfold to the sixth; the owner's shorter steps after it (500M, 1.5B, 4B, 10B).
+	["each asks ten times the Chakra of the one before to the sixth, and more after it"] = function()
 		T.eq(Rebirths[1].chakra, 1000)
 		for index = 2, #Rebirths do
-			T.near(Rebirths[index].chakra / Rebirths[index - 1].chakra, 10, EPS)
+			local step = Rebirths[index].chakra / Rebirths[index - 1].chakra
+			if index <= 6 then
+				T.near(step, 10, EPS)
+			else
+				T.ok(
+					step > 1 and step <= 10,
+					`{Rebirths[index].title} asks {step} times the one before`
+				)
+			end
 		end
 		-- More than up to a billion: the owner's word, with room to add to.
 		T.ok(#Rebirths >= 10, `only {#Rebirths} rebirths`)
+		T.ok(Rebirths[#Rebirths].chakra >= 1e10, "the last asks less than ten billion")
+	end,
+
+	-- The owner: a tester with 450M Chakra reached the last zone only with a Sage throw. The last
+	-- zone is reached before a rebirth that asks more Chakra than it: with what that rebirth
+	-- asks, every Perfect lands in it.
+	["the last zone is reached with any Perfect before a rebirth asks more than it"] = function()
+		local last = Catalog.zones[#Catalog.zones]
+		local perfect = Kick.share(Tuning.Kick.grades[1].from)
+		local first: Rebirths.Rebirth? = nil
+		for _, row in Rebirths do
+			if row.chakra > last.chakra then
+				first = row
+				break
+			end
+		end
+		assert(first, "no rebirth asks more Chakra than the last zone")
+		T.ok(
+			first.chakra * perfect >= last.chakra,
+			`{first.title} comes before a Perfect reaches the last zone`
+		)
 	end,
 
 	["every rebirth pays more than the last, in all three"] = function()

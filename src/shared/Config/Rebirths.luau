@@ -16,12 +16,21 @@
 -- zone that rank was earned in asks for: a reborn player skips the nearest zones they have
 -- long outgrown and still has speed to buy on the way back.
 --
--- The Chakra asked for goes up tenfold a rebirth, as in every game of this kind: the first
--- comes minutes into the game and the last few are long goals. Ryo goes x2, x3, x4, a tenth
--- is added to mutation luck each time, and Chakra a quarter. The last three ask for more
--- Chakra than the lane has any use for and than the best kunai can train in a sane time, so
--- from the seventh on the Chakra paid jumps: it stands in for the kunai there are not
--- (`lune run sim` prints when each rebirth is done).
+-- The Chakra asked for goes up tenfold a rebirth to the sixth, as in every game of this kind:
+-- the first comes minutes into the game. Ryo goes x2, x3, x4, a tenth is added to mutation luck
+-- each time, and Chakra a quarter.
+--
+-- FROM THE SEVENTH ON THE STEPS ARE SHORTER: 500M, 1.5B, 4B, 10B (owner, 2026-10-18: the
+-- testers had reached the end of the game, 200 to 400 million Chakra with the seventh asking a
+-- billion, and "the game slows down very much there and is no longer interesting"). They were
+-- 1B, 10B, 100B and 1T, and paid x7, x30, x150 and x500 Chakra a rep, a jump that stood in for
+-- kunai there are not on steps of ten. On steps of three that jump would bring the last three
+-- within three and a half hours of one another, so the late ranks pay x4, x8, x14 and x25: each
+-- climb then takes a little longer than the one before. By `lune run sim 220` the average
+-- player is reborn the seventh time at 13 h 22 min (16 h 28 min before) and the tenth at 38 h
+-- 37 min (202 h); the skilled one the tenth at 36 h 49 min (122 h). A throw goes no farther
+-- than the lane's end, 2.8B (the last zone's threshold times Tuning.Kick.lastZoneSpan): the
+-- last two ranks ask for Chakra past it, which only training can still use.
 --
 -- The colors run from plain to hot, and the last four ranks are lettered as well
 -- (Config/Lettering `titles`): the higher the rank, the more it shows.
@@ -98,38 +107,38 @@ local Rebirths: { Rebirth } = {
 		startSpeed = 16,
 	},
 	{
-		chakra = 1e9,
+		chakra = 5e8,
 		title = "Sannin",
 		color = "#FF7043",
 		ryo = 8,
-		power = 7,
+		power = 4,
 		mutationLuck = 1.7,
 		startSpeed = 20,
 	},
 	{
-		chakra = 1e10,
+		chakra = 1.5e9,
 		title = "Kage",
 		color = "#FF5252",
 		ryo = 9,
-		power = 30,
+		power = 8,
 		mutationLuck = 1.8,
 		startSpeed = 24,
 	},
 	{
-		chakra = 1e11,
+		chakra = 4e9,
 		title = "Sage",
 		color = "#FFD54F",
 		ryo = 10,
-		power = 150,
+		power = 14,
 		mutationLuck = 1.9,
 		startSpeed = 28,
 	},
 	{
-		chakra = 1e12,
+		chakra = 1e10,
 		title = "Sage of Six Paths",
 		color = "#FFF8E1",
 		ryo = 11,
-		power = 500,
+		power = 25,
 		mutationLuck = 2,
 		startSpeed = 32,
 	},
