@@ -9,6 +9,8 @@ return {
 		HudRyo = "%s Ryo",
 		HudIncome = "+%s por segundo",
 		HudChakra = "%s de Chakra",
+		HudHerbs = "%s",
+		HudHerbsGain = "+%s",
 		HudIdle = "Equipe uma ferramenta e fique parado",
 		HudLoading = "Carregando seu progresso...",
 		HudMeditating = "Meditando: +%s por segundo",

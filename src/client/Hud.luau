@@ -8,6 +8,12 @@
 -- found). There Ryo and Chakra stand in the upper left corner, the throw power slider opening
 -- under them, and every window tile, the left column's too, stands in the upper right corner,
 -- two to a row and a little smaller.
+--
+-- Herbs, the potions' own currency, are a small chip in the Ryo readout's lower right corner,
+-- beside the income, and every throw that brings some has a slip of parchment saying "+1" or
+-- "+2" rise off it (owner, 2026-10-17: "its count written somewhere besides the shop, and a
+-- small animation by it, +1, or +2 for a Perfect"; and "less important than Ryo, or it will
+-- be cluttered": so no readout of its own).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -40,6 +46,15 @@ local TOUCH_TILES = 0.85
 local TOUCH_ROW = 2
 local TILE = Vector2.new(112, 116)
 local TILE_GAP = 12
+
+-- The Herbs' chip in the Ryo readout, and the slip that rises off it when some come: how
+-- far, how long.
+local HERBS = Vector2.new(112, 30)
+local HERBS_ICON = 26
+local GAIN = Vector2.new(56, 30)
+local GAIN_RISE = 40
+local GAIN_SECONDS = 0.9
+local GAIN_FADE = 0.35
 
 -- Where the readouts end on a touch screen, from the top: what stands under them goes by it
 -- (client EventShow's timer).
@@ -336,7 +351,87 @@ function Hud.start()
 
 	scroll = buildScroll(screen)
 
+	-- Herbs: a small chip in the Ryo readout's lower right corner, where the income line
+	-- leaves room for it: a leaf and the count, in a muted green, on a sheet a little lighter
+	-- than the readout. Less than Ryo on purpose, and nothing more on the screen.
+	ryoDetail.Size = UDim2.new(1, -(94 + HERBS.X + 8), 0, 28)
+	local herbsPlaque = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -8, 1, -6),
+		Size = UDim2.fromOffset(HERBS.X, HERBS.Y),
+		BackgroundColor3 = Ui.CARD,
+		BackgroundTransparency = 0.25,
+		BorderSizePixel = 0,
+	}, ryoPlaque)
+	Ui.corner(herbsPlaque, 15)
+	Ui.stroke(herbsPlaque, Ui.GREEN, 1.5).Transparency = 0.35
+	local herbsIcon = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 4, 0.5, 0),
+		Size = UDim2.fromOffset(HERBS_ICON, HERBS_ICON),
+		BackgroundTransparency = 1,
+	}, herbsPlaque)
+	Icons.herb(herbsIcon)
+	local herbsPop: UIScale = Ui.make("UIScale", {}, herbsIcon)
+	local herbsAmount = Ui.text(herbsPlaque, {
+		Position = UDim2.fromOffset(HERBS_ICON + 8, 2),
+		Size = UDim2.new(1, -(HERBS_ICON + 14), 1, -4),
+		TextScaled = true,
+		TextColor3 = Color3.fromRGB(165, 214, 167),
+	})
+	Ui.make("UITextSizeConstraint", { MaxTextSize = 22 }, herbsAmount)
+
+	-- A slip of parchment with "+N" in ink rises off the readout and fades, and the leaf
+	-- jumps: in the style of the upgrade's tag, not bare colored words.
+	local function gained(count: number)
+		local slip = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(1, -GAIN.X / 2 - 6, 0, -4),
+			Size = UDim2.fromOffset(GAIN.X, GAIN.Y),
+			BackgroundColor3 = Ui.PARCHMENT,
+			BorderSizePixel = 0,
+			ZIndex = 4,
+		}, herbsPlaque)
+		Ui.corner(slip, 8)
+		local edge = Ui.stroke(slip, Ui.GREEN, 2)
+		local words = Ui.text(slip, {
+			Size = UDim2.fromScale(1, 1),
+			TextSize = 24,
+			TextColor3 = Ui.INK,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = 5,
+			Text = Strings.get("HudHerbsGain", count),
+		})
+		local rise = TweenInfo.new(GAIN_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(slip, rise, {
+			Position = UDim2.new(1, -GAIN.X / 2 - 6, 0, -4 - GAIN_RISE),
+		}):Play()
+		local fade = TweenInfo.new(GAIN_FADE, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		task.delay(GAIN_SECONDS - GAIN_FADE, function()
+			TweenService:Create(slip, fade, { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(words, fade, { TextTransparency = 1 }):Play()
+			TweenService:Create(edge, fade, { Transparency = 1 }):Play()
+		end)
+		task.delay(GAIN_SECONDS + 0.05, function()
+			slip:Destroy()
+		end)
+		herbsPop.Scale = 1.3
+		TweenService:Create(
+			herbsPop,
+			TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		):Play()
+	end
+	-- What the readout said last, so that only a gain is greeted, and not the first snapshot.
+	local shownHerbs: number? = nil
+
 	Store.onChange(function(state)
+		herbsAmount.Text = Strings.get("HudHerbs", state.herbs)
+		local before = shownHerbs
+		if before and state.herbs > before then
+			gained(state.herbs - before)
+		end
+		shownHerbs = state.herbs
 		ryoAmount.Text = Strings.get("HudRyo", state.ryo)
 		ryoDetail.Text = Strings.get("HudIncome", state.income)
 
