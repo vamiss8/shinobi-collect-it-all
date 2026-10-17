@@ -14,7 +14,6 @@ return {
 		HudLoading = "Chargement de ta partie...",
 		HudMeditating = "Méditation : +%s par seconde",
 		HudFocus = "Contrôle du chakra : jusqu'à +%s par appui",
-		HudBoost = "  (bonus x%s)",
 
 		-- Throw power
 		ThrowButton = "Puissance du lancer : %s sur %s",
@@ -322,6 +321,7 @@ return {
 		NotEnoughRyo = "Pas assez de Ryo.",
 		NotYourDojo = "Ce n'est pas ton dojo.",
 		Merged = "Fusionné en %s !",
+		HomeMark = "TON DOJO",
 		MergeReady = "PRÊT À FUSIONNER",
 		MergeReadyWhy = "Son jumeau est sur une plateforme",
 		MergeSuffix = "  |  Prêt à fusionner !",

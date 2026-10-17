@@ -14,7 +14,6 @@ return {
 		HudLoading = "Загружаем сохранение...",
 		HudMeditating = "Медитация: +%s в секунду",
 		HudFocus = "Контроль чакры: до +%s за нажатие",
-		HudBoost = "  (буст x%s)",
 
 		-- Throw power
 		ThrowButton = "Сила броска: %s из %s",
@@ -322,6 +321,7 @@ return {
 		NotEnoughRyo = "Не хватает Рё.",
 		NotYourDojo = "Это не твоё додзё.",
 		Merged = "Слияние: %s!",
+		HomeMark = "ТВОЁ ДОДЗЁ",
 		MergeReady = "ГОТОВ К СЛИЯНИЮ",
 		MergeReadyWhy = "Близнец стоит на платформе",
 		MergeSuffix = "  |  Готов к слиянию!",

@@ -14,7 +14,6 @@ return {
 		HudLoading = "Loading your save...",
 		HudMeditating = "Meditating: +%s per second",
 		HudFocus = "Chakra control: up to +%s per press",
-		HudBoost = "  (x%s boost)",
 
 		-- Throw power
 		ThrowButton = "Throw power: %s of %s",
@@ -340,6 +339,7 @@ return {
 		NotEnoughRyo = "Not enough Ryo.",
 		NotYourDojo = "This is not your dojo.",
 		Merged = "Merged into %s!",
+		HomeMark = "YOUR DOJO",
 		MergeReady = "READY TO MERGE",
 		MergeReadyWhy = "Its twin is on a pad",
 		MergeSuffix = "  |  Ready to merge!",

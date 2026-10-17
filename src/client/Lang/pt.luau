@@ -15,7 +15,6 @@ return {
 		HudLoading = "Carregando seu progresso...",
 		HudMeditating = "Meditando: +%s por segundo",
 		HudFocus = "Controle de chakra: até +%s por toque",
-		HudBoost = "  (bônus x%s)",
 
 		-- Throw power
 		ThrowButton = "Força do arremesso: %s de %s",
@@ -323,6 +322,7 @@ return {
 		NotEnoughRyo = "Ryo insuficiente.",
 		NotYourDojo = "Este não é o seu dojo.",
 		Merged = "Fundido em %s!",
+		HomeMark = "SEU DOJO",
 		MergeReady = "PRONTO PARA FUNDIR",
 		MergeReadyWhy = "O gêmeo está numa plataforma",
 		MergeSuffix = "  |  Pronto para fundir!",
