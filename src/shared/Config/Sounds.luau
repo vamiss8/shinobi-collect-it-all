@@ -19,6 +19,9 @@ export type Effect = {
 	volume: number?, -- 0.5 if not given; the player's Effects slider is over all of them
 	speed: number?, -- PlaybackSpeed, 1 if not given
 	overlap: boolean?, -- may play again while the last one still sounds (ticks, presses)
+	-- How far into the sound its moment comes (the hit of an arrow that first flies in),
+	-- seconds: it is started that much before the moment, where its caller can (Audio.lead).
+	lead: number?,
 }
 
 export type Cue =
@@ -68,7 +71,9 @@ Sounds.effects = {
 	press = { id = 9120704978, volume = 0.45 }, -- Whooshes Fast Wipes Quick Airy Slices 3
 	perfect = { id = 9126073001, volume = 0.55 }, -- Synth Sparkle Tone High Pitch Bell Tone Ding
 	throw = { id = 9120972444, volume = 0.6 }, -- Wood Whoosh Slicing Air Quick Swings 1
-	land = { id = 9113161857, volume = 0.6 }, -- Arrow In And Hit 19
+	-- The arrow flies in for about half a second before it hits (owner, 2026-10-17: "the
+	-- kunai's sound comes about half a second after it lands"), so it is started so early.
+	land = { id = 9113161857, volume = 0.6, lead = 0.5 }, -- Arrow In And Hit 19
 	tick = { id = 9125916812, volume = 0.35, overlap = true }, -- Scrolling Graphic Clicks Small
 	reveal = { id = 9116394545, volume = 0.6 }, -- Magic Glows Soft Clusters Of Chiming Hits 1
 	rare = { id = 9116384485, volume = 0.65 }, -- Magic Burst 1

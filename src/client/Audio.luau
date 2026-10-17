@@ -73,6 +73,13 @@ local function effectSound(cue: string): Sound?
 	return sound
 end
 
+-- How long before its moment a cue's sound is to be started (Config/Sounds `lead`): the
+-- moment comes that far into it.
+function Audio.lead(cue: string): number
+	local effect = EFFECTS[cue]
+	return if effect then effect.lead or 0 else 0
+end
+
 -- Makes the sound of a moment. One that may overlap itself (ticks, presses) is played as a copy
 -- while the last is still sounding; any other starts again.
 function Audio.play(cue: string)

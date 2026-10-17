@@ -572,6 +572,11 @@ local function fly(flight: Net.Flight)
 	if own then
 		myKunai = kunai
 		Audio.play("throw")
+		-- The landing's sound has its hit some way in: started that much before the kunai
+		-- comes down, the hit falls on the landing.
+		task.delay(math.max(flight.duration - Audio.lead("land"), 0), function()
+			Audio.play("land")
+		end)
 	end
 
 	-- A point on the arc: a straight line from start to landing plus a parabola on top.
@@ -594,9 +599,6 @@ local function fly(flight: Net.Flight)
 			local middle = flight.to + axis * (BURIED - 0.5) * kunai.Size.Z
 			place(CFrame.lookAt(middle, middle + axis))
 			KunaiEffects.land(effects)
-			if own then
-				Audio.play("land")
-			end
 			connection:Disconnect()
 		end
 	end)

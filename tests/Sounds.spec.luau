@@ -22,6 +22,8 @@ return {
 			T.ok(volume > 0 and volume <= 1, `{cue} is too loud or silent`)
 			local speed = effect.speed or 1
 			T.ok(speed > 0.25 and speed < 4, `{cue} plays at a strange speed`)
+			local lead = effect.lead or 0
+			T.ok(lead >= 0 and lead < 2, `{cue} is started at a strange time before its moment`)
 		end
 		T.ok(count >= 20, "the effects are missing")
 	end,
