@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Shared.Net)
 
+local Audio = require(script.Audio)
 local Bubbles = require(script.Bubbles)
 local Carried = require(script.Carried)
 local Cinematic = require(script.Cinematic)
@@ -76,4 +77,5 @@ Lettering.start()
 Weather.start()
 EventShow.start()
 PlayerMoves.start()
+Audio.start()
 Store.start()

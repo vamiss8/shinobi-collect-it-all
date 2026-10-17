@@ -18,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require("./Audio")
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
@@ -260,16 +261,27 @@ local function rayThrough(point: Vector2): Ray?
 	return if camera then camera:ViewportPointToRay(point.X, point.Y) else nil
 end
 
+-- When this player last pressed a button: an upgrade that comes back soon after is theirs, and
+-- is heard as Ryo paid (every client hears of every pad's upgrades).
+local pressedAt = -math.huge
+local HEARD_WITHIN = 1.5
+
 local function press(ray: Ray?)
 	local button = if ray then buttonUnder(ray) else nil
 	if button then
 		dip(button)
+		pressedAt = os.clock()
 		Remotes.Upgrade:FireServer(button)
 	end
 end
 
 function Consoles.start()
 	Remotes.Upgraded.OnClientEvent:Connect(celebrate)
+	Remotes.Upgraded.OnClientEvent:Connect(function()
+		if os.clock() - pressedAt <= HEARD_WITHIN then
+			Audio.play("coins")
+		end
+	end)
 
 	-- With a mouse, the button under the pointer is outlined: the cursor itself gives no hint.
 	-- Under Shift Lock the pointer is the crosshair in the middle of the screen.

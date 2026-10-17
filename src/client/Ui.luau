@@ -9,6 +9,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require("./Audio")
+
 local Ui = {}
 
 -- One typeface for everything: the brush script. `FONT` is what labels and buttons get when
@@ -465,6 +467,13 @@ function Ui.button(parent: Instance, properties: { [string]: any }): TextButton
 	end
 	Ui.corner(button, 8)
 	enliven(button)
+	-- A press of a button that does something is heard (Config/Sounds "click"); a spent one,
+	-- whose colors do not answer the pointer, is not.
+	button.Activated:Connect(function()
+		if button.AutoButtonColor then
+			Audio.play("click")
+		end
+	end)
 	return button
 end
 
@@ -797,6 +806,7 @@ function Ui.window(name: string, size: Vector2): Window
 			turn += 1
 			if not open then
 				open = true
+				Audio.play("window")
 				local mine = turn
 				local function pop()
 					frame.Position = IN_PLACE

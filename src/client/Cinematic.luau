@@ -31,6 +31,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require("./Audio")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Figure = require(ReplicatedStorage.Shared.View.Figure)
@@ -462,6 +463,7 @@ local function roulette(mine: Stage)
 		local decoy = pool[rng:NextInteger(1, #pool)]
 		show({ character = decoy, mutation = Catalog.NONE, level = 1 }, false)
 		beat(Hud.rankColor(decoy), math.min(interval, 0.3), 7.4)
+		Audio.play("tick")
 		task.wait(interval)
 		elapsed += interval
 		interval *= ROLL_SLOWDOWN
@@ -476,6 +478,13 @@ local function roulette(mine: Stage)
 		mine.shownAt = os.clock()
 		beat(color, 0.6, 10)
 		celebrate(spot, color)
+		-- A mutation, or the rank above the zone's, is heard as more than a plain catch.
+		local rank = Catalog.rankOf(reveal.character)
+		if reveal.mutation ~= Catalog.NONE or (zone and rank and rank.id ~= zone.rank) then
+			Audio.play("rare")
+		else
+			Audio.play("reveal")
+		end
 		-- Nothing is written of who it is: they stand there, under their own tag.
 
 		-- It stays until the server teleports the player here; from then on the same shinobi
@@ -498,6 +507,7 @@ local function narrate(mine: Stage)
 	local zone = Catalog.zoneById[mine.reveal.zone]
 	local enemy = if zone then Strings.name(zone.enemy.name) else mine.reveal.zone
 	announce(Strings.upper(enemy), Strings.get("ChaseWarn"), Ui.SEAL)
+	Audio.play("enemy")
 	task.wait(math.max(mine.reveal.intro - SWING_SECONDS, 0.1))
 	if stage == mine then
 		announce(Strings.get("ChaseRun"), Strings.get("ChaseRunFrom", enemy), Ui.GOLD, Ui.INK)
@@ -558,8 +568,10 @@ local function fly(flight: Net.Flight)
 		end
 	end
 
-	if flight.thrower == localPlayer.UserId then
+	local own = flight.thrower == localPlayer.UserId
+	if own then
 		myKunai = kunai
+		Audio.play("throw")
 	end
 
 	-- A point on the arc: a straight line from start to landing plus a parabola on top.
@@ -582,6 +594,9 @@ local function fly(flight: Net.Flight)
 			local middle = flight.to + axis * (BURIED - 0.5) * kunai.Size.Z
 			place(CFrame.lookAt(middle, middle + axis))
 			KunaiEffects.land(effects)
+			if own then
+				Audio.play("land")
+			end
 			connection:Disconnect()
 		end
 	end)

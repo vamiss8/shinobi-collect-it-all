@@ -47,6 +47,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require("./Audio")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Cinematic = require("./Cinematic")
 local Events = require(ReplicatedStorage.Shared.Logic.Events)
@@ -656,6 +657,7 @@ function EventShow.start()
 		Ui.unroll(paper)
 
 		if fresh then
+			Audio.play("event")
 			local mutation = Catalog.mutationById[event.mutation]
 			-- In its turn: never over another scroll, nor under a window.
 			StageFlash.queue(

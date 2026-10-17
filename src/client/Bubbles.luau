@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Audio = require("./Audio")
 local Hud = require("./Hud")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
@@ -133,6 +134,7 @@ function Bubbles.start()
 		end
 		remove(bubble)
 		Remotes.BubblePop:FireServer(bubble.id)
+		Audio.play("bubble")
 
 		-- The server keeps a stronger boost that is still running; only announce a real change.
 		local state = Store.get()
