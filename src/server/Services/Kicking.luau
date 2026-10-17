@@ -138,12 +138,15 @@ local function endRun(player: Player, escaped: boolean)
 	local unit = run.unit
 	local isNew, reward = false, 0
 	local herbs = 0
+	local twin = false
 	if escaped then
 		-- The player arrives carrying their catch, ready to put it on a pad, and is paid the
 		-- throw's Herbs for it (owner, 2026-10-17: "let Herbs be added once you have run home").
 		Inventory.hold(player, Inventory.add(player, data, unit))
 		herbs = run.herbs
 		data.herbs += herbs
+		-- Whether a twin of it stands on a pad: then the arrival says it is ready to merge.
+		twin = Economy.twinPad(unit, data.units, data.pads) ~= nil
 		isNew = Index.record(data.found, unit.character, unit.mutation)
 		if isNew then
 			reward = Index.discoveryReward(unit.character, unit.mutation)
@@ -166,6 +169,7 @@ local function endRun(player: Player, escaped: boolean)
 		isNew = isNew,
 		reward = reward,
 		herbs = herbs,
+		twin = twin,
 	}
 	Remotes.RunEnd:FireClient(player, payload)
 	State.push(player)

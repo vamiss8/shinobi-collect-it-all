@@ -207,6 +207,8 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	elseif unit then
 		local figure = Figure.build(unit)
 		figure:PivotTo(pad.stand)
+		-- Which pad it stands on, for a client looking for a twin's (client MergeGlow).
+		figure:SetAttribute(Net.PAD_ATTRIBUTE, pad.index)
 		figure.Parent = plot.folder
 		pad.figure = figure
 		pad.prompt.ActionText = "Take / Swap"

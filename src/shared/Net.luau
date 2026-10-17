@@ -152,6 +152,11 @@ Net.TEST_KUNAI_ATTRIBUTE = "Kunai"
 -- Number attribute on the folder: in a Studio test, the run speed level the tester is given,
 -- to try every speed stage on their own character at the Youth Training Ground.
 Net.TEST_SPEED_ATTRIBUTE = "Speed"
+-- Number attribute on a dojo's folder: the UserId of the player it is assigned to, none while
+-- it stands empty (World/Plots). And on a shinobi standing on a pad of it: that pad's number
+-- (Services/Dojo). A client finds its own dojo and pads by them (client MergeGlow).
+Net.DOJO_OWNER_ATTRIBUTE = "DojoOwner"
+Net.PAD_ATTRIBUTE = "Pad"
 -- Number attribute on the folder: in a Studio test, how many rebirths the tester has done.
 Net.TEST_REBIRTHS_ATTRIBUTE = "Rebirths"
 -- String attribute on the folder: in a Studio test, the language the game is written in (a
@@ -190,6 +195,10 @@ export type Snapshot = {
 
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.
 export type Inventory = { [string]: Economy.Unit }
+
+-- Sent with the inventory: the units of it whose twin stands on a pad, each with that pad's
+-- number (Economy.twinPad). Carried to that pad, one merges into it.
+export type Twins = { [string]: number }
 
 export type Found = Index.Found
 
@@ -242,6 +251,7 @@ export type RunEnd = {
 	isNew: boolean, -- first time this character + mutation pair was found
 	reward: number, -- Ryo: discovery reward on an escape, consolation when caught
 	herbs: number, -- Herbs paid for bringing the catch home; 0 when caught
+	twin: boolean, -- the catch brought home has a twin on a pad: it is ready to merge
 }
 
 -- A shinobi standing on a pad has been levelled up at its console. Every client plays it.

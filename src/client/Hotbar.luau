@@ -65,6 +65,7 @@ type Slot = {
 	edge: UIStroke,
 	content: Frame, -- where the icon is drawn
 	stars: TextLabel, -- merge stars of the shinobi in the slot
+	mark: TextLabel, -- a red seal stamped "!" when the shinobi is ready to merge
 }
 
 local function makeSlot(parent: Instance, number: number, x: number): Slot
@@ -99,7 +100,23 @@ local function makeSlot(parent: Instance, number: number, x: number): Slot
 		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = 3,
 	})
-	return { button = button, edge = edge, content = content, stars = stars }
+	-- A shinobi whose twin stands on a pad (Store.twins): ready to merge.
+	local mark = Ui.text(button, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -3, 0, 3),
+		Size = UDim2.fromOffset(20, 20),
+		BackgroundColor3 = Ui.SEAL,
+		BackgroundTransparency = 0,
+		TextColor3 = Ui.PARCHMENT,
+		TextSize = 15,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 4,
+		Text = "!",
+		Visible = false,
+	})
+	Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, mark)
+	Ui.stroke(mark, INK, 1.5)
+	return { button = button, edge = edge, content = content, stars = stars, mark = mark }
 end
 
 -- The tool by that name and whether it is out: a tool in use sits in the character, one put
@@ -266,11 +283,15 @@ function Hotbar.start()
 				return Strings.get("HotbarEmpty")
 			end
 			local title = Strings.title(unit.character, unit.mutation, unit.level, unit.upgrade)
-			return Strings.get(
+			local text = Strings.get(
 				"HotbarTip",
 				Strings.upper(title),
 				Strings.get("CardIncome", Economy.unitIncome(unit))
 			)
+			if Store.twins()[quickUnits[index]] then
+				text ..= Strings.get("MergeSuffix")
+			end
+			return text
 		end)
 		quickSlots[index] = slot
 	end
@@ -309,6 +330,7 @@ function Hotbar.start()
 				slot.stars.Text = ""
 				slot.button.BackgroundTransparency = 0.55
 			end
+			slot.mark.Visible = unit ~= nil and Store.twins()[quickUnits[index]] ~= nil
 			outline(index)
 		end
 	end)

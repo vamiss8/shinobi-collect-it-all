@@ -75,12 +75,19 @@ function Inventory.sync(player: Player)
 	end
 	local onPad = placed(data)
 	local list: Net.Inventory = {}
+	-- And which of them could be merged into a twin on a pad, and on which pad: the client
+	-- marks them in the inventory and the bar, and has the twin glow while one is carried.
+	local twins: Net.Twins = {}
 	for unitId, unit in data.units do
 		if not onPad[unitId] then
 			list[unitId] = unit
+			local pad = Economy.twinPad(unit, data.units, data.pads)
+			if pad then
+				twins[unitId] = pad
+			end
 		end
 	end
-	Remotes.Inventory:FireClient(player, list)
+	Remotes.Inventory:FireClient(player, list, twins)
 end
 
 -- Adds a brand new unit to the save and the inventory. Returns its id.

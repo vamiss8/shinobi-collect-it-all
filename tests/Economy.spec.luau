@@ -66,6 +66,21 @@ return {
 		T.eq(Economy.merged(a, a).level, 2)
 	end,
 
+	["a unit's twin is found on the lowest pad that holds one"] = function()
+		local units = {
+			a = unit("iruka", "lava", 1),
+			b = unit("iruka", "lava", 2),
+			c = unit("iruka", "lava", 1),
+			d = unit("iruka", "ice", 1),
+		}
+		local pads = { ["7"] = "a", ["2"] = "b", ["4"] = "c", ["1"] = "d" }
+		T.eq(Economy.twinPad(unit("iruka", "lava", 1), units, pads), 4, "the lower of two twins")
+		T.eq(Economy.twinPad(unit("iruka", "lava", 2), units, pads), 2)
+		T.eq(Economy.twinPad(unit("iruka", "lava", 3), units, pads), nil, "no twin")
+		T.eq(Economy.twinPad(unit("iruka", "lava", 1), units, {}), nil, "no pads")
+		T.eq(Economy.twinPad(unit("iruka", "lava", 1), {}, pads), nil, "pads of gone units")
+	end,
+
 	["a merged unit out-earns the pair it replaces"] = function()
 		local a = unit("sakura", "kurama", 1)
 		local pair = Economy.unitIncome(a) * 2

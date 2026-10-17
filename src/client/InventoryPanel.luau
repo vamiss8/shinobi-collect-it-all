@@ -126,8 +126,10 @@ function InventoryPanel.start()
 			return a < b
 		end)
 
+		-- A unit whose twin stands on a pad is marked as ready to merge.
+		local twins = Store.twins()
 		for order, unitId in ids do
-			local card = UnitCard.build(list, inventory[unitId], true)
+			local card = UnitCard.build(list, inventory[unitId], true, nil, twins[unitId] ~= nil)
 			card.LayoutOrder = order
 			-- The carried one gets a thick gold outline in place of its rank-colored one.
 			local outline = card:FindFirstChildOfClass("UIStroke")

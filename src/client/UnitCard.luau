@@ -19,14 +19,20 @@ local UnitCard = {}
 UnitCard.SIZE = Vector2.new(224, 148)
 
 local BLACK = Color3.new(0, 0, 0)
+-- The seal of a unit ready to merge, in the card's top right corner.
+local MARK = 30
 
 -- Builds a card. It is a button, so the caller can make it clickable. The bottom-right corner
--- shows the unit's income unless a `footer` is given to show there instead.
+-- shows the unit's income unless a `footer` is given to show there instead. A unit `ready` to
+-- merge, whose twin stands on a pad, has a red seal stamped "!" in the top right corner, and
+-- under the pointer a slip of parchment that says so (owner, 2026-10-17: "an exclamation mark,
+-- and on hovering, ready to merge").
 function UnitCard.build(
 	parent: Instance,
 	unit: Economy.Unit,
 	known: boolean,
-	footer: string?
+	footer: string?,
+	ready: boolean?
 ): TextButton
 	local character = Catalog.characterById[unit.character]
 	local rank = Catalog.rankOf(unit.character)
@@ -59,7 +65,7 @@ function UnitCard.build(
 	-- The name takes two lines when it has to: "Rock Lee (Drunken Fist)" does not fit in one.
 	local name = Ui.text(card, {
 		Position = UDim2.fromOffset(76, 6),
-		Size = UDim2.new(1, -84, 0, 36),
+		Size = UDim2.new(1, if ready then -(84 + MARK + 4) else -84, 0, 36),
 		TextScaled = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		Text = if not known
@@ -137,6 +143,62 @@ function UnitCard.build(
 		Text = footer or Strings.get("CardIncome", Economy.unitIncome(unit)),
 	})
 	Ui.make("UITextSizeConstraint", { MaxTextSize = 20 }, incomeLabel)
+
+	if ready then
+		local slip = Ui.make("Frame", {
+			Position = UDim2.fromOffset(6, 6),
+			Size = UDim2.new(1, -12, 0, 72),
+			BackgroundColor3 = Ui.PARCHMENT,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Visible = false,
+		}, card)
+		Ui.corner(slip, 6)
+		Ui.stroke(slip, Ui.SEAL, 2)
+		local title = Ui.text(slip, {
+			Position = UDim2.fromOffset(10, 4),
+			Size = UDim2.new(1, -(MARK + 18), 0, 28),
+			TextScaled = true,
+			TextColor3 = Ui.INK,
+			ZIndex = 9,
+			Text = Strings.get("MergeReady"),
+		})
+		Ui.make("UITextSizeConstraint", { MaxTextSize = 22 }, title)
+		local why = Ui.text(slip, {
+			Position = UDim2.fromOffset(10, 34),
+			Size = UDim2.new(1, -20, 0, 34),
+			TextScaled = true,
+			TextWrapped = true,
+			TextColor3 = Ui.INK,
+			TextTransparency = 0.15,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			ZIndex = 9,
+			Text = Strings.get("MergeReadyWhy"),
+		})
+		Ui.make("UITextSizeConstraint", { MaxTextSize = 17 }, why)
+
+		local seal = Ui.text(card, {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 6),
+			Size = UDim2.fromOffset(MARK, MARK),
+			BackgroundColor3 = Ui.SEAL,
+			BackgroundTransparency = 0,
+			TextColor3 = Ui.PARCHMENT,
+			TextSize = 22,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = 10,
+			Text = "!",
+		})
+		Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
+		Ui.stroke(seal, Ui.INK, 2)
+
+		card.MouseEnter:Connect(function()
+			slip.Visible = true
+		end)
+		card.MouseLeave:Connect(function()
+			slip.Visible = false
+		end)
+	end
 
 	return card
 end

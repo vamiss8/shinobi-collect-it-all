@@ -15,6 +15,7 @@ type IndexListener = (found: Net.Found) -> ()
 
 local state: Net.Snapshot? = nil
 local inventory: Net.Inventory = {}
+local twins: Net.Twins = {}
 local found: Net.Found = {}
 
 local stateListeners: { StateListener } = {}
@@ -28,6 +29,12 @@ end
 -- Every owned unit that is not standing on a pad, by id.
 function Store.inventory(): Net.Inventory
 	return inventory
+end
+
+-- The units of the inventory whose twin stands on a pad, each with that pad's number: they
+-- are ready to merge. Changes with the inventory, so read it in an onInventory listener.
+function Store.twins(): Net.Twins
+	return twins
 end
 
 -- Which character + mutation pairs the player has found.
@@ -63,8 +70,9 @@ function Store.start()
 		end
 	end)
 
-	Remotes.Inventory.OnClientEvent:Connect(function(list: Net.Inventory)
+	Remotes.Inventory.OnClientEvent:Connect(function(list: Net.Inventory, pairs: Net.Twins?)
 		inventory = list
+		twins = pairs or {}
 		for _, fn in inventoryListeners do
 			fn(list)
 		end

@@ -549,6 +549,8 @@ local function setOwner(plot: Plot, player: Player?)
 	plot.sign.Text = name
 	plot.bannerLabel.Text = name
 	plot.banner.Enabled = player ~= nil
+	-- So that a client can find its own dojo (client MergeGlow).
+	plot.folder:SetAttribute(Net.DOJO_OWNER_ATTRIBUTE, if player then player.UserId else nil)
 end
 
 -- Gives the player the first free dojo, or nothing if all are taken.
