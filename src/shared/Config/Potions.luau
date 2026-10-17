@@ -2,13 +2,18 @@
 -- Boosts that run for a while once drunk. A player keeps them in a pouch (Data `stock`) and
 -- drinks one when they like (Logic/Pouch); drinking one while the same is running adds its
 -- minutes to it. They come into the pouch two ways: bought for Herbs at the Herb Shop on the
--- plaza, Herbs being earned by every throw (Tuning.Herbs), or bought for Robux as developer
+-- plaza, Herbs being paid for every catch brought home (Tuning.Herbs), or bought for Robux as developer
 -- products (Config/Products).
 --
 -- `herbs` is what one costs at the Herb Shop: the Chakra one dearest, Chakra being what holds
 -- a player back late in the game; the luck ones cheapest, being for the hunt more than for the
--- pace. An average player earns about fifty Herbs an hour of play (`lune run sim` prints it),
--- so one potion an hour or so is theirs without Robux.
+-- pace. Herbs are paid by the zone of the catch, so they come faster as a player goes
+-- farther: by `lune run sim` an average player earns about 220 in the first hour, 300 to 370
+-- an hour after that and 440 an hour over the whole game (a skilled one a third more). The
+-- prices are eight times what they were when every throw paid one Herb (60, 50, 40, 30), so
+-- one potion an hour or so is theirs without Robux, as before. Throwing with Chakra 1 over
+-- and over, the trick that the old payment rewarded, earns about 280 to 550 an hour and
+-- nothing else.
 
 export type Effect = "ryo" | "chakra" | "luck" | "mutationLuck"
 
@@ -28,7 +33,7 @@ local Potions: { Potion } = {
 		effect = "chakra",
 		multiplier = 2,
 		minutes = 15,
-		herbs = 60,
+		herbs = 480,
 	},
 	{
 		id = "ichiraku_ramen",
@@ -36,7 +41,7 @@ local Potions: { Potion } = {
 		effect = "ryo",
 		multiplier = 2,
 		minutes = 15,
-		herbs = 50,
+		herbs = 400,
 	},
 	{
 		id = "gama_charm",
@@ -44,7 +49,7 @@ local Potions: { Potion } = {
 		effect = "luck",
 		multiplier = 2,
 		minutes = 15,
-		herbs = 30,
+		herbs = 240,
 	},
 	{
 		id = "sage_oil",
@@ -52,7 +57,7 @@ local Potions: { Potion } = {
 		effect = "mutationLuck",
 		multiplier = 2,
 		minutes = 15,
-		herbs = 40,
+		herbs = 320,
 	},
 }
 
