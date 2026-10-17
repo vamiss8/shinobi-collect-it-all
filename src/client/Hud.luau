@@ -52,8 +52,9 @@ local TOUCH_ROW = 2
 local TILE = Vector2.new(112, 116)
 local TILE_GAP = 12
 -- How far over the foot of the screen the column of window tiles on the right ends: the
--- Settings tile's margin and height (client SettingsPanel: 12 and TILE.Y), and a gap.
-local RIGHT_FOOT = 12 + TILE.Y + 28
+-- Settings tile's margin and height (client SettingsPanel: 12 and TILE.Y), and a gap. It was
+-- 28, which the owner found too small (2026-10-17: "the gap became too small").
+local RIGHT_FOOT = 12 + TILE.Y + 60
 
 -- The Herbs' chip in the Ryo readout, and the slip that rises off it when some come: how
 -- far, how long.
