@@ -111,7 +111,10 @@ local Zones: { Zone } = {
 	{
 		id = "great_ninja_war",
 		name = "Great Ninja War",
-		chakra = 500_000_000,
+		-- 350M, not 500M (owner, 2026-10-18: "a tester with 450 million still does not reach
+		-- it, only with a Sage throw; make it a little earlier"). Every Perfect with 450M lands
+		-- in it now, and the seventh rebirth, at 500M, comes after it has been reached.
+		chakra = 350_000_000,
 		startsAt = 3140,
 		color = "#37474F",
 		rank = "SixPaths",
