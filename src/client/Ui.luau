@@ -506,6 +506,8 @@ local ROLLER_END = Color3.fromRGB(141, 98, 72)
 -- and hides the rest of the page: a scroll can be rolled out from its middle and rolled up
 -- again (Ui.unroll, Ui.rollUp, Ui.rewrite), its rollers going with the sheet's two ends while
 -- the words stay where they are written. One that is never rolled simply stands open.
+-- A `small` scroll is for a single line in a narrow gap: its rollers are slimmer and stand
+-- only 4 past the sheet, not 11, and its seal sits nearer the left end.
 export type Parchment = {
 	frame: Frame,
 	page: Frame,
@@ -593,7 +595,12 @@ function Ui.rewrite(paper: Parchment, write: () -> ())
 	end)
 end
 
-function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize: number): Parchment
+function Ui.parchment(
+	parent: Instance,
+	properties: { [string]: any },
+	sealSize: number,
+	small: boolean?
+): Parchment
 	local frame = Ui.make("Frame", {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -610,7 +617,7 @@ function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize:
 		ClipsDescendants = true,
 	}, frame)
 	Ui.corner(sheet, 4)
-	local edge = Ui.stroke(sheet, Ui.EDGE, 3)
+	local edge = Ui.stroke(sheet, Ui.EDGE, if small then 2 else 3)
 	local page = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -624,29 +631,29 @@ function Ui.parchment(parent: Instance, properties: { [string]: any }, sealSize:
 		local roller = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(side, 0.5),
-			Size = UDim2.new(0, 24, 1, 22),
+			Size = if small then UDim2.new(0, 14, 1, 8) else UDim2.new(0, 24, 1, 22),
 			BackgroundColor3 = ROLLER,
 			BorderSizePixel = 0,
 			ZIndex = 2,
 		}, frame)
-		Ui.corner(roller, 12)
+		Ui.corner(roller, if small then 7 else 12)
 		table.insert(rollers, roller)
 		for _, tip in { 0, 1 } do
 			local knob = Ui.make("Frame", {
 				AnchorPoint = Vector2.new(0.5, tip),
 				Position = UDim2.fromScale(0.5, tip),
-				Size = UDim2.fromOffset(14, 9),
+				Size = if small then UDim2.fromOffset(9, 4) else UDim2.fromOffset(14, 9),
 				BackgroundColor3 = ROLLER_END,
 				BorderSizePixel = 0,
 				ZIndex = 3,
 			}, roller)
-			Ui.corner(knob, 4)
+			Ui.corner(knob, if small then 2 else 4)
 		end
 	end
 
 	local seal = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 28, 0.5, 0),
+		Position = UDim2.new(0, if small then 16 else 28, 0.5, 0),
 		Size = UDim2.fromOffset(sealSize, sealSize),
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
