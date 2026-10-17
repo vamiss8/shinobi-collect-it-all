@@ -188,13 +188,17 @@ return {
 		receiptsKept = 50,
 	},
 
-	-- Herbs, the potions' own currency (owner, 2026-10-16: "farmed while throwing kunai"):
-	-- every throw whose catch is brought home pays `perThrow`, a Perfect press `perfect` more,
-	-- whatever the zone, so a new player earns them as fast as an old one; a runner who is
-	-- caught gets none (owner, 2026-10-17: "added once you have run home"). Spent at the Herb Shop on potions
-	-- (Config/Potions `herbs`); kept through every rebirth, like the potions in the pouch.
+	-- Herbs, the potions' own currency (owner, 2026-10-16: "farmed while throwing kunai"): a
+	-- catch brought home pays `perZone` for every zone of the lane it came from, the first zone
+	-- one, the last ten, and a Perfect press `perfect` times that; a runner who is caught gets
+	-- none (owner, 2026-10-17: "added once you have run home"). Spent at Kabuto's Remedies on
+	-- potions (Config/Potions `herbs`); kept through every rebirth, like the potions in the pouch.
+	-- By the zone and not by the throw (owner, 2026-10-17: "otherwise you can set yourself
+	-- Chakra 1 and farm very fast"): a throw with Chakra 1 is over in about 13 s and paid as
+	-- much as one into the last zone, which takes a minute. Now the nearest throw pays least,
+	-- and a player's own farthest zone pays more an hour than any nearer one from the third on.
 	Herbs = {
-		perThrow = 1,
-		perfect = 1,
+		perZone = 1,
+		perfect = 2,
 	},
 }

@@ -304,9 +304,6 @@ local function press(player: Player, claimed: unknown)
 
 	data.streak = result.streak
 	data.spins += 1
-	-- What the throw will pay in Herbs, a Perfect one more (Tuning.Herbs): paid when the catch
-	-- is brought home (endRun), not now.
-	local herbs = Pouch.earned(result.grade)
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)
@@ -320,6 +317,9 @@ local function press(player: Player, claimed: unknown)
 		Events.current(),
 		roll
 	)
+	-- What the throw will pay in Herbs, by the zone it lands in and the press (Tuning.Herbs):
+	-- paid when the catch is brought home (endRun), not now.
+	local herbs = Pouch.earned(result.grade, Catalog.zoneOrder[drop.zone] or 1)
 
 	-- The kunai flies straight down the lane from where the thrower stands.
 	local chase = Tuning.Chase

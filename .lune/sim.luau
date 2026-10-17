@@ -103,7 +103,7 @@ type Player = {
 	ryo: number,
 	spins: number,
 	streak: number,
-	herbs: number, -- earned by throws, all of them (Tuning.Herbs); none are spent here
+	herbs: number, -- earned by catches brought home (Tuning.Herbs); none are spent here
 	pads: { Unit },
 	caught: number,
 	reached: { [number]: number }, -- zone number -> when its threshold was first met
@@ -271,9 +271,9 @@ local function throw(player: Player, profile: Profile, rng: () -> number)
 	if Chase.escapes(runSpeed, enemySpeed, distance) then
 		pass(player, WALK_TO_STRIP + AIMING + staged + distance / Chase.onLane(runSpeed) + DOJO)
 		keep(player, unit)
-		-- Herbs are paid for a catch brought home, not for a throw.
-		player.herbs += Pouch.earned(result.grade)
 		local number = Catalog.zoneOrder[zone.id]
+		-- Herbs are paid for a catch brought home, by its zone, not for a throw.
+		player.herbs += Pouch.earned(result.grade, number)
 		if not player.caughtFirst[number] then
 			player.caughtFirst[number] = {
 				time = player.time,

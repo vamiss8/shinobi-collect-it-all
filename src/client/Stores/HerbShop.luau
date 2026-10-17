@@ -110,7 +110,12 @@ function HerbShop.build(): Ui.Window
 		Size = UDim2.new(1, -left - 16, 0, 26),
 		TextSize = 21,
 		TextColor3 = Ui.GREEN,
-		Text = Strings.get("HerbEarn", Tuning.Herbs.perThrow, Tuning.Herbs.perfect),
+		Text = Strings.get(
+			"HerbEarn",
+			Tuning.Herbs.perZone,
+			Tuning.Herbs.perZone * 5,
+			Tuning.Herbs.perfect
+		),
 	})
 
 	local listTop = HINT_HEIGHT + HEADER_HEIGHT + 14

@@ -13,13 +13,18 @@ local function save(herbs: number): Pouch.Save
 end
 
 return {
-	["every throw brings Herbs, a Perfect one more"] = function()
+	["a catch pays Herbs by its zone, a Perfect more"] = function()
 		local herbs = Tuning.Herbs
-		T.ok(herbs.perThrow >= 1, "a throw brings nothing")
-		T.eq(Pouch.earned("Great"), herbs.perThrow)
-		T.eq(Pouch.earned("Miss"), herbs.perThrow, "a missed press still threw")
-		T.eq(Pouch.earned("Perfect"), herbs.perThrow + herbs.perfect)
-		T.ok(Pouch.earned("Perfect") > Pouch.earned("Good"), "a Perfect is worth no more")
+		T.ok(herbs.perZone >= 1, "a catch brings nothing")
+		T.eq(Pouch.earned("Great", 1), herbs.perZone)
+		T.eq(Pouch.earned("Miss", 1), herbs.perZone, "a missed press still brought a catch")
+		T.eq(Pouch.earned("Great", 7), 7 * herbs.perZone)
+		T.eq(Pouch.earned("Perfect", 3), 3 * herbs.perZone * herbs.perfect)
+		T.ok(Pouch.earned("Perfect", 1) > Pouch.earned("Good", 1), "a Perfect is worth no more")
+		-- The nearest throw, the one a player can make over and over in a few seconds, pays
+		-- least: the last zone's catch pays many times as much.
+		local last = #Catalog.zones
+		T.ok(Pouch.earned("Good", last) >= 5 * Pouch.earned("Good", 1), "a far catch pays little")
 	end,
 
 	["every potion has a price in Herbs"] = function()
