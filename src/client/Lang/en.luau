@@ -339,7 +339,7 @@ return {
 		NotEnoughRyo = "Not enough Ryo.",
 		NotYourDojo = "This is not your dojo.",
 		Merged = "Merged into %s!",
-		HomeMark = "YOUR DOJO",
+		RunTwin = "Bring it home to merge!",
 		MergeReady = "READY TO MERGE",
 		MergeReadyWhy = "Its twin is on a pad",
 		MergeSuffix = "  |  Ready to merge!",

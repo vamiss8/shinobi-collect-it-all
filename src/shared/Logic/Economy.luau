@@ -100,19 +100,24 @@ function Economy.canMerge(a: Unit, b: Unit): boolean
 	return a.character == b.character and a.mutation == b.mutation and a.level == b.level
 end
 
--- The pad a unit could be merged on: of the pads whose unit is its twin (Economy.canMerge),
--- the lowest numbered, or nil if there is none. `pads` is a save's pad number (as a string) ->
--- unit id, `units` its units by id. Asked for units that are not on a pad themselves.
-function Economy.twinPad(unit: Unit, units: { [string]: Unit }, pads: { [string]: string }): number?
-	local best: number? = nil
+-- The pads a unit could be merged on: every pad whose unit is its twin (Economy.canMerge), in
+-- order, none if there is none. `pads` is a save's pad number (as a string) -> unit id,
+-- `units` its units by id. Asked for units that are not on a pad themselves.
+function Economy.twinPads(
+	unit: Unit,
+	units: { [string]: Unit },
+	pads: { [string]: string }
+): { number }
+	local found: { number } = {}
 	for key, unitId in pads do
 		local other = units[unitId]
 		local index = tonumber(key)
-		if other and index and Economy.canMerge(unit, other) and (best == nil or index < best) then
-			best = index
+		if other and index and Economy.canMerge(unit, other) then
+			table.insert(found, index)
 		end
 	end
-	return best
+	table.sort(found)
+	return found
 end
 
 -- The unit two merged units become. It keeps the better of their bought upgrades.

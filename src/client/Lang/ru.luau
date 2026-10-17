@@ -321,7 +321,7 @@ return {
 		NotEnoughRyo = "Не хватает Рё.",
 		NotYourDojo = "Это не твоё додзё.",
 		Merged = "Слияние: %s!",
-		HomeMark = "ТВОЁ ДОДЗЁ",
+		RunTwin = "Донеси домой для слияния!",
 		MergeReady = "ГОТОВ К СЛИЯНИЮ",
 		MergeReadyWhy = "Близнец стоит на платформе",
 		MergeSuffix = "  |  Готов к слиянию!",

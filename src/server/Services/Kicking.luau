@@ -146,7 +146,7 @@ local function endRun(player: Player, escaped: boolean)
 		herbs = run.herbs
 		data.herbs += herbs
 		-- Whether a twin of it stands on a pad: then the arrival says it is ready to merge.
-		twin = Economy.twinPad(unit, data.units, data.pads) ~= nil
+		twin = #Economy.twinPads(unit, data.units, data.pads) > 0
 		isNew = Index.record(data.found, unit.character, unit.mutation)
 		if isNew then
 			reward = Index.discoveryReward(unit.character, unit.mutation)
@@ -227,10 +227,14 @@ local function startRun(
 		herbs = herbs,
 	}
 
+	-- Whether a twin of the catch stands on a pad: the runner is told so beside it on the way
+	-- home (client TwinNotice).
+	local data = Data.get(player)
 	local payload: Net.RunStart = {
 		character = drop.character,
 		mutation = drop.mutation,
 		zone = drop.zone,
+		twin = data ~= nil and #Economy.twinPads(unit, data.units, data.pads) > 0,
 	}
 	Remotes.RunStart:FireClient(player, payload)
 end

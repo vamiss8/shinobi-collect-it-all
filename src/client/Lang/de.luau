@@ -321,7 +321,7 @@ return {
 		NotEnoughRyo = "Nicht genug Ryo.",
 		NotYourDojo = "Das ist nicht dein Dojo.",
 		Merged = "Verschmolzen zu %s!",
-		HomeMark = "DEIN DOJO",
+		RunTwin = "Bring ihn heim zum Verschmelzen!",
 		MergeReady = "BEREIT ZUM VERSCHMELZEN",
 		MergeReadyWhy = "Sein Zwilling steht auf einer Plattform",
 		MergeSuffix = "  |  Bereit zum Verschmelzen!",

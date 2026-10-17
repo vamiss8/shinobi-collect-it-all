@@ -170,6 +170,9 @@ local function fixture(): any
 					runLevel = function(): number
 						return 0
 					end,
+					twinPads = function(): { number }
+						return {}
+					end,
 					walkSpeed = function(): number
 						return 16
 					end,

@@ -322,7 +322,7 @@ return {
 		NotEnoughRyo = "Ryo insuficiente.",
 		NotYourDojo = "Este não é o seu dojo.",
 		Merged = "Fundido em %s!",
-		HomeMark = "SEU DOJO",
+		RunTwin = "Leve para casa para fundir!",
 		MergeReady = "PRONTO PARA FUNDIR",
 		MergeReadyWhy = "O gêmeo está numa plataforma",
 		MergeSuffix = "  |  Pronto para fundir!",

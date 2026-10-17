@@ -157,11 +157,9 @@ Net.TEST_SPEED_ATTRIBUTE = "Speed"
 -- (Services/Dojo). A client finds its own dojo and pads by them (client MergeGlow).
 Net.DOJO_OWNER_ATTRIBUTE = "DojoOwner"
 Net.PAD_ATTRIBUTE = "Pad"
--- An unseen part in every dojo's folder as large as the dojo's floor (World/Plots), and the
--- Vector3 attribute on it that is the point over the dojo's stairs where its owner's client
--- hangs the mark that says whose it is (client HomeMark).
+-- An unseen part in every dojo's folder as large as the dojo's floor (World/Plots): its
+-- owner's client measures from it how near they are to their dojo (client HomeMark).
 Net.HOME_PART = "HomeMark"
-Net.HOME_MARK_ATTRIBUTE = "Mark"
 -- Number attribute on the folder: in a Studio test, how many rebirths the tester has done.
 Net.TEST_REBIRTHS_ATTRIBUTE = "Rebirths"
 -- String attribute on the folder: in a Studio test, the language the game is written in (a
@@ -202,9 +200,9 @@ export type Snapshot = {
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.
 export type Inventory = { [string]: Economy.Unit }
 
--- Sent with the inventory: the units of it whose twin stands on a pad, each with that pad's
--- number (Economy.twinPad). Carried to that pad, one merges into it.
-export type Twins = { [string]: number }
+-- Sent with the inventory: the units of it with a twin standing on a pad, each with the
+-- numbers of every pad that holds one (Economy.twinPads). Carried to one, it merges into it.
+export type Twins = { [string]: { number } }
 
 export type Found = Index.Found
 
@@ -247,6 +245,7 @@ export type RunStart = {
 	character: string,
 	mutation: string,
 	zone: string,
+	twin: boolean, -- a twin of the catch stands on a pad: brought home, it is ready to merge
 }
 
 export type RunEnd = {
