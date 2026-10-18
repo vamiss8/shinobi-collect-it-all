@@ -18,6 +18,15 @@
 -- 240 and 320 Herbs. A minute of a boost costs what it did, so a potion is drunk three times as
 -- often and an hour of play buys three or four of them.
 --
+-- TWICE THE PRICE SINCE THE ACHIEVEMENTS PAY HERBS (owner, 2026-10-18: "Herbs now come more
+-- ways, raise the potions' prices; work it out"). The achievements' tiers pay about 14,000
+-- Herbs and 17 potions in all, the group's gift 250 and 4 potions, most of it early: by the
+-- sim's average player, play pays about 600 in the first two hours, 3,300 by ten and 16,200
+-- by forty, and the achievements about 2,300, 5,300 and 10,000 by then. So a player has 5,
+-- 2.6 and 1.6 times the Herbs of play alone at those marks; at twice the price they buy 2.6,
+-- 1.3 and 0.8 times the potions that play alone bought before: more in the first hours, about
+-- the same over a day's play, a little less late. They were 160, 135, 80 and 105.
+--
 -- ONE BOUGHT FOR ROBUX IS PREMIUM AND RUNS `premiumMinutes`, 15 (owner, the same day: "let the
 -- versions for Robux stay at 15 minutes, a premium version; the price stays, and the shop says
 -- so"). A potion product or the bundle puts premium ones into the pouch (Data `premium`), kept
@@ -43,7 +52,7 @@ local Potions: { Potion } = {
 		multiplier = 2,
 		minutes = 5,
 		premiumMinutes = 15,
-		herbs = 160,
+		herbs = 320,
 	},
 	{
 		id = "ichiraku_ramen",
@@ -52,7 +61,7 @@ local Potions: { Potion } = {
 		multiplier = 2,
 		minutes = 5,
 		premiumMinutes = 15,
-		herbs = 135,
+		herbs = 270,
 	},
 	{
 		id = "gama_charm",
@@ -61,7 +70,7 @@ local Potions: { Potion } = {
 		multiplier = 2,
 		minutes = 5,
 		premiumMinutes = 15,
-		herbs = 80,
+		herbs = 160,
 	},
 	{
 		id = "sage_oil",
@@ -70,7 +79,7 @@ local Potions: { Potion } = {
 		multiplier = 2,
 		minutes = 5,
 		premiumMinutes = 15,
-		herbs = 105,
+		herbs = 210,
 	},
 }
 
