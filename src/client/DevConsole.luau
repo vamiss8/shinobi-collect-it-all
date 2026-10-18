@@ -361,7 +361,8 @@ local function build()
 		end)
 	end
 
-	-- An event started by hand, for everyone on this server, and stopped again.
+	-- An event started by hand, for everyone on this server; Stop ends whatever runs here, the
+	-- clock's own event too.
 	do
 		local frame, take = row("Event")
 		for _, event in Events.list do

@@ -339,12 +339,12 @@ function commands.goods(_, data, key, give)
 	return nil
 end
 
--- "event": an event started on this server for everyone on it, or with no id the one started
--- by hand ended. The clock's own schedule goes on underneath.
+-- "event": an event started on this server for everyone on it, or with no id whatever runs
+-- here stopped, the clock's own too. The clock's next event comes as usual.
 function commands.event(_, _, id)
 	if typeof(id) ~= "string" then
 		Events.force(nil)
-		return "The event started by hand is over"
+		return "Events stopped on this server"
 	end
 	return if Events.force(id) then `Event started: {id}` else nil
 end

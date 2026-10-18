@@ -8,7 +8,10 @@
 -- (client EventShow): the announcement, the sky, the timer.
 --
 -- A developer can start an event by hand (Services/DevConsole); it runs on this server alone
--- and the clock's own schedule takes over again when it ends.
+-- and the clock's own schedule takes over again when it ends. He can stop one too, the clock's
+-- own among them (owner, 2026-10-18: "let stop end the events that came by themselves too,
+-- better on the current server alone"): it is silenced here until it would have ended, and
+-- the clock's next one comes as on every other server.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -24,6 +27,8 @@ local CHECK_SECONDS = 1
 local running: Schedule.Running? = nil
 -- An event started by hand, which goes before the clock's until it ends.
 local forced: Schedule.Running? = nil
+-- The clock's event stopped by hand on this server, by the moment it began.
+local silenced: number? = nil
 
 -- The clock the events go by: seconds since 1970, the same on every server and, near enough,
 -- on every client.
@@ -47,7 +52,11 @@ local function check()
 	if forced and time >= forced.ends then
 		forced = nil
 	end
-	local due = forced or Schedule.at(time)
+	local scheduled = Schedule.at(time)
+	if scheduled and scheduled.began == silenced then
+		scheduled = nil
+	end
+	local due = forced or scheduled
 	local was = running
 	local same = (was == nil and due == nil)
 		or (was ~= nil and due ~= nil and was.event == due.event and was.ends == due.ends)
@@ -63,11 +72,15 @@ function Events.current(): string?
 	return if current and now() < current.ends then current.event.id else nil
 end
 
--- Starts an event by hand for so many seconds, or with no id ends the one started by hand.
--- Says whether there is such an event.
+-- Starts an event by hand for so many seconds, or with no id stops whatever runs on this
+-- server: the one started by hand and the clock's own. Says whether there is such an event.
 function Events.force(id: string?, seconds: number?): boolean
 	if not id then
 		forced = nil
+		local scheduled = Schedule.at(now())
+		if scheduled then
+			silenced = scheduled.began
+		end
 		check()
 		return true
 	end
