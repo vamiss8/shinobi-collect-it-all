@@ -17,6 +17,7 @@
 -- open. Everything waits so; nothing Iruka says stops the game.
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -56,6 +57,9 @@ local CHAKRA_TO_GATHER = 10
 -- The arrows: their size, how far off what they point at, how far they bob.
 local ARROW = Vector2.new(46, 56)
 local ARROW_OFF = 38
+-- The arrow at the screen's edge for a place out of sight: how much larger, how far in.
+local EDGE_GROW = 1.4
+local EDGE_MARGIN = 70
 local BOB = 7
 
 type Arrow = { frame: Frame, ring: Frame?, target: GuiObject?, cleanup: () -> () }
@@ -160,7 +164,10 @@ local function placeOf(name: string): BasePart?
 end
 
 -- An arrow over a place in the world, for this player alone, the same size on the screen near
--- and far.
+-- and far; and, while that place is out of sight (behind the camera, or off the screen's
+-- edges), a larger arrow at the edge of the screen turned towards it, so that "follow the
+-- arrow" can be followed from anywhere (owner, 2026-10-19: "Iruka told me to follow the arrow,
+-- but there are no arrows": the arrow over the strip was there, out of sight behind him).
 local function pointAtPlace(part: BasePart, above: number)
 	local board: BillboardGui = Ui.make("BillboardGui", {
 		Name = "GuideArrow",
@@ -176,15 +183,67 @@ local function pointAtPlace(part: BasePart, above: number)
 	}, board)
 	drawArrow(holder)
 	board.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+	local edge: Frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(ARROW.X * EDGE_GROW, ARROW.Y * EDGE_GROW),
+		BackgroundTransparency = 1,
+		ZIndex = 20,
+		Visible = false,
+	}, arrowLayer)
+	drawArrow(edge)
+
 	local beat = RunService.RenderStepped:Connect(function()
-		local bob = (math.sin(os.clock() * 5) + 1) * BOB * Ui.scale()
-		holder.Position = UDim2.fromOffset(0, bob)
+		local scale = Ui.scale()
+		local bob = (math.sin(os.clock() * 5) + 1) * BOB
+		holder.Position = UDim2.fromOffset(0, bob * scale)
+
+		local camera = Workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		local over = part.Position + Vector3.new(0, part.Size.Y / 2 + above, 0)
+		local seen = camera:WorldToViewportPoint(over)
+		local inset = GuiService:GetGuiInset()
+		local room = Ui.room()
+		-- Where the place is on the screen, in layout pixels, as the layers count them.
+		local x = seen.X / scale
+		local y = (seen.Y - inset.Y) / scale
+		local inSight = seen.Z > 0
+			and x > EDGE_MARGIN
+			and x < room.X - EDGE_MARGIN
+			and y > EDGE_MARGIN
+			and y < room.Y - EDGE_MARGIN
+		edge.Visible = not inSight and holder.Visible
+		if inSight then
+			return
+		end
+		local middleX, middleY = room.X / 2, room.Y / 2
+		local dx, dy = x - middleX, y - middleY
+		-- Behind the camera the point comes out mirrored through the middle of the screen.
+		if seen.Z <= 0 then
+			dx, dy = -dx, -dy
+		end
+		if math.abs(dx) < 1e-3 and math.abs(dy) < 1e-3 then
+			dy = 1
+		end
+		local reach = math.min(
+			(middleX - EDGE_MARGIN) / math.max(math.abs(dx), 1e-3),
+			(middleY - EDGE_MARGIN) / math.max(math.abs(dy), 1e-3)
+		)
+		local length = math.sqrt(dx * dx + dy * dy)
+		local back = bob / length
+		edge.Position =
+			UDim2.fromOffset(middleX + dx * reach - dx * back, middleY + dy * reach - dy * back)
+		-- The arrow is drawn pointing down, which is 90 degrees on the screen.
+		edge.Rotation = math.deg(math.atan2(dy, dx)) - 90
 	end)
 	table.insert(arrows, {
 		frame = holder,
 		cleanup = function()
 			beat:Disconnect()
 			board:Destroy()
+			edge:Destroy()
 		end,
 	})
 end
