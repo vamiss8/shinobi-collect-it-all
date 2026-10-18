@@ -7,6 +7,7 @@
 export type Entry = { date: string, key: string }
 
 local Changelog: { Entry } = {
+	{ date = "2026-10-19", key = "Guide" },
 	{ date = "2026-10-18", key = "Plaza" },
 	{ date = "2026-10-18", key = "Sound" },
 	{ date = "2026-10-17", key = "Herbs" },

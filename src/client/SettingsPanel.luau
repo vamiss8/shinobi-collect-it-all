@@ -27,6 +27,7 @@ local SoundService = game:GetService("SoundService")
 
 local Audio = require("./Audio")
 local Fonts = require("./Fonts")
+local Guide = require("./Guide")
 local Hud = require("./Hud")
 local Icons = require("./Icons")
 local InfoPanel = require("./InfoPanel")
@@ -152,6 +153,7 @@ function SettingsPanel.start()
 			Text = Strings.get("SettingsTitle"),
 		})
 	end
+	Ui.target("settings", tile)
 	tile.Activated:Connect(window.toggle)
 
 	-- Sends the settings once the player has stopped changing them.
@@ -437,16 +439,17 @@ function SettingsPanel.start()
 	-- are very plain, though important; set them apart a little, these are not ordinary
 	-- settings"; then "make it a scroll, and take the Japanese mark off"; then "much room is
 	-- left between Help and the buttons, make them larger"): a scroll between its rollers,
-	-- with no seal, the word Help at its left and three large buttons of red lacquer filling
-	-- the rest. It stands in from the body's left by a roller's half and ends a roller's half
+	-- with no seal, the word Help at its left and large buttons of red lacquer filling the
+	-- rest: the notice board's four pages, Iruka's tips among them (owner, 2026-10-19), and
+	-- the tutorial (client Guide), which the owner wanted to be replayable from the settings. It stands in from the body's left by a roller's half and ends a roller's half
 	-- short of its right.
 	local helpTop = 5 * (ROW + ROW_GAP) + PLAYER.Y + ROW_GAP
 	local helpLeft = 12
 	local helpWide = 704
-	local helpLabel = 112
+	local helpLabel = 84
 	local helpFirst = 24 + helpLabel + 6
-	local helpGap = 10
-	local helpButton = math.floor((helpWide - 18 - helpFirst - 2 * helpGap) / 3)
+	local helpGap = 8
+	local helpButton = math.floor((helpWide - 18 - helpFirst - 4 * helpGap) / 5)
 	local helpTall = ROW - 8
 	local scroll = Ui.parchment(body, {
 		Position = UDim2.fromOffset(helpLeft, helpTop + 4),
@@ -464,6 +467,8 @@ function SettingsPanel.start()
 		{ page = "faq", words = Strings.get("InfoFaq") },
 		{ page = "news", words = Strings.get("InfoNews") },
 		{ page = "chances", words = Strings.get("InfoChances") },
+		{ page = "tips", words = Strings.get("InfoTips") },
+		{ page = "tutorial", words = Strings.get("SettingsTutorial") },
 	}
 	for index, help in helps do
 		local button = Ui.button(scroll.page, {
@@ -471,11 +476,16 @@ function SettingsPanel.start()
 			Size = UDim2.fromOffset(helpButton, helpTall - 12),
 			BackgroundColor3 = Ui.SEAL,
 			TextColor3 = Ui.PARCHMENT,
-			TextSize = 24,
+			TextSize = 20,
 			Text = help.words,
 		})
 		button.Activated:Connect(function()
-			InfoPanel.open(help.page)
+			if help.page == "tutorial" then
+				window.close()
+				Guide.replay()
+			else
+				InfoPanel.open(help.page)
+			end
 		end)
 	end
 

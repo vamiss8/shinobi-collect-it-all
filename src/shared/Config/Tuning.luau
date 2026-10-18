@@ -212,4 +212,17 @@ return {
 		potions = 1,
 		herbs = 250,
 	},
+	-- The community server (owner, 2026-10-19: "call players to join it; Iruka says so, and the
+	-- FAQ: if you did not find your answer, go there"). ROBLOX ALLOWS NO LINK INSIDE A GAME:
+	-- its Community Standards permit social media links on the game's page alone, and words
+	-- like "Join us in our Community Server. Links on our game's page" in the game
+	-- (create.roblox.com/docs/production/promotion/social-media-links, read 2026-10-19). So
+	-- the game names the server and says where the link is, and only once there is one:
+	-- `server` is false until the owner has made the server and put its link on the game's
+	-- page (Creator Hub > the game > Engagement > Social Links; that needs someone of the
+	-- group with an age verified as 16 or more, and only players verified as 16 or more see
+	-- the link).
+	Social = {
+		server = false,
+	},
 }
