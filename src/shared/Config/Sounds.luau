@@ -136,12 +136,15 @@ Sounds.effects = {
 	-- the three are one choke, so the next one fades the last away, and each is cut short.
 	-- Water Drip Cu Single Drips Constant 9 (Roblox's own)
 	ring = { id = 9120510269, volume = 0.55, vary = 0.1, cut = 0.6, choke = "ring" },
-	-- Hand Bell Small Cast Iron Buddhist Temple Bell. NOT OF THE CHOKE, and played over itself
-	-- (owner, next: "six Perfects in a row, the sound played only on the sixth"): started over
-	-- by the next Perfect, or faded by the next hit, it was cut before its stroke was heard,
-	-- which by my reading comes some way into the file; only the last of a run rang out. Each
-	-- now rings its 1.1 s, two at the most over one another.
-	ringPerfect = { id = 9125597331, volume = 0.4, vary = 0.04, overlap = true, cut = 1.1 },
+	-- A cluster of soft chimes, struck at once. NOT OF THE CHOKE, and played over itself
+	-- (owner, next: "six Perfects in a row, the sound played only on the sixth", and then
+	-- "still glitchy, and late"). It was a small Buddhist temple bell, whose file, MEASURED
+	-- (scratch onset.py: the bytes each tenth of a second takes in the Ogg file), is several
+	-- strokes over six seconds, the first soft and the loudest one to three seconds in: cut
+	-- short it was gone before its stroke, let ring it came late. This one is loudest in its
+	-- first tenth and spent in half a second.
+	-- Magic Glows Soft Clusters Of Chiming Hits 2
+	ringPerfect = { id = 9116394876, volume = 0.45, vary = 0.04, overlap = true, cut = 0.9 },
 	-- Body Pat Muted 1
 	ringMiss = { id = 9113531800, volume = 0.45, vary = 0.08, cut = 0.45, choke = "ring" },
 	bubble = { id = 17208204604, volume = 0.65, overlap = true }, -- Roblox GUI - Bubble

@@ -30,9 +30,10 @@ local Audio = {}
 -- tests/Sounds.spec holds every word the client plays to a cue of Config/Sounds.
 local EFFECTS: { [string]: Sounds.Effect } = Sounds.effects :: any
 
--- How long a copy of an effect played over itself may live at the most, seconds: one that never
--- loaded never ends.
-local COPY_LIFE = 12
+-- How many Sounds an effect that may overlap itself has, played in turn. They are made and
+-- fetched ahead with the rest: a copy made at the moment of playing had to load first, and a
+-- long file came late (owner, 2026-10-18, of the Perfect bell: "still glitchy, and late").
+local VOICES = 4
 
 -- The group a sound plays in, made if it is not there yet (the same as SettingsPanel's).
 local function group(name: string): SoundGroup
@@ -110,10 +111,12 @@ local function launch(sound: Sound, effect: Sounds.Effect, pitch: number, after:
 	end
 end
 
--- One Sound for each cue, made the first time it is played.
-local made: { [string]: Sound } = {}
+-- The Sounds of each cue, made the first time it is wanted: one, or VOICES for a cue that may
+-- overlap itself; and which of them played last.
+local made: { [string]: { Sound } } = {}
+local turns: { [string]: number } = {}
 
-local function effectSound(cue: string): Sound?
+local function effectVoices(cue: string): { Sound }?
 	local effect = EFFECTS[cue]
 	if not effect or effect.id == 0 then
 		return nil
@@ -122,15 +125,24 @@ local function effectSound(cue: string): Sound?
 	if found then
 		return found
 	end
-	local sound = Instance.new("Sound")
-	sound.Name = `Effect_{cue}`
-	sound.SoundId = asset(effect.id)
-	sound.Volume = effect.volume or 0.5
-	sound.PlaybackSpeed = effect.speed or 1
-	sound.SoundGroup = group("Effects")
-	sound.Parent = SoundService
-	made[cue] = sound
-	return sound
+	local voices: { Sound } = {}
+	for index = 1, if effect.overlap then VOICES else 1 do
+		local sound = Instance.new("Sound")
+		sound.Name = `Effect_{cue}_{index}`
+		sound.SoundId = asset(effect.id)
+		sound.Volume = effect.volume or 0.5
+		sound.PlaybackSpeed = effect.speed or 1
+		sound.SoundGroup = group("Effects")
+		sound.Parent = SoundService
+		table.insert(voices, sound)
+	end
+	made[cue] = voices
+	return voices
+end
+
+local function effectSound(cue: string): Sound?
+	local voices = effectVoices(cue)
+	return if voices then voices[1] else nil
 end
 
 -- How fast a sustained sound (Audio.sustain) comes in and goes, seconds, and how long one
@@ -189,14 +201,18 @@ function Audio.lead(cue: string): number
 end
 
 -- Makes the sound of a moment, `speed` times as high as it is set to be if given (the roulette's
--- ticks climb). One that may overlap itself (ticks, presses) is played as a copy while the
--- last is still sounding; any other starts again. One of a choke fades the others away.
+-- ticks climb). One that may overlap itself (ticks, presses) is played on the next of its
+-- voices, the one that played longest ago, while the last still sounds; any other starts
+-- again. One of a choke fades the others away.
 function Audio.play(cue: string, speed: number?)
-	local sound = effectSound(cue)
-	if not sound then
+	local voices = effectVoices(cue)
+	if not voices then
 		return
 	end
 	local effect = EFFECTS[cue]
+	local turn = (turns[cue] or 0) % #voices + 1
+	turns[cue] = turn
+	local sound = voices[turn]
 	local pitch = (effect.speed or 1) * (speed or 1)
 	local vary = effect.vary
 	if vary and vary > 0 then
@@ -217,19 +233,6 @@ function Audio.play(cue: string, speed: number?)
 		if not table.find(list, sound) then
 			table.insert(list, sound)
 		end
-	end
-	if sound.IsPlaying and effect.overlap then
-		local copy = sound:Clone()
-		copy.Parent = SoundService
-		local function gone()
-			if copy.Parent then
-				copy:Destroy()
-			end
-		end
-		copy.Ended:Once(gone)
-		task.delay(COPY_LIFE, gone)
-		launch(copy, effect, pitch, gone)
-		return
 	end
 	launch(sound, effect, pitch)
 end
@@ -650,9 +653,11 @@ function Audio.start()
 	task.spawn(function()
 		local list: { Instance } = {}
 		for cue in EFFECTS do
-			local sound = effectSound(cue)
-			if sound then
-				table.insert(list, sound)
+			local voices = effectVoices(cue)
+			if voices then
+				for _, sound in voices do
+					table.insert(list, sound)
+				end
 			end
 		end
 		pcall(function()
