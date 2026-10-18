@@ -139,6 +139,7 @@ local function endRun(player: Player, escaped: boolean)
 	local isNew, reward = false, 0
 	local herbs = 0
 	local twin = false
+	Data.count(data, if escaped then "home" else "caught")
 	if escaped then
 		-- The player arrives carrying their catch, ready to put it on a pad, and is paid the
 		-- throw's Herbs for it (owner, 2026-10-17: "let Herbs be added once you have run home").
@@ -312,6 +313,12 @@ local function press(player: Player, claimed: unknown)
 
 	data.streak = result.streak
 	data.spins += 1
+	if result.grade == "Perfect" then
+		Data.count(data, "perfect")
+	end
+	if result.sage then
+		Data.count(data, "sage")
+	end
 
 	local multipliers = Stats.multipliers(data)
 	local spinLuck = Roll.spinLuck(data.spins)

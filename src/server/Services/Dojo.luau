@@ -304,6 +304,7 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 			data.units[onPad] = merged
 			data.units[held] = nil
 			Inventory.hold(player, nil)
+			Data.count(data, "merges")
 			State.notify(player, "Merged", Figure.title(merged))
 		else
 			-- Swap: the held unit goes on the pad, the pad's unit into the inventory.
@@ -366,6 +367,7 @@ local function upgradePad(player: Player, plot: Plots.Plot, pad: Plots.Pad, leve
 	end
 
 	data.ryo -= price
+	Data.count(data, "upgrades", bought)
 	local upgraded = Economy.upgraded(unit, bought)
 	data.units[unitId] = upgraded
 	-- The shinobi stays where it stands and only its tag is rewritten: built anew, as the

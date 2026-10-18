@@ -157,6 +157,7 @@ local function drink(player: Player, potionId: unknown, premium: unknown)
 	end
 	local isPremium = premium == true
 	if Pouch.drink(data, potion.id, os.time(), isPremium) then
+		Data.count(data, "potions")
 		State.notify(player, "PotionDrunk", potion.name, Pouch.minutes(potion, isPremium))
 		State.push(player)
 	end

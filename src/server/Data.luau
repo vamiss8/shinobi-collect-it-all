@@ -50,8 +50,13 @@ export type Data = {
 	bought: { [string]: boolean },
 	-- Whether the player has had the gift for joining the group (Services/GroupGift).
 	groupGift: boolean,
-	-- The achievements given, by id (Config/Achievements, Services/Achievements); for good.
-	achievements: { [string]: boolean },
+	-- The achievements' tiers reached, by achievement id (Config/Achievements,
+	-- Services/Achievements), for good, and the tiers whose reward has been claimed.
+	achievements: { [string]: number },
+	claimed: { [string]: number },
+	-- Numbers no other field keeps, which achievements are measured by, by name
+	-- (Logic/Achievements.COUNTED): catches brought home, merges, potions drunk and the like.
+	counts: { [string]: number },
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
@@ -84,6 +89,8 @@ local TEMPLATE: Data = {
 	bought = {},
 	groupGift = false,
 	achievements = {},
+	claimed = {},
+	counts = {},
 	receipts = {},
 	settings = Settings.defaults(),
 }
@@ -124,6 +131,11 @@ end
 -- so a service can still use whatever the services started before it set up.
 function Data.onLeaving(fn: Callback)
 	table.insert(leavingCallbacks, fn)
+end
+
+-- Counts one more (or `by` more) of a number the achievements are measured by.
+function Data.count(data: Data, name: string, by: number?)
+	data.counts[name] = (data.counts[name] or 0) + (by or 1)
 end
 
 -- Stores a new unit and returns its id.

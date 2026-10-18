@@ -9,6 +9,7 @@ local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
+local Progress = require(ReplicatedStorage.Shared.Logic.Achievements)
 local Purchases = require(ReplicatedStorage.Shared.Logic.Purchases)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
@@ -56,21 +57,6 @@ local function legends(data: Data.Data): { string }
 	return owned
 end
 
--- The ids of the achievements a save has been given.
-local function achievementsOf(data: Data.Data): { string }
-	local list: { string } = {}
-	local have: { [string]: boolean }? = data.achievements
-	if have then
-		for id, given in have do
-			if given then
-				table.insert(list, id)
-			end
-		end
-	end
-	table.sort(list)
-	return list
-end
-
 -- Sends the player a fresh snapshot. Call after anything in their save changes.
 function State.push(player: Player)
 	local data = Data.get(player)
@@ -104,7 +90,9 @@ function State.push(player: Player)
 		premium = Pouch.contents(data.premium),
 		bought = bought(data),
 		groupGift = data.groupGift == true,
-		achievements = achievementsOf(data),
+		achievements = data.achievements,
+		claimed = data.claimed,
+		progress = Progress.stats(data),
 	}
 	Remotes.State:FireClient(player, snapshot)
 end

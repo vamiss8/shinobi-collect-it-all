@@ -145,6 +145,9 @@ local function ringPress(player: Player, claimed: unknown)
 	local hit = Focus.grade(Focus.phase(elapsed, ring.round.period), ring.round.target)
 	local gain = repGain(player, data) * hit.reps
 	data.chakra += gain
+	if hit.grade == "Perfect" then
+		Data.count(data, "ring")
+	end
 
 	-- The next ring is a fresh draw and starts now; the client starts drawing it when the
 	-- result arrives.
@@ -334,6 +337,10 @@ local function popBubble(player: Player, id: unknown)
 		return
 	end
 	bubbles[player] = nil
+	local data = Data.get(player)
+	if data then
+		Data.count(data, "seals")
+	end
 
 	-- A weaker bubble never replaces a stronger boost that is still running.
 	local session = Session.of(player)

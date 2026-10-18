@@ -39,8 +39,11 @@ Net.Events = {
 	-- The gift for joining the group: server -> client "join" (not in the group: show Roblox's
 	-- prompt), client -> server "claim" (joined from it: look again).
 	GroupGift = "GroupGift",
-	-- server -> client: the id of an achievement just given (Config/Achievements)
+	-- server -> client: an achievement's id and the tier of it just reached (Config/Achievements)
 	Achievement = "Achievement",
+	-- client -> server: claim the rewards of an achievement's tiers reached, by its id, or of
+	-- every one with "*"
+	ClaimAchievement = "ClaimAchievement",
 	-- server -> client: "place" or "take", a shinobi this player set on a pad or took off one
 	Placed = "Placed",
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
@@ -214,7 +217,11 @@ export type Snapshot = {
 	premium: { [string]: number }, -- premium potions in the pouch (bought for Robux), the same way
 	bought: { string }, -- keys of the products sold once that the player has had
 	groupGift: boolean, -- whether the gift for joining the group has been had
-	achievements: { string }, -- ids of the achievements given (Config/Achievements)
+	-- The achievements' tiers reached and the tiers claimed, by achievement id, and the numbers
+	-- they are measured by, by name (Config/Achievements, Logic/Achievements.stats).
+	achievements: { [string]: number },
+	claimed: { [string]: number },
+	progress: { [string]: number },
 }
 
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.

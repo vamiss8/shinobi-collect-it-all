@@ -169,6 +169,7 @@ local function sell(player: Player, unitIds: unknown)
 	end
 
 	data.ryo += earned
+	Data.count(data, "sent", sold)
 	Inventory.sync(player)
 	if sold == 1 then
 		State.notify(player, "Sold", lastTitle, earned)
