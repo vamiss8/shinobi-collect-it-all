@@ -63,6 +63,9 @@ Net.PLAYER_VIP = "Vip"
 -- Boolean attribute on the Player of a developer: their client builds the developer console.
 -- It opens nothing by itself: the server checks who is asking on every command.
 Net.DEVELOPER_ATTRIBUTE = "Developer"
+-- The mark a player wears by their name, given by the owner (server/Badges): a key of
+-- Config/Lettering `badges`. Shown in the list of players and over the head.
+Net.BADGE_ATTRIBUTE = "Badge"
 -- A player's saved settings (Logic/Settings), as attributes of their Player that the server
 -- sets once their save has loaded: the client waits for the language before it writes a word.
 Net.SETTING_LANGUAGE = "SettingLanguage"

@@ -319,6 +319,12 @@ return {
 		PlayersIncome = "%s/s",
 		PlayersVip = "VIP",
 		PlayersDev = "FOUNDER",
+		PlayersReaper = "WHITE REAPER",
+		PlayersDeveloper = "DEV",
+		TipFounder = "FOUNDER: the founder of sad mansion studios and the game's lead developer.",
+		TipReaper = "WHITE REAPER: an exclusive tag. It cannot be obtained any other way.",
+		TipDeveloper = "DEV: a developer of sad mansion studios.",
+		TipVip = "DAIMYO VIP: dojo income x%s, offline income x%s and this gold seal. Click to see it in the shop.",
 
 		-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
 		LegendYours = "YOURS",

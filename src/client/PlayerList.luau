@@ -33,7 +33,9 @@ local Lettering = require("./Lettering")
 local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
+local ShopPanel = require("./ShopPanel")
 local Strings = require("./Strings")
+local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
 
 local PlayerList = {}
@@ -58,13 +60,40 @@ local CLEAR_OF_BUTTONS = 28
 -- The gold seal before the name of a VIP (the Daimyo's favor, Config/Products), and how far
 -- the name stands in to make room for it.
 local VIP = Vector2.new(36, 18)
--- The dark violet the developer's FOUNDER is edged in, and the pill it is on, which is wider
--- than the VIP's for a longer word (owner, 2026-10-16: "change Dev to Founder"), and how far
--- the name stands in beside it.
-local DEV_EDGE = Color3.fromRGB(34, 7, 74)
 local VIP_ROOM = 48
-local FOUNDER = Vector2.new(78, 18)
-local FOUNDER_ROOM = FOUNDER.X + 12
+-- The marks the owner gives (server/Badges, Config/Lettering `badges`), in the VIP's place: how
+-- wide each one's pill is, how large and in what its word is written, and what that word is
+-- edged in so that it reads on every color the pill runs through. The name beside it stands in
+-- by the pill's width and 12.
+type Pill = { wide: number, size: number, ink: Color3, edge: Color3 }
+local PILLS: { [string]: Pill } = {
+	founder = { wide = 78, size = 14, ink = Color3.new(1, 1, 1), edge = Color3.fromRGB(34, 7, 74) },
+	reaper = { wide = 98, size = 12, ink = Color3.fromRGB(17, 17, 17), edge = Color3.new(1, 1, 1) },
+	dev = { wide = 40, size = 14, ink = Color3.new(1, 1, 1), edge = Color3.new(0, 0, 0) },
+}
+
+-- What a mark's pill says, and what its tip says under the pointer.
+local function pillWord(kind: string): string
+	if kind == "founder" then
+		return Strings.get("PlayersDev")
+	elseif kind == "reaper" then
+		return Strings.get("PlayersReaper")
+	elseif kind == "dev" then
+		return Strings.get("PlayersDeveloper")
+	end
+	return Strings.get("PlayersVip")
+end
+
+local function pillTip(kind: string?): string
+	if kind == "founder" then
+		return Strings.get("TipFounder")
+	elseif kind == "reaper" then
+		return Strings.get("TipReaper")
+	elseif kind == "dev" then
+		return Strings.get("TipDeveloper")
+	end
+	return Strings.get("TipVip", Tuning.Shop.vipIncome, Tuning.Shop.vipOffline)
+end
 local SHOWN_LEAST = 64
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
@@ -80,9 +109,11 @@ type Row = {
 	edge: UIStroke,
 	name: TextLabel,
 	income: TextLabel,
-	vip: TextLabel, -- the pill itself, with no writing: the developer's is lettered as a plate
+	vip: TextLabel, -- the pill itself, with no writing: a mark's is lettered as a plate
 	vipWord: TextLabel, -- what it says, over it and out of reach of its gradient
 	vipEdge: UIStroke,
+	-- What the pill shows now: a mark's key, "vip", or nothing; its tip and a press go by it.
+	kind: string?,
 }
 
 -- The band of a rank.
@@ -198,11 +229,10 @@ local function row(sheet: Instance): Row
 	})
 	local vipEdge = Instance.new("UIStroke")
 	vipEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-	vipEdge.Color = DEV_EDGE
 	vipEdge.Thickness = 1.5
 	vipEdge.Enabled = false
 	vipEdge.Parent = vipWord
-	return {
+	local entry: Row = {
 		frame = frame,
 		edge = edge,
 		name = name,
@@ -210,7 +240,21 @@ local function row(sheet: Instance): Row
 		vip = vip,
 		vipWord = vipWord,
 		vipEdge = vipEdge,
+		kind = nil,
 	}
+	-- Under the pointer the pill says what it is (owner, 2026-10-18); a VIP's, pressed, opens the
+	-- shop on its passes, whoever's line it is on.
+	Ui.tip(vip, function()
+		return pillTip(entry.kind)
+	end)
+	vip.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		local pressed = kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch
+		if pressed and entry.kind == "vip" then
+			ShopPanel.open("passes")
+		end
+	end)
+	return entry
 end
 
 function PlayerList.start()
@@ -331,25 +375,30 @@ function PlayerList.start()
 			line.frame.BackgroundTransparency = if own then 0.9 else 1
 			line.edge.Transparency = if own then 0 else 1
 			line.name.Text = player.DisplayName
-			-- The developer's FOUNDER takes the VIP's place (Net.DEVELOPER_ATTRIBUTE is on the
-			-- developer's Player alone): a violet pill with a band of light running through it
-			-- (Config/Lettering `badges`, as a plate), white letters edged in dark violet over
-			-- it. The name beside it is written plain. The pill was the lettered word's own
-			-- background first, and the gradient that colored the letters darkened the deep
-			-- violet under them into a black band (owner: "besides the white glint a black one
-			-- passes too").
-			local isDev = player:GetAttribute(Net.DEVELOPER_ATTRIBUTE) == true
+			-- A mark the owner gave (Net.BADGE_ATTRIBUTE: the owner's FOUNDER, dixtyne's WHITE
+			-- REAPER, whydalmjun's DEV) takes the VIP's place: a pill with a band running through
+			-- it in its colors (Config/Lettering `badges`, as a plate), its word over it in a
+			-- color edged so that it reads on all of them. The name beside it is written plain.
+			-- The pill was the lettered word's own background first, and the gradient that
+			-- colored the letters darkened the pill under them into a black band (owner:
+			-- "besides the white glint a black one passes too").
+			local mark = player:GetAttribute(Net.BADGE_ATTRIBUTE)
+			local kind = if typeof(mark) == "string" and PILLS[mark] then mark else nil
+			local pill = if kind then PILLS[kind] else nil
 			local isVip = player:GetAttribute(Net.PLAYER_VIP) == true
-			local inset = if isDev then FOUNDER_ROOM elseif isVip then VIP_ROOM else 8
-			line.vip.Visible = isVip or isDev
-			line.vip.Size = if isDev
-				then UDim2.fromOffset(FOUNDER.X, FOUNDER.Y)
-				else UDim2.fromOffset(VIP.X, VIP.Y)
-			line.vipWord.Text = Strings.get(if isDev then "PlayersDev" else "PlayersVip")
-			line.vipWord.TextColor3 = if isDev then Ui.WHITE else Ui.INK
-			line.vipEdge.Enabled = isDev
-			Lettering.dress(line.vip, if isDev then Looks.key("badge", "dev") else nil, true)
-			if not isDev then
+			line.kind = if kind then kind elseif isVip then "vip" else nil
+			local inset = if pill then pill.wide + 12 elseif isVip then VIP_ROOM else 8
+			line.vip.Visible = pill ~= nil or isVip
+			line.vip.Size = UDim2.fromOffset(if pill then pill.wide else VIP.X, VIP.Y)
+			line.vipWord.Text = pillWord(kind or "vip")
+			line.vipWord.TextSize = if pill then pill.size else 14
+			line.vipWord.TextColor3 = if pill then pill.ink else Ui.INK
+			line.vipEdge.Enabled = pill ~= nil
+			if pill then
+				line.vipEdge.Color = pill.edge
+			end
+			Lettering.dress(line.vip, if kind then Looks.key("badge", kind) else nil, true)
+			if not pill then
 				line.vip.BackgroundColor3 = Ui.GOLD
 			end
 			line.name.Position = UDim2.fromOffset(inset, 2)
@@ -374,7 +423,7 @@ function PlayerList.start()
 		player:GetAttributeChangedSignal(Net.PLAYER_REBIRTHS):Connect(draw)
 		player:GetAttributeChangedSignal(Net.PLAYER_INCOME):Connect(draw)
 		player:GetAttributeChangedSignal(Net.PLAYER_VIP):Connect(draw)
-		player:GetAttributeChangedSignal(Net.DEVELOPER_ATTRIBUTE):Connect(draw)
+		player:GetAttributeChangedSignal(Net.BADGE_ATTRIBUTE):Connect(draw)
 		draw()
 	end
 	Players.PlayerAdded:Connect(adopt)

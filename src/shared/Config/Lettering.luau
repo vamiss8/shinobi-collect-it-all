@@ -166,16 +166,31 @@ local TITLES: { [string]: Style } = {
 	},
 }
 
--- Marks a player wears by their name. "dev" is the developer's (server/Developers), in place
--- of the VIP's gold (owner, 2026-10-16: "for my account only, Dev instead of VIP, colorful and
--- noticeable"). VIOLET, with a band of light running through it: shades of one color, so it
+-- Marks a player wears by their name, given by the owner (server/Badges), in place of the
+-- VIP's gold. "founder" is the owner's (2026-10-16: "for my account only, colorful and
+-- noticeable"): VIOLET, with a band of light running through it, shades of one color, so it
 -- shimmers without flashing. (A loud six-color "flow" first: "strange, and it hurts the eyes";
 -- then a still rainbow with a glint: "make violet the main color and add animation; now the
--- right part is just green".)
+-- right part is just green".) The others go the same way in their own colors (owner,
+-- 2026-10-18): "reaper" white with a black band running through it, "dev" red with a black one.
 local BADGES: { [string]: Style } = {
-	dev = {
+	founder = {
 		fill = { "#9D5CFF", "#C9A3FF", "#F6EDFF", "#C9A3FF", "#9D5CFF", "#7B3FE4" },
 		edge = "#22074A",
+		flare = "#FFFFFF",
+		motion = "flow",
+		period = 3.2,
+	},
+	reaper = {
+		fill = { "#FFFFFF", "#F2F2F2", "#9E9E9E", "#161616", "#9E9E9E", "#F2F2F2" },
+		edge = "#000000",
+		flare = "#FFFFFF",
+		motion = "flow",
+		period = 3.2,
+	},
+	dev = {
+		fill = { "#FF3B30", "#E53935", "#8E0000", "#160404", "#8E0000", "#E53935" },
+		edge = "#000000",
 		flare = "#FFFFFF",
 		motion = "flow",
 		period = 3.2,

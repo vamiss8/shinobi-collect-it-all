@@ -16,11 +16,12 @@
 -- at every landing.)
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Data = require("../Data")
-local Developers = require("../Developers")
+local Badges = require("../Badges")
 local Lettering = require(ReplicatedStorage.Shared.Config.Lettering)
 local Loadout = require("./Loadout")
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -69,9 +70,9 @@ end
 local VIP_GOLD = "#FFCA28"
 
 -- Hangs the tag over the head: the rank, and the player's name under it, marked VIP for a
--- player with the Daimyo's favor (Config/Products); the developer's name is lettered instead,
--- violet with light running through it, and has no mark (Config/Lettering `badges`).
-local function tag(head: BasePart, name: string, count: number, vip: boolean, dev: boolean)
+-- player with the Daimyo's favor (Config/Products); the name of one who wears a mark given by
+-- the owner (server/Badges) is lettered in its colors instead, and has no VIP mark.
+local function tag(head: BasePart, name: string, count: number, vip: boolean, badge: string?)
 	local board = mark(Instance.new("BillboardGui"))
 	board.Name = "RankTag"
 	board.Size = UDim2.fromScale(TAG.X, TAG.Y)
@@ -87,9 +88,9 @@ local function tag(head: BasePart, name: string, count: number, vip: boolean, de
 		CollectionService:AddTag(rank, Net.LETTERING_TAG)
 	end
 	local own = line(board, RANK_SHARE, 1 - RANK_SHARE, name)
-	local badge = if dev then Lettering.key("badge", "dev") else nil
-	if badge then
-		own:SetAttribute(Net.LETTERING_ATTRIBUTE, badge)
+	local letters = if badge then Lettering.key("badge", badge) else nil
+	if letters then
+		own:SetAttribute(Net.LETTERING_ATTRIBUTE, letters)
 		CollectionService:AddTag(own, Net.LETTERING_TAG)
 	elseif vip then
 		own.RichText = true
@@ -115,12 +116,20 @@ function Titles.dress(player: Player)
 			player.DisplayName,
 			Rebirth.done(data.rebirths),
 			data.passes[Boosts.VIP] == true,
-			table.find(Developers, player.UserId) ~= nil
+			Badges[player.UserId]
 		)
 	end
 end
 
 function Titles.start()
+	-- The mark by the name, where every client reads it for the list of players.
+	local function wear(player: Player)
+		player:SetAttribute(Net.BADGE_ATTRIBUTE, Badges[player.UserId])
+	end
+	Players.PlayerAdded:Connect(wear)
+	for _, player in Players:GetPlayers() do
+		wear(player)
+	end
 	Loadout.register(function(player, character)
 		task.spawn(function()
 			character:WaitForChild("Head", 5)

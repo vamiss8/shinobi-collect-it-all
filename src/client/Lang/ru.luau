@@ -302,6 +302,12 @@ return {
 		PlayersIncome = "%s/с",
 		PlayersVip = "VIP",
 		PlayersDev = "FOUNDER",
+		PlayersReaper = "WHITE REAPER",
+		PlayersDeveloper = "DEV",
+		TipFounder = "FOUNDER: основатель sad mansion studios и главный разработчик игры.",
+		TipReaper = "WHITE REAPER: эксклюзивный тег. Получить его больше никак нельзя.",
+		TipDeveloper = "DEV: разработчик sad mansion studios.",
+		TipVip = "VIP ДАЙМЁ: доход додзё x%s, доход вне игры x%s и эта золотая печать. Нажми, чтобы открыть его в магазине.",
 
 		-- The legendary shinobi on their pedestals
 		LegendYours = "ТВОЙ",
