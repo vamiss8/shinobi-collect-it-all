@@ -39,6 +39,8 @@ Net.Events = {
 	-- The gift for joining the group: server -> client "join" (not in the group: show Roblox's
 	-- prompt), client -> server "claim" (joined from it: look again).
 	GroupGift = "GroupGift",
+	-- server -> client: the id of an achievement just given (Config/Achievements)
+	Achievement = "Achievement",
 	-- server -> client: "place" or "take", a shinobi this player set on a pad or took off one
 	Placed = "Placed",
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
@@ -76,6 +78,8 @@ Net.BADGE_ATTRIBUTE = "Badge"
 -- On a label in the world: its words are a name, and no client translates them (client
 -- WorldWords), as the players' names on the leaderboards.
 Net.VERBATIM_ATTRIBUTE = "Verbatim"
+-- On the prompt of the notice board: it opens the notice board's window (client InfoPanel).
+Net.INFO_TAG = "InfoBoard"
 Net.SETTING_LANGUAGE = "SettingLanguage"
 Net.SETTING_FONT = "SettingFont"
 Net.SETTING_MUSIC = "SettingMusic"
@@ -210,6 +214,7 @@ export type Snapshot = {
 	premium: { [string]: number }, -- premium potions in the pouch (bought for Robux), the same way
 	bought: { string }, -- keys of the products sold once that the player has had
 	groupGift: boolean, -- whether the gift for joining the group has been had
+	achievements: { string }, -- ids of the achievements given (Config/Achievements)
 }
 
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.

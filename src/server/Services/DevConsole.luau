@@ -390,6 +390,7 @@ function commands.reset(player, data)
 	data.stock = {}
 	data.premium = {}
 	data.groupGift = false
+	data.achievements = {}
 	Session.of(player).throwChakra = 0
 	return "Save reset"
 end

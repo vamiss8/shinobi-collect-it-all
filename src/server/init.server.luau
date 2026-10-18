@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Achievements = require(script.Services.Achievements)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Data = require(script.Data)
 local DevConsole = require(script.Services.DevConsole)
@@ -65,6 +66,7 @@ Legends.start()
 Purchases.start()
 Leaderboards.start()
 GroupGift.start()
+Achievements.start()
 Settings.start()
 DevConsole.start()
 State.start()

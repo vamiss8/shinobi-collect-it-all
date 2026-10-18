@@ -50,6 +50,8 @@ export type Data = {
 	bought: { [string]: boolean },
 	-- Whether the player has had the gift for joining the group (Services/GroupGift).
 	groupGift: boolean,
+	-- The achievements given, by id (Config/Achievements, Services/Achievements); for good.
+	achievements: { [string]: boolean },
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
@@ -81,6 +83,7 @@ local TEMPLATE: Data = {
 	passes = {},
 	bought = {},
 	groupGift = false,
+	achievements = {},
 	receipts = {},
 	settings = Settings.defaults(),
 }
