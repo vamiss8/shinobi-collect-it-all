@@ -781,23 +781,25 @@ function Icons.award(holder: Instance)
 	overlay(holder, Art.icons.award)
 end
 
--- An achievement (Config/Achievements): its picture (Art.achievements) over a drawn seal of its
--- color with its mark on it, in ink on a light seal and in white on a dark one.
+-- An achievement (Config/Achievements): its picture (Art.achievements) over a drawn stand-in,
+-- an ink stamp on paper as the pictures are asked to be (.claude/prompts/achievements.md:
+-- plain, not loud; owner, 2026-10-18): a disc of parchment in an ink rim, a thin band of the
+-- achievement's color inside it, and its mark in ink.
 function Icons.achievement(holder: Instance, id: string)
 	local achievement = Progress.byId[id]
 	if not achievement then
 		return
 	end
-	local face = Color3.fromHex(achievement.color)
-	seal(holder, face, true)
-	local light = face.R * 0.3 + face.G * 0.59 + face.B * 0.11 > 0.6
+	seal(holder, PARCHMENT)
+	local band = shape(holder, 0.13, 0.13, 0.74, 0.74, PARCHMENT, 0.5)
+	Ui.stroke(band, Color3.fromHex(achievement.color), 3)
 	Ui.text(holder, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.56, 0.56),
+		Size = UDim2.fromScale(0.5, 0.5),
 		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextColor3 = if light then INK else WHITE,
+		TextColor3 = INK,
 		Text = achievement.mark,
 	})
 	overlay(holder, Art.achievements[id])
@@ -892,14 +894,16 @@ function Icons.transport(holder: Instance, kind: string, color: Color3)
 		triangle(holder, 0.68, 0.22, 0.2, 0.28, true, color)
 		triangle(holder, 0.68, 0.5, 0.2, 0.28, true, color)
 	elseif kind == "repeat" then
-		local loop = Ui.make("Frame", {
-			Position = UDim2.fromScale(0.14, 0.3),
-			Size = UDim2.fromScale(0.72, 0.42),
-			BackgroundTransparency = 1,
-		}, holder)
-		Ui.make("UICorner", { CornerRadius = UDim.new(0.4, 0) }, loop)
-		Ui.make("UIStroke", { Color = color, Thickness = 2.5 }, loop)
-		triangle(holder, 0.46, 0.18, 0.18, 0.24, true, color)
+		-- Two arrows chasing each other round a square loop, as on any player: one along the
+		-- top to the right, one along the foot to the left, each turning down or up at its
+		-- tail. (A stroked rounded frame with a small arrowhead on it read as a box with a
+		-- notch: owner, 2026-10-18, "this icon is buggy".)
+		shape(holder, 0.18, 0.26, 0.5, 0.09, color, 0)
+		shape(holder, 0.18, 0.26, 0.09, 0.27, color, 0)
+		triangle(holder, 0.66, 0.165, 0.2, 0.28, true, color)
+		shape(holder, 0.32, 0.65, 0.5, 0.09, color, 0)
+		shape(holder, 0.73, 0.47, 0.09, 0.27, color, 0)
+		triangle(holder, 0.14, 0.555, 0.2, 0.28, false, color)
 	end
 end
 

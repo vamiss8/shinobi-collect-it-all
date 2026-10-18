@@ -433,12 +433,35 @@ function SettingsPanel.start()
 	-- The village's music: a small player.
 	-- Help: the notice board's window, opened on each of its pages (client InfoPanel; owner,
 	-- 2026-10-18: "the FAQ and the changelog on the notice board and also in the settings").
+	-- It is not a setting, and it matters (owner, 2026-10-18: "the buttons to the notice board
+	-- are very plain, though important; set them apart a little, these are not ordinary
+	-- settings"): the row is a sheet of parchment in a red outline with a red seal, the
+	-- buttons red lacquer.
 	local helpTop = 5 * (ROW + ROW_GAP) + PLAYER.Y + ROW_GAP
-	Ui.text(body, {
+	local sheet = Ui.make("Frame", {
 		Position = UDim2.fromOffset(0, helpTop),
-		Size = UDim2.fromOffset(LABEL, ROW),
-		TextSize = 28,
+		Size = UDim2.fromOffset(CONTROL + 3 * 162 - 12 + 12, ROW),
+		BackgroundColor3 = Ui.PARCHMENT,
+	}, body)
+	Ui.corner(sheet, 10)
+	Ui.stroke(sheet, Ui.SEAL, 2)
+	local helpSeal = Ui.text(sheet, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 12, 0.5, 0),
+		Size = UDim2.fromOffset(46, 46),
+		BackgroundColor3 = Ui.SEAL,
+		BackgroundTransparency = 0,
+		TextSize = 26,
 		TextColor3 = Ui.PARCHMENT,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = "札",
+	})
+	Ui.corner(helpSeal, 23)
+	Ui.text(sheet, {
+		Position = UDim2.fromOffset(68, 0),
+		Size = UDim2.fromOffset(LABEL - 74, ROW),
+		TextSize = 28,
+		TextColor3 = Ui.INK,
 		Text = Strings.get("SettingsHelp"),
 	})
 	local helps: { { page: any, words: string } } = {
@@ -447,10 +470,11 @@ function SettingsPanel.start()
 		{ page = "chances", words = Strings.get("InfoChances") },
 	}
 	for index, help in helps do
-		local button = Ui.button(body, {
-			Position = UDim2.fromOffset(CONTROL + (index - 1) * 162, helpTop + (ROW - STEP) / 2),
+		local button = Ui.button(sheet, {
+			Position = UDim2.fromOffset(CONTROL + (index - 1) * 162, (ROW - STEP) / 2),
 			Size = UDim2.fromOffset(150, STEP),
-			BackgroundColor3 = Ui.CARD,
+			BackgroundColor3 = Ui.SEAL,
+			TextColor3 = Ui.PARCHMENT,
 			TextSize = 22,
 			Text = help.words,
 		})
