@@ -48,6 +48,127 @@ local PAGE_WORDS: { [Page]: string } = {
 
 local opener: ((page: Page) -> ())? = nil
 
+-- WHAT MATTERS IS WRITTEN IN COLOR (owner, 2026-10-18: "in How to play and Chances let the main
+-- things stand out in other colors"). The words mark it themselves, `{r|...}` and the like
+-- (the FAQ in the language packs), and the chances mark what they work out: red for what to
+-- do and what matters, blue for where it is in the game, green for how much, gold for Chakra,
+-- Ryo and Herbs, and a mutation in its own color. All are dark enough to read on parchment.
+local MARKS: { [string]: Color3 } = {
+	r = Color3.fromRGB(176, 32, 32),
+	b = Color3.fromRGB(28, 88, 160),
+	g = Color3.fromRGB(36, 118, 48),
+	y = Color3.fromRGB(168, 108, 0),
+}
+
+-- A mutation's color made dark enough for parchment; a pale one (Six Paths' white) is gold.
+local function inked(color: Color3): Color3
+	local hue, saturation, value = color:ToHSV()
+	if saturation < 0.15 then
+		return Color3.fromRGB(150, 104, 16)
+	end
+	return Color3.fromHSV(hue, math.max(saturation, 0.6), math.min(value, 0.62))
+end
+
+-- Marks words to be written in a color.
+local function mark(color: Color3, words: string): string
+	return "{#" .. color:ToHex() .. "|" .. words .. "}"
+end
+
+-- A piece of a word and the color it is written in; a word is the pieces between two spaces.
+type Piece = { text: string, color: Color3? }
+
+local function escape(text: string): string
+	return (string.gsub(text, "[&<>]", { ["&"] = "&amp;", ["<"] = "&lt;", [">"] = "&gt;" }))
+end
+
+-- Words with marks in them cut into lines at `size` to fit `room`, as rich text: the marks are
+-- left out of what is measured, and their words colored once the lines are cut.
+local function paint(text: string, size: number, room: number): string
+	local pieces: { Piece } = {}
+	local at = 1
+	while at <= #text do
+		local open = string.find(text, "{", at, true)
+		if not open then
+			table.insert(pieces, { text = string.sub(text, at) })
+			break
+		end
+		if open > at then
+			table.insert(pieces, { text = string.sub(text, at, open - 1) })
+		end
+		local key, inside, after = string.match(text, "^{([^|{}]+)|([^{}]*)}()", open)
+		if key and inside and after then
+			local color = MARKS[key]
+			if not color and string.sub(key, 1, 1) == "#" then
+				local ok, read = pcall(Color3.fromHex, key)
+				color = if ok then read else nil
+			end
+			table.insert(pieces, { text = inside, color = color })
+			at = tonumber(after) or open + 1
+		else
+			table.insert(pieces, { text = "{" })
+			at = open + 1
+		end
+	end
+
+	-- The words, each the pieces between spaces: a mark that ends inside a word ("PERFEKT}-Band")
+	-- keeps the rest of the word to it.
+	local words: { { Piece } } = {}
+	local word: { Piece } = {}
+	for _, piece in pieces do
+		local index = 1
+		while index <= #piece.text do
+			local gapStart, gapEnd = string.find(piece.text, "%s+", index)
+			if gapStart == index and gapEnd then
+				if #word > 0 then
+					table.insert(words, word)
+					word = {}
+				end
+				index = gapEnd + 1
+			else
+				local stop = (gapStart or #piece.text + 1) - 1
+				table.insert(
+					word,
+					{ text = string.sub(piece.text, index, stop), color = piece.color }
+				)
+				index = stop + 1
+			end
+		end
+	end
+	if #word > 0 then
+		table.insert(words, word)
+	end
+
+	local plain: { string } = {}
+	for _, each in words do
+		local whole = ""
+		for _, piece in each do
+			whole ..= piece.text
+		end
+		table.insert(plain, whole)
+	end
+	local out: { string } = {}
+	local count = 0
+	for _, line in string.split(Ui.lines(table.concat(plain, " "), size, room), "\n") do
+		local said: { string } = {}
+		for _ in string.gmatch(line, "%S+") do
+			count += 1
+			local each = words[count]
+			if each then
+				local written = ""
+				for _, piece in each do
+					local color = piece.color
+					written ..= if color
+						then `<font color="#{color:ToHex()}">{escape(piece.text)}</font>`
+						else escape(piece.text)
+				end
+				table.insert(said, written)
+			end
+		end
+		table.insert(out, table.concat(said, " "))
+	end
+	return table.concat(out, "\n")
+end
+
 -- A chance as a share of a hundred, to as many places as it needs to say something.
 local function percent(p: number): string
 	if p >= 0.1 then
@@ -98,8 +219,9 @@ local function card(
 			AutomaticSize = Enum.AutomaticSize.Y,
 			TextSize = BODY_SIZE,
 			TextColor3 = Ui.INK,
+			RichText = true,
 			LayoutOrder = 1 + index,
-			Text = Ui.lines(words, BODY_SIZE, ROOM),
+			Text = paint(words, BODY_SIZE, ROOM),
 		})
 	end
 end
@@ -135,9 +257,9 @@ local function chances(page: ScrollingFrame)
 				lines,
 				Strings.get(
 					"ChancesMutationLine",
-					mutation.name,
-					tostring(mutation.multiplier),
-					percent(plain[place].weight)
+					mark(inked(Color3.fromHex(mutation.color)), Strings.name(mutation.name)),
+					mark(MARKS.g, tostring(mutation.multiplier)),
+					mark(MARKS.r, percent(plain[place].weight))
 				)
 			)
 		end
@@ -150,10 +272,10 @@ local function chances(page: ScrollingFrame)
 					lines,
 					Strings.get(
 						"ChancesEventLine",
-						mutation.name,
-						event.name,
-						tostring(mutation.multiplier),
-						percent(entry.weight)
+						mark(inked(Color3.fromHex(mutation.color)), Strings.name(mutation.name)),
+						mark(MARKS.b, Strings.name(event.name)),
+						mark(MARKS.g, tostring(mutation.multiplier)),
+						mark(MARKS.r, percent(entry.weight))
 					)
 				)
 			end
@@ -161,15 +283,15 @@ local function chances(page: ScrollingFrame)
 	end
 	local state = Store.get()
 	local luck = if state then state.multipliers.mutationLuck else 1
-	table.insert(lines, Strings.get("ChancesLuckNote", Format.short(luck)))
+	table.insert(lines, Strings.get("ChancesLuckNote", mark(MARKS.g, Format.short(luck))))
 	card(page, 1, Strings.get("ChancesMutations"), Ui.SEAL, lines)
 
 	local zones = Tuning.Zones
 	card(page, 2, Strings.get("ChancesRanks"), Ui.SEAL, {
 		Strings.get(
 			"ChancesRankLine",
-			percent(zones.nextRankAtStart),
-			percent(zones.nextRankAtEnd)
+			mark(MARKS.r, percent(zones.nextRankAtStart)),
+			mark(MARKS.r, percent(zones.nextRankAtEnd))
 		),
 	})
 
@@ -179,7 +301,11 @@ local function chances(page: ScrollingFrame)
 		local milestone = milestones[index]
 		table.insert(
 			lucky,
-			Strings.get("ChancesLuckyLine", tostring(milestone.every), tostring(milestone.luck))
+			Strings.get(
+				"ChancesLuckyLine",
+				mark(MARKS.b, tostring(milestone.every)),
+				mark(MARKS.g, tostring(milestone.luck))
+			)
 		)
 	end
 	card(page, 3, Strings.get("ChancesLucky"), Ui.SEAL, lucky)
@@ -195,9 +321,9 @@ local function chances(page: ScrollingFrame)
 			coming,
 			Strings.get(
 				"ChancesEventsLine",
-				event.name,
-				string.format("%.0f", every),
-				tostring(event.minutes)
+				mark(MARKS.b, Strings.name(event.name)),
+				mark(MARKS.g, string.format("%.0f", every)),
+				mark(MARKS.g, tostring(event.minutes))
 			)
 		)
 	end
