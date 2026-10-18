@@ -171,17 +171,19 @@ function SettingsPanel.start()
 		write: (value: number) -> ()
 	)
 		local top = row(index, key)
-		local cells: { Frame } = {}
+		local cells: { TextButton } = {}
 		local bar = Ui.make("Frame", {
 			Position = UDim2.fromOffset(CONTROL + STEP + 8, top + (ROW - 30) / 2),
 			Size = UDim2.fromOffset(260, 30),
 			BackgroundTransparency = 1,
 		}, body)
 		for cell = 1, 10 do
-			local frame = Ui.make("Frame", {
+			local frame: TextButton = Ui.make("TextButton", {
 				Position = UDim2.new((cell - 1) / 10, 2, 0, 0),
 				Size = UDim2.new(0.1, -4, 1, 0),
 				BorderSizePixel = 0,
+				AutoButtonColor = false,
+				Text = "",
 			}, bar)
 			Ui.corner(frame, 4)
 			cells[cell] = frame
@@ -203,6 +205,19 @@ function SettingsPanel.start()
 			write(math.clamp(read() + by * SettingsLogic.STEP, 0, 1))
 			draw()
 			send()
+		end
+		-- A bar pressed sets the volume to it at once (owner, 2026-10-18: "at 30% a press on the
+		-- eighth bar should make it 80%, not five presses of +"); the first, pressed again when
+		-- it is the only one lit, turns the sound off.
+		for cell, button in cells do
+			button.Activated:Connect(function()
+				local level = math.floor(read() * 10 + 0.5)
+				local target = if cell == 1 and level == 1 then 0 else cell
+				Audio.play("click")
+				write(target * SettingsLogic.STEP)
+				draw()
+				send()
+			end)
 		end
 		local less = Ui.button(body, {
 			Position = UDim2.fromOffset(CONTROL, top + (ROW - STEP) / 2),
