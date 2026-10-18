@@ -60,6 +60,17 @@ local ARROW_OFF = 38
 -- The arrow at the screen's edge for a place out of sight: how much larger, how far in.
 local EDGE_GROW = 1.4
 local EDGE_MARGIN = 70
+-- The trail on the ground from the player towards a place: chevrons, how many, how far apart,
+-- where the first is, an arm's length and thickness, how far an arm leans back, how fast the
+-- light runs along them, and how near the place they stop being laid.
+local TRAIL_COUNT = 6
+local TRAIL_STEP = 3.6
+local TRAIL_FIRST = 3
+local TRAIL_ARM = 2.4
+local TRAIL_THICK = 0.5
+local TRAIL_LEAN = math.rad(38)
+local TRAIL_RUN = 7
+local TRAIL_NEAR = 7
 local BOB = 7
 
 type Arrow = { frame: Frame, ring: Frame?, target: GuiObject?, cleanup: () -> () }
@@ -168,7 +179,7 @@ end
 -- edges), a larger arrow at the edge of the screen turned towards it, so that "follow the
 -- arrow" can be followed from anywhere (owner, 2026-10-19: "Iruka told me to follow the arrow,
 -- but there are no arrows": the arrow over the strip was there, out of sight behind him).
-local function pointAtPlace(part: BasePart, above: number)
+local function pointAtPlace(part: BasePart, above: number, withTrail: boolean)
 	local board: BillboardGui = Ui.make("BillboardGui", {
 		Name = "GuideArrow",
 		Adornee = part,
@@ -184,6 +195,31 @@ local function pointAtPlace(part: BasePart, above: number)
 	drawArrow(holder)
 	board.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
+	-- A trail of chevrons on the ground, out of the player towards the place, the light running
+	-- along it away from them (owner, 2026-10-19: "a blinking arrow coming out of the character
+	-- to the object"). Parts of this client alone, touched by nothing.
+	local trail = Instance.new("Folder")
+	trail.Name = "GuideTrail"
+	local arms: { { Part } } = {}
+	for _ = 1, TRAIL_COUNT do
+		local pair: { Part } = {}
+		for _ = 1, 2 do
+			local arm = Instance.new("Part")
+			arm.Anchored = true
+			arm.CanCollide = false
+			arm.CanQuery = false
+			arm.CanTouch = false
+			arm.CastShadow = false
+			arm.Material = Enum.Material.Neon
+			arm.Color = Ui.SEAL
+			arm.Size = Vector3.new(TRAIL_THICK, 0.12, TRAIL_ARM)
+			arm.Parent = trail
+			table.insert(pair, arm)
+		end
+		table.insert(arms, pair)
+	end
+	trail.Parent = Workspace
+
 	local edge: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Size = UDim2.fromOffset(ARROW.X * EDGE_GROW, ARROW.Y * EDGE_GROW),
@@ -197,6 +233,42 @@ local function pointAtPlace(part: BasePart, above: number)
 		local scale = Ui.scale()
 		local bob = (math.sin(os.clock() * 5) + 1) * BOB
 		holder.Position = UDim2.fromOffset(0, bob * scale)
+
+		-- The trail: laid from the player's feet along the ground towards the place.
+		local character = Players.LocalPlayer.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		local towards = if root and root:IsA("BasePart")
+			then (part.Position - root.Position) * Vector3.new(1, 0, 1)
+			else Vector3.zero
+		local laid = withTrail
+			and root ~= nil
+			and root:IsA("BasePart")
+			and holder.Visible
+			and towards.Magnitude > TRAIL_NEAR
+		for index, pair in arms do
+			local reach = TRAIL_FIRST + (index - 1) * TRAIL_STEP
+			local shown = laid and reach < towards.Magnitude - TRAIL_NEAR / 2
+			for _, arm in pair do
+				arm.Transparency = 1
+			end
+			if shown and root and root:IsA("BasePart") then
+				local way = towards.Unit
+				local feet = root.Position.Y
+					- root.Size.Y / 2
+					- (if humanoid then humanoid.HipHeight else 2)
+					+ 0.12
+				local tip = Vector3.new(root.Position.X, feet, root.Position.Z) + way * reach
+				local frame = CFrame.lookAt(tip, tip + way)
+				-- Light runs out along the chevrons, from the player towards the place.
+				local wave = (math.sin(os.clock() * TRAIL_RUN - index * 0.9) + 1) / 2
+				for side, arm in pair do
+					local lean = if side == 1 then TRAIL_LEAN else -TRAIL_LEAN
+					arm.CFrame = frame * CFrame.Angles(0, lean, 0) * CFrame.new(0, 0, TRAIL_ARM / 2)
+					arm.Transparency = 0.1 + 0.75 * (1 - wave)
+				end
+			end
+		end
 
 		local camera = Workspace.CurrentCamera
 		if not camera then
@@ -244,6 +316,7 @@ local function pointAtPlace(part: BasePart, above: number)
 			beat:Disconnect()
 			board:Destroy()
 			edge:Destroy()
+			trail:Destroy()
 		end,
 	})
 end
@@ -311,6 +384,8 @@ local function point(names: { string }?)
 	if not names then
 		return
 	end
+	-- A trail on the ground goes to the first place named only: one way to walk at a time.
+	local trailed = false
 	for _, name in names do
 		local gui = Ui.targetOf(name)
 		if gui then
@@ -318,7 +393,8 @@ local function point(names: { string }?)
 		else
 			local part = placeOf(name)
 			if part then
-				pointAtPlace(part, if name == "dojo" then 18 else 5)
+				pointAtPlace(part, if name == "dojo" then 18 else 5, not trailed)
+				trailed = true
 			end
 		end
 	end
