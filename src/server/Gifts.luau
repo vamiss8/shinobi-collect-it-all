@@ -11,8 +11,8 @@
 -- keys in Config/Products (Vip, DoubleRyo, DoubleChakra, DoubleLuck, DoubleMutationLuck,
 -- ExtraPads).
 local Gifts: { [number]: { string } } = {
-	-- dixtyne: Tsunade on 2026-10-17, +4 Pads on 2026-10-18
-	[3736221745] = { "tsunade", "ExtraPads" },
+	-- dixtyne: Tsunade on 2026-10-17, +4 Pads and x2 Chakra on 2026-10-18
+	[3736221745] = { "tsunade", "ExtraPads", "DoubleChakra" },
 	-- whydalmjun: Tsunade and +4 Pads on 2026-10-18
 	[9144243296] = { "tsunade", "ExtraPads" },
 }
