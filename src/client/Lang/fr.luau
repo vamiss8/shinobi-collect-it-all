@@ -348,12 +348,16 @@ return {
 		SettingsRejoin = "Revenir en jeu",
 		SettingsSaved = "Tes paramètres sont sauvegardés avec ta progression.",
 		MusicTitle = "Musique du village",
-		MusicNow = "En cours",
-		MusicWaits = "Une poursuite ou un événement a sa musique : celle-ci reprend au village.",
-		MusicPrevious = "< Préc.",
-		MusicNext = "Suiv. >",
-		MusicRepeat = "Répéter",
-		MusicShuffle = "Aléatoire",
+		MusicWaits = "Reprend après la poursuite ou l'événement",
+		MusicPrevious = "Piste précédente",
+		MusicNext = "Piste suivante",
+		MusicRepeat = "Répéter : cette piste en boucle",
+		MusicShuffle = "Aléatoire : la piste suivante au hasard",
+		MusicPlay = "Lecture",
+		MusicPause = "Pause",
+		TipRyo = "RYO : l'argent. Les shinobi sur tes plateformes en rapportent chaque seconde ; dépense-le en kunai, vitesse, plateformes et améliorations.",
+		TipChakra = "CHAKRA : la force du lancer, plus il y en a, plus il va loin. Entraîne-la en méditant et avec le contrôle du chakra. Clique pour choisir combien lancer.",
+		TipHerbs = "HERBES : chaque prise ramenée en rapporte, d'autant plus que la zone est lointaine. Elles achètent des potions à la charrette de Kabuto.",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

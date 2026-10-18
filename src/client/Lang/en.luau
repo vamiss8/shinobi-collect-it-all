@@ -366,12 +366,16 @@ return {
 		SettingsRejoin = "Rejoin now",
 		SettingsSaved = "Your settings are saved with your progress.",
 		MusicTitle = "Village music",
-		MusicNow = "Now playing",
-		MusicWaits = "A chase or an event has its own music: this goes on at home.",
-		MusicPrevious = "< Back",
-		MusicNext = "Next >",
-		MusicRepeat = "Repeat",
-		MusicShuffle = "Shuffle",
+		MusicWaits = "Waits for the chase or event to end",
+		MusicPrevious = "Previous track",
+		MusicNext = "Next track",
+		MusicRepeat = "Repeat: this track over and over",
+		MusicShuffle = "Shuffle: the next track at random",
+		MusicPlay = "Play",
+		MusicPause = "Pause",
+		TipRyo = "RYO: money. Shinobi on your pads earn it every second; spend it on kunai, run speed, pads and upgrades.",
+		TipChakra = "CHAKRA: the power of your throw, the more the farther. Train it with Meditate and Chakra Control. Click to choose how much to throw with.",
+		TipHerbs = "HERBS: every catch you bring home pays them, the farther its zone the more. They buy potions at Kabuto's cart.",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

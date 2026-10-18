@@ -113,7 +113,7 @@ export type Track = {
 
 -- The music (owner, 2026-10-18). THE VILLAGE PLAYS A PLAYLIST: several calm, light tracks one
 -- after another, never the same twice running ("one alone would pall; they must take turns"),
--- which the player can step through, repeat and shuffle in the settings (client MusicPanel).
+-- which the player can step through, repeat and shuffle in the settings' player (client SettingsPanel).
 -- A RUNNER HEARS THEIR ZONE'S TRACK, from the moment the owner chose in it (`from`, where its
 -- drop is), for the chase alone: at home the village's comes back and goes on from where it
 -- was. He had first thought of letting a zone's track play out after the run and gave it up:

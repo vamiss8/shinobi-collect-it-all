@@ -348,12 +348,16 @@ return {
 		SettingsRejoin = "Neu beitreten",
 		SettingsSaved = "Deine Einstellungen werden mit deinem Fortschritt gespeichert.",
 		MusicTitle = "Dorfmusik",
-		MusicNow = "Läuft gerade",
-		MusicWaits = "Verfolgung und Event haben eigene Musik: diese läuft zu Hause weiter.",
-		MusicPrevious = "< Zurück",
-		MusicNext = "Weiter >",
-		MusicRepeat = "Wiederholen",
-		MusicShuffle = "Zufällig",
+		MusicWaits = "Läuft nach der Verfolgung oder dem Event weiter",
+		MusicPrevious = "Vorheriger Titel",
+		MusicNext = "Nächster Titel",
+		MusicRepeat = "Wiederholen: dieser Titel immer wieder",
+		MusicShuffle = "Zufällig: der nächste Titel per Zufall",
+		MusicPlay = "Abspielen",
+		MusicPause = "Pause",
+		TipRyo = "RYO: Geld. Shinobi auf deinen Plattformen bringen es jede Sekunde; gib es für Kunai, Laufgeschwindigkeit, Plattformen und Upgrades aus.",
+		TipChakra = "CHAKRA: die Kraft deines Wurfs, je mehr, desto weiter. Trainiere sie mit Meditation und Chakra-Kontrolle. Klicke, um zu wählen, wie viel du wirfst.",
+		TipHerbs = "KRÄUTER: Jeder heimgebrachte Fang bringt sie, je weiter die Zone, desto mehr. Sie kaufen Tränke an Kabutos Karren.",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

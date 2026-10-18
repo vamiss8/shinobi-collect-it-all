@@ -348,12 +348,16 @@ return {
 		SettingsRejoin = "Перезайти",
 		SettingsSaved = "Настройки сохраняются вместе с прогрессом.",
 		MusicTitle = "Музыка деревни",
-		MusicNow = "Сейчас играет",
-		MusicWaits = "У погони и ивента своя музыка: этот трек продолжится дома.",
-		MusicPrevious = "< Назад",
-		MusicNext = "Далее >",
-		MusicRepeat = "Повтор",
-		MusicShuffle = "Вперемешку",
+		MusicWaits = "Продолжится после погони или ивента",
+		MusicPrevious = "Предыдущий трек",
+		MusicNext = "Следующий трек",
+		MusicRepeat = "Повтор: этот трек по кругу",
+		MusicShuffle = "Вперемешку: следующий трек случайный",
+		MusicPlay = "Играть",
+		MusicPause = "Пауза",
+		TipRyo = "РЁ: деньги. Шиноби на платформах приносят их каждую секунду; трать на кунаи, скорость бега, платформы и улучшения.",
+		TipChakra = "ЧАКРА: сила броска — чем больше, тем дальше. Тренируй медитацией и контролем чакры. Нажми, чтобы выбрать, сколько вложить в бросок.",
+		TipHerbs = "ТРАВЫ: их приносит каждый улов, донесённый домой, и тем больше, чем дальше зона. На них покупают зелья у тележки Кабуто.",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

@@ -110,14 +110,12 @@ end
 -- is wanted and kept, so that it is loaded the next time. One is heard at a time: an event's
 -- while one runs, else the zone's while its enemy chases the player, else the village's. The
 -- village's tracks are a playlist that plays on by itself and that the player can step through,
--- repeat and shuffle (client MusicPanel); the one under way is paused when another takes over
+-- repeat and shuffle (the player in client SettingsPanel); the one under way is paused when another takes over
 -- and goes on from where it was when the village comes back. A zone's or an event's starts at
 -- its chosen moment (`from`) every time, and loops back to it.
 local MUSIC = Sounds.music
 -- Past any track's end: a region whose far end lies beyond the track ends with the track.
 local THE_END = 100000
--- How many tracks back "previous" can go.
-local HISTORY = 50
 
 local trackSounds: { [string]: Sound } = {}
 -- How many fades each track has had: a fade that has been overtaken does not finish its work.
@@ -125,11 +123,21 @@ local fades: { [Sound]: number } = {}
 
 local heard: string? = nil -- the key of the track heard now
 -- The village's playlist: the track under way (by its place in MUSIC.village), playing or
--- paused; the ones played before it; and how the next one is picked.
+-- paused, and how the next one is picked.
 local villageAt: number? = nil
-local history: { number } = {}
+-- SHUFFLE IS A DECK (owner, 2026-10-18: "shuffle when the player comes in, and then none
+-- repeats until all five have played"): every track once, in an order drawn when the visit
+-- begins and drawn anew each time it has all been played, never so that the new round begins
+-- with the track that ended the last. `orderAt` is the place in it of the track under way.
 local shuffle = true
+local order: { number } = {}
+local orderAt = 0
 local repeatOne = false
+-- Paused by the player in the music player: the village's track stands where it is until
+-- played again, through chases and events too.
+local userPaused = false
+-- How fast a pause or a play fades, seconds.
+local PAUSE_FADE = 0.25
 local shuffler = Random.new()
 local playlistListeners: { () -> () } = {}
 
@@ -200,37 +208,63 @@ local function fade(sound: Sound, volume: number, seconds: number, after: (() ->
 	end
 end
 
--- The track of the playlist that comes after the one under way: the next in order, or with
--- shuffle on any other at random, so that none comes twice running.
+-- Draws a new order of every track, one that does not begin with `avoid`.
+local function deal(avoid: number?)
+	local count = #MUSIC.village
+	order = {}
+	for index = 1, count do
+		table.insert(order, index)
+	end
+	for index = count, 2, -1 do
+		local other = shuffler:NextInteger(1, index)
+		order[index], order[other] = order[other], order[index]
+	end
+	if avoid and count > 1 and order[1] == avoid then
+		local other = shuffler:NextInteger(2, count)
+		order[1], order[other] = order[other], order[1]
+	end
+	orderAt = 0
+end
+
+-- The track of the playlist that comes after the one under way: the next of the deck with
+-- shuffle on, the next in the list with it off.
 local function following(): number?
 	local count = #MUSIC.village
 	if count == 0 then
 		return nil
 	end
-	if not villageAt then
-		return if shuffle then shuffler:NextInteger(1, count) else 1
+	if not shuffle then
+		return if villageAt then villageAt % count + 1 else 1
 	end
-	if count == 1 then
+	if orderAt >= #order then
+		deal(villageAt)
+	end
+	orderAt += 1
+	return order[orderAt]
+end
+
+-- The track before the one under way: the deck's with shuffle on, the list's with it off; the
+-- first of a round is begun anew.
+local function preceding(): number?
+	local count = #MUSIC.village
+	if count == 0 or not villageAt then
 		return villageAt
 	end
 	if not shuffle then
-		return villageAt % count + 1
+		return (villageAt - 2) % count + 1
 	end
-	local index = shuffler:NextInteger(1, count - 1)
-	return if index >= villageAt then index + 1 else index
+	if orderAt > 1 then
+		orderAt -= 1
+		return order[orderAt]
+	end
+	return villageAt
 end
 
 -- Makes `index` the village's track under way. The one it takes over from is stopped (at once
 -- if it is not heard, by the fade otherwise), so that it begins from its start if it comes
 -- again; the same one is begun anew.
-local function setVillage(index: number?, remember: boolean)
+local function setVillage(index: number?)
 	local old = villageAt
-	if old and remember and old ~= index then
-		table.insert(history, old)
-		if #history > HISTORY then
-			table.remove(history, 1)
-		end
-	end
 	villageAt = index
 	if old then
 		local oldKey = villageKey(old)
@@ -251,15 +285,8 @@ local function setVillage(index: number?, remember: boolean)
 end
 
 skipVillage = function(step: number)
-	if step < 0 then
-		local back = table.remove(history)
-		if not back and villageAt and not shuffle then
-			back = (villageAt - 2) % #MUSIC.village + 1
-		end
-		setVillage(back or villageAt, false)
-	else
-		setVillage(following(), true)
-	end
+	userPaused = false
+	setVillage(if step < 0 then preceding() else following())
 	chooseMusic()
 end
 
@@ -278,7 +305,7 @@ local function wanted(): (string?, Sounds.Track?, boolean)
 		end
 	end
 	if not villageAt then
-		setVillage(following(), false)
+		setVillage(following())
 	end
 	if villageAt then
 		return villageKey(villageAt), MUSIC.village[villageAt], false
@@ -314,6 +341,15 @@ chooseMusic = function()
 	local sound = trackSound(key, track)
 	if isVillage(key) then
 		sound.Looped = repeatOne
+		if userPaused then
+			-- Paused by the player: it stays where it is, silent, until played.
+			fade(sound, 0, seconds, function()
+				if sound.IsPlaying then
+					sound:Pause()
+				end
+			end)
+			return
+		end
 	end
 	if sound.IsPaused then
 		sound:Resume()
@@ -324,7 +360,7 @@ chooseMusic = function()
 	fade(sound, MUSIC.volume * (track.volume or 1), seconds)
 end
 
--- The village's playlist, for the music window (client MusicPanel).
+-- The village's playlist, for the music player (client SettingsPanel).
 function Audio.playlist(): { Sounds.Track }
 	return MUSIC.village
 end
@@ -346,14 +382,6 @@ function Audio.villageClock(): (number, number)
 		return 0, track.length
 	end
 	return sound.TimePosition, if sound.TimeLength > 0 then sound.TimeLength else track.length
-end
-
--- Plays a track of the playlist from its start.
-function Audio.playVillage(index: number)
-	if MUSIC.village[index] then
-		setVillage(index, true)
-		chooseMusic()
-	end
 end
 
 -- The next track of the playlist (1), or the one before (-1).
@@ -381,10 +409,64 @@ function Audio.shuffling(): boolean
 	return shuffle
 end
 
--- Shuffle picks the next track at random, never the same twice running; off, they go in order.
+-- Shuffle plays the tracks as a deck, each once in a drawn order; off, they go in the list's
+-- order. Turned on, it draws a deck whose first is the track under way.
 function Audio.setShuffle(on: boolean)
 	shuffle = on
+	if on then
+		deal(nil)
+		local at = villageAt
+		if at then
+			local place = table.find(order, at)
+			if place then
+				order[1], order[place] = order[place], order[1]
+			end
+			orderAt = 1
+		end
+	end
 	told()
+end
+
+function Audio.paused(): boolean
+	return userPaused
+end
+
+-- Pause stops the village's music where it is; play goes on from there.
+function Audio.setPaused(on: boolean)
+	userPaused = on
+	local at = villageAt
+	if at and heard == villageKey(at) then
+		local track = MUSIC.village[at]
+		local sound = trackSound(villageKey(at), track)
+		if on then
+			fade(sound, 0, PAUSE_FADE, function()
+				sound:Pause()
+			end)
+		else
+			if sound.IsPaused then
+				sound:Resume()
+			elseif not sound.IsPlaying then
+				sound.TimePosition = track.from or 0
+				sound:Play()
+			end
+			fade(sound, MUSIC.volume * (track.volume or 1), PAUSE_FADE)
+		end
+	end
+	told()
+end
+
+-- Moves the village's track under way to a share of its length (the player's bar pressed).
+function Audio.seekVillage(share: number)
+	local at = villageAt
+	if not at then
+		return
+	end
+	local sound = trackSounds[villageKey(at)]
+	if not sound then
+		return
+	end
+	local length = if sound.TimeLength > 0 then sound.TimeLength else MUSIC.village[at].length
+	sound.TimePosition = math.clamp(share, 0, 0.99) * length
 end
 
 -- Calls `listener` whenever the playlist's track, what is heard, repeat or shuffle change.

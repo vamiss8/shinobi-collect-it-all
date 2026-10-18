@@ -349,12 +349,16 @@ return {
 		SettingsRejoin = "Entrar de novo",
 		SettingsSaved = "Suas configurações ficam salvas com seu progresso.",
 		MusicTitle = "Música da vila",
-		MusicNow = "Tocando agora",
-		MusicWaits = "Perseguições e eventos têm música própria: esta continua em casa.",
-		MusicPrevious = "< Voltar",
-		MusicNext = "Próx. >",
-		MusicRepeat = "Repetir",
-		MusicShuffle = "Aleatório",
+		MusicWaits = "Continua quando a perseguição ou o evento acabar",
+		MusicPrevious = "Faixa anterior",
+		MusicNext = "Próxima faixa",
+		MusicRepeat = "Repetir: esta faixa sem parar",
+		MusicShuffle = "Aleatório: a próxima faixa ao acaso",
+		MusicPlay = "Tocar",
+		MusicPause = "Pausar",
+		TipRyo = "RYO: dinheiro. Os shinobi nas suas plataformas rendem a cada segundo; gaste em kunais, velocidade, plataformas e melhorias.",
+		TipChakra = "CHAKRA: a força do arremesso, quanto mais, mais longe. Treine meditando e com o controle de chakra. Clique para escolher quanto usar.",
+		TipHerbs = "ERVAS: cada captura levada para casa rende ervas, mais quanto mais longe a zona. Compram poções no carrinho do Kabuto.",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

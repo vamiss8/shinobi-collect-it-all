@@ -796,4 +796,63 @@ function Icons.event(holder: Instance, shows: string, id: string?)
 	overlay(holder, if id then Art.events[id] else nil)
 end
 
+-- A triangle pointing right or left, as a stack of thin bars: frames make no slanted edges, and
+-- at a button's size each step is a pixel or two, so the stack reads as a triangle.
+local TRIANGLE_STEPS = 14
+
+local function triangle(
+	parent: Instance,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	right: boolean,
+	color: Color3
+)
+	for step = 0, TRIANGLE_STEPS - 1 do
+		local middle = (step + 0.5) / TRIANGLE_STEPS
+		local reach = width * (1 - math.abs(middle - 0.5) * 2)
+		shape(
+			parent,
+			if right then x else x + width - reach,
+			y + height * step / TRIANGLE_STEPS,
+			reach,
+			height / TRIANGLE_STEPS + 0.004,
+			color,
+			0
+		)
+	end
+end
+
+-- The music player's buttons (client SettingsPanel), drawn in one color: "play", "pause",
+-- "next", "previous", "shuffle" (two crossing arrows), "repeat" (a loop with an arrowhead).
+function Icons.transport(holder: Instance, kind: string, color: Color3)
+	if kind == "play" then
+		triangle(holder, 0.3, 0.18, 0.52, 0.64, true, color)
+	elseif kind == "pause" then
+		shape(holder, 0.24, 0.18, 0.17, 0.64, color, 0.3)
+		shape(holder, 0.59, 0.18, 0.17, 0.64, color, 0.3)
+	elseif kind == "next" then
+		triangle(holder, 0.16, 0.2, 0.5, 0.6, true, color)
+		shape(holder, 0.68, 0.2, 0.12, 0.6, color, 0.3)
+	elseif kind == "previous" then
+		shape(holder, 0.2, 0.2, 0.12, 0.6, color, 0.3)
+		triangle(holder, 0.34, 0.2, 0.5, 0.6, false, color)
+	elseif kind == "shuffle" then
+		bar(holder, 0.44, 0.5, 0.6, 0.09, 28, color, 0.5)
+		bar(holder, 0.44, 0.5, 0.6, 0.09, -28, color, 0.5)
+		triangle(holder, 0.68, 0.22, 0.2, 0.28, true, color)
+		triangle(holder, 0.68, 0.5, 0.2, 0.28, true, color)
+	elseif kind == "repeat" then
+		local loop = Ui.make("Frame", {
+			Position = UDim2.fromScale(0.14, 0.3),
+			Size = UDim2.fromScale(0.72, 0.42),
+			BackgroundTransparency = 1,
+		}, holder)
+		Ui.make("UICorner", { CornerRadius = UDim.new(0.4, 0) }, loop)
+		Ui.make("UIStroke", { Color = color, Thickness = 2.5 }, loop)
+		triangle(holder, 0.46, 0.18, 0.18, 0.24, true, color)
+	end
+end
+
 return Icons

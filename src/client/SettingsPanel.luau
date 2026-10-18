@@ -10,13 +10,19 @@
 -- language takes when the player comes back into the game, every word being written as the
 -- interface is built: the window says so and offers to send them back into this same server.
 --
--- Last, the village's music: the track playing now, a press away from the music window
--- (client MusicPanel), where the playlist is stepped through.
+-- Last, the village's music as a small player (owner, 2026-10-18: "a mini player like Spotify's
+-- right in the settings; the whole playlist is not needed, five tracks are gone through in five
+-- presses"): the track's name and its place in the playlist, a bar of how far it has played
+-- (pressed, it goes there), the time played and the track's length, and buttons drawn as a
+-- player's, not words: shuffle, back, play or pause, next, repeat, each saying what it does
+-- under the pointer (Ui.tip). During a chase or an event their own track is heard and the
+-- player says the village's waits.
 --
 -- The tutorial, the changelog and the questions asked often are to have rows here too.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 
 local Audio = require("./Audio")
@@ -25,7 +31,6 @@ local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Language = require("./Language")
 local Languages = require(ReplicatedStorage.Shared.Config.Languages)
-local MusicPanel = require("./MusicPanel")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local SettingsLogic = require(ReplicatedStorage.Shared.Logic.Settings)
@@ -34,12 +39,17 @@ local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 650)
+local SIZE = Vector2.new(760, 720)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
 local CONTROL = 250
 local STEP = 56
+-- The music player, right of its row's label: its size, where its buttons' middles stand, and
+-- how often the time played is written while the window is open, seconds.
+local PLAYER = Vector2.new(478, 146)
+local PLAYER_BUTTONS = 114
+local PLAYER_TICK = 0.2
 -- A change is sent to the server once the player has stopped changing things for this long.
 local SEND_AFTER = 0.4
 -- The gear's tile, the size of the window tiles on the edges (Hud.sideButton). On a touch
@@ -65,6 +75,12 @@ end
 
 function SettingsPanel.effects(): SoundGroup
 	return group("Effects")
+end
+
+-- "1:05" for seconds.
+local function clock(seconds: number): string
+	local whole = math.max(math.floor(seconds), 0)
+	return string.format("%d:%02d", whole // 60, whole % 60)
 end
 
 -- The settings as the server last put them on the player, or the defaults.
@@ -335,23 +351,168 @@ function SettingsPanel.start()
 		button.TextColor3 = if name == settings.font then Ui.INK else Ui.PARCHMENT
 	end
 
-	-- The village's music: the track under way, which opens the music window.
-	local musicTop = row(6, "MusicTitle")
-	local playing = Ui.button(body, {
-		Position = UDim2.fromOffset(CONTROL, musicTop + (ROW - STEP) / 2),
-		Size = UDim2.fromOffset(474, STEP),
-		BackgroundColor3 = Ui.CARD,
+	-- The village's music: a small player.
+	local playerTop = row(6, "MusicTitle")
+	local player = Ui.make("Frame", {
+		Position = UDim2.fromOffset(CONTROL, playerTop),
+		Size = UDim2.fromOffset(PLAYER.X, PLAYER.Y),
+		BackgroundTransparency = 1,
+	}, body)
+	local name = Ui.text(player, {
+		Size = UDim2.new(1, -70, 0, 30),
 		TextSize = 24,
+		TextColor3 = Ui.PARCHMENT,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
-	playing.Activated:Connect(MusicPanel.open)
-	local function drawPlaying()
-		local at = Audio.villageAt()
-		local track = if at then Audio.playlist()[at] else nil
-		playing.Text = if track then `{track.name}  >` else ">"
+	local place = Ui.text(player, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(70, 30),
+		TextSize = 18,
+		TextColor3 = Ui.MUTED,
+		TextXAlignment = Enum.TextXAlignment.Right,
+	})
+	-- How far the track has played: pressed, the track goes to that point.
+	local track: TextButton = Ui.make("TextButton", {
+		Position = UDim2.fromOffset(0, 40),
+		Size = UDim2.new(1, 0, 0, 10),
+		BackgroundColor3 = Ui.CARD,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = "",
+	}, player)
+	Ui.corner(track, 5)
+	local fill = Ui.make("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Ui.GOLD,
+		BorderSizePixel = 0,
+	}, track)
+	Ui.corner(fill, 5)
+	track.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			local wide = track.AbsoluteSize.X
+			if wide > 0 then
+				Audio.seekVillage((input.Position.X - track.AbsolutePosition.X) / wide)
+			end
+		end
+	end)
+	local elapsed = Ui.text(player, {
+		Position = UDim2.fromOffset(0, 56),
+		Size = UDim2.fromOffset(110, 22),
+		TextSize = 18,
+		TextColor3 = Ui.MUTED,
+	})
+	local total = Ui.text(player, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 56),
+		Size = UDim2.fromOffset(110, 22),
+		TextSize = 18,
+		TextColor3 = Ui.MUTED,
+		TextXAlignment = Enum.TextXAlignment.Right,
+	})
+	local waits = Ui.text(player, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 56),
+		Size = UDim2.fromOffset(250, 22),
+		TextSize = 16,
+		TextColor3 = Ui.GOLD,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = Strings.get("MusicWaits"),
+		Visible = false,
+	})
+
+	-- A round button with a drawn icon, `x` from the player's middle; its tip says what it does.
+	local function control(
+		x: number,
+		size: number,
+		tip: () -> string,
+		press: () -> ()
+	): (TextButton, Frame)
+		local button = Ui.button(player, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, x, 0, PLAYER_BUTTONS),
+			Size = UDim2.fromOffset(size, size),
+			BackgroundColor3 = Ui.CARD,
+		})
+		local corner = button:FindFirstChildOfClass("UICorner")
+		if corner then
+			corner.CornerRadius = UDim.new(0.5, 0)
+		end
+		local holder = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.6, 0.6),
+			BackgroundTransparency = 1,
+		}, button)
+		button.Activated:Connect(function()
+			press()
+			Ui.retip()
+		end)
+		Ui.tip(button, tip)
+		return button, holder
 	end
-	Audio.onPlaylist(drawPlaying)
-	drawPlaying()
+	local shuffleButton, shuffleIcon = control(-150, 44, function()
+		return Strings.get("MusicShuffle")
+	end, function()
+		Audio.setShuffle(not Audio.shuffling())
+	end)
+	local _, backIcon = control(-76, 50, function()
+		return Strings.get("MusicPrevious")
+	end, function()
+		Audio.skipVillage(-1)
+	end)
+	local playButton, playIcon = control(0, 62, function()
+		return Strings.get(if Audio.paused() then "MusicPlay" else "MusicPause")
+	end, function()
+		Audio.setPaused(not Audio.paused())
+	end)
+	local _, nextIcon = control(76, 50, function()
+		return Strings.get("MusicNext")
+	end, function()
+		Audio.skipVillage(1)
+	end)
+	local repeatButton, repeatIcon = control(150, 44, function()
+		return Strings.get("MusicRepeat")
+	end, function()
+		Audio.setRepeat(not Audio.repeating())
+	end)
+	playButton.BackgroundColor3 = Ui.GOLD
+	Icons.transport(backIcon, "previous", Ui.PARCHMENT)
+	Icons.transport(nextIcon, "next", Ui.PARCHMENT)
+
+	-- A switch is gold while on, its icon in ink.
+	local function paint(button: TextButton, holder: Frame, kind: string, on: boolean)
+		button.BackgroundColor3 = if on then Ui.GOLD else Ui.CARD
+		holder:ClearAllChildren()
+		Icons.transport(holder, kind, if on then Ui.INK else Ui.PARCHMENT)
+	end
+	local function drawPlayer()
+		local at, heard = Audio.villageAt()
+		local list = Audio.playlist()
+		local current = if at then list[at] else nil
+		name.Text = if current then current.name else "-"
+		place.Text = if at then `{at} / {#list}` else ""
+		waits.Visible = at ~= nil and not heard
+		paint(shuffleButton, shuffleIcon, "shuffle", Audio.shuffling())
+		paint(repeatButton, repeatIcon, "repeat", Audio.repeating())
+		playIcon:ClearAllChildren()
+		Icons.transport(playIcon, if Audio.paused() then "play" else "pause", Ui.INK)
+	end
+	Audio.onPlaylist(drawPlayer)
+	drawPlayer()
+	local since = 0
+	RunService.Heartbeat:Connect(function(dt)
+		since += dt
+		if since < PLAYER_TICK or not window.isOpen() then
+			return
+		end
+		since = 0
+		local now, length = Audio.villageClock()
+		fill.Size = UDim2.fromScale(if length > 0 then math.clamp(now / length, 0, 1) else 0, 1)
+		elapsed.Text = clock(now)
+		total.Text = clock(length)
+	end)
 
 	Ui.text(body, {
 		AnchorPoint = Vector2.new(0, 1),
