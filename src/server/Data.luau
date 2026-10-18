@@ -89,6 +89,8 @@ type Callback = (player: Player, data: Data) -> ()
 -- number wipes the testers' progress, which is also the way out when a change to the config
 -- (a removed character, a reordered kunai) leaves old saves meaningless.
 local STORE = "Playtest1"
+-- The save store's name, for the stores that go with it (Services/Leaderboards).
+Data.STORE = STORE
 
 -- A test session in Studio keeps its saves in memory. With the place published Studio can
 -- reach the real DataStore, and a test run would then go for the tester's live save: it waits

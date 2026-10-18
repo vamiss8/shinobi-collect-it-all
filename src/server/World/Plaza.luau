@@ -32,6 +32,9 @@ local Plaza = {}
 -- The top stone of each legendary shinobi's pedestal, by the shinobi's id (Config/Legends):
 -- whoever stands the figures on show finds where here (Services/Legends). Filled by start().
 Plaza.stands = {} :: { [string]: Part }
+-- The sheet of each leaderboard, by its id (Logic/PlazaPlan `leaderboards`), for the names on
+-- it to be written on its face towards the lane (Services/Leaderboards). Filled by start().
+Plaza.leaderboards = {} :: { [string]: Part }
 
 local UP = Vector3.new(0, 1, 0)
 
@@ -958,6 +961,56 @@ local function noticeBoard(folder: Folder, base: Vector3)
 	end
 end
 
+-- A leaderboard: a sheet of paper on a board of planks between two posts, under a red beam
+-- with a gilt cap, facing the lane (+X). Hands back the sheet, whose face towards the lane the
+-- names are written on. Solid all over, like everything that stands on the plaza.
+local function leaderboard(folder: Folder, base: Vector3): Part
+	local plan = PlazaPlan.LEADERBOARD
+	local wide, tall, foot = plan.wide, plan.tall, plan.foot
+	local postHeight = foot + tall + 1.4
+	for _, side in { -1, 1 } do
+		Build.part(
+			folder,
+			"LeaderPost",
+			Vector3.new(0.9, postHeight, 0.9),
+			base + Vector3.new(0, postHeight / 2, side * (wide / 2 + 0.45)),
+			TIMBER,
+			Enum.Material.Wood
+		)
+	end
+	Build.part(
+		folder,
+		"LeaderBoard",
+		Vector3.new(0.5, tall, wide),
+		base + UP * (foot + tall / 2),
+		WOOD,
+		Enum.Material.WoodPlanks
+	)
+	local sheet = Build.part(
+		folder,
+		"LeaderSheet",
+		Vector3.new(0.12, tall - 0.9, wide - 0.9),
+		base + Vector3.new(0.32, foot + tall / 2, 0),
+		PAPER
+	)
+	sheet.CastShadow = false
+	Build.part(
+		folder,
+		"LeaderBeam",
+		Vector3.new(1.3, 1, wide + 3.2),
+		base + UP * (postHeight + 0.5),
+		LACQUER
+	)
+	Build.part(
+		folder,
+		"LeaderCap",
+		Vector3.new(0.6, 0.35, wide + 3.6),
+		base + UP * (postHeight + 1 + 0.175),
+		GOLD
+	)
+	return sheet
+end
+
 -- The training corner: three posts with a red band, a straw dummy and a target on a stand.
 local function trainingCorner(folder: Folder, base: Vector3, face: number)
 	local wood = Enum.Material.Wood
@@ -1142,6 +1195,11 @@ function Plaza.start()
 	trainingCorner(folder, Hub.at(near - 2, 0, 30), 1)
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
+
+	-- The leaderboards, where the plan says, facing the lane.
+	for id, spot in PlazaPlan.leaderboards do
+		Plaza.leaderboards[id] = leaderboard(folder, Hub.at(spot.along, 0, spot.side))
+	end
 
 	-- The pedestals of the legendary shinobi, each as tall as the plan says: the dearer, the
 	-- taller.

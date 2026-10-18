@@ -5,8 +5,10 @@
 -- client rewrites them for its own player, as it first sees them and whenever the server writes
 -- them anew; nothing is rewritten for a player who plays in English.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+local Net = require(ReplicatedStorage.Shared.Net)
 local Strings = require("./Strings")
 
 local WorldWords = {}
@@ -18,6 +20,10 @@ local written: { [Instance]: { [string]: string } } = setmetatable({}, { __mode 
 local function say(object: Instance, property: string)
 	local text = (object :: any)[property]
 	if typeof(text) ~= "string" or text == "" then
+		return
+	end
+	-- A name (the leaderboards' players) is written as it is.
+	if object:GetAttribute(Net.VERBATIM_ATTRIBUTE) then
 		return
 	end
 	local mine = written[object]

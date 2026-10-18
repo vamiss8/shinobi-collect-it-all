@@ -26,6 +26,7 @@ local specs: { [string]: Spec } = {
 	Format = require("../tests/Format.spec"),
 	Index = require("../tests/Index.spec"),
 	Kick = require("../tests/Kick.spec"),
+	Leaders = require("../tests/Leaders.spec"),
 	Market = require("../tests/Market.spec"),
 	Plaza = require("../tests/Plaza.spec"),
 	PlazaPlan = require("../tests/PlazaPlan.spec"),

@@ -123,6 +123,17 @@ PlazaPlan.pedestals = {
 	{ along = -44, side = 0, height = 6 },
 } :: { Pedestal }
 
+-- The leaderboards (Services/Leaderboards): two boards in the plaza's front quarters, between
+-- the lane's start and the notice board and training corner, facing the lane, so that whoever
+-- comes home from a throw walks towards them. Seen from there, Ryo stands on the left and
+-- Chakra on the right. A board is LEADERBOARD.wide across and its sheet LEADERBOARD.tall,
+-- standing LEADERBOARD.foot off the ground between two posts under a beam.
+PlazaPlan.LEADERBOARD = { wide = 15, tall = 12, foot = 2.2 }
+PlazaPlan.leaderboards = {
+	ryo = { along = -24, side = 36 },
+	chakra = { along = -24, side = -36 },
+} :: { [string]: Spot }
+
 -- Which way a shop looks out of its front, as a step along and a step across: at the fountain,
 -- unless it is said to look elsewhere.
 function PlazaPlan.facing(shop: Spot): Spot
