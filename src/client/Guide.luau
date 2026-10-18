@@ -11,10 +11,12 @@
 -- leave only the arrow under the feet, but long, all the way to the object"; "the arrows at
 -- Ryo, Chakra and so on are hard to see: zoom in, or make them plainer, or light the buttons
 -- up, or tell the player to press them, in as much detail as can be"):
---   a place in the world: a trail of blinking chevrons on the ground from the player's feet
---     all the way to it, along the way a character walks (PathfindingService, laid anew as the
---     player moves; a straight line if no way is found); and where the player is to stand, a
---     glowing ring on the ground, or the thing itself lit (a pad, the strip);
+--   a place in the world: a trail of blinking chevrons from the player's feet in a straight
+--     line all the way to it, through whatever stands between (it was laid along the way a
+--     character walks, looked for again as the player moved, and lagged: "do not work its way
+--     out each time; let it just be there, not going round things, no matter"); and where the
+--     player is to stand, a glowing ring on the ground, or the thing itself lit (a pad, the
+--     strip);
 --   a part of the interface: the rest of the screen dimmed round it, a ring about it and a
 --     large arrow at it.
 --
@@ -27,7 +29,6 @@
 -- game is busy (a throw, a window) the scroll steps aside and comes back after.
 
 local CollectionService = game:GetService("CollectionService")
-local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -75,8 +76,8 @@ local BOB = 10
 local RING_OUT = 9
 local DIM = 0.5
 -- The trail on the ground: how far apart the chevrons are, where the first is, an arm's length
--- and thickness, how far an arm leans back, how fast the light runs along them, the most there
--- are, and how often the way is looked for again (seconds) and after how far a move.
+-- and thickness, how far an arm leans back, how fast the light runs along them, and the most
+-- there are.
 local TRAIL_STEP = 3.2
 local TRAIL_FIRST = 2.6
 local TRAIL_ARM = 2.4
@@ -84,8 +85,6 @@ local TRAIL_THICK = 0.5
 local TRAIL_LEAN = math.rad(38)
 local TRAIL_RUN = 6
 local TRAIL_MOST = 90
-local TRAIL_AGAIN = 0.8
-local TRAIL_MOVED = 3
 -- The ring where a player is to stand: how wide for a place, and for a shop (its prompt
 -- reaches 8 studs from the counter, World/ShopHouse REACH).
 local ZONE_REACH: { [string]: number } = { board = 10, gift = 9 }
@@ -260,9 +259,10 @@ local function lonePart(parent: Instance, color: Color3): Part
 	return part
 end
 
--- A trail of blinking chevrons on the ground from the player's feet to `target`, along the way
--- a character walks there, the light running along it away from them (owner, 2026-10-19:
--- "a blinking arrow coming out of the character to the object"; then "long, all the way").
+-- A trail of blinking chevrons from the player's feet straight to `target`, laid anew every
+-- frame from where the player stands, the light running along it away from them (owner,
+-- 2026-10-19: "a blinking arrow coming out of the character to the object"; then "long, all the
+-- way"; then "do not work its way out each time, it lags").
 local function trailTo(target: BasePart)
 	local folder = Instance.new("Folder")
 	folder.Name = "GuideTrail"
@@ -283,38 +283,6 @@ local function trailTo(target: BasePart)
 		return made
 	end
 
-	local path = PathfindingService:CreatePath({
-		AgentRadius = 2,
-		AgentHeight = 5,
-		AgentCanJump = true,
-		WaypointSpacing = 4,
-	})
-	local way: { Vector3 } = {}
-	local from: Vector3? = nil
-	local lastLooked = -math.huge
-	local looking = false
-	local alive = true
-	local function look(start: Vector3, finish: Vector3)
-		looking = true
-		task.spawn(function()
-			local ok = pcall(function()
-				path:ComputeAsync(start, finish)
-			end)
-			if alive then
-				local found: { Vector3 } = {}
-				if ok and path.Status == Enum.PathStatus.Success then
-					for _, point in path:GetWaypoints() do
-						table.insert(found, point.Position)
-					end
-				else
-					found = { start, finish }
-				end
-				way = found
-			end
-			looking = false
-		end)
-	end
-
 	local beat = RunService.RenderStepped:Connect(function()
 		local character = Players.LocalPlayer.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
@@ -323,23 +291,12 @@ local function trailTo(target: BasePart)
 		if state.up and root and root:IsA("BasePart") then
 			local lift = root.Size.Y / 2 + (if humanoid then humanoid.HipHeight else 2)
 			local feet = root.Position - Vector3.new(0, lift, 0)
-			local finish = target.Position
-			-- The way is looked for again now and then, once the player has moved on.
-			local last = from
-			local moved = last == nil or (feet - last).Magnitude > TRAIL_MOVED
-			if not looking and moved and os.clock() - lastLooked > TRAIL_AGAIN then
-				from = feet
-				lastLooked = os.clock()
-				look(feet, finish)
-			end
-			-- The line to lay: from the feet along the way's points after its first.
-			local line: { Vector3 } = { feet }
-			for index = 2, #way do
-				table.insert(line, way[index])
-			end
-			if #line < 2 then
-				table.insert(line, Vector3.new(finish.X, feet.Y, finish.Z))
-			end
+			-- From the feet straight to the foot of the place.
+			local base = target.Position.Y - target.Size.Y / 2
+			local line: { Vector3 } = {
+				feet,
+				Vector3.new(target.Position.X, math.min(base, feet.Y + 2), target.Position.Z),
+			}
 			local walked, along = 0, TRAIL_FIRST
 			for index = 1, #line - 1 do
 				local a, b = line[index], line[index + 1]
@@ -372,7 +329,6 @@ local function trailTo(target: BasePart)
 	end)
 	table.insert(shown, {
 		cleanup = function()
-			alive = false
 			beat:Disconnect()
 			folder:Destroy()
 		end,
