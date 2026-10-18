@@ -285,6 +285,17 @@ local function vipSheet(page: Instance): TextButton
 	})
 end
 
+-- What opens the window on a page from outside (a VIP's seal pressed in the list of players),
+-- once the window is built.
+local opener: ((page: string) -> ())? = nil
+
+-- Opens the shop on one of its pages ("passes", "boosts", "ryo", "legends").
+function ShopPanel.open(page: string)
+	if opener then
+		opener(page)
+	end
+end
+
 function ShopPanel.start()
 	local window = Ui.window("Shop", SIZE)
 	window.title.Text = Strings.get("ShopTitle")
@@ -354,6 +365,12 @@ function ShopPanel.start()
 			tab.BackgroundColor3 = if name == page then Ui.GOLD else Ui.CARD
 			tab.TextColor3 = if name == page then Ui.INK else Ui.PARCHMENT
 		end
+	end
+	opener = function(page: string)
+		if pages[page] then
+			show(page)
+		end
+		window.open()
 	end
 	local left = (SIZE.X - 32 - #PAGES * TAB.X - (#PAGES - 1) * TAB_GAP) / 2
 	for index, page in PAGES do
