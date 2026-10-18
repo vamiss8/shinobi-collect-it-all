@@ -75,8 +75,10 @@ function Pouch.drink(save: Save, potionId: string, now: number, premium: boolean
 	-- An empty slot is taken out, so that the save keeps only what there is.
 	if count > 1 then
 		stock[potionId] = count - 1
+	elseif premium then
+		save.premium[potionId] = nil
 	else
-		stock[potionId] = nil
+		save.stock[potionId] = nil
 	end
 	Purchases.drink(save.potions, potionId, now, Pouch.minutes(potion, premium))
 	return true
