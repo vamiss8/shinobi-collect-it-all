@@ -15,7 +15,9 @@
 
 export type Effect = {
 	id: number,
-	volume: number?, -- 0.5 if not given; the player's Effects slider is over all of them
+	-- 0.5 if not given; the player's Effects slider is over all of them. Over 1 for a file that
+	-- is quiet in itself (up to 2).
+	volume: number?,
 	speed: number?, -- PlaybackSpeed, 1 if not given
 	overlap: boolean?, -- may play again while the last one still sounds (ticks, presses)
 	-- How much its pitch is varied at random each time it plays, as a share (0.08 is up to 8%
@@ -51,7 +53,8 @@ export type Cue =
 	| "rare" -- it stopped on a mutation or on the rank above the zone's
 	| "enemy" -- the look at the zone's enemy begins
 	| "home" -- home safe with the catch
-	| "caught" -- caught by the enemy
+	| "caught" -- caught by the enemy: a taiko sting
+	| "caughtHit" -- the blow under it
 	| "herbs" -- a throw brought Herbs
 	-- Training
 	| "ring" -- the Chakra Control ring hit
@@ -96,7 +99,9 @@ Sounds.effects = {
 	-- "very strange, it does not go on through the flight, it plays at the start and at the
 	-- end, and as if from left to right" (a pass-by swells, crosses and is gone, and the loop
 	-- began it again).
-	flight = { id = 9113324429, volume = 0.3 }, -- Basement Wind Tubular Airy Swirling 16
+	-- Then "on the contrary, very quiet, against the roulette's sounds; bring them into line":
+	-- the file is a soft wind, so it is played at 1.6.
+	flight = { id = 9113324429, volume = 1.6 }, -- Basement Wind Tubular Airy Swirling 16
 	-- The arrow flies in for about half a second before it hits (owner, 2026-10-17: "the
 	-- kunai's sound comes about half a second after it lands"), so it is started so early.
 	land = { id = 9113161857, volume = 0.6, lead = 0.5 }, -- Arrow In And Hit 19
@@ -114,7 +119,12 @@ Sounds.effects = {
 	rare = { id = 9116384485, volume = 0.75 }, -- Magic Burst 1
 	enemy = { id = 9046413546, volume = 0.7 }, -- APM taiko sting "Gekido"
 	home = { id = 9046419161, volume = 0.6 }, -- APM taiko sting "Kyoso"
-	caught = { id = 9113502635, volume = 0.65 }, -- Body Hits 10
+	-- CAUGHT IS A TAIKO STING OVER A LOW BLOW (owner, 2026-10-18: "there is no sound when the
+	-- boss catches you, and it happens often, so it needs a cool one; in headphones there is a
+	-- sharp loud click instead"): it was Body Hits 10, a short slap, which I take to be that
+	-- click. Zengeance is of the APM taiko album the enemy's and the home's stings are of.
+	caught = { id = 9046414649, volume = 0.7 }, -- APM taiko sting "Zengeance"
+	caughtHit = { id = 9113535217, volume = 0.6 }, -- Body Slam Low End Thump 2
 	herbs = { id = 9114515381, volume = 0.55 }, -- Foliage Crunchy Rustle 4
 
 	-- CHAKRA CONTROL IS SOFT (owner, the same day: "choose less biting ones, these begin to

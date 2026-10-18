@@ -688,6 +688,7 @@ function Audio.start()
 		if run.escaped then
 			Audio.play("home")
 		else
+			Audio.play("caughtHit")
 			Audio.play("caught")
 		end
 		chasedIn = nil

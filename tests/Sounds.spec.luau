@@ -19,7 +19,7 @@ return {
 			count += 1
 			T.ok(isId(effect.id), `{cue} has no asset id`)
 			local volume = effect.volume or 0.5
-			T.ok(volume > 0 and volume <= 1, `{cue} is too loud or silent`)
+			T.ok(volume > 0 and volume <= 2, `{cue} is too loud or silent`)
 			local speed = effect.speed or 1
 			T.ok(speed > 0.25 and speed < 4, `{cue} plays at a strange speed`)
 			local lead = effect.lead or 0
