@@ -50,6 +50,9 @@ local RENDER_STEP = "CinematicCamera"
 -- The roulette starts this fast and slows by this factor with every shinobi shown.
 local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
+-- How high the roulette's clack is at its first turn and at its last: it climbs as it slows.
+local ROLL_PITCH_FROM = 0.9
+local ROLL_PITCH_TO = 1.45
 -- The roulette stands this far past the kunai, studs: the kunai is then seen in front of the
 -- shinobi's feet. On the very spot, the shinobi stood over the kunai and hid it.
 local ROLL_BEYOND = 5
@@ -459,11 +462,13 @@ local function roulette(mine: Stage)
 	end
 
 	local elapsed, interval = 0, ROLL_FIRST_INTERVAL
+	Audio.play("spin")
 	while stage == mine and elapsed + interval < reveal.roll do
 		local decoy = pool[rng:NextInteger(1, #pool)]
 		show({ character = decoy, mutation = Catalog.NONE, level = 1 }, false)
 		beat(Hud.rankColor(decoy), math.min(interval, 0.3), 7.4)
-		Audio.play("tick")
+		local through = math.clamp(elapsed / math.max(reveal.roll, 0.1), 0, 1)
+		Audio.play("tick", ROLL_PITCH_FROM + (ROLL_PITCH_TO - ROLL_PITCH_FROM) * through)
 		task.wait(interval)
 		elapsed += interval
 		interval *= ROLL_SLOWDOWN
@@ -481,8 +486,10 @@ local function roulette(mine: Stage)
 		-- A mutation, or the rank above the zone's, is heard as more than a plain catch.
 		local rank = Catalog.rankOf(reveal.character)
 		if reveal.mutation ~= Catalog.NONE or (zone and rank and rank.id ~= zone.rank) then
+			Audio.play("rareHit")
 			Audio.play("rare")
 		else
+			Audio.play("stop")
 			Audio.play("reveal")
 		end
 		-- Nothing is written of who it is: they stand there, under their own tag.
