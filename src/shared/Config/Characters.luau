@@ -61,7 +61,8 @@ local Characters: { Character } = {
 	{ id = "kakuzu", name = "Kakuzu", rank = "S+", income = 3000 },
 	{ id = "kisame", name = "Kisame", rank = "S+", income = 3500 },
 	{ id = "orochimaru", name = "Orochimaru", rank = "S+", income = 4000 },
-	{ id = "kabuto", name = "Kabuto Yakushi", rank = "S+", income = 5000 },
+	-- Zetsu took Kabuto's place on 2026-10-18: Kabuto keeps the potion cart (Config/Keepers).
+	{ id = "zetsu", name = "Zetsu", rank = "S+", income = 5000 },
 
 	-- SS: Hidden Rain
 	{ id = "konan", name = "Konan", rank = "SS", income = 8000 },

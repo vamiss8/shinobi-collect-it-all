@@ -18,7 +18,7 @@ local Keepers: { Keeper } = {
 	{ id = "duy", name = "Might Duy", height = 4.8, color = "#2E7D32" },
 	{ id = "turtle", name = "Turtle", height = 1.2, color = "#6D8B4A" },
 	-- Kabuto at his potion stall (World/PotionStall). His model is a keeper's of its own,
-	-- Kabuto_Shop.glb (a flask in his hand), not the shinobi Kabuto Yakushi's "kabuto".
+	-- Kabuto_Shop.glb (a flask in his hand). The shinobi Kabuto left the roster for Zetsu.
 	{ id = "kabuto_shop", name = "Kabuto Yakushi", height = 4.8, color = "#5E35B1" },
 }
 
