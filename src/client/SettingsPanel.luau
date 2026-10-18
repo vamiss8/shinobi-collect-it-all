@@ -435,21 +435,27 @@ function SettingsPanel.start()
 	-- 2026-10-18: "the FAQ and the changelog on the notice board and also in the settings").
 	-- It is not a setting, and it matters (owner, 2026-10-18: "the buttons to the notice board
 	-- are very plain, though important; set them apart a little, these are not ordinary
-	-- settings"; then "make it a scroll, and take the Japanese mark off"): a scroll between
-	-- its rollers, with no seal, its buttons red lacquer. The scroll stands in from both sides
-	-- of the body by a roller's half, and the buttons are narrower than the other rows' for it.
+	-- settings"; then "make it a scroll, and take the Japanese mark off"; then "much room is
+	-- left between Help and the buttons, make them larger"): a scroll between its rollers,
+	-- with no seal, the word Help at its left and three large buttons of red lacquer filling
+	-- the rest. It stands in from the body's left by a roller's half and ends a roller's half
+	-- short of its right.
 	local helpTop = 5 * (ROW + ROW_GAP) + PLAYER.Y + ROW_GAP
 	local helpLeft = 12
-	local helpButton, helpStep = 144, 152
-	local helpWide = CONTROL - helpLeft + 2 * helpStep + helpButton + 18
+	local helpWide = 704
+	local helpLabel = 112
+	local helpFirst = 24 + helpLabel + 6
+	local helpGap = 10
+	local helpButton = math.floor((helpWide - 18 - helpFirst - 2 * helpGap) / 3)
+	local helpTall = ROW - 8
 	local scroll = Ui.parchment(body, {
 		Position = UDim2.fromOffset(helpLeft, helpTop + 4),
-		Size = UDim2.fromOffset(helpWide, ROW - 8),
+		Size = UDim2.fromOffset(helpWide, helpTall),
 	}, 0)
 	scroll.seal.Visible = false
 	Ui.text(scroll.page, {
 		Position = UDim2.fromOffset(24, 0),
-		Size = UDim2.new(0, CONTROL - helpLeft - 34, 1, 0),
+		Size = UDim2.new(0, helpLabel, 1, 0),
 		TextSize = 28,
 		TextColor3 = Ui.INK,
 		Text = Strings.get("SettingsHelp"),
@@ -461,14 +467,11 @@ function SettingsPanel.start()
 	}
 	for index, help in helps do
 		local button = Ui.button(scroll.page, {
-			Position = UDim2.fromOffset(
-				CONTROL - helpLeft + (index - 1) * helpStep,
-				(ROW - 8 - (STEP - 6)) / 2
-			),
-			Size = UDim2.fromOffset(helpButton, STEP - 6),
+			Position = UDim2.fromOffset(helpFirst + (index - 1) * (helpButton + helpGap), 6),
+			Size = UDim2.fromOffset(helpButton, helpTall - 12),
 			BackgroundColor3 = Ui.SEAL,
 			TextColor3 = Ui.PARCHMENT,
-			TextSize = 22,
+			TextSize = 24,
 			Text = help.words,
 		})
 		button.Activated:Connect(function()

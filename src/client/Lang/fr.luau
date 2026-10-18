@@ -310,7 +310,7 @@ return {
 		TipDeveloper = "DEV : un développeur de sad mansion studios.",
 		TipDesigner = "DESIGNER : designer de sad mansion studios.",
 		InfoTitle = "Panneau d'affichage",
-		InfoFaq = "Questions",
+		InfoFaq = "Comment jouer",
 		InfoNews = "Nouveautés",
 		InfoChances = "Chances",
 		SettingsHelp = "Aide",

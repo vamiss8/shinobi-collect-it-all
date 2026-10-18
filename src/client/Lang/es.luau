@@ -310,7 +310,7 @@ return {
 		TipDeveloper = "DEV: un desarrollador de sad mansion studios.",
 		TipDesigner = "DESIGNER: diseña para sad mansion studios.",
 		InfoTitle = "Tablón de anuncios",
-		InfoFaq = "Preguntas",
+		InfoFaq = "Cómo jugar",
 		InfoNews = "Novedades",
 		InfoChances = "Probabilidades",
 		SettingsHelp = "Ayuda",
