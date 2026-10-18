@@ -87,12 +87,17 @@ local TRAIL_THICK = 0.5
 local TRAIL_LEAN = math.rad(38)
 local TRAIL_RUN = 6
 local TRAIL_MOST = 90
--- The ring where a player is to stand: how wide for a place, and for a shop, how far out in
--- front of its counter its middle is (its prompt reaches 8 studs from the counter,
--- World/ShopHouse REACH, so all of the ring is within reach of it).
+-- The ring where a player is to stand: how wide for a place, and for a shop (its prompt
+-- reaches 8 studs from the counter, World/ShopHouse REACH: the ring's near half is within
+-- it). From a counter: where its porch or yard is felt for from, how far out its open side is
+-- looked for (to the sky past its roof), and how far its porch or yard is followed at most.
 local ZONE_REACH: { [string]: number } = { board = 10, gift = 9 }
-local SHOP_REACH = 4.5
-local SHOP_OUT = 3.5
+local SHOP_REACH = 3.5
+local SHOP_OUT = 1
+local SHOP_SKY = { 4, 7 }
+local SHOP_FARTHEST = 14
+-- The glowing dashes round a ring.
+local RING_DASHES = 28
 
 type Shown = { cleanup: () -> () }
 
@@ -246,27 +251,51 @@ local function plazaGround(fallback: number): number
 	return fallback
 end
 
--- Where to stand at a shop: a little out in front of its counter, on the side of it that is
--- open to the sky (a ray from high above meets the shop's own roof on the other side). A
--- counter is built turned the way its shop looks out (World/ShopHouse), so its front is one of
--- the two ends of its look.
-local function shopFront(counter: BasePart): Vector3
+-- Where to stand at a shop: on the plaza in front of it, clear of all it stands on (laid just
+-- out from the counter, the ring was half under Tenten's raised stone porch: owner,
+-- 2026-10-19, a screenshot). Its front is the end of the counter's look that is open to the
+-- sky farther out (a counter is built turned the way its shop looks out, World/ShopHouse;
+-- behind it are the shop's roof, a yard or the step its keeper stands on). Along it, the ground
+-- is felt for just over the plaza until it is no longer the shop's (porch, floor, yard), and
+-- the ring lies its own breadth beyond.
+local function shopFront(counter: BasePart, reach: number): Vector3
 	local market = Workspace:FindFirstChild(Net.MARKET_FOLDER)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	local character = Players.LocalPlayer.Character
-	params.FilterDescendantsInstances = if character then { character } else {}
-	local look = counter.CFrame.LookVector * Vector3.new(1, 0, 1)
-	look = if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, 1)
-	for _, way in { look, -look } do
-		local at = counter.Position + way * SHOP_OUT
-		local hit = Workspace:Raycast(at + Vector3.new(0, 60, 0), Vector3.new(0, -120, 0), params)
-		local underShop = hit ~= nil and market ~= nil and hit.Instance:IsDescendantOf(market)
-		if not underShop then
-			return at
+	local people: { Instance } = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(people, player.Character)
 		end
 	end
-	return counter.Position + look * SHOP_OUT
+	params.FilterDescendantsInstances = people
+	local function shops(from: Vector3, down: number): boolean
+		local hit = Workspace:Raycast(from, Vector3.new(0, -down, 0), params)
+		return hit ~= nil and market ~= nil and hit.Instance:IsDescendantOf(market)
+	end
+	local look = counter.CFrame.LookVector * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, 1)
+	local function open(way: Vector3): number
+		local count = 0
+		for _, out in SHOP_SKY do
+			if not shops(counter.Position + way * out + Vector3.new(0, 60, 0), 120) then
+				count += 1
+			end
+		end
+		return count
+	end
+	local way = if open(-look) > open(look) then -look else look
+	local ground = plazaGround(counter.Position.Y)
+	local out = SHOP_OUT
+	while out < SHOP_FARTHEST do
+		local at = counter.Position + way * out
+		if not shops(Vector3.new(at.X, ground + 1.2, at.Z), 3) then
+			break
+		end
+		out += 0.5
+	end
+	local at = counter.Position + way * (out + reach + 0.3)
+	return Vector3.new(at.X, ground, at.Z)
 end
 
 -- A part of this client alone that nothing touches, for the trail and the rings.
@@ -389,19 +418,32 @@ local function ringAt(center: Vector3, reach: number)
 	local folder = Instance.new("Folder")
 	folder.Name = "GuideRing"
 	folder.Parent = Workspace
+	-- A faint gold floor, and round it a rim of short glowing dashes that the light runs
+	-- round: a ring to step into, not a yellow disc.
 	local disc = lonePart(folder, Ui.GOLD)
 	disc.Shape = Enum.PartType.Cylinder
-	disc.Size = Vector3.new(0.1, reach * 2, reach * 2)
-	disc.CFrame = CFrame.new(center.X, ground + 0.08, center.Z) * CFrame.Angles(0, 0, math.rad(90))
-	local rim = lonePart(folder, Ui.SEAL)
-	rim.Shape = Enum.PartType.Cylinder
-	rim.Size = Vector3.new(0.08, reach * 2 + 0.8, reach * 2 + 0.8)
-	rim.CFrame = CFrame.new(center.X, ground + 0.06, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	disc.Size = Vector3.new(0.06, reach * 2, reach * 2)
+	disc.CFrame = CFrame.new(center.X, ground + 0.06, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	local dashes: { Part } = {}
+	local around = 2 * math.pi * reach
+	for index = 0, RING_DASHES - 1 do
+		local angle = index / RING_DASHES * 2 * math.pi
+		local at = Vector3.new(center.X, ground + 0.1, center.Z)
+			+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * reach
+		local along = Vector3.new(-math.sin(angle), 0, math.cos(angle))
+		local dash = lonePart(folder, if index % 2 == 0 then Ui.SEAL else Ui.GOLD)
+		dash.Size = Vector3.new(0.45, 0.1, around / RING_DASHES * 0.62)
+		dash.CFrame = CFrame.lookAt(at, at + along)
+		table.insert(dashes, dash)
+	end
 	goal = { at = Vector3.new(center.X, ground, center.Z), reach = reach }
 	local beat = RunService.RenderStepped:Connect(function()
 		local breath = (math.sin(os.clock() * 4) + 1) / 2
-		disc.Transparency = if state.up then 0.78 - 0.2 * breath else 1
-		rim.Transparency = if state.up then 0.35 - 0.25 * breath else 1
+		disc.Transparency = if state.up then 0.88 - 0.06 * breath else 1
+		for index, dash in dashes do
+			local wave = (math.sin(os.clock() * 5 - index * 0.5) + 1) / 2
+			dash.Transparency = if state.up then 0.05 + 0.55 * (1 - wave) else 1
+		end
 	end)
 	table.insert(shown, {
 		cleanup = function()
@@ -441,7 +483,7 @@ local function showPlace(name: string, part: BasePart)
 	elseif ZONE_REACH[name] then
 		ringAt(part.Position, ZONE_REACH[name])
 	else
-		ringAt(shopFront(part), SHOP_REACH)
+		ringAt(shopFront(part, SHOP_REACH), SHOP_REACH)
 	end
 end
 
@@ -830,6 +872,16 @@ end
 -- Asks for a tip from outside (client DailyPanel).
 function Guide.tip(id: string)
 	want(id)
+end
+
+-- Whether a tip has been said to this player, on this visit or before (client InfoPanel's
+-- list of Iruka's tips).
+function Guide.heard(id: string): boolean
+	if state.said[id] then
+		return true
+	end
+	local snapshot = Store.get()
+	return snapshot ~= nil and snapshot.tips[id] == true
 end
 
 -- Whether the base tutorial is running, first time or replay.
