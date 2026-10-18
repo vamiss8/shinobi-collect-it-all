@@ -20,7 +20,7 @@ Art.icons = {
 	focus = 74944362570117, -- slot 2, Chakra Control; assets/icons/focus.png
 	rebirth = 78996990936807, -- the Rebirth tile; assets/icons/rebirth.png
 	herb = 73875003368571, -- Herbs, the potions' currency (Icons.herb); assets/icons/herb.png
-	award = 0, -- the achievements' tile (Icons.award); assets/icons/award.png
+	award = 122778426004708, -- the achievements' tile (Icons.award); assets/icons/award.png
 }
 
 -- The emblems of the ranks players hold for their rebirths, by how many rebirths the rank
