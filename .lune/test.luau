@@ -7,6 +7,7 @@ type Spec = { [string]: () -> () }
 
 local specs: { [string]: Spec } = {
 	Achievements = require("../tests/Achievements.spec"),
+	Guide = require("../tests/Guide.spec"),
 	Animations = require("../tests/Animations.spec"),
 	Aura = require("../tests/Aura.spec"),
 	Boosts = require("../tests/Boosts.spec"),

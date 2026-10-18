@@ -37,6 +37,8 @@ return {
 	Upgrade = event(Net.Events.Upgrade),
 	Upgraded = event(Net.Events.Upgraded),
 	GroupGift = event(Net.Events.GroupGift),
+	Guide = event(Net.Events.Guide),
+	Daily = event(Net.Events.Daily),
 	Achievement = event(Net.Events.Achievement),
 	ClaimAchievement = event(Net.Events.ClaimAchievement),
 	Placed = event(Net.Events.Placed),

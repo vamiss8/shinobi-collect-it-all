@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local DailyLogic = require(ReplicatedStorage.Shared.Logic.Daily)
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
@@ -93,6 +94,14 @@ function State.push(player: Player)
 		achievements = data.achievements,
 		claimed = data.claimed,
 		progress = Progress.stats(data),
+		guide = data.guide,
+		tips = data.tips,
+		daily = {
+			ready = DailyLogic.ready(data.daily, os.time()),
+			day = DailyLogic.due(data.daily, os.time()),
+			streak = data.daily.streak,
+			wait = DailyLogic.wait(data.daily, os.time()),
+		},
 	}
 	Remotes.State:FireClient(player, snapshot)
 end

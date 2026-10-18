@@ -57,6 +57,11 @@ export type Data = {
 	-- Numbers no other field keeps, which achievements are measured by, by name
 	-- (Logic/Achievements.COUNTED): catches brought home, merges, potions drunk and the like.
 	counts: { [string]: number },
+	-- The base tutorial's steps done (Config/Guide) and the tips Iruka has said, by id.
+	guide: number,
+	tips: { [string]: boolean },
+	-- The daily rewards (Logic/Daily): the day of the last claim and the days in a row.
+	daily: { last: number, streak: number },
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
@@ -91,6 +96,9 @@ local TEMPLATE: Data = {
 	achievements = {},
 	claimed = {},
 	counts = {},
+	guide = 0,
+	tips = {},
+	daily = { last = 0, streak = 0 },
 	receipts = {},
 	settings = Settings.defaults(),
 }

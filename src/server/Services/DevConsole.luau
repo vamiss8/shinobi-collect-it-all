@@ -393,6 +393,9 @@ function commands.reset(player, data)
 	data.achievements = {}
 	data.claimed = {}
 	data.counts = {}
+	data.guide = 0
+	data.tips = {}
+	data.daily = { last = 0, streak = 0 }
 	Session.of(player).throwChakra = 0
 	return "Save reset"
 end
