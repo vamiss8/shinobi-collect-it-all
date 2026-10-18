@@ -33,7 +33,7 @@ local Plaza = {}
 -- whoever stands the figures on show finds where here (Services/Legends). Filled by start().
 Plaza.stands = {} :: { [string]: Part }
 -- The sheet of each leaderboard, by its id (Logic/PlazaPlan `leaderboards`), for the names on
--- it to be written on its face towards the lane (Services/Leaderboards). Filled by start().
+-- it to be written on its face towards the plaza (Services/Leaderboards). Filled by start().
 Plaza.leaderboards = {} :: { [string]: Part }
 
 local UP = Vector3.new(0, 1, 0)
@@ -962,8 +962,8 @@ local function noticeBoard(folder: Folder, base: Vector3)
 end
 
 -- A leaderboard: a sheet of paper on a board of planks between two posts, under a red beam
--- with a gilt cap, facing the lane (+X). Hands back the sheet, whose face towards the lane the
--- names are written on. Solid all over, like everything that stands on the plaza.
+-- with a gilt cap, facing the plaza (-X), its back to the lane. Hands back the sheet, whose face
+-- towards the plaza the names are written on. Solid all over, like everything on the plaza.
 local function leaderboard(folder: Folder, base: Vector3): Part
 	local plan = PlazaPlan.LEADERBOARD
 	local wide, tall, foot = plan.wide, plan.tall, plan.foot
@@ -990,7 +990,7 @@ local function leaderboard(folder: Folder, base: Vector3): Part
 		folder,
 		"LeaderSheet",
 		Vector3.new(0.12, tall - 0.9, wide - 0.9),
-		base + Vector3.new(0.32, foot + tall / 2, 0),
+		base + Vector3.new(-0.32, foot + tall / 2, 0),
 		PAPER
 	)
 	sheet.CastShadow = false
@@ -1196,7 +1196,7 @@ function Plaza.start()
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
 
-	-- The leaderboards, where the plan says, facing the lane.
+	-- The leaderboards, where the plan says, facing the plaza.
 	for id, spot in PlazaPlan.leaderboards do
 		Plaza.leaderboards[id] = leaderboard(folder, Hub.at(spot.along, 0, spot.side))
 	end
