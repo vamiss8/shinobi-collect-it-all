@@ -48,11 +48,18 @@ local HEARD = 110
 -- The camera is 10 to 15 studs from the player, so their own steps are heard in full.
 local NEAR = 16
 local FAR = 100
--- A jump is leaving the ground at least this fast upwards, studs a second; a landing is heard
--- after a fall at least this fast, and at its loudest from the second on.
+-- A jump is leaving the ground at least this fast upwards, studs a second. A jump within
+-- JUMP_REST seconds of the last is heard at JUMP_AGAIN of the volume, so that jumping over and
+-- over is a soft patter and not a sound repeated at full strength.
 local JUMP_SPEED = 12
+local JUMP_REST = 1.5
+local JUMP_AGAIN = 0.35
+-- A landing is heard after a fall at least LANDING_SPEED studs a second. Up to PLAIN_FALL (a
+-- plain jump on flat ground comes down at about 53) it is an ordinary step; faster, it grows
+-- to Config/Sounds `landing` at HARD_LANDING.
 local LANDING_SPEED = 18
-local HARD_LANDING = 60
+local PLAIN_FALL = 58
+local HARD_LANDING = 110
 -- How far under the feet the ground may lie for a character to stand on it, studs: a step
 -- down a stair is not a fall.
 local REACH = 1.4
@@ -67,6 +74,7 @@ type Walker = {
 	falling: number, -- the fastest it has gone down since it left the ground, studs a second
 	sounds: { [number]: Sound }, -- by asset id, made the first time each is stepped
 	last: { [string]: number }, -- the variant each surface stepped last
+	jumpedAt: number, -- os.clock() of the last jump heard
 }
 
 local walkers: { [Model]: Walker } = {}
@@ -169,8 +177,12 @@ local function update(walker: Walker, dt: number, eye: Vector3?)
 	local velocity = root.AssemblyLinearVelocity
 	local hit = ground(walker)
 	if not hit then
-		if walker.grounded and velocity.Y > JUMP_SPEED and STEPS.jump.id > 0 then
-			step(walker, "jump", { STEPS.jump.id }, STEPS.jump.volume, 1)
+		if walker.grounded and velocity.Y > JUMP_SPEED then
+			local now = os.clock()
+			local again = now - walker.jumpedAt < JUMP_REST
+			walker.jumpedAt = now
+			local volume = STEPS.jump.volume * (if again then JUMP_AGAIN else 1)
+			step(walker, "jump", STEPS.jump.ids, volume, 1)
 		end
 		walker.grounded = false
 		walker.falling = math.min(walker.falling, velocity.Y)
@@ -181,18 +193,19 @@ local function update(walker: Walker, dt: number, eye: Vector3?)
 	local key = STEPS.materials[hit.Material.Name] or STEPS.fallback
 	local surface = STEPS.surfaces[key]
 	if not walker.grounded then
-		-- Down again: a landing is the ground's own step, louder and lower, by how hard it was.
+		-- Down again: a landing is the ground's own step, louder and lower by how hard it was.
 		walker.grounded = true
 		local fall = -walker.falling
 		walker.falling = 0
 		if surface and fall >= LANDING_SPEED then
-			local share = math.clamp(fall / HARD_LANDING, 0.55, 1)
+			local hard = math.clamp((fall - PLAIN_FALL) / (HARD_LANDING - PLAIN_FALL), 0, 1)
+			local plain = math.clamp(fall / PLAIN_FALL, 0.6, 1)
 			step(
 				walker,
 				key,
 				surface.ids,
-				surface.volume * STEPS.landing.volume * share,
-				(surface.speed or 1) * STEPS.landing.speed
+				surface.volume * plain * (1 + (STEPS.landing.volume - 1) * hard),
+				(surface.speed or 1) * (1 + (STEPS.landing.speed - 1) * hard)
 			)
 		end
 		return
@@ -242,6 +255,7 @@ local function track(character: Model)
 			falling = 0,
 			sounds = {},
 			last = {},
+			jumpedAt = -math.huge,
 		}
 	end)
 end
@@ -280,8 +294,10 @@ function Footsteps.start()
 				end
 			end
 		end
-		if STEPS.jump.id > 0 then
-			table.insert(list, `rbxassetid://{STEPS.jump.id}`)
+		for _, id in STEPS.jump.ids do
+			if id > 0 then
+				table.insert(list, `rbxassetid://{id}`)
+			end
 		end
 		pcall(function()
 			ContentProvider:PreloadAsync(list)

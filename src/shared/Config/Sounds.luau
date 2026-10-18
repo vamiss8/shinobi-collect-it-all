@@ -144,8 +144,12 @@ export type Surface = {
 }
 
 Sounds.steps = {
-	jump = { id = 9114890978, volume = 0.45 }, -- Jump Swish 1
-	-- A landing is a step of the ground landed on, this many times as loud and as high.
+	-- A jump is a soft flap of clothes, one of four (owner, 2026-10-18: "change the jump, spammed
+	-- it is too annoying, and does not fit"; it was a loud swish, Jump Swish 1, and every plain
+	-- jump also landed as a heavy thud). Cloth Flap 4, 7, 8, 13.
+	jump = { ids = { 9113818515, 9113818671, 9113818686, 9113819701 }, volume = 0.3 },
+	-- A landing is a step of the ground landed on: a plain jump's is an ordinary step, and only
+	-- a real fall grows louder and lower, up to this many times.
 	landing = { volume = 1.5, speed = 0.82 },
 	-- The surface of any material not named below.
 	fallback = "stone",

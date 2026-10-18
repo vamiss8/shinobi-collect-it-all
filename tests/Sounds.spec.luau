@@ -45,7 +45,10 @@ return {
 			end
 			T.ok(surface.volume > 0 and surface.volume <= 1, `{name} steps are too loud or silent`)
 		end
-		T.ok(isId(steps.jump.id), "the jump has no asset id")
+		T.ok(#steps.jump.ids >= 2, "the jump has fewer than two sounds to take turns")
+		for _, id in steps.jump.ids do
+			T.ok(isId(id), "the jump has a sound that is no asset id")
+		end
 		T.ok(steps.landing.volume >= 1 and steps.landing.speed > 0.5, "a landing is no landing")
 	end,
 
