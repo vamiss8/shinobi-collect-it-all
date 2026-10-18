@@ -75,6 +75,8 @@ local GROUP_ARROW = 1.35
 local BOB = 10
 local RING_OUT = 9
 local DIM = 0.5
+-- How far the dark reaches out from the hole: past every edge of any screen.
+local DIM_REACH = 5000
 -- The trail on the ground: how far apart the chevrons are, where the first is, an arm's length
 -- and thickness, how far an arm leans back, how fast the light runs along them, and the most
 -- there are.
@@ -85,10 +87,12 @@ local TRAIL_THICK = 0.5
 local TRAIL_LEAN = math.rad(38)
 local TRAIL_RUN = 6
 local TRAIL_MOST = 90
--- The ring where a player is to stand: how wide for a place, and for a shop (its prompt
--- reaches 8 studs from the counter, World/ShopHouse REACH).
+-- The ring where a player is to stand: how wide for a place, and for a shop, how far out in
+-- front of its counter its middle is (its prompt reaches 8 studs from the counter,
+-- World/ShopHouse REACH, so all of the ring is within reach of it).
 local ZONE_REACH: { [string]: number } = { board = 10, gift = 9 }
-local SHOP_REACH = 7.5
+local SHOP_REACH = 4.5
+local SHOP_OUT = 3.5
 
 type Shown = { cleanup: () -> () }
 
@@ -229,19 +233,40 @@ local function placeOf(name: string): BasePart?
 	return nil
 end
 
--- The ground under a point, found by a ray straight down past `ignore`.
-local function groundUnder(at: Vector3, ignore: { Instance }): number
+-- The plaza's ground, which every place the guide sends a player to stands on: read off the
+-- throwing strip, a deck lying on it. A ray down to find the ground found the shops' counters
+-- and what lies on them instead, and the ring hung in the air over a counter (owner,
+-- 2026-10-19: "the ring stands not on the ground but on the shop's table, floating"; "the
+-- same with the other shops").
+local function plazaGround(fallback: number): number
+	local strip = Workspace:FindFirstChild("ThrowStrip", true)
+	if strip and strip:IsA("BasePart") then
+		return strip.Position.Y - strip.Size.Y / 2
+	end
+	return fallback
+end
+
+-- Where to stand at a shop: a little out in front of its counter, on the side of it that is
+-- open to the sky (a ray from high above meets the shop's own roof on the other side). A
+-- counter is built turned the way its shop looks out (World/ShopHouse), so its front is one of
+-- the two ends of its look.
+local function shopFront(counter: BasePart): Vector3
+	local market = Workspace:FindFirstChild(Net.MARKET_FOLDER)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local character = Players.LocalPlayer.Character
-	local skipped = table.clone(ignore)
-	if character then
-		table.insert(skipped, character)
+	params.FilterDescendantsInstances = if character then { character } else {}
+	local look = counter.CFrame.LookVector * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, 1)
+	for _, way in { look, -look } do
+		local at = counter.Position + way * SHOP_OUT
+		local hit = Workspace:Raycast(at + Vector3.new(0, 60, 0), Vector3.new(0, -120, 0), params)
+		local underShop = hit ~= nil and market ~= nil and hit.Instance:IsDescendantOf(market)
+		if not underShop then
+			return at
+		end
 	end
-	params.FilterDescendantsInstances = skipped
-	params.RespectCanCollide = true
-	local hit = Workspace:Raycast(at + Vector3.new(0, 3, 0), Vector3.new(0, -60, 0), params)
-	return if hit then hit.Position.Y else at.Y
+	return counter.Position + look * SHOP_OUT
 end
 
 -- A part of this client alone that nothing touches, for the trail and the rings.
@@ -337,8 +362,8 @@ end
 
 -- A glowing ring on the ground where the player is to stand, breathing; the step waits until
 -- they are in it.
-local function ringAt(center: Vector3, reach: number, ignore: { Instance })
-	local ground = groundUnder(center, ignore)
+local function ringAt(center: Vector3, reach: number)
+	local ground = plazaGround(center.Y)
 	local folder = Instance.new("Folder")
 	folder.Name = "GuideRing"
 	folder.Parent = Workspace
@@ -392,16 +417,16 @@ local function showPlace(name: string, part: BasePart)
 	if name == "pad" or name == "strip" then
 		light(part)
 	elseif ZONE_REACH[name] then
-		ringAt(part.Position, ZONE_REACH[name], { part })
+		ringAt(part.Position, ZONE_REACH[name])
 	else
-		ringAt(part.Position, SHOP_REACH, { part })
+		ringAt(shopFront(part), SHOP_REACH)
 	end
 end
 
 -- The interface's parts being shown: the screen is dimmed round all of them together, and each
 -- has a ring and an arrow.
 local spotlit: { GuiObject } = {}
-local dimFrames: { Frame } = {}
+local dimHole: Frame
 
 -- Everything of the interface a step names is shown together: one ring round all of it and one
 -- arrow, larger for more than one (owner, 2026-10-19, a screenshot of the two training slots
@@ -496,8 +521,12 @@ local function showGui(targets: { GuiObject }, dim: boolean)
 	})
 end
 
--- The dimmed screen round what is spotlit: four dark sheets about the one hole that takes in
--- every part shown. They catch no press.
+-- The dimmed screen round what is spotlit: ONE frame the size of the hole, its stroke as thick
+-- as the screen is wide, drawn outside it, darkens all round. It was four dark sheets about
+-- the hole, and where two met they could fall a pixel apart once the pointer swelled a button
+-- and its edges were no longer whole pixels: a light line across the screen (owner,
+-- 2026-10-19: "when the buttons are shown and one is to press them, a horizontal white bar
+-- appears as the pointer goes over them"). It catches no press.
 local function dimRound()
 	local left, top, right, bottom = math.huge, math.huge, -math.huge, -math.huge
 	local scale = Ui.scale()
@@ -512,24 +541,12 @@ local function dimRound()
 		end
 	end
 	local any = state.up and left < right
-	for _, sheet in dimFrames do
-		sheet.Visible = any
-	end
+	dimHole.Visible = any
 	if not any then
 		return
 	end
-	local room = Ui.room()
-	local sheets = {
-		{ 0, 0, room.X, top },
-		{ 0, bottom, room.X, room.Y - bottom },
-		{ 0, top, left, bottom - top },
-		{ right, top, room.X - right, bottom - top },
-	}
-	for index, sheet in sheets do
-		local frame = dimFrames[index]
-		frame.Position = UDim2.fromOffset(sheet[1], sheet[2])
-		frame.Size = UDim2.fromOffset(math.max(sheet[3], 0), math.max(sheet[4], 0))
-	end
+	dimHole.Position = UDim2.fromOffset(math.floor(left), math.floor(top))
+	dimHole.Size = UDim2.fromOffset(math.ceil(right - left), math.ceil(bottom - top))
 end
 
 -- Shows what a step or a tip names: the interface (dimmed round, in the base tutorial), else
@@ -864,16 +881,23 @@ function Guide.start()
 	local layer = Ui.screen("Guide", 22)
 	arrowLayer = Ui.screen("GuideArrows", 23)
 	dimLayer = Ui.screen("GuideDim", 21)
-	for _ = 1, 4 do
-		local sheet: Frame = Ui.make("Frame", {
-			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = DIM,
-			BorderSizePixel = 0,
-			Active = false,
-			Visible = false,
-		}, dimLayer)
-		table.insert(dimFrames, sheet)
-	end
+	dimHole = Ui.make("Frame", {
+		BackgroundTransparency = 1,
+		Active = false,
+		Visible = false,
+	}, dimLayer)
+	Ui.corner(dimHole, 16)
+	local shade: UIStroke = Ui.make("UIStroke", {
+		Color = Color3.new(0, 0, 0),
+		Transparency = DIM,
+		Thickness = DIM_REACH,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	}, dimHole)
+	-- Drawn outside the hole's edge, not across it (an older engine has no such property, and
+	-- draws it outside anyway).
+	pcall(function()
+		(shade :: any).BorderStrokePosition = (Enum :: any).BorderStrokePosition.Outer
+	end)
 	RunService.RenderStepped:Connect(dimRound)
 
 	paper = Ui.parchment(layer, {
