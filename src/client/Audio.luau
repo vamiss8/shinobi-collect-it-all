@@ -138,19 +138,30 @@ end
 local SUSTAIN_FADE = 0.2
 local SUSTAIN_LIFE = 30
 
--- Plays a cue looped until the function it hands back is called, which fades it away: the
--- kunai's whistle in flight.
-function Audio.sustain(cue: string): () -> ()
+-- How near a sustained sound given a place is heard in full, and how far it carries, studs.
+local SUSTAIN_NEAR = 40
+local SUSTAIN_FAR = 300
+
+-- Plays a cue until the function it hands back is called, which fades it away: the kunai's
+-- whistle in flight. Given a part, it sounds from that part (the kunai, which the camera
+-- follows, so it stays in front and in the middle, whatever the file's own left and right);
+-- it is not looped, the sound being meant to outlast what it is for.
+function Audio.sustain(cue: string, at: BasePart?): () -> ()
 	local base = effectSound(cue)
 	if not base then
 		return function() end
 	end
 	local effect = EFFECTS[cue]
 	local sound = base:Clone()
-	sound.Looped = true
+	sound.Looped = false
 	sound.Volume = 0
 	sound.PlaybackSpeed = effect.speed or 1
-	sound.Parent = SoundService
+	if at then
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = SUSTAIN_NEAR
+		sound.RollOffMaxDistance = SUSTAIN_FAR
+	end
+	sound.Parent = at or SoundService
 	sound:Play()
 	TweenService:Create(sound, TweenInfo.new(SUSTAIN_FADE), { Volume = effect.volume or 0.5 })
 		:Play()

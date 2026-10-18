@@ -587,7 +587,7 @@ local function fly(flight: Net.Flight)
 		myKunai = kunai
 		Audio.play("throw")
 		-- A faint whistle while it flies, gone as the landing's arrow comes in.
-		whistle = Audio.sustain("flight")
+		whistle = Audio.sustain("flight", kunai)
 		-- The landing's sound has its hit some way in: started that much before the kunai
 		-- comes down, the hit falls on the landing.
 		task.delay(math.max(flight.duration - Audio.lead("land"), 0), function()

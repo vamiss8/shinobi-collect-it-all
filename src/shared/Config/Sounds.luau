@@ -42,7 +42,7 @@ export type Cue =
 	| "press" -- the power bar pressed, not a Perfect
 	| "perfect" -- the power bar pressed in the Perfect band
 	| "throw" -- the kunai leaves the hand
-	| "flight" -- the kunai's whistle while it flies, looped (Audio.sustain)
+	| "flight" -- the kunai's whistle while it flies, from the kunai (Audio.sustain)
 	| "land" -- the kunai strikes the ground
 	| "tick" -- the roulette turns to the next shinobi
 	| "stop" -- the blow as the roulette stops, under "reveal"
@@ -91,8 +91,12 @@ Sounds.effects = {
 	perfect = { id = 9126073001, volume = 0.6 }, -- Synth Sparkle Tone High Pitch Bell Tone Ding
 	throw = { id = 9120972444, volume = 0.65 }, -- Wood Whoosh Slicing Air Quick Swings 1
 	-- A faint whistle while the kunai flies (owner, 2026-10-18: "a barely heard whistle of the
-	-- flight"), from the library of its hit, faded out as the hit's arrow comes in.
-	flight = { id = 9113166565, volume = 0.22 }, -- Arrow Out Whooshing Pass By 6
+	-- flight"), faded out as the hit's arrow comes in. It is a steady wind of 8 s, longer than
+	-- any flight, sounding from the kunai itself. It was Arrow Out Whooshing Pass By 6, looped:
+	-- "very strange, it does not go on through the flight, it plays at the start and at the
+	-- end, and as if from left to right" (a pass-by swells, crosses and is gone, and the loop
+	-- began it again).
+	flight = { id = 9113324429, volume = 0.3 }, -- Basement Wind Tubular Airy Swirling 16
 	-- The arrow flies in for about half a second before it hits (owner, 2026-10-17: "the
 	-- kunai's sound comes about half a second after it lands"), so it is started so early.
 	land = { id = 9113161857, volume = 0.6, lead = 0.5 }, -- Arrow In And Hit 19
