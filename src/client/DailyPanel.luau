@@ -4,8 +4,9 @@
 -- gold; a Claim button, or how long until the next one. A row a day and large words, not
 -- seven narrow cards (owner, 2026-10-19, a screenshot: "the text is very small, nothing can be
 -- seen; better let the menu scroll and the text be larger"). It opens by itself once a day when a reward waits (not
--- during the base tutorial: after it), and a tile in the left column, there only while one
--- waits, opens it too. MY LOOK AND PLACES, told to the owner.
+-- during the base tutorial: after it), and a tile in the left column opens it at any time,
+-- with a "!" while one waits (owner, 2026-10-19: "I found nowhere to open it": the tile used
+-- to be there only while a reward waited). MY LOOK AND PLACES, told to the owner.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -89,8 +90,7 @@ function DailyPanel.start()
 		Hud.sideButton(Strings.get("DailyButton"), Ui.GOLD, Icons.coin, true, "daily")
 	tile.LayoutOrder = 0
 	mark.Text = "!"
-	mark.Visible = true
-	tile.Visible = false
+	mark.Visible = false
 
 	Ui.text(body, {
 		Size = UDim2.new(1, 0, 0, LIST_TOP - 8),
@@ -207,7 +207,7 @@ function DailyPanel.start()
 		streak.Text = Strings.get("DailyStreak", tostring(math.max(known.streak, 0)))
 		claim.Visible = known.ready
 		waitLabel.Visible = not known.ready
-		tile.Visible = known.ready
+		mark.Visible = known.ready
 		if not known.ready then
 			local remaining = math.max(known.wait - (os.clock() - heard), 0)
 			waitLabel.Text = Strings.get("DailyNext", Strings.duration(remaining))
