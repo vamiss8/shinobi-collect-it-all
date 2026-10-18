@@ -112,7 +112,8 @@ function RebirthPanel.start()
 
 	-- The tile says only that the next rebirth can be done: how many are behind the player
 	-- their rank tells them.
-	local tile, mark = Hud.sideButton(Strings.get("RebirthButton"), Ui.GOLD, Icons.rebirth, true)
+	local tile, mark =
+		Hud.sideButton(Strings.get("RebirthButton"), Ui.GOLD, Icons.rebirth, true, "rebirth")
 	tile.Activated:Connect(window.toggle)
 	local tileEdge = tile:FindFirstChildOfClass("UIStroke")
 	mark.Text = "!"

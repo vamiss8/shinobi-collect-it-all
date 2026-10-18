@@ -35,7 +35,7 @@ function IndexPanel.start()
 	local window = Ui.window("Index", Vector2.new(1010, 640))
 	window.title.Text = Strings.get("IndexTitle")
 
-	local opener = Hud.sideButton(Strings.get("IndexButton"), Ui.BLUE, Icons.book)
+	local opener = Hud.sideButton(Strings.get("IndexButton"), Ui.BLUE, Icons.book, false, "book")
 	opener.LayoutOrder = 2
 	opener.Activated:Connect(window.toggle)
 

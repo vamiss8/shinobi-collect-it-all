@@ -22,7 +22,8 @@ function InventoryPanel.start()
 	local window = Ui.window("Inventory", Vector2.new(770, 600))
 	window.title.Text = Strings.get("InventoryTitle")
 
-	local opener, counter = Hud.sideButton(Strings.get("InventoryButton"), Ui.GOLD, Icons.scroll)
+	local opener, counter =
+		Hud.sideButton(Strings.get("InventoryButton"), Ui.GOLD, Icons.scroll, false, "inventory")
 	opener.LayoutOrder = 1
 	opener.Activated:Connect(window.toggle)
 

@@ -19,6 +19,7 @@ local GroupService = game:GetService("GroupService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Hub = require("../World/Hub")
 local Plaza = require("../World/Plaza")
@@ -31,7 +32,7 @@ local GroupGift = {}
 
 local GROUP = Tuning.Group
 -- The tag over the box, in studs, how high its middle is over the ground, how far it is read.
-local TAG = Vector2.new(8, 2.6)
+local TAG = Vector2.new(8, 3.1)
 local TAG_HEIGHT = 6.4
 local TAG_FAR = 150
 -- The prompt is offered from this far, studs.
@@ -87,6 +88,16 @@ local function claim(player: Player)
 		Pouch.add(data.stock, potion.id, GROUP.potions)
 	end
 	data.herbs += GROUP.herbs
+	Analytics.economy(
+		player,
+		true,
+		"Herbs",
+		GROUP.herbs,
+		data.herbs,
+		Enum.AnalyticsEconomyTransactionType.Onboarding,
+		"GroupGift"
+	)
+	Analytics.event(player, "GroupGift")
 	State.push(player)
 	State.notify(player, "GroupGiftClaimed", GROUP.herbs)
 end
@@ -151,8 +162,11 @@ local function tag(box: BasePart)
 	round.CornerRadius = UDim.new(0.5, 0)
 	round.Parent = seal
 
-	words(paper, 0.08, 0.5, "GROUP GIFT")
-	words(paper, 0.6, 0.3, "Join sad mansion studios and like the game")
+	words(paper, 0.06, 0.4, "GROUP GIFT")
+	words(paper, 0.48, 0.24, "Join sad mansion studios and like the game")
+	-- Roblox can be slow to tell a game of a group just joined (owner, 2026-10-19: "write
+	-- that to check, the game has to be rejoined").
+	words(paper, 0.74, 0.18, "Joined but not counted? Rejoin the game")
 	board.Parent = box
 end
 

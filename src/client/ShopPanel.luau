@@ -301,7 +301,7 @@ function ShopPanel.start()
 	window.title.Text = Strings.get("ShopTitle")
 	local body = window.body
 
-	local tile = Hud.sideButton(Strings.get("ShopButton"), Ui.RED, Icons.shop)
+	local tile = Hud.sideButton(Strings.get("ShopButton"), Ui.RED, Icons.shop, false, "shop")
 	tile.LayoutOrder = 0
 	tile.Activated:Connect(window.toggle)
 
