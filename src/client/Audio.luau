@@ -628,6 +628,7 @@ local NOTIFY: { [string]: string } = {
 	NothingHeld = "refuse",
 	NotYourDojo = "refuse",
 	Merged = "merge",
+	GroupGiftClaimed = "pass",
 	FloorBuilt = "floor",
 }
 

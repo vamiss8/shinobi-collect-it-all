@@ -36,6 +36,9 @@ Net.Events = {
 	Rebirth = "Rebirth", -- client -> server: do the next rebirth (no payload)
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
 	Upgraded = "Upgraded", -- server -> all clients: Upgraded, a shinobi on a pad was levelled up
+	-- The gift for joining the group: server -> client "join" (not in the group: show Roblox's
+	-- prompt), client -> server "claim" (joined from it: look again).
+	GroupGift = "GroupGift",
 	-- server -> client: "place" or "take", a shinobi this player set on a pad or took off one
 	Placed = "Placed",
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
@@ -206,6 +209,7 @@ export type Snapshot = {
 	stock: { [string]: number }, -- potions in the pouch, by potion id; none there are left out
 	premium: { [string]: number }, -- premium potions in the pouch (bought for Robux), the same way
 	bought: { string }, -- keys of the products sold once that the player has had
+	groupGift: boolean, -- whether the gift for joining the group has been had
 }
 
 -- Every owned unit that is not standing on a pad, by id. Sent whenever it changes.

@@ -48,6 +48,8 @@ export type Data = {
 	passes: { [string]: boolean },
 	-- Products sold once (Config/Products `once`) that the player has had, by key.
 	bought: { [string]: boolean },
+	-- Whether the player has had the gift for joining the group (Services/GroupGift).
+	groupGift: boolean,
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
@@ -78,6 +80,7 @@ local TEMPLATE: Data = {
 	lastSeen = 0,
 	passes = {},
 	bought = {},
+	groupGift = false,
 	receipts = {},
 	settings = Settings.defaults(),
 }

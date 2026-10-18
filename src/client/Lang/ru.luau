@@ -309,6 +309,11 @@ return {
 		TipReaper = "WHITE REAPER: эксклюзивный тег. Получить его больше никак нельзя.",
 		TipDeveloper = "DEV: разработчик sad mansion studios.",
 		TipDesigner = "DESIGNER: дизайнер sad mansion studios.",
+		GroupGiftClaimed = "Спасибо, что вступил! Подарок твой: по одному зелью каждого вида и %s Herbs в мешочке.",
+		GroupGiftJoin = "Подарок для участников sad mansion studios: вступи в группу и забери его.",
+		GroupGiftUnknown = "Roblox не ответил, состоишь ли ты в группе: попробуй через минуту.",
+		GroupGiftRemindJoin = "Вступи в группу sad mansion studios и поставь игре лайк: за фонтаном тебя ждёт подарок!",
+		GroupGiftRemindClaim = "За фонтаном тебя ждёт подарок для участников sad mansion studios!",
 		TipVip = "VIP ДАЙМЁ: доход додзё x%s, доход вне игры x%s и эта золотая печать. Нажми, чтобы открыть его в магазине.",
 
 		-- The legendary shinobi on their pedestals
@@ -385,6 +390,9 @@ return {
 		World_TopRyo = "ТОП RYO",
 		World_TopChakra = "ТОП ЧАКРЫ",
 		World_NoOneYet = "Пока никого",
+		World_GroupGift = "ПОДАРОК ГРУППЫ",
+		World_GroupGiftLine = "Вступи в sad mansion studios и поставь игре лайк",
+		World_Claim = "Забрать",
 		World_AddLevels = "+%s ур.",
 		World_Level = "Ур. %s",
 		World_Base = "База: %s/с",

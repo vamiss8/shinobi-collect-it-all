@@ -201,4 +201,15 @@ return {
 		perZone = 1,
 		perfect = 2,
 	},
+
+	-- The game's makers' group, sad mansion studios, and the gift for joining it, once a player
+	-- (Services/GroupGift; owner, 2026-10-18: "what is in the pack, decide yourself"): this
+	-- many of every potion into the pouch, of the kind bought for Herbs, and these Herbs. MY
+	-- CALL: worth some of each potion's boost and a potion or two more, nothing that skips a
+	-- zone.
+	Group = {
+		id = 662731337,
+		potions = 1,
+		herbs = 250,
+	},
 }

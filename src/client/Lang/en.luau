@@ -326,6 +326,11 @@ return {
 		TipReaper = "WHITE REAPER: an exclusive tag. It cannot be obtained any other way.",
 		TipDeveloper = "DEV: a developer of sad mansion studios.",
 		TipDesigner = "DESIGNER: a designer of sad mansion studios.",
+		GroupGiftClaimed = "Thank you for joining! The gift is yours: one of every potion and %s Herbs in your pouch.",
+		GroupGiftJoin = "The gift is for members of sad mansion studios: join the group, then take it.",
+		GroupGiftUnknown = "Roblox did not say whether you are in the group: try again in a moment.",
+		GroupGiftRemindJoin = "Join the sad mansion studios group and like the game: a gift waits for you behind the fountain!",
+		GroupGiftRemindClaim = "A gift for members of sad mansion studios waits for you behind the fountain!",
 		TipVip = "DAIMYO VIP: dojo income x%s, offline income x%s and this gold seal. Click to see it in the shop.",
 
 		-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).
@@ -403,6 +408,9 @@ return {
 		World_TopRyo = "TOP RYO",
 		World_TopChakra = "TOP CHAKRA",
 		World_NoOneYet = "No one yet",
+		World_GroupGift = "GROUP GIFT",
+		World_GroupGiftLine = "Join sad mansion studios and like the game",
+		World_Claim = "Claim",
 		World_AddLevels = "+%s Lvl",
 		World_Level = "Lvl %s",
 		World_Base = "Base: %s/s",

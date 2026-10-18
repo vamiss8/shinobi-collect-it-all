@@ -88,6 +88,7 @@ function State.push(player: Player)
 		stock = Pouch.contents(data.stock),
 		premium = Pouch.contents(data.premium),
 		bought = bought(data),
+		groupGift = data.groupGift == true,
 	}
 	Remotes.State:FireClient(player, snapshot)
 end

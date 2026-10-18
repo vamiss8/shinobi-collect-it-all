@@ -389,6 +389,7 @@ function commands.reset(player, data)
 	data.herbs = 0
 	data.stock = {}
 	data.premium = {}
+	data.groupGift = false
 	Session.of(player).throwChakra = 0
 	return "Save reset"
 end

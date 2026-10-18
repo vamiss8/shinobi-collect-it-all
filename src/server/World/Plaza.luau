@@ -35,6 +35,9 @@ Plaza.stands = {} :: { [string]: Part }
 -- The sheet of each leaderboard, by its id (Logic/PlazaPlan `leaderboards`), for the names on
 -- it to be written on its face towards the plaza (Services/Leaderboards). Filled by start().
 Plaza.leaderboards = {} :: { [string]: Part }
+-- The gift for joining the group (Services/GroupGift): a Model named GroupGift with its
+-- GiftBox, taken out of a player's world by their client once they have had it.
+Plaza.gift = nil :: Model?
 
 local UP = Vector3.new(0, 1, 0)
 
@@ -1012,6 +1015,37 @@ local function leaderboard(folder: Folder, base: Vector3): Part
 	return sheet
 end
 
+-- The gift for joining the group: a red lacquered box with a lid, tied with gold cord and a bow,
+-- on a low stone foot. Solid, like everything on the plaza.
+local function groupGift(folder: Folder, base: Vector3): Model
+	local gift = Instance.new("Model")
+	gift.Name = "GroupGift"
+	Build.part(
+		gift,
+		"GiftFoot",
+		Vector3.new(3.8, 0.5, 3.8),
+		base + UP * 0.25,
+		STONE_DARK,
+		Enum.Material.Slate
+	)
+	Build.part(gift, "GiftBox", Vector3.new(3, 2.2, 3), base + UP * 1.6, LACQUER)
+	Build.part(gift, "GiftLid", Vector3.new(3.3, 0.5, 3.3), base + UP * 2.95, LACQUER)
+	Build.part(gift, "GiftCord", Vector3.new(3.4, 0.14, 0.36), base + UP * 3.27, GOLD)
+	Build.part(gift, "GiftCord", Vector3.new(0.36, 0.18, 3.4), base + UP * 3.29, GOLD)
+	for _, shift in { -0.36, 0.36 } do
+		local loop = Build.part(
+			gift,
+			"GiftBow",
+			Vector3.new(0.7, 0.7, 0.7),
+			base + Vector3.new(shift, 3.62, 0),
+			GOLD
+		)
+		loop.Shape = Enum.PartType.Ball
+	end
+	gift.Parent = folder
+	return gift
+end
+
 -- The training corner: three posts with a red band, a straw dummy and a target on a stand.
 local function trainingCorner(folder: Folder, base: Vector3, face: number)
 	local wood = Enum.Material.Wood
@@ -1196,6 +1230,9 @@ function Plaza.start()
 	trainingCorner(folder, Hub.at(near - 2, 0, 30), 1)
 	well(folder, Hub.at(far, 0, -36))
 	shrine(folder, Hub.at(far, 0, 40), -1)
+
+	-- The gift for joining the group, behind the fountain.
+	Plaza.gift = groupGift(folder, Hub.at(PlazaPlan.GIFT.along, 0, PlazaPlan.GIFT.side))
 
 	-- The leaderboards, where the plan says, facing the plaza.
 	for id, spot in PlazaPlan.leaderboards do

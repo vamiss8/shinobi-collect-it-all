@@ -72,6 +72,11 @@ end
 PlazaPlan.FOUNTAIN = { along = -PlazaPlan.DEPTH / 2, side = 0 } :: Spot
 PlazaPlan.FOUNTAIN_RADIUS = 18
 
+-- The gift for joining the game's group (Services/GroupGift): a box on the middle path just
+-- behind the fountain, between the Mission Desk and the training ground, which every player
+-- passes on the way to the back. It is there for a player only until they take it.
+PlazaPlan.GIFT = { along = PlazaPlan.FOUNTAIN.along - 25, side = 0 } :: Spot
+
 -- The market's three shops stand round the fountain, a third of a turn apart, their open
 -- fronts to it: Tenten's Ninja Tools (the shop "tenten", which sells kunai) on the side of the
 -- lane, the Mission Desk (the shop "sell") and the Youth Training Ground (the shop "speed")
