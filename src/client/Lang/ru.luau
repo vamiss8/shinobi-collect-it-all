@@ -347,6 +347,13 @@ return {
 		SettingsRejoinNote = "Новый язык включится после перезахода.",
 		SettingsRejoin = "Перезайти",
 		SettingsSaved = "Настройки сохраняются вместе с прогрессом.",
+		MusicTitle = "Музыка деревни",
+		MusicNow = "Сейчас играет",
+		MusicWaits = "У погони и ивента своя музыка: этот трек продолжится дома.",
+		MusicPrevious = "< Назад",
+		MusicNext = "Далее >",
+		MusicRepeat = "Повтор",
+		MusicShuffle = "Вперемешку",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).
@@ -479,6 +486,7 @@ return {
 		["Hinata (Shippuden)"] = "Хината (Шиппуден)",
 		["Rin"] = "Рин",
 		["Black Zetsu"] = "Чёрный Зецу",
+		["Zetsu"] = "Зецу",
 		["Might Guy"] = "Майто Гай",
 		["Kakashi (Mangekyo)"] = "Какаши (Мангекё)",
 		["Shisui Uchiha"] = "Шисуи Учиха",

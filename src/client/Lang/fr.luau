@@ -347,6 +347,13 @@ return {
 		SettingsRejoinNote = "La nouvelle langue s'applique quand tu reviens en jeu.",
 		SettingsRejoin = "Revenir en jeu",
 		SettingsSaved = "Tes paramètres sont sauvegardés avec ta progression.",
+		MusicTitle = "Musique du village",
+		MusicNow = "En cours",
+		MusicWaits = "Une poursuite ou un événement a sa musique : celle-ci reprend au village.",
+		MusicPrevious = "< Préc.",
+		MusicNext = "Suiv. >",
+		MusicRepeat = "Répéter",
+		MusicShuffle = "Aléatoire",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

@@ -365,6 +365,13 @@ return {
 		SettingsRejoinNote = "The new language takes when you rejoin.",
 		SettingsRejoin = "Rejoin now",
 		SettingsSaved = "Your settings are saved with your progress.",
+		MusicTitle = "Village music",
+		MusicNow = "Now playing",
+		MusicWaits = "A chase or an event has its own music: this goes on at home.",
+		MusicPrevious = "< Back",
+		MusicNext = "Next >",
+		MusicRepeat = "Repeat",
+		MusicShuffle = "Shuffle",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

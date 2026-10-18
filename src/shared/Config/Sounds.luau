@@ -10,9 +10,8 @@
 -- To hear one outside the game: create.roblox.com/store/asset/<id>. To change one, put another
 -- id in its place.
 --
--- The music is the owner's own tracks (uploaded by the group, which owns the game), none in yet:
--- the village plays its calm track; a runner hears the boss of the zone they run from; an event
--- plays its own track over both (owner, 2026-10-14: "no boss track during an event").
+-- The music is from the same licensed libraries (APM's): what plays where is under
+-- Sounds.music below.
 
 export type Effect = {
 	id: number,
@@ -100,31 +99,81 @@ Sounds.effects = {
 	event = { id = 9047072745, volume = 0.6 }, -- APM "Japanese Tradition Sting 2"
 } :: { [Cue]: Effect }
 
--- The music: the village's calm track, a track for each zone's boss (by zone id, while its
--- enemy chases the player) and one for each event (by event id). 0 until the owner's tracks
--- are uploaded.
+-- A piece of music: an asset of the Creator Store's licensed libraries (APM's, free in any
+-- game), its name as the store gives it (the music window shows it), the moment it starts at,
+-- how loud it is against the others, and how long the store says it is (the tests hold the
+-- moment inside it).
+export type Track = {
+	id: number,
+	name: string,
+	from: number?, -- seconds into the track at which it starts, 0 if not given
+	volume: number?, -- times Sounds.music.volume, 1 if not given
+	length: number, -- seconds, as the Creator Store gives it
+}
+
+-- The music (owner, 2026-10-18). THE VILLAGE PLAYS A PLAYLIST: several calm, light tracks one
+-- after another, never the same twice running ("one alone would pall; they must take turns"),
+-- which the player can step through, repeat and shuffle in the settings (client MusicPanel).
+-- A RUNNER HEARS THEIR ZONE'S TRACK, from the moment the owner chose in it (`from`, where its
+-- drop is), for the chase alone: at home the village's comes back and goes on from where it
+-- was. He had first thought of letting a zone's track play out after the run and gave it up:
+-- most are dark or heavy to hear whole, and the drop belongs to the chase. A zone's track that
+-- runs out during a chase begins again from its moment. The Academy has none: it is the
+-- village itself, and its chase lasts five seconds. An event's track plays over both while it
+-- runs (owner, 2026-10-14: "no boss track during an event").
+-- NO TRACK HAS WORDS (owner, the same day: "tracks without words everywhere"): the store does
+-- not tag voices, so a track goes in only when its description names its instruments and no
+-- voices. The zones' tracks are his choice from the Creator Store; the village's and the
+-- events' are MY CANDIDATES, chosen by what the store says of them, since I cannot hear them.
+-- To hear one outside the game: create.roblox.com/store/asset/<id>.
 Sounds.music = {
-	village = 0,
 	volume = 0.5,
-	-- How long one track gives way to the next, seconds.
+	-- How long one track gives way to another, seconds.
 	crossfade = 1.5,
+	-- How fast a zone's track comes in when a chase begins, so that its drop is not faded under.
+	chase = 0.4,
+	village = {
+		-- Cheerful, gentle shamisen and koto, no drums.
+		{ id = 9047130875, name = "Kemari D", length = 121 },
+		-- A light underscore, Japanese instruments only.
+		{ id = 9047132342, name = "History Of Bushido D", length = 76 },
+		-- A light Japanese rhythm without drums, with shakuhachi.
+		{ id = 9047128762, name = "Motivational Incentive D", length = 123 },
+		-- Koto, soft guitar, airy guitar, chimes.
+		{ id = 1837591472, name = "Fudji Sunrise", length = 178 },
+		-- "Unhurried scenes".
+		{ id = 1839872620, name = "Japanese Life", length = 86 },
+	} :: { Track },
 	bosses = {
-		academy = 0,
-		land_of_waves = 0,
-		forest_of_death = 0,
-		chunin_exam_finals = 0,
-		valley_of_the_end = 0,
-		hidden_sand = 0,
-		akatsuki_lair = 0,
-		hidden_rain = 0,
-		kamui_dimension = 0,
-		great_ninja_war = 0,
-	} :: { [string]: number },
+		land_of_waves = { id = 9043278318, name = "Kyoto", from = 7, volume = 0.6, length = 190 },
+		forest_of_death = { id = 9043557976, name = "Uneasy Ticking (b)", from = 73, length = 100 },
+		chunin_exam_finals = {
+			id = 9043308431,
+			name = "Training For Victory",
+			from = 21,
+			length = 134,
+		},
+		valley_of_the_end = {
+			id = 9043605715,
+			name = "The Tornado Approaches (b)",
+			from = 18,
+			length = 126,
+		},
+		hidden_sand = { id = 1839958713, name = "Desert Trap b", from = 58, length = 137 },
+		akatsuki_lair = { id = 9039697342, name = "Much Fear", from = 121, length = 170 },
+		hidden_rain = { id = 9042149619, name = "Piano Reflections (a)", from = 83, length = 246 },
+		kamui_dimension = { id = 9040021529, name = "Subterranean World", from = 75, length = 102 },
+		great_ninja_war = { id = 1835322993, name = "Purge the Darkness", from = 30, length = 190 },
+	} :: { [string]: Track },
 	events = {
-		leaf_festival = 0,
-		akatsuki_raid = 0,
-		crimson_moon = 0,
-	} :: { [string]: number },
+		-- A shakuhachi tune leading to a festive beat with shamisen, "busy Tokyo street life";
+		-- the owner liked Pleasure Days, which has a singer.
+		leaf_festival = { id = 9047131010, name = "Tokyo Festival A", length = 173 },
+		-- An ominous, strong opening and a steady, driving taiko beat; Among Blossom was too quiet.
+		akatsuki_raid = { id = 9038213554, name = "Seifuku", length = 135 },
+		-- Dark and bewitching over a slow beat, shamisen-like guitars.
+		crimson_moon = { id = 9040307437, name = "Black Moon Temple", length = 159 },
+	} :: { [string]: Track },
 }
 
 return Sounds

@@ -10,17 +10,22 @@
 -- language takes when the player comes back into the game, every word being written as the
 -- interface is built: the window says so and offers to send them back into this same server.
 --
+-- Last, the village's music: the track playing now, a press away from the music window
+-- (client MusicPanel), where the playlist is stepped through.
+--
 -- The tutorial, the changelog and the questions asked often are to have rows here too.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
+local Audio = require("./Audio")
 local Fonts = require("./Fonts")
 local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Language = require("./Language")
 local Languages = require(ReplicatedStorage.Shared.Config.Languages)
+local MusicPanel = require("./MusicPanel")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local SettingsLogic = require(ReplicatedStorage.Shared.Logic.Settings)
@@ -29,7 +34,7 @@ local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 560)
+local SIZE = Vector2.new(760, 650)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
@@ -329,6 +334,24 @@ function SettingsPanel.start()
 		button.BackgroundColor3 = if name == settings.font then Ui.GOLD else Ui.CARD
 		button.TextColor3 = if name == settings.font then Ui.INK else Ui.PARCHMENT
 	end
+
+	-- The village's music: the track under way, which opens the music window.
+	local musicTop = row(6, "MusicTitle")
+	local playing = Ui.button(body, {
+		Position = UDim2.fromOffset(CONTROL, musicTop + (ROW - STEP) / 2),
+		Size = UDim2.fromOffset(474, STEP),
+		BackgroundColor3 = Ui.CARD,
+		TextSize = 24,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	})
+	playing.Activated:Connect(MusicPanel.open)
+	local function drawPlaying()
+		local at = Audio.villageAt()
+		local track = if at then Audio.playlist()[at] else nil
+		playing.Text = if track then `{track.name}  >` else ">"
+	end
+	Audio.onPlaylist(drawPlaying)
+	drawPlaying()
 
 	Ui.text(body, {
 		AnchorPoint = Vector2.new(0, 1),

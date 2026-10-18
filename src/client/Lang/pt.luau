@@ -348,6 +348,13 @@ return {
 		SettingsRejoinNote = "O novo idioma vale quando você entrar de novo.",
 		SettingsRejoin = "Entrar de novo",
 		SettingsSaved = "Suas configurações ficam salvas com seu progresso.",
+		MusicTitle = "Música da vila",
+		MusicNow = "Tocando agora",
+		MusicWaits = "Perseguições e eventos têm música própria: esta continua em casa.",
+		MusicPrevious = "< Voltar",
+		MusicNext = "Próx. >",
+		MusicRepeat = "Repetir",
+		MusicShuffle = "Aleatório",
 
 		-- Words the server writes in the world, on signs, tags, prompts and the notice board
 		-- (Logic/Words.world says them in the player's language).

@@ -52,24 +52,49 @@ return {
 		T.ok(count >= 20, `only {count} plays were found: the search is broken`)
 	end,
 
-	["every zone's boss and every event has a place for its track, and nothing else"] = function()
-		for _, zone in Catalog.zones do
-			local id = Sounds.music.bosses[zone.id]
-			T.ok(id ~= nil and isId(id), `no place for the boss track of {zone.id}`)
-		end
+	["every zone's track is a zone's and every event has one"] = function()
 		for zoneId in Sounds.music.bosses do
-			T.ok(Catalog.zoneById[zoneId] ~= nil, `a boss track for a zone there is not: {zoneId}`)
+			T.ok(Catalog.zoneById[zoneId] ~= nil, `a track for a zone there is not: {zoneId}`)
 		end
 		local events: { [string]: boolean } = {}
 		for _, event in EventsConfig.list do
 			events[event.id] = true
-			local id = Sounds.music.events[event.id]
-			T.ok(id ~= nil and isId(id), `no place for the track of {event.id}`)
+			T.ok(Sounds.music.events[event.id] ~= nil, `no track for {event.id}`)
 		end
 		for eventId in Sounds.music.events do
 			T.ok(events[eventId] == true, `a track for an event there is not: {eventId}`)
 		end
-		T.ok(isId(Sounds.music.village), "the village's track is not an id")
+		-- The owner: one track alone would pall in the village; they take turns.
+		T.ok(#Sounds.music.village >= 3, "the village has fewer than three tracks")
 		T.ok(Sounds.music.crossfade > 0, "tracks would cut over")
+		T.ok(
+			Sounds.music.chase > 0 and Sounds.music.chase < Sounds.music.crossfade,
+			"a chase's track comes in slower than a fade"
+		)
+	end,
+
+	-- A track starts at the moment the owner chose in it: inside the track, with something left.
+	["every track is an asset that starts inside itself, at a sane volume"] = function()
+		local function look(where: string, track: Sounds.Track)
+			T.ok(isId(track.id) and track.id > 0, `{where} has no asset id`)
+			T.ok(track.name ~= "", `{where} has no name for the music window`)
+			T.ok(track.length > 0, `{where} has no length`)
+			local from = track.from or 0
+			T.ok(
+				from >= 0 and from <= track.length - 20,
+				`{where} starts {from} s into a track of {track.length} s`
+			)
+			local volume = track.volume or 1
+			T.ok(volume > 0 and volume <= 2, `{where} plays at a strange volume`)
+		end
+		for index, track in Sounds.music.village do
+			look(`village track {index}`, track)
+		end
+		for zoneId, track in Sounds.music.bosses do
+			look(`the track of {zoneId}`, track)
+		end
+		for eventId, track in Sounds.music.events do
+			look(`the track of {eventId}`, track)
+		end
 	end,
 }
