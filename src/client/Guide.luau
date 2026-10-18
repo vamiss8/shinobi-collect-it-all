@@ -69,6 +69,8 @@ local CHAKRA_TO_GATHER = 10
 -- bobs; the ring round the part, how far out; how dark the dimmed screen is.
 local ARROW = Vector2.new(70, 86)
 local ARROW_OFF = 56
+-- How much larger the arrow is when it points at several parts at once.
+local GROUP_ARROW = 1.35
 local BOB = 10
 local RING_OUT = 9
 local DIM = 0.5
@@ -445,10 +447,15 @@ end
 local spotlit: { GuiObject } = {}
 local dimFrames: { Frame } = {}
 
-local function showGui(target: GuiObject, dim: boolean)
+-- Everything of the interface a step names is shown together: one ring round all of it and one
+-- arrow, larger for more than one (owner, 2026-10-19, a screenshot of the two training slots
+-- with an arrow and a ring each, the rings running into each other: "better one larger arrow,
+-- and both outlined in yellow at once").
+local function showGui(targets: { GuiObject }, dim: boolean)
+	local grow = if #targets > 1 then GROUP_ARROW else 1
 	local holder: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(ARROW.X, ARROW.Y),
+		Size = UDim2.fromOffset(ARROW.X * grow, ARROW.Y * grow),
 		BackgroundTransparency = 1,
 		ZIndex = 20,
 	}, arrowLayer)
@@ -466,13 +473,25 @@ local function showGui(target: GuiObject, dim: boolean)
 	Ui.corner(outer, 18)
 	local red = Ui.stroke(outer, Ui.SEAL, 4)
 	if dim then
-		table.insert(spotlit, target)
+		for _, target in targets do
+			table.insert(spotlit, target)
+		end
 	end
 	local beat = RunService.RenderStepped:Connect(function()
 		local scale = Ui.scale()
-		local at = target.AbsolutePosition / scale
-		local size = target.AbsoluteSize / scale
-		local visible = target.Visible and size.X > 1
+		-- The box round everything shown that is on the screen.
+		local left, top, right, bottom = math.huge, math.huge, -math.huge, -math.huge
+		for _, target in targets do
+			if target.Visible and target.AbsoluteSize.X > 1 then
+				local corner = target.AbsolutePosition / scale
+				local far = corner + target.AbsoluteSize / scale
+				left, top = math.min(left, corner.X), math.min(top, corner.Y)
+				right, bottom = math.max(right, far.X), math.max(bottom, far.Y)
+			end
+		end
+		local visible = left < right
+		local at = Vector2.new(left, top)
+		local size = Vector2.new(right - left, bottom - top)
 		holder.Visible = visible
 		ring.Visible = visible
 		outer.Visible = visible
@@ -483,6 +502,7 @@ local function showGui(target: GuiObject, dim: boolean)
 		local middle = at + size / 2
 		local pulse = (math.sin(os.clock() * 5) + 1) / 2
 		local bob = pulse * BOB
+		local off = ARROW_OFF * grow
 		local swell = RING_OUT + pulse * 4
 		ring.Position = UDim2.fromOffset(at.X - swell, at.Y - swell)
 		ring.Size = UDim2.fromOffset(size.X + swell * 2, size.Y + swell * 2)
@@ -492,16 +512,16 @@ local function showGui(target: GuiObject, dim: boolean)
 		red.Transparency = 0.2 + 0.4 * (1 - pulse)
 		if middle.Y > room.Y * 0.62 then
 			holder.Rotation = 0
-			holder.Position = UDim2.fromOffset(middle.X, at.Y - ARROW_OFF - bob)
+			holder.Position = UDim2.fromOffset(middle.X, at.Y - off - bob)
 		elseif middle.X < room.X * 0.35 then
 			holder.Rotation = 90
-			holder.Position = UDim2.fromOffset(at.X + size.X + ARROW_OFF + bob, middle.Y)
+			holder.Position = UDim2.fromOffset(at.X + size.X + off + bob, middle.Y)
 		elseif middle.X > room.X * 0.65 then
 			holder.Rotation = -90
-			holder.Position = UDim2.fromOffset(at.X - ARROW_OFF - bob, middle.Y)
+			holder.Position = UDim2.fromOffset(at.X - off - bob, middle.Y)
 		else
 			holder.Rotation = 180
-			holder.Position = UDim2.fromOffset(middle.X, at.Y + size.Y + ARROW_OFF + bob)
+			holder.Position = UDim2.fromOffset(middle.X, at.Y + size.Y + off + bob)
 		end
 	end)
 	table.insert(shown, {
@@ -510,9 +530,11 @@ local function showGui(target: GuiObject, dim: boolean)
 			holder:Destroy()
 			ring:Destroy()
 			outer:Destroy()
-			local place = table.find(spotlit, target)
-			if place then
-				table.remove(spotlit, place)
+			for _, target in targets do
+				local place = table.find(spotlit, target)
+				if place then
+					table.remove(spotlit, place)
+				end
 			end
 		end,
 	})
@@ -562,10 +584,11 @@ local function point(names: { string }?, dim: boolean)
 		return
 	end
 	local walked = false
+	local guis: { GuiObject } = {}
 	for _, name in names do
 		local gui = Ui.targetOf(name)
 		if gui then
-			showGui(gui, dim)
+			table.insert(guis, gui)
 		elseif not walked then
 			local part = placeOf(name)
 			if part then
@@ -573,6 +596,9 @@ local function point(names: { string }?, dim: boolean)
 				walked = true
 			end
 		end
+	end
+	if #guis > 0 then
+		showGui(guis, dim)
 	end
 end
 
