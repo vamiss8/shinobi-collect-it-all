@@ -70,6 +70,12 @@ local PILLS: { [string]: Pill } = {
 	founder = { wide = 78, size = 14, ink = Color3.new(1, 1, 1), edge = Color3.fromRGB(34, 7, 74) },
 	reaper = { wide = 98, size = 12, ink = Color3.fromRGB(17, 17, 17), edge = Color3.new(1, 1, 1) },
 	dev = { wide = 40, size = 14, ink = Color3.new(1, 1, 1), edge = Color3.new(0, 0, 0) },
+	designer = {
+		wide = 88,
+		size = 13,
+		ink = Color3.new(1, 1, 1),
+		edge = Color3.fromRGB(74, 10, 42),
+	},
 }
 
 -- What a mark's pill says, and what its tip says under the pointer.
@@ -80,6 +86,8 @@ local function pillWord(kind: string): string
 		return Strings.get("PlayersReaper")
 	elseif kind == "dev" then
 		return Strings.get("PlayersDeveloper")
+	elseif kind == "designer" then
+		return Strings.get("PlayersDesigner")
 	end
 	return Strings.get("PlayersVip")
 end
@@ -91,6 +99,8 @@ local function pillTip(kind: string?): string
 		return Strings.get("TipReaper")
 	elseif kind == "dev" then
 		return Strings.get("TipDeveloper")
+	elseif kind == "designer" then
+		return Strings.get("TipDesigner")
 	end
 	return Strings.get("TipVip", Tuning.Shop.vipIncome, Tuning.Shop.vipOffline)
 end

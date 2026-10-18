@@ -305,9 +305,11 @@ return {
 		PlayersDev = "FOUNDER",
 		PlayersReaper = "WHITE REAPER",
 		PlayersDeveloper = "DEV",
+		PlayersDesigner = "DESIGNER",
 		TipFounder = "FOUNDER: o fundador da sad mansion studios e desenvolvedor principal do jogo.",
 		TipReaper = "WHITE REAPER: uma tag exclusiva. Não dá para conseguir de nenhum outro jeito.",
 		TipDeveloper = "DEV: um desenvolvedor da sad mansion studios.",
+		TipDesigner = "DESIGNER: faz o design da sad mansion studios.",
 		TipVip = "VIP DO DAIMYO: renda do dojo x%s, renda offline x%s e este selo dourado. Clique para ver na loja.",
 
 		-- The legendary shinobi on their pedestals

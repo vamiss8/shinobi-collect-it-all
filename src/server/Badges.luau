@@ -9,6 +9,7 @@ local Badges: { [number]: string } = {
 	-- dixtyne: WHITE REAPER, white with a black band, exclusive (owner, 2026-10-18)
 	[3736221745] = "reaper",
 	[9144243296] = "dev", -- whydalmjun: DEV, red with a black band (owner, 2026-10-18)
+	[11097160881] = "designer", -- miarmori8: DESIGNER, pink with a white band (owner, 2026-10-18)
 }
 
 return Badges

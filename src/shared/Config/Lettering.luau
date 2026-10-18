@@ -172,7 +172,8 @@ local TITLES: { [string]: Style } = {
 -- shimmers without flashing. (A loud six-color "flow" first: "strange, and it hurts the eyes";
 -- then a still rainbow with a glint: "make violet the main color and add animation; now the
 -- right part is just green".) The others go the same way in their own colors (owner,
--- 2026-10-18): "reaper" white with a black band running through it, "dev" red with a black one.
+-- 2026-10-18): "reaper" white with a black band running through it, "dev" red with a black one,
+-- "designer" pink with a white one ("pink and white").
 local BADGES: { [string]: Style } = {
 	founder = {
 		fill = { "#9D5CFF", "#C9A3FF", "#F6EDFF", "#C9A3FF", "#9D5CFF", "#7B3FE4" },
@@ -191,6 +192,13 @@ local BADGES: { [string]: Style } = {
 	dev = {
 		fill = { "#FF3B30", "#E53935", "#8E0000", "#160404", "#8E0000", "#E53935" },
 		edge = "#000000",
+		flare = "#FFFFFF",
+		motion = "flow",
+		period = 3.2,
+	},
+	designer = {
+		fill = { "#FF6FB5", "#FFA8D4", "#FFFFFF", "#FFA8D4", "#FF6FB5", "#E84A9A" },
+		edge = "#4A0A2A",
 		flare = "#FFFFFF",
 		motion = "flow",
 		period = 3.2,
