@@ -122,8 +122,12 @@ Sounds.effects = {
 	-- the three are one choke, so the next one fades the last away, and each is cut short.
 	-- Water Drip Cu Single Drips Constant 9 (Roblox's own)
 	ring = { id = 9120510269, volume = 0.55, vary = 0.1, cut = 0.6, choke = "ring" },
-	-- Hand Bell Small Cast Iron Buddhist Temple Bell
-	ringPerfect = { id = 9125597331, volume = 0.4, vary = 0.04, cut = 0.9, choke = "ring" },
+	-- Hand Bell Small Cast Iron Buddhist Temple Bell. NOT OF THE CHOKE, and played over itself
+	-- (owner, next: "six Perfects in a row, the sound played only on the sixth"): started over
+	-- by the next Perfect, or faded by the next hit, it was cut before its stroke was heard,
+	-- which by my reading comes some way into the file; only the last of a run rang out. Each
+	-- now rings its 1.1 s, two at the most over one another.
+	ringPerfect = { id = 9125597331, volume = 0.4, vary = 0.04, overlap = true, cut = 1.1 },
 	-- Body Pat Muted 1
 	ringMiss = { id = 9113531800, volume = 0.45, vary = 0.08, cut = 0.45, choke = "ring" },
 	bubble = { id = 17208204604, volume = 0.65, overlap = true }, -- Roblox GUI - Bubble
@@ -169,7 +173,9 @@ Sounds.steps = {
 	-- The surface of any material not named below.
 	fallback = "stone",
 	surfaces = {
-		-- A fifth softer than first put in (owner, the same day: "a tiny bit quieter").
+		-- A fifth softer than first put in (owner, the same day: "a tiny bit quieter", and
+		-- again with the first version of client Footsteps brought back: "a little quieter
+		-- than the old version").
 		-- Tip Toe Of Object Onto Grass 1, 7, 14, 22
 		grass = { ids = { 9120062559, 9120062862, 9120063311, 9120063929 }, volume = 0.68 },
 		-- Rock Hit Dirt Impact 14, 15, 16, 20
