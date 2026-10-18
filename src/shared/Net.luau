@@ -70,10 +70,15 @@ Net.DEVELOPER_ATTRIBUTE = "Developer"
 Net.BADGE_ATTRIBUTE = "Badge"
 -- A player's saved settings (Logic/Settings), as attributes of their Player that the server
 -- sets once their save has loaded: the client waits for the language before it writes a word.
+-- On a label in the world: its words are a name, and no client translates them (client
+-- WorldWords), as the players' names on the leaderboards.
+Net.VERBATIM_ATTRIBUTE = "Verbatim"
 Net.SETTING_LANGUAGE = "SettingLanguage"
 Net.SETTING_FONT = "SettingFont"
 Net.SETTING_MUSIC = "SettingMusic"
 Net.SETTING_EFFECTS = "SettingEffects"
+Net.SETTING_MUSIC_MUTED = "SettingMusicMuted"
+Net.SETTING_EFFECTS_MUTED = "SettingEffectsMuted"
 -- The folder in Workspace with the legendary shinobi on show (Services/Legends): their figures
 -- and, for each, a price tag, a BillboardGui with the attribute below naming the shinobi and a
 -- label named LEGEND_PRICE that each client rewrites for a player who owns it. The same

@@ -48,6 +48,13 @@ return {
 		T.eq(bad.effects, 0)
 		T.eq(Settings.clean("nonsense", now).language, now.language)
 		T.eq(Settings.clean({ language = Languages.AUTO }, kept).language, Languages.AUTO)
+		-- Muting keeps the volume, and a save from before muting existed is not muted.
+		local muted = Settings.clean({ musicMuted = true, effectsMuted = "yes" }, kept)
+		T.eq(muted.musicMuted, true)
+		T.eq(muted.effectsMuted, false, "only true or false mutes")
+		T.near(muted.music, 0.3, 1e-9, "muting keeps the volume")
+		local old: any = { language = "fr", font = "plain", music = 0.5, effects = 0.5 }
+		T.eq(Settings.clean({}, old).musicMuted, false)
 	end,
 
 	["every language has a pack of words, and names itself"] = function()

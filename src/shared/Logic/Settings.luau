@@ -12,6 +12,10 @@ export type Settings = {
 	font: string, -- "brush", or "plain" for the readable face (Languages.PLAIN)
 	music: number, -- 0..1
 	effects: number, -- 0..1
+	-- Muted by the button beside a volume (owner, 2026-10-18): silent, the volume kept for
+	-- when it is unmuted. A save from before has neither, which is not muted.
+	musicMuted: boolean,
+	effectsMuted: boolean,
 }
 
 Settings.FONTS = { "brush", "plain" }
@@ -19,7 +23,14 @@ Settings.FONTS = { "brush", "plain" }
 Settings.STEP = 0.1
 
 function Settings.defaults(): Settings
-	return { language = Languages.AUTO, font = "brush", music = 0.6, effects = 0.8 }
+	return {
+		language = Languages.AUTO,
+		font = "brush",
+		music = 0.6,
+		effects = 0.8,
+		musicMuted = false,
+		effectsMuted = false,
+	}
 end
 
 -- The language a player is given: the one they chose, or else the first of their locales (as
@@ -41,6 +52,13 @@ function Settings.language(choice: string?, locales: { string? }): string
 		end
 	end
 	return Languages.DEFAULT
+end
+
+local function flag(value: unknown, otherwise: boolean?): boolean
+	if typeof(value) == "boolean" then
+		return value
+	end
+	return otherwise == true
 end
 
 local function volume(value: unknown, otherwise: number): number
@@ -66,6 +84,8 @@ function Settings.clean(wanted: unknown, current: Settings): Settings
 			else current.font,
 		music = volume(given.music, current.music),
 		effects = volume(given.effects, current.effects),
+		musicMuted = flag(given.musicMuted, current.musicMuted),
+		effectsMuted = flag(given.effectsMuted, current.effectsMuted),
 	}
 end
 

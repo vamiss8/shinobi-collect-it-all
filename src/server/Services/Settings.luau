@@ -24,6 +24,8 @@ local function post(player: Player, settings: SettingsLogic.Settings)
 	player:SetAttribute(Net.SETTING_FONT, settings.font)
 	player:SetAttribute(Net.SETTING_MUSIC, settings.music)
 	player:SetAttribute(Net.SETTING_EFFECTS, settings.effects)
+	player:SetAttribute(Net.SETTING_MUSIC_MUTED, settings.musicMuted == true)
+	player:SetAttribute(Net.SETTING_EFFECTS_MUTED, settings.effectsMuted == true)
 end
 
 -- Sends the player back into the server they are on; into another one of the game if that

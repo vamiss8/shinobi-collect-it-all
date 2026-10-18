@@ -826,6 +826,20 @@ end
 
 -- The music player's buttons (client SettingsPanel), drawn in one color: "play", "pause",
 -- "next", "previous", "shuffle" (two crossing arrows), "repeat" (a loop with an arrowhead).
+-- A loudspeaker, as the settings' mute buttons show it: sounding, two strokes of sound before
+-- it; muted, a cross there instead.
+function Icons.speaker(holder: Instance, muted: boolean, color: Color3)
+	shape(holder, 0.12, 0.36, 0.16, 0.28, color, 0.15)
+	triangle(holder, 0.24, 0.16, 0.26, 0.68, false, color)
+	if muted then
+		bar(holder, 0.72, 0.5, 0.34, 0.09, 45, color, 0.5)
+		bar(holder, 0.72, 0.5, 0.34, 0.09, -45, color, 0.5)
+	else
+		shape(holder, 0.6, 0.36, 0.07, 0.28, color, 0.5)
+		shape(holder, 0.74, 0.24, 0.07, 0.52, color, 0.5)
+	end
+end
+
 function Icons.transport(holder: Instance, kind: string, color: Color3)
 	if kind == "play" then
 		triangle(holder, 0.3, 0.18, 0.52, 0.64, true, color)

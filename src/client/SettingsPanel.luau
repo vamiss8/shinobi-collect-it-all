@@ -55,6 +55,18 @@ local SEND_AFTER = 0.4
 -- The gear's tile, the size of the window tiles on the edges (Hud.sideButton). On a touch
 -- screen, where Roblox's jump button has the corner, it is one of those tiles.
 local TILE = Vector2.new(112, 116)
+-- A volume's row: the bar of ten, and the mute button at the row's end.
+local BAR = 220
+local MUTE = 52
+
+-- What a volume's row works on: the volume, whether it is muted, and its group of sounds.
+type Volume = {
+	read: () -> number,
+	write: (value: number) -> (),
+	muted: () -> boolean,
+	mute: (on: boolean) -> (),
+	group: () -> SoundGroup,
+}
 
 -- The two groups every sound of the game is to play in, made if they are not there.
 local function group(name: string): SoundGroup
@@ -91,13 +103,15 @@ local function saved(): SettingsLogic.Settings
 		font = player:GetAttribute(Net.SETTING_FONT),
 		music = player:GetAttribute(Net.SETTING_MUSIC),
 		effects = player:GetAttribute(Net.SETTING_EFFECTS),
+		musicMuted = player:GetAttribute(Net.SETTING_MUSIC_MUTED),
+		effectsMuted = player:GetAttribute(Net.SETTING_EFFECTS_MUTED),
 	}, SettingsLogic.defaults())
 end
 
 function SettingsPanel.start()
 	local settings = saved()
-	SettingsPanel.music().Volume = settings.music
-	SettingsPanel.effects().Volume = settings.effects
+	SettingsPanel.music().Volume = if settings.musicMuted then 0 else settings.music
+	SettingsPanel.effects().Volume = if settings.effectsMuted then 0 else settings.effects
 
 	local window = Ui.window("Settings", SIZE)
 	window.title.Text = Strings.get("SettingsTitle")
@@ -163,18 +177,17 @@ function SettingsPanel.start()
 		return top
 	end
 
-	-- A volume: -, a bar of ten, +, and how much in all.
-	local function volume(
-		index: number,
-		key: string,
-		read: () -> number,
-		write: (value: number) -> ()
-	)
+	-- A volume: -, a bar of ten, +, how much in all, and a button that mutes it (owner,
+	-- 2026-10-18: "mute buttons for the effects and the music, so that one press mutes it all,
+	-- and when unmuted the value comes back"). Muted, its sounds are silent and the bar keeps
+	-- the volume, grayed, for when it is unmuted; a press on the bar, - or + unmutes it too.
+	local function volume(index: number, key: string, the: Volume)
 		local top = row(index, key)
+		local plus = CONTROL + STEP + 8 + BAR + 8
 		local cells: { TextButton } = {}
 		local bar = Ui.make("Frame", {
 			Position = UDim2.fromOffset(CONTROL + STEP + 8, top + (ROW - 30) / 2),
-			Size = UDim2.fromOffset(260, 30),
+			Size = UDim2.fromOffset(BAR, 30),
 			BackgroundTransparency = 1,
 		}, body)
 		for cell = 1, 10 do
@@ -189,34 +202,58 @@ function SettingsPanel.start()
 			cells[cell] = frame
 		end
 		local value = Ui.text(body, {
-			Position = UDim2.fromOffset(CONTROL + STEP + 8 + 260 + 8 + STEP + 10, top),
-			Size = UDim2.fromOffset(90, ROW),
+			Position = UDim2.fromOffset(plus + STEP + 8, top),
+			Size = UDim2.fromOffset(SIZE.X - 32 - MUTE - 6 - (plus + STEP + 8), ROW),
 			TextSize = 24,
 			TextColor3 = Ui.GOLD,
 		})
+		local mute = Ui.button(body, {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, top + (ROW - MUTE) / 2),
+			Size = UDim2.fromOffset(MUTE, MUTE),
+			BackgroundColor3 = Ui.CARD,
+			Text = "",
+		})
+		local icon = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.7, 0.7),
+			BackgroundTransparency = 1,
+		}, mute)
 		local function draw()
-			local level = math.floor(read() * 10 + 0.5)
+			local muted = the.muted()
+			local level = math.floor(the.read() * 10 + 0.5)
 			for cell, frame in cells do
-				frame.BackgroundColor3 = if cell <= level then Ui.GOLD else Ui.CARD
+				frame.BackgroundColor3 = if cell > level
+					then Ui.CARD
+					elseif muted then Ui.GRAY
+					else Ui.GOLD
 			end
 			value.Text = `{level * 10}%`
+			value.TextColor3 = if muted then Ui.MUTED else Ui.GOLD
+			mute.BackgroundColor3 = if muted then Ui.SEAL else Ui.CARD
+			icon:ClearAllChildren()
+			Icons.speaker(icon, muted, if muted then Ui.WHITE else Ui.PARCHMENT)
 		end
-		local function change(by: number)
-			write(math.clamp(read() + by * SettingsLogic.STEP, 0, 1))
+		local function apply()
+			the.group().Volume = if the.muted() then 0 else the.read()
 			draw()
 			send()
+		end
+		local function set(level: number)
+			the.mute(false)
+			the.write(math.clamp(level, 0, 1))
+			apply()
 		end
 		-- A bar pressed sets the volume to it at once (owner, 2026-10-18: "at 30% a press on the
 		-- eighth bar should make it 80%, not five presses of +"); the first, pressed again when
 		-- it is the only one lit, turns the sound off.
 		for cell, button in cells do
 			button.Activated:Connect(function()
-				local level = math.floor(read() * 10 + 0.5)
-				local target = if cell == 1 and level == 1 then 0 else cell
+				local level = math.floor(the.read() * 10 + 0.5)
+				local target = if cell == 1 and level == 1 and not the.muted() then 0 else cell
 				Audio.play("click")
-				write(target * SettingsLogic.STEP)
-				draw()
-				send()
+				set(target * SettingsLogic.STEP)
 			end)
 		end
 		local less = Ui.button(body, {
@@ -227,33 +264,59 @@ function SettingsPanel.start()
 			Text = "-",
 		})
 		less.Activated:Connect(function()
-			change(-1)
+			set(the.read() - SettingsLogic.STEP)
 		end)
 		local more = Ui.button(body, {
-			Position = UDim2.fromOffset(CONTROL + STEP + 8 + 260 + 8, top + (ROW - STEP) / 2),
+			Position = UDim2.fromOffset(plus, top + (ROW - STEP) / 2),
 			Size = UDim2.fromOffset(STEP, STEP),
 			BackgroundColor3 = Ui.CARD,
 			TextSize = 32,
 			Text = "+",
 		})
 		more.Activated:Connect(function()
-			change(1)
+			set(the.read() + SettingsLogic.STEP)
+		end)
+		mute.Activated:Connect(function()
+			the.mute(not the.muted())
+			apply()
+			Ui.retip()
+		end)
+		Ui.tip(mute, function()
+			return Strings.get(if the.muted() then "SettingsUnmute" else "SettingsMute")
 		end)
 		draw()
 	end
 
-	volume(1, "SettingsMusic", function()
-		return settings.music
-	end, function(value)
-		settings.music = value
-		SettingsPanel.music().Volume = value
-	end)
-	volume(2, "SettingsEffects", function()
-		return settings.effects
-	end, function(value)
-		settings.effects = value
-		SettingsPanel.effects().Volume = value
-	end)
+	volume(1, "SettingsMusic", {
+		read = function()
+			return settings.music
+		end,
+		write = function(level)
+			settings.music = level
+		end,
+		muted = function()
+			return settings.musicMuted == true
+		end,
+		mute = function(on)
+			settings.musicMuted = on
+		end,
+		group = SettingsPanel.music,
+	})
+	volume(2, "SettingsEffects", {
+		read = function()
+			return settings.effects
+		end,
+		write = function(level)
+			settings.effects = level
+		end,
+		muted = function()
+			return settings.effectsMuted == true
+		end,
+		mute = function(on)
+			settings.effectsMuted = on
+		end,
+		group = SettingsPanel.effects,
+	})
 
 	-- The language: one of the list, stepped through, "Auto" first.
 	local choices = { Languages.AUTO }
