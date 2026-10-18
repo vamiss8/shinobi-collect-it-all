@@ -123,16 +123,17 @@ PlazaPlan.pedestals = {
 	{ along = -44, side = 0, height = 6 },
 } :: { Pedestal }
 
--- The leaderboards (Services/Leaderboards): two boards in the plaza's front quarters, between
--- the lane's start and the notice board and training corner, FACING THE PLAZA, their backs to
--- the throwing strip (owner, 2026-10-18: they first faced the lane, "turn them round, they look
--- towards the throw"). Seen from the plaza, Ryo stands on the left and Chakra on the right. A
--- board is LEADERBOARD.wide across and its sheet LEADERBOARD.tall, standing LEADERBOARD.foot
--- off the ground between two posts under a beam.
+-- The leaderboards (Services/Leaderboards): two boards AT THE BACK of the plaza, either side of
+-- the walk to the back gate, between the well and the shrine and the cherry trees at the
+-- back, FACING THE PLAZA AND THE LANE, where the players are. (They stood in the front
+-- quarters at first, on the way home from a throw: "they get in the way; move them back, and
+-- turn them to the players", owner, 2026-10-18.) Seen from the fountain, Ryo stands on the
+-- left and Chakra on the right. A board is LEADERBOARD.wide across and its sheet
+-- LEADERBOARD.tall, standing LEADERBOARD.foot off the ground between two posts under a beam.
 PlazaPlan.LEADERBOARD = { wide = 15, tall = 12, foot = 2.2 }
 PlazaPlan.leaderboards = {
-	ryo = { along = -24, side = -36 },
-	chakra = { along = -24, side = 36 },
+	ryo = { along = -220, side = 36 },
+	chakra = { along = -220, side = -36 },
 } :: { [string]: Spot }
 
 -- Which way a shop looks out of its front, as a step along and a step across: at the fountain,

@@ -962,8 +962,9 @@ local function noticeBoard(folder: Folder, base: Vector3)
 end
 
 -- A leaderboard: a sheet of paper on a board of planks between two posts, under a red beam
--- with a gilt cap, facing the plaza (-X), its back to the lane. Hands back the sheet, whose face
--- towards the plaza the names are written on. Solid all over, like everything on the plaza.
+-- with a gilt cap, facing the lane (+X), so that from the back of the plaza it looks at the
+-- fountain and the lane. Hands back the sheet, whose face that way the names are written on.
+-- Solid all over, like everything on the plaza.
 local function leaderboard(folder: Folder, base: Vector3): Part
 	local plan = PlazaPlan.LEADERBOARD
 	local wide, tall, foot = plan.wide, plan.tall, plan.foot
@@ -990,7 +991,7 @@ local function leaderboard(folder: Folder, base: Vector3): Part
 		folder,
 		"LeaderSheet",
 		Vector3.new(0.12, tall - 0.9, wide - 0.9),
-		base + Vector3.new(-0.32, foot + tall / 2, 0),
+		base + Vector3.new(0.32, foot + tall / 2, 0),
 		PAPER
 	)
 	sheet.CastShadow = false

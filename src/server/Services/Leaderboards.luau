@@ -1,8 +1,7 @@
 --!strict
 -- The leaderboards on the plaza (owner, 2026-10-18: "leaderboards by Ryo and by Chakra on the
--- spawn, in a fitting place; me, of course, not on them"): two boards in the plaza's front
--- quarters, facing the plaza with their backs to the throwing strip (World/Plaza,
--- Logic/PlazaPlan `leaderboards`). Each names the ten players with the most Ryo,
+-- spawn, in a fitting place; me, of course, not on them"): two boards at the back of the plaza,
+-- facing the fountain and the lane (World/Plaza, Logic/PlazaPlan `leaderboards`). Each names the ten players with the most Ryo,
 -- or the most Chakra, they hold now, of everyone who has played, not only those on this
 -- server: the numbers are kept in a Roblox OrderedDataStore, so every server shows the same
 -- boards. What a rebirth takes off a player, it takes off their place too.
@@ -113,7 +112,7 @@ local function build(id: string, sheet: BasePart)
 	local board = BOARDS[id]
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "Leaderboard"
-	gui.Face = Enum.NormalId.Left
+	gui.Face = Enum.NormalId.Right
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = PIXELS
 	gui.LightInfluence = 1
