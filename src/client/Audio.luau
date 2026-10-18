@@ -50,6 +50,15 @@ local function asset(id: number): string
 	return `rbxassetid://{id}`
 end
 
+-- The group a sound of the game plays in ("Effects" or "Music"), for sounds made elsewhere
+-- (client Footsteps).
+function Audio.group(name: string): SoundGroup
+	return group(name)
+end
+
+-- How an effect's pitch is varied (Config/Sounds `vary`).
+local pitcher = Random.new()
+
 -- One Sound for each cue, made the first time it is played.
 local made: { [string]: Sound } = {}
 
@@ -80,16 +89,23 @@ function Audio.lead(cue: string): number
 	return if effect then effect.lead or 0 else 0
 end
 
--- Makes the sound of a moment. One that may overlap itself (ticks, presses) is played as a copy
--- while the last is still sounding; any other starts again.
-function Audio.play(cue: string)
+-- Makes the sound of a moment, `speed` times as high as it is set to be if given (the roulette's
+-- ticks climb). One that may overlap itself (ticks, presses) is played as a copy while the
+-- last is still sounding; any other starts again.
+function Audio.play(cue: string, speed: number?)
 	local sound = effectSound(cue)
 	if not sound then
 		return
 	end
 	local effect = EFFECTS[cue]
+	local pitch = (effect.speed or 1) * (speed or 1)
+	local vary = effect.vary
+	if vary and vary > 0 then
+		pitch *= 1 + pitcher:NextNumber(-vary, vary)
+	end
 	if sound.IsPlaying and effect.overlap then
 		local copy = sound:Clone()
+		copy.PlaybackSpeed = pitch
 		copy.Parent = SoundService
 		copy.Ended:Once(function()
 			copy:Destroy()
@@ -102,6 +118,7 @@ function Audio.play(cue: string)
 		copy:Play()
 		return
 	end
+	sound.PlaybackSpeed = pitch
 	sound.TimePosition = 0
 	sound:Play()
 end
@@ -173,11 +190,15 @@ local function trackSound(key: string, track: Sounds.Track): Sound
 	sound.Looped = not isVillage(key)
 	sound.SoundGroup = group("Music")
 	local from = track.from or 0
-	if from > 0 then
-		-- Played from the chosen moment, and looped back to it, never to the track's start.
+	local loopFrom = track.loopFrom or from
+	if from > 0 or track.to or track.loopFrom then
+		-- Played from the chosen moment, cut before a silent tail, and looped back to the
+		-- moment (or further back, `loopFrom`), never to the track's start. The region has to
+		-- take in where the loop goes back to; the start is set after Play (see start).
 		sound.PlaybackRegionsEnabled = true
-		sound.PlaybackRegion = NumberRange.new(from, THE_END)
-		sound.LoopRegion = NumberRange.new(from, THE_END)
+		local ends = track.to or THE_END
+		sound.PlaybackRegion = NumberRange.new(math.min(from, loopFrom), ends)
+		sound.LoopRegion = NumberRange.new(loopFrom, ends)
 	end
 	if isVillage(key) then
 		-- A village track played out: the playlist goes on (one on repeat loops and never ends).
@@ -190,6 +211,13 @@ local function trackSound(key: string, track: Sounds.Track): Sound
 	sound.Parent = SoundService
 	trackSounds[key] = sound
 	return sound
+end
+
+-- Starts a track at its chosen moment. The moment is set after Play: a region that begins before
+-- it (a loop that goes further back) would start the track at the region's beginning.
+local function start(sound: Sound, track: Sounds.Track)
+	sound:Play()
+	sound.TimePosition = track.from or 0
 end
 
 -- Turns a track's volume to `volume` over `seconds`, then does `after`, unless another fade of
@@ -275,10 +303,10 @@ local function setVillage(index: number?)
 			end
 		elseif sound and old == index then
 			local track = MUSIC.village[old]
-			sound.TimePosition = if track then track.from or 0 else 0
 			if not sound.IsPlaying then
 				sound:Play()
 			end
+			sound.TimePosition = if track then track.from or 0 else 0
 		end
 	end
 	told()
@@ -354,8 +382,7 @@ chooseMusic = function()
 	if sound.IsPaused then
 		sound:Resume()
 	elseif not sound.IsPlaying then
-		sound.TimePosition = track.from or 0
-		sound:Play()
+		start(sound, track)
 	end
 	fade(sound, MUSIC.volume * (track.volume or 1), seconds)
 end
@@ -446,8 +473,7 @@ function Audio.setPaused(on: boolean)
 			if sound.IsPaused then
 				sound:Resume()
 			elseif not sound.IsPlaying then
-				sound.TimePosition = track.from or 0
-				sound:Play()
+				start(sound, track)
 			end
 			fade(sound, MUSIC.volume * (track.volume or 1), PAUSE_FADE)
 		end
@@ -484,7 +510,16 @@ local NOTIFY: { [string]: string } = {
 	OfflineDoubled = "coins",
 	NotEnoughHerbs = "refuse",
 	NotEnoughRyo = "refuse",
+	HandsFull = "refuse",
+	NothingHeld = "refuse",
+	NotYourDojo = "refuse",
+	Merged = "merge",
+	FloorBuilt = "floor",
 }
+
+-- How long after coming home a shinobi put into the hands is the catch itself, seconds: that
+-- one is the run home's sound, not a pickup's.
+local HOME_HANDS = 1.5
 
 -- The sum of a table of counts.
 local function total(counts: { [string]: number }): number
@@ -536,7 +571,9 @@ function Audio.start()
 		chasedIn = run.zone
 		chooseMusic()
 	end)
+	local homeAt = -math.huge
 	Remotes.RunEnd.OnClientEvent:Connect(function(run: Net.RunEnd)
+		homeAt = os.clock()
 		if run.escaped then
 			Audio.play("home")
 		else
@@ -580,6 +617,15 @@ function Audio.start()
 		end
 		if state.herbs > before.herbs then
 			Audio.play("herbs")
+		end
+		-- A shinobi taken into the hands, or set down on a pad: the hands are empty and the
+		-- dojo earns more. Put away at a throw, the hands empty and nothing else changes.
+		if state.held and state.held ~= before.held then
+			if os.clock() - homeAt > HOME_HANDS then
+				Audio.play("pickup")
+			end
+		elseif before.held and not state.held and state.income > before.income then
+			Audio.play("place")
 		end
 		local had = total(before.stock) + total(before.premium)
 		local has = total(state.stock) + total(state.premium)

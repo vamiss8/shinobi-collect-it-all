@@ -24,8 +24,29 @@ return {
 			T.ok(speed > 0.25 and speed < 4, `{cue} plays at a strange speed`)
 			local lead = effect.lead or 0
 			T.ok(lead >= 0 and lead < 2, `{cue} is started at a strange time before its moment`)
+			local vary = effect.vary or 0
+			T.ok(vary >= 0 and vary <= 0.3, `{cue} is varied out of tune`)
 		end
 		T.ok(count >= 20, "the effects are missing")
+	end,
+
+	-- Every material named stands for a surface there is, and every surface has steps enough
+	-- to take turns.
+	["footsteps have a surface for every material named"] = function()
+		local steps = Sounds.steps
+		T.ok(steps.surfaces[steps.fallback] ~= nil, "the fallback surface is not there")
+		for material, surface in steps.materials do
+			T.ok(steps.surfaces[surface] ~= nil, `{material} steps on {surface}, no such surface`)
+		end
+		for name, surface in steps.surfaces do
+			T.ok(#surface.ids >= 2, `{name} has fewer than two steps to take turns`)
+			for _, id in surface.ids do
+				T.ok(isId(id), `{name} has a step that is no asset id`)
+			end
+			T.ok(surface.volume > 0 and surface.volume <= 1, `{name} steps are too loud or silent`)
+		end
+		T.ok(isId(steps.jump.id), "the jump has no asset id")
+		T.ok(steps.landing.volume >= 1 and steps.landing.speed > 0.5, "a landing is no landing")
 	end,
 
 	-- A cue is a plain word where it is played (client Audio.play): every word played is one of
@@ -38,7 +59,7 @@ return {
 				if fs.isDir(full) then
 					look(full)
 				elseif string.match(name, "%.luau$") then
-					for cue in string.gmatch(fs.readFile(full), 'Audio%.play%(%s*"(%w+)"%s*%)') do
+					for cue in string.gmatch(fs.readFile(full), 'Audio%.play%(%s*"(%w+)"') do
 						count += 1
 						T.ok(
 							(Sounds.effects :: any)[cue] ~= nil,
@@ -83,6 +104,13 @@ return {
 			T.ok(
 				from >= 0 and from <= track.length - 20,
 				`{where} starts {from} s into a track of {track.length} s`
+			)
+			local cut = track.to or track.length
+			T.ok(cut > from + 10 and cut <= track.length, `{where} is cut at {cut} s`)
+			local loopFrom = track.loopFrom or from
+			T.ok(
+				loopFrom >= 0 and loopFrom <= from,
+				`{where} loops back to {loopFrom} s, past its start`
 			)
 			local volume = track.volume or 1
 			T.ok(volume > 0 and volume <= 2, `{where} plays at a strange volume`)

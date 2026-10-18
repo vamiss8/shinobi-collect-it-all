@@ -18,6 +18,9 @@ export type Effect = {
 	volume: number?, -- 0.5 if not given; the player's Effects slider is over all of them
 	speed: number?, -- PlaybackSpeed, 1 if not given
 	overlap: boolean?, -- may play again while the last one still sounds (ticks, presses)
+	-- How much its pitch is varied at random each time it plays, as a share (0.08 is up to 8%
+	-- higher or lower), so that a sound heard over and over does not grate.
+	vary: number?,
 	-- How far into the sound its moment comes (the hit of an arrow that first flies in),
 	-- seconds: it is started that much before the moment, where its caller can (Audio.lead).
 	lead: number?,
@@ -34,8 +37,11 @@ export type Cue =
 	| "perfect" -- the power bar pressed in the Perfect band
 	| "throw" -- the kunai leaves the hand
 	| "land" -- the kunai strikes the ground
+	| "spin" -- the roulette begins to turn
 	| "tick" -- the roulette turns to the next shinobi
+	| "stop" -- the blow as the roulette stops, under "reveal"
 	| "reveal" -- the roulette stops on what was caught
+	| "rareHit" -- the blow as it stops on something rare, under "rare"
 	| "rare" -- it stopped on a mutation or on the rank above the zone's
 	| "enemy" -- the look at the zone's enemy begins
 	| "home" -- home safe with the catch
@@ -52,6 +58,10 @@ export type Cue =
 	| "speed" -- a level of run speed bought
 	| "stage" -- a new speed stage reached
 	| "pad" -- a pad bought
+	| "floor" -- a new floor of the dojo goes up
+	| "pickup" -- a shinobi taken into the hands
+	| "place" -- a shinobi set on a pad
+	| "merge" -- two shinobi merged into one
 	| "sell" -- shinobi sent on their last mission
 	| "potion" -- a potion into the pouch
 	| "drink" -- a potion drunk
@@ -62,42 +72,119 @@ export type Cue =
 local Sounds = {}
 
 Sounds.effects = {
-	click = { id = 15675032796, volume = 0.4, overlap = true }, -- Roblox_UI_Small_Click
-	window = { id = 15675037413, volume = 0.45 }, -- Roblox_UI_Paper_Swipe
-	refuse = { id = 9120888980, volume = 0.5 }, -- Wood Hits Board Impacts On Fence Post 7
-	announce = { id = 9117231544, volume = 0.5 }, -- Paper Scroll Unroll Handle 3
+	-- LOUDER THAN THEY WERE (owner, 2026-10-18: "with both sliders at the same level the steps
+	-- and some other effects simply cannot be heard"): the quiet ones are turned up, and the
+	-- music under them down (Sounds.music.volume). The kunai's hit and the run home were his
+	-- examples of good effects, "do not touch them", and are as they were.
+	click = { id = 15675032796, volume = 0.5, overlap = true }, -- Roblox_UI_Small_Click
+	window = { id = 15675037413, volume = 0.55 }, -- Roblox_UI_Paper_Swipe
+	refuse = { id = 9120888980, volume = 0.55 }, -- Wood Hits Board Impacts On Fence Post 7
+	announce = { id = 9117231544, volume = 0.6 }, -- Paper Scroll Unroll Handle 3
 
-	press = { id = 9120704978, volume = 0.45 }, -- Whooshes Fast Wipes Quick Airy Slices 3
-	perfect = { id = 9126073001, volume = 0.55 }, -- Synth Sparkle Tone High Pitch Bell Tone Ding
-	throw = { id = 9120972444, volume = 0.6 }, -- Wood Whoosh Slicing Air Quick Swings 1
+	press = { id = 9120704978, volume = 0.55 }, -- Whooshes Fast Wipes Quick Airy Slices 3
+	perfect = { id = 9126073001, volume = 0.6 }, -- Synth Sparkle Tone High Pitch Bell Tone Ding
+	throw = { id = 9120972444, volume = 0.65 }, -- Wood Whoosh Slicing Air Quick Swings 1
 	-- The arrow flies in for about half a second before it hits (owner, 2026-10-17: "the
 	-- kunai's sound comes about half a second after it lands"), so it is started so early.
 	land = { id = 9113161857, volume = 0.6, lead = 0.5 }, -- Arrow In And Hit 19
-	tick = { id = 9125916812, volume = 0.35, overlap = true }, -- Scrolling Graphic Clicks Small
-	reveal = { id = 9116394545, volume = 0.6 }, -- Magic Glows Soft Clusters Of Chiming Hits 1
-	rare = { id = 9116384485, volume = 0.65 }, -- Magic Burst 1
+	-- THE ROULETTE IS HEARD (owner, the same day: "the spin is not so noticeable and epic"):
+	-- an airy whirl as it sets off, a temple block's clack for every shinobi it turns to,
+	-- higher and higher as it slows (client Cinematic), and as it stops a deep blow under the
+	-- chime, a greater one under the burst for a rare catch. It was small clicks at 0.35.
+	spin = { id = 9119226670, volume = 0.6 }, -- Slow Whoosh Airy Rumble Slicing Spinning 1
+	tick = { id = 9120917861, volume = 0.6, overlap = true }, -- ... Soft Impacts On Temple Blocks 7
+	stop = { id = 9126009571, volume = 0.65 }, -- Subwoofer Impact Deep Rumbling Pops Booming
+	reveal = { id = 9116394545, volume = 0.65 }, -- Magic Glows Soft Clusters Of Chiming Hits 1
+	rareHit = { id = 9125404320, volume = 0.75 }, -- Boom Impact Deep Distant Thumping Hits
+	rare = { id = 9116384485, volume = 0.75 }, -- Magic Burst 1
 	enemy = { id = 9046413546, volume = 0.7 }, -- APM taiko sting "Gekido"
 	home = { id = 9046419161, volume = 0.6 }, -- APM taiko sting "Kyoso"
-	caught = { id = 9113502635, volume = 0.6 }, -- Body Hits 10
-	herbs = { id = 9114515381, volume = 0.4 }, -- Foliage Crunchy Rustle 4
+	caught = { id = 9113502635, volume = 0.65 }, -- Body Hits 10
+	herbs = { id = 9114515381, volume = 0.55 }, -- Foliage Crunchy Rustle 4
 
-	ring = { id = 9126071458, volume = 0.45, overlap = true }, -- Synth Sparkle Tone ... Burst
-	ringPerfect = { id = 9126073318, volume = 0.55, overlap = true }, -- ... Bell Tone Ding
-	ringMiss = { id = 9120888980, volume = 0.4 }, -- Wood Hits Board Impacts On Fence Post 7
-	bubble = { id = 17208204604, volume = 0.55, overlap = true }, -- Roblox GUI - Bubble
+	-- CHAKRA CONTROL IS SOFT (owner, the same day: "choose less biting ones, these begin to
+	-- annoy after a while"): they were high synth sparkles, heard every second or two. Now a
+	-- drop of water for a hit, a small temple bell for a Perfect and a muted pat for a miss,
+	-- each a little higher or lower every time.
+	-- Water Drip Cu Single Drips Constant 9 (Roblox's own)
+	ring = { id = 9120510269, volume = 0.55, overlap = true, vary = 0.1 },
+	-- Hand Bell Small Cast Iron Buddhist Temple Bell
+	ringPerfect = { id = 9125597331, volume = 0.4, overlap = true, vary = 0.04 },
+	ringMiss = { id = 9113531800, volume = 0.45, vary = 0.08 }, -- Body Pat Muted 1
+	bubble = { id = 17208204604, volume = 0.65, overlap = true }, -- Roblox GUI - Bubble
 
-	coins = { id = 9113849651, volume = 0.45, overlap = true }, -- Coin Throws 3
+	coins = { id = 9113849651, volume = 0.6, overlap = true }, -- Coin Throws 3
 	kunai = { id = 9119742466, volume = 0.6 }, -- Sword Draw Clang Unsheathing Two Sabers 1
 	speed = { id = 9126229255, volume = 0.5 }, -- Whoosh By Fast Airy Swooshing Whipping Thuds
 	stage = { id = 9046417006, volume = 0.6 }, -- APM taiko sting "Swing Shime"
-	pad = { id = 9113728625, volume = 0.5 }, -- Cash Register 1
-	sell = { id = 9113728049, volume = 0.5 }, -- Cash Register 2
-	potion = { id = 9113849492, volume = 0.45 }, -- Coins Or Keys Jingle 6
+	pad = { id = 9113728625, volume = 0.55 }, -- Cash Register 1
+	floor = { id = 9114753510, volume = 0.6 }, -- Hammer Hits Wood 3
+	pickup = { id = 9113818802, volume = 0.5, vary = 0.08 }, -- Cloth Flap 9
+	place = { id = 9113481039, volume = 0.5, vary = 0.06 }, -- Body Fall Wood 1
+	merge = { id = 9116421827, volume = 0.65 }, -- Magic Transformation 10
+	sell = { id = 9113728049, volume = 0.55 }, -- Cash Register 2
+	potion = { id = 9113849492, volume = 0.55 }, -- Coins Or Keys Jingle 6
 	drink = { id = 9114171855, volume = 0.55 }, -- Drinking Cu Gulping 2
 	pass = { id = 9047073049, volume = 0.6 }, -- APM "Japanese Tradition Sting 3"
 	rebirth = { id = 9114630316, volume = 0.7 }, -- Gong Hit Resonant Trail 1
 	event = { id = 9047072745, volume = 0.6 }, -- APM "Japanese Tradition Sting 2"
 } :: { [Cue]: Effect }
+
+-- FOOTSTEPS BY THE GROUND (owner, 2026-10-18: "the walking sounds are Roblox's stock ones,
+-- rather quiet and unclear, and do not depend on the surface"): client Footsteps silences
+-- Roblox's and plays these instead, for every character near the camera. The licensed
+-- libraries have hardly any plain human steps (ProSoundEffects' "footsteps" are dinosaurs,
+-- robots and spiders), so a step is a short blow on the ground it stands for: a stomp for
+-- stone, a muted knock for wood, an object set down on grass, rock on earth, sand, snow, a
+-- small puddle. MY CANDIDATES, not heard: a surface whose steps he dislikes takes other ids.
+export type Surface = {
+	ids: { number }, -- one step each, picked at random and never the same twice running
+	volume: number, -- a step at a run; a walk is a little softer
+	speed: number?, -- PlaybackSpeed, 1 if not given
+}
+
+Sounds.steps = {
+	jump = { id = 9114890978, volume = 0.45 }, -- Jump Swish 1
+	-- A landing is a step of the ground landed on, this many times as loud and as high.
+	landing = { volume = 1.5, speed = 0.82 },
+	-- The surface of any material not named below.
+	fallback = "stone",
+	surfaces = {
+		-- Tip Toe Of Object Onto Grass 1, 7, 14, 22
+		grass = { ids = { 9120062559, 9120062862, 9120063311, 9120063929 }, volume = 0.85 },
+		-- Rock Hit Dirt Impact 14, 15, 16, 20
+		earth = { ids = { 9118598279, 9118598469, 9118598470, 9118598729 }, volume = 0.6 },
+		-- Sand Impacts 4, 5, 7, 8
+		sand = { ids = { 9118768256, 9118768193, 9118768545, 9118768535 }, volume = 0.7 },
+		-- Wood Grab Muted Thuds 14, 15, 17, 23
+		wood = { ids = { 9120880063, 9120880067, 9120880314, 9120880755 }, volume = 0.7 },
+		-- Foot Stomp 1, 2, 3, 5
+		stone = { ids = { 9114523161, 9114523351, 9114523345, 9114523636 }, volume = 0.5 },
+		-- Snowball Hits Lands Semi-Deep Snow 3, 6, 8, 9
+		snow = { ids = { 9119310368, 9119310649, 9119310905, 9119310903 }, volume = 0.6 },
+		-- Puddle Impact Small Footsteps 1, 2, 3, 7
+		water = { ids = { 9117942768, 9117943121, 9117943083, 9117943465 }, volume = 0.55 },
+	} :: { [string]: Surface },
+	-- The surface of a material, by the name of its Enum.Material.
+	materials = {
+		Grass = "grass",
+		LeafyGrass = "grass",
+		Fabric = "grass",
+		Carpet = "grass",
+		Ground = "earth",
+		Mud = "earth",
+		Pebble = "earth",
+		Sand = "sand",
+		Sandstone = "sand",
+		Salt = "sand",
+		Wood = "wood",
+		WoodPlanks = "wood",
+		Cardboard = "wood",
+		Snow = "snow",
+		Glacier = "snow",
+		Water = "water",
+	} :: { [string]: string },
+}
 
 -- A piece of music: an asset of the Creator Store's licensed libraries (APM's, free in any
 -- game), its name as the store gives it (the music window shows it), the moment it starts at,
@@ -107,6 +194,12 @@ export type Track = {
 	id: number,
 	name: string,
 	from: number?, -- seconds into the track at which it starts, 0 if not given
+	-- Where the track is cut, seconds: before a silent tail it ends on, which a loop would
+	-- otherwise play through. Its end if not given.
+	to: number?,
+	-- Where a loop goes back to, seconds, if not to `from`: further back, so that a short
+	-- stretch after the chosen moment is not heard over and over.
+	loopFrom: number?,
 	volume: number?, -- times Sounds.music.volume, 1 if not given
 	length: number, -- seconds, as the Creator Store gives it
 }
@@ -127,7 +220,8 @@ export type Track = {
 -- events' are MY CANDIDATES, chosen by what the store says of them, since I cannot hear them.
 -- To hear one outside the game: create.roblox.com/store/asset/<id>.
 Sounds.music = {
-	volume = 0.5,
+	-- 0.5 until the effects were found to be lost under it at the same slider (2026-10-18).
+	volume = 0.4,
 	-- How long one track gives way to another, seconds.
 	crossfade = 1.5,
 	-- How fast a zone's track comes in when a chase begins, so that its drop is not faded under.
@@ -162,7 +256,17 @@ Sounds.music = {
 		hidden_sand = { id = 1839958713, name = "Desert Trap b", from = 58, length = 137 },
 		akatsuki_lair = { id = 9039697342, name = "Much Fear", from = 121, length = 170 },
 		hidden_rain = { id = 9042149619, name = "Piano Reflections (a)", from = 83, length = 246 },
-		kamui_dimension = { id = 9040021529, name = "Subterranean World", from = 75, length = 102 },
+		-- After 1:15 the track has 27 s, and it ends in about 5 s of silence (owner, 2026-10-18:
+		-- "it ends very soon, then silence for 5 seconds, then it begins again"): cut at 1:35,
+		-- and looped back to 0:45, where the store says its tense part begins.
+		kamui_dimension = {
+			id = 9040021529,
+			name = "Subterranean World",
+			from = 75,
+			to = 95,
+			loopFrom = 45,
+			length = 102,
+		},
 		great_ninja_war = { id = 1835322993, name = "Purge the Darkness", from = 30, length = 190 },
 	} :: { [string]: Track },
 	events = {
