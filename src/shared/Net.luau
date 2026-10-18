@@ -36,6 +36,8 @@ Net.Events = {
 	Rebirth = "Rebirth", -- client -> server: do the next rebirth (no payload)
 	Upgrade = "Upgrade", -- client -> server: the console button (a Part) the player pressed
 	Upgraded = "Upgraded", -- server -> all clients: Upgraded, a shinobi on a pad was levelled up
+	-- server -> client: "place" or "take", a shinobi this player set on a pad or took off one
+	Placed = "Placed",
 	Sell = "Sell", -- client -> server: list of unit ids to sell out of the inventory
 	Notify = "Notify", -- server -> client: a key from client/Strings plus format arguments
 	Offline = "Offline", -- server -> client: Offline, once, when a returning player's save loads

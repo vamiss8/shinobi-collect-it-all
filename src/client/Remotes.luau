@@ -36,6 +36,7 @@ return {
 	Rebirth = event(Net.Events.Rebirth),
 	Upgrade = event(Net.Events.Upgrade),
 	Upgraded = event(Net.Events.Upgraded),
+	Placed = event(Net.Events.Placed),
 	Sell = event(Net.Events.Sell),
 	Notify = event(Net.Events.Notify),
 	Offline = event(Net.Events.Offline),

@@ -291,10 +291,12 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 		-- Place the held unit.
 		data.pads[key] = held
 		Inventory.hold(player, nil)
+		Remotes.Placed:FireClient(player, "place")
 	elseif onPad and not held then
 		-- Take the unit off the pad. It goes into the inventory, not into the player's hands,
 		-- so clearing several pads is one press each.
 		data.pads[key] = nil
+		Remotes.Placed:FireClient(player, "take")
 	elseif onPad and held then
 		local heldUnit, padUnit = data.units[held], data.units[onPad]
 		if Economy.canMerge(heldUnit, padUnit) then
@@ -307,6 +309,7 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 			-- Swap: the held unit goes on the pad, the pad's unit into the inventory.
 			data.pads[key] = held
 			Inventory.hold(player, nil)
+			Remotes.Placed:FireClient(player, "place")
 		end
 	end
 
