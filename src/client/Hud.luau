@@ -341,26 +341,25 @@ function Hud.start()
 	-- where this column stands. So the column makes way too, to just above Ryo, and comes
 	-- back when the slider shuts. (A touch screen has no such column.)
 	if not touch then
+		-- It also never runs down into Ryo when it has more tiles than the middle of the edge
+		-- holds (owner, 2026-10-18: his Dev tile, the third, lay on the Ryo readout).
 		local function makeWay()
-			local goal = UDim2.new(0, 12, 0.5, 0)
+			local tall = left.AbsoluteSize.Y / Ui.scale()
+			-- From the foot of the Chakra readout up to the top of Ryo.
+			local stacked = CHAKRA_HEIGHT + READOUT_GAP + RYO_HEIGHT
 			if slider.Visible then
-				local tall = left.AbsoluteSize.Y / Ui.scale()
-				-- From the foot of the Chakra readout up to the top of Ryo.
-				local stacked = CHAKRA_HEIGHT
-					+ READOUT_GAP
-					+ slider.Size.Y.Offset
-					- slider.Position.Y.Offset
-					+ RYO_HEIGHT
-				local room = Ui.room().Y
-				local ryoTop = room * chakraBottom.Scale + chakraBottom.Offset - stacked
-				local foot = ryoTop - READOUT_GAP
-				if foot - tall < READOUT_GAP then
-					-- A short window has no room over Ryo: the column stands beside the
-					-- readouts instead.
-					goal = UDim2.new(0, 12 + READOUT_WIDTH + READOUT_GAP, 0.5, 0)
-				else
-					goal = UDim2.fromOffset(12, math.min(room / 2 + tall / 2, foot) - tall / 2)
-				end
+				stacked += slider.Size.Y.Offset - slider.Position.Y.Offset
+			end
+			local room = Ui.room().Y
+			local ryoTop = room * chakraBottom.Scale + chakraBottom.Offset - stacked
+			local foot = ryoTop - READOUT_GAP
+			local goal
+			if foot - tall < READOUT_GAP then
+				-- A short window has no room over Ryo: the column stands beside the readouts
+				-- instead.
+				goal = UDim2.new(0, 12 + READOUT_WIDTH + READOUT_GAP, 0.5, 0)
+			else
+				goal = UDim2.fromOffset(12, math.min(room / 2 + tall / 2, foot) - tall / 2)
 			end
 			TweenService:Create(
 				left,
