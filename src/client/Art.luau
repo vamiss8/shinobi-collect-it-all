@@ -123,6 +123,32 @@ Art.events = {
 -- The achievements' pictures (Config/Achievements), by the achievement's id, each a whole
 -- round badge that takes the drawn seal's place (Icons.achievement), the same pictures as the
 -- Roblox badges: assets/icons/ach_<id>.png. 0 or none: drawn.
-Art.achievements = {} :: { [string]: number }
+Art.achievements = {
+	throws = 128067569029139,
+	home = 85365015237455,
+	caught = 123599331167284,
+	perfect = 106567340246168,
+	sage = 92484377660583,
+	zone = 86896292103420,
+	found = 118076204590887,
+	pages = 139076634550853,
+	mutations = 103277821140538,
+	events = 100611547056303,
+	six_paths = 70772824350307,
+	merges = 97822825385846,
+	stars = 84379213154018,
+	upgrades = 119207724809691,
+	top_level = 83944530232254,
+	pads = 126518204362662,
+	kunai = 104954275614485,
+	speed = 85809932362256,
+	chakra = 72785019587447,
+	income = 73827264278106,
+	rebirths = 85201269231215,
+	ring = 81768999227144,
+	seals = 131386294272362,
+	potions = 78813936751556,
+	sent = 121866834269927,
+} :: { [string]: number }
 
 return Art
