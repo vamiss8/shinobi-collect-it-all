@@ -284,6 +284,18 @@ local function lonePart(parent: Instance, color: Color3): Part
 	return part
 end
 
+-- A point of the trail laid on what is under it: the plaza, the dojo's raised floor, a step;
+-- looked for a little above and below where the straight line puts it.
+local settleParams = RaycastParams.new()
+settleParams.FilterType = Enum.RaycastFilterType.Exclude
+settleParams.RespectCanCollide = true
+local function settle(at: Vector3): Vector3
+	local character = Players.LocalPlayer.Character
+	settleParams.FilterDescendantsInstances = if character then { character } else {}
+	local hit = Workspace:Raycast(at + Vector3.new(0, 3, 0), Vector3.new(0, -6, 0), settleParams)
+	return if hit then Vector3.new(at.X, hit.Position.Y, at.Z) else at
+end
+
 -- A trail of blinking chevrons from the player's feet straight to `target`, laid anew every
 -- frame from where the player stands, the light running along it away from them (owner,
 -- 2026-10-19: "a blinking arrow coming out of the character to the object"; then "long, all the
@@ -316,8 +328,17 @@ local function trailTo(target: BasePart)
 		if state.up and root and root:IsA("BasePart") then
 			local lift = root.Size.Y / 2 + (if humanoid then humanoid.HipHeight else 2)
 			local feet = root.Position - Vector3.new(0, lift, 0)
-			-- From the feet straight to the foot of the place.
-			local base = target.Position.Y - target.Size.Y / 2
+			-- From the feet straight to the foot of the place. A part's foot is reckoned in the
+			-- world, by how it is turned: a pad's seal is a cylinder lying on its side, whose
+			-- Size.Y is its breadth, and the trail ran down into the ground towards it, under
+			-- the plaza and the dojo's floor (owner, 2026-10-19: "walking to the pads in the
+			-- tutorial, the arrows do not work").
+			local turned = target.CFrame
+			local half = target.Size / 2
+			local reach = math.abs(turned.RightVector.Y) * half.X
+				+ math.abs(turned.UpVector.Y) * half.Y
+				+ math.abs(turned.LookVector.Y) * half.Z
+			local base = target.Position.Y - reach
 			local line: { Vector3 } = {
 				feet,
 				Vector3.new(target.Position.X, math.min(base, feet.Y + 2), target.Position.Z),
@@ -329,7 +350,8 @@ local function trailTo(target: BasePart)
 				local flat = (b - a) * Vector3.new(1, 0, 1)
 				while along <= walked + span and laid < TRAIL_MOST do
 					if flat.Magnitude > 0.05 then
-						local tip = a:Lerp(b, (along - walked) / span) + Vector3.new(0, 0.14, 0)
+						local tip = settle(a:Lerp(b, (along - walked) / span))
+							+ Vector3.new(0, 0.14, 0)
 						local frame = CFrame.lookAt(tip, tip + flat.Unit)
 						laid += 1
 						local wave = (math.sin(os.clock() * TRAIL_RUN - laid * 0.55) + 1) / 2
