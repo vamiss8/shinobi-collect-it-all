@@ -38,6 +38,7 @@ return {
 	Upgraded = event(Net.Events.Upgraded),
 	GroupGift = event(Net.Events.GroupGift),
 	Achievement = event(Net.Events.Achievement),
+	ClaimAchievement = event(Net.Events.ClaimAchievement),
 	Placed = event(Net.Events.Placed),
 	Sell = event(Net.Events.Sell),
 	Notify = event(Net.Events.Notify),

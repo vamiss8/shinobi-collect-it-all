@@ -35,7 +35,7 @@ local ROOM = CARD - 48
 local HEAD_SIZE = 24
 local BODY_SIZE = 20
 -- How many questions there are: FaqQ1 and FaqA1 to FaqQn and FaqAn in the packs.
-local QUESTIONS = 11
+local QUESTIONS = 12
 
 -- A page: "faq", "news" or "chances".
 export type Page = string

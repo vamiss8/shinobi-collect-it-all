@@ -629,6 +629,8 @@ local NOTIFY: { [string]: string } = {
 	NotYourDojo = "refuse",
 	Merged = "merge",
 	GroupGiftClaimed = "pass",
+	AchievementClaimed = "herbs",
+	AchievementClaimedPotions = "herbs",
 	FloorBuilt = "floor",
 }
 
