@@ -907,7 +907,7 @@ local function noticeBoard(folder: Folder, base: Vector3)
 			wood
 		)
 	end
-	Build.part(
+	local board = Build.part(
 		folder,
 		"NoticeBoard",
 		Vector3.new(wide, tall, 0.5),
@@ -915,6 +915,16 @@ local function noticeBoard(folder: Folder, base: Vector3)
 		WOOD,
 		Enum.Material.WoodPlanks
 	)
+	-- Read, it opens the window of the board: the questions, what is new, the chances (client
+	-- InfoPanel, which finds the prompt by its tag).
+	local read = Instance.new("ProximityPrompt")
+	read.ActionText = "Read"
+	read.ObjectText = "Notice board"
+	read.HoldDuration = 0
+	read.MaxActivationDistance = 12
+	read.RequiresLineOfSight = false
+	read:AddTag(Net.INFO_TAG)
+	read.Parent = board
 	roof(folder, base + UP * (tall + 4.4), wide + 2.4, 1.8, 1.2, false, LACQUER)
 
 	-- The board is read from both sides. A paper's place is given as whoever reads it sees

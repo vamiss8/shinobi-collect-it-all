@@ -29,6 +29,7 @@ local Audio = require("./Audio")
 local Fonts = require("./Fonts")
 local Hud = require("./Hud")
 local Icons = require("./Icons")
+local InfoPanel = require("./InfoPanel")
 local Language = require("./Language")
 local Languages = require(ReplicatedStorage.Shared.Config.Languages)
 local Net = require(ReplicatedStorage.Shared.Net)
@@ -39,7 +40,7 @@ local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 720)
+local SIZE = Vector2.new(760, 790)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
@@ -430,6 +431,34 @@ function SettingsPanel.start()
 	end
 
 	-- The village's music: a small player.
+	-- Help: the notice board's window, opened on each of its pages (client InfoPanel; owner,
+	-- 2026-10-18: "the FAQ and the changelog on the notice board and also in the settings").
+	local helpTop = 5 * (ROW + ROW_GAP) + PLAYER.Y + ROW_GAP
+	Ui.text(body, {
+		Position = UDim2.fromOffset(0, helpTop),
+		Size = UDim2.fromOffset(LABEL, ROW),
+		TextSize = 28,
+		TextColor3 = Ui.PARCHMENT,
+		Text = Strings.get("SettingsHelp"),
+	})
+	local helps: { { page: any, words: string } } = {
+		{ page = "faq", words = Strings.get("InfoFaq") },
+		{ page = "news", words = Strings.get("InfoNews") },
+		{ page = "chances", words = Strings.get("InfoChances") },
+	}
+	for index, help in helps do
+		local button = Ui.button(body, {
+			Position = UDim2.fromOffset(CONTROL + (index - 1) * 162, helpTop + (ROW - STEP) / 2),
+			Size = UDim2.fromOffset(150, STEP),
+			BackgroundColor3 = Ui.CARD,
+			TextSize = 22,
+			Text = help.words,
+		})
+		button.Activated:Connect(function()
+			InfoPanel.open(help.page)
+		end)
+	end
+
 	local playerTop = row(6, "MusicTitle")
 	local player = Ui.make("Frame", {
 		Position = UDim2.fromOffset(CONTROL, playerTop),
