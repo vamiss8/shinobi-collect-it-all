@@ -1,12 +1,13 @@
 --!strict
--- The daily reward's window (Config/Daily, Logic/Daily, Services/Daily): the week's seven days
+-- The daily reward's page (Config/Daily, Logic/Daily, Services/Daily): the week's seven days
 -- down a list that scrolls, a row each with what it gives, those claimed stamped, today's in
 -- gold; a Claim button, or how long until the next one. A row a day and large words, not
 -- seven narrow cards (owner, 2026-10-19, a screenshot: "the text is very small, nothing can be
 -- seen; better let the menu scroll and the text be larger"). It opens by itself once a day when a reward waits (not
--- during the base tutorial: after it), and a tile in the left column opens it at any time,
--- with a "!" while one waits (owner, 2026-10-19: "I found nowhere to open it": the tile used
--- to be there only while a reward waited). MY LOOK AND PLACES, told to the owner.
+-- during the base tutorial: after it). IT IS A PAGE OF THE AWARDS WINDOW (client
+-- AchievementsPanel), beside the achievements, with no tile of its own (owner, 2026-10-19:
+-- "take daily into awards, two sub-menus, achievements and daily; with a '!', show at the top
+-- in which of them something waits"). MY LOOK, told to the owner.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,7 +15,6 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Days = require(ReplicatedStorage.Shared.Config.Daily)
 local Guide = require("./Guide")
 local GuideConfig = require(ReplicatedStorage.Shared.Config.Guide)
-local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
@@ -26,7 +26,6 @@ local DailyPanel = {}
 
 type Config = Days.Day
 
-local SIZE = Vector2.new(940, 660)
 local HINT_SIZE = 22
 local LIST_TOP = 72
 local FOOT = 86
@@ -81,22 +80,29 @@ end
 
 type Card = { frame: Frame, edge: UIStroke, stamp: TextLabel, head: TextLabel, gift: TextLabel }
 
-function DailyPanel.start()
-	local window = Ui.window("Daily", SIZE)
-	window.title.Text = Strings.get("DailyTitle")
-	local body = window.body
+-- The page as the Awards window works it: whether a reward waits, and the list scrolled to
+-- today's row.
+export type Page = {
+	ready: () -> boolean,
+	toToday: () -> (),
+}
 
-	local tile, mark =
-		Hud.sideButton(Strings.get("DailyButton"), Ui.GOLD, Icons.coin, true, "daily")
-	tile.LayoutOrder = 0
-	mark.Text = "!"
-	mark.Visible = false
-
+-- Builds the page into `body`, `wide` layout pixels across. `shown` says whether the page is
+-- in sight (the wait is counted down while it is); `changed` is called whenever whether a
+-- reward waits may have changed (the "!" marks); `due` once a visit, when a reward waits and
+-- the base tutorial is behind the player: the Awards window opens on this page.
+function DailyPanel.build(
+	body: Frame,
+	wide: number,
+	shown: () -> boolean,
+	changed: () -> (),
+	due: () -> ()
+): Page
 	Ui.text(body, {
 		Size = UDim2.new(1, 0, 0, LIST_TOP - 8),
 		TextSize = HINT_SIZE,
 		TextColor3 = Ui.MUTED,
-		Text = Ui.lines(Strings.get("DailyHint"), HINT_SIZE, SIZE.X - 60),
+		Text = Ui.lines(Strings.get("DailyHint"), HINT_SIZE, wide - 30),
 	})
 
 	-- The week, a row a day, in a list that scrolls.
@@ -207,7 +213,6 @@ function DailyPanel.start()
 		streak.Text = Strings.get("DailyStreak", tostring(math.max(known.streak, 0)))
 		claim.Visible = known.ready
 		waitLabel.Visible = not known.ready
-		mark.Visible = known.ready
 		if not known.ready then
 			local remaining = math.max(known.wait - (os.clock() - heard), 0)
 			waitLabel.Text = Strings.get("DailyNext", Strings.duration(remaining))
@@ -221,16 +226,12 @@ function DailyPanel.start()
 			list.CanvasPosition = Vector2.new(0, math.max(known.day - 2, 0) * (ROW.Y + ROW_GAP))
 		end
 	end
-	tile.Activated:Connect(function()
-		window.toggle()
-		toToday()
-	end)
-
 	local opened = false
 	Store.onChange(function(snapshot: Net.Snapshot)
 		daily = snapshot.daily
 		heard = os.clock()
 		draw()
+		changed()
 		-- Once a visit, when a reward waits and the base tutorial is behind the player.
 		if
 			not opened
@@ -240,7 +241,7 @@ function DailyPanel.start()
 			and not Ui.windowOpen()
 		then
 			opened = true
-			window.open()
+			due()
 			toToday()
 			Guide.tip("daily")
 		end
@@ -248,11 +249,19 @@ function DailyPanel.start()
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			if window.isOpen() then
+			if shown() then
 				draw()
 			end
 		end
 	end)
+
+	return {
+		ready = function(): boolean
+			local known = daily
+			return known ~= nil and known.ready
+		end,
+		toToday = toToday,
+	}
 end
 
 return DailyPanel

@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Audio = require("./Audio")
+local DailyPanel = require("./DailyPanel")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Hud = require("./Hud")
@@ -29,7 +30,10 @@ local Ui = require("./Ui")
 
 local AchievementsPanel = {}
 
-local SIZE = Vector2.new(900, 720)
+local SIZE = Vector2.new(960, 760)
+-- The two pages' tabs at the window's top.
+local TABS_TALL = 54
+local TAB_WIDE = 300
 local LIST_TOP = 60
 local ROW = Vector2.new(840, 112)
 local RING = 86
@@ -104,16 +108,108 @@ end
 
 function AchievementsPanel.start()
 	local window = Ui.window("Achievements", SIZE)
-	window.title.Text = Strings.get("AchievementsTitle")
-	local body = window.body
+	window.title.Text = Strings.get("AchievementsButton")
+	local whole = window.body
 
 	local tile, mark =
-		Hud.sideButton(Strings.get("AchievementsButton"), Ui.GREEN, Icons.award, true)
+		Hud.sideButton(Strings.get("AchievementsButton"), Ui.GREEN, Icons.award, true, "awards")
 	tile.LayoutOrder = 1
 	mark.Text = "!"
 	mark.Visible = false
+
+	-- Two pages under two tabs (owner, 2026-10-19: "take daily into awards, two sub-menus,
+	-- achievements and daily; with a '!', show at the top in which of them something waits"):
+	-- the achievements and the daily reward (client DailyPanel), a red "!" on the tab of each
+	-- that has something to claim.
+	type Tab = { button: TextButton, mark: TextLabel, page: Frame }
+	local tabs: { [string]: Tab } = {}
+	local current = "achievements"
+	for index, name in { "achievements", "daily" } do
+		local page: Frame = Ui.make("Frame", {
+			Position = UDim2.fromOffset(0, TABS_TALL + 12),
+			Size = UDim2.new(1, 0, 1, -TABS_TALL - 12),
+			BackgroundTransparency = 1,
+			Visible = index == 1,
+		}, whole)
+		local tabButton = Ui.button(whole, {
+			Position = UDim2.fromOffset((index - 1) * (TAB_WIDE + 14), 0),
+			Size = UDim2.fromOffset(TAB_WIDE, TABS_TALL),
+			BackgroundColor3 = Ui.CARD,
+			TextSize = 26,
+			Text = Strings.get(if name == "daily" then "DailyTitle" else "AchievementsTitle"),
+		})
+		local tabMark = Ui.text(tabButton, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -6, 0, 6),
+			Size = UDim2.fromOffset(30, 30),
+			BackgroundColor3 = Ui.SEAL,
+			BackgroundTransparency = 0,
+			TextSize = 20,
+			TextColor3 = Ui.PARCHMENT,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = "!",
+			Visible = false,
+			ZIndex = 5,
+		})
+		Ui.corner(tabMark, 15)
+		tabs[name] = { button = tabButton, mark = tabMark, page = page }
+	end
+	local function showPage(name: string)
+		current = name
+		for each, tab in tabs do
+			tab.page.Visible = each == name
+			tab.button.BackgroundColor3 = if each == name then Ui.GOLD else Ui.CARD
+			tab.button.TextColor3 = if each == name then Ui.INK else Ui.PARCHMENT
+		end
+	end
+	showPage("achievements")
+	local body = tabs.achievements.page
+
+	-- Whether something waits to be claimed on each page, and so on the tile.
+	local achievementsWaiting = false
+	local daily: DailyPanel.Page? = nil
+	local function marks()
+		local dailyWaiting = daily ~= nil and daily.ready()
+		tabs.achievements.mark.Visible = achievementsWaiting
+		tabs.daily.mark.Visible = dailyWaiting
+		mark.Visible = achievementsWaiting or dailyWaiting
+	end
+	daily = DailyPanel.build(
+		tabs.daily.page,
+		SIZE.X - 32,
+		function(): boolean
+			return window.isOpen() and current == "daily"
+		end,
+		marks,
+		function()
+			showPage("daily")
+			window.open()
+		end
+	)
+	for name, tab in tabs do
+		tab.button.Activated:Connect(function()
+			showPage(name)
+			if name == "daily" and daily then
+				daily.toToday()
+			end
+		end)
+	end
+	-- The tile opens the window on the page that has something waiting, else on the last one.
 	tile.Activated:Connect(function()
-		window.toggle()
+		if window.isOpen() then
+			window.close()
+			return
+		end
+		local dailyWaiting = daily ~= nil and daily.ready()
+		if achievementsWaiting then
+			showPage("achievements")
+		elseif dailyWaiting then
+			showPage("daily")
+		end
+		window.open()
+		if current == "daily" and daily then
+			daily.toToday()
+		end
 	end)
 
 	local total = Ui.text(body, {
@@ -332,7 +428,8 @@ function AchievementsPanel.start()
 		end
 		total.Text = Strings.get("AchievementsCount", tostring(reachedAll), tostring(tiersAll))
 		claimAll.Visible = waiting
-		mark.Visible = waiting
+		achievementsWaiting = waiting
+		marks()
 	end
 	Store.onChange(draw)
 
