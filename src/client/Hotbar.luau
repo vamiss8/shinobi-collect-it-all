@@ -241,6 +241,7 @@ function Hotbar.start()
 	local toolSlots: { Slot } = {}
 	for index, tool in TOOLS do
 		local slot = makeSlot(bar, index, (index - 1) * (SLOT + GAP))
+		Ui.target(`slot{index}`, slot.button)
 		tool.icon(slot.content)
 		slot.button.Activated:Connect(function()
 			toggleTool(tool.name)
@@ -359,8 +360,13 @@ function Hotbar.start()
 		end
 	end)
 
-	-- Presses the slot of that number, as its key or a click does.
+	-- Presses the slot of that number, as its key or a click does; pressed by a key or a
+	-- gamepad, the slot dips and is heard as under a click (Ui.pressed).
 	local function press(number: number)
+		local slot = if number <= #TOOLS then toolSlots[number] else quickSlots[number - #TOOLS]
+		if slot then
+			Ui.pressed(slot.button)
+		end
 		if number <= #TOOLS then
 			toggleTool(TOOLS[number].name)
 		else

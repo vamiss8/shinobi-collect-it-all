@@ -552,6 +552,31 @@ local function enliven(button: TextButton)
 	end)
 end
 
+-- A button of Ui.button pressed some other way than by the pointer (a key, a gamepad): it
+-- dips and springs back as under a click, and the press is heard, if it does something (owner,
+-- 2026-10-19: "let keys 1 and 2 act as if pressed with the mouse: the animation, the sound").
+function Ui.pressed(button: GuiButton)
+	if not button.AutoButtonColor then
+		return
+	end
+	local scale = button:FindFirstChild("Press")
+	if scale and scale:IsA("UIScale") then
+		TweenService:Create(
+			scale,
+			TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Scale = PRESSED }
+		):Play()
+		task.delay(0.09, function()
+			TweenService:Create(
+				scale,
+				TweenInfo.new(0.26, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1 }
+			):Play()
+		end)
+	end
+	Audio.play("click")
+end
+
 -- Has a button spring up from small, `after` seconds from now: for a page of them that has
 -- just been turned to. (It plays on the same scale a press does.)
 function Ui.popIn(button: GuiObject, after: number)
