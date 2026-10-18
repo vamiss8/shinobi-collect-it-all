@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Pouch = require(ReplicatedStorage.Shared.Logic.Pouch)
 local Progress = require(ReplicatedStorage.Shared.Logic.Achievements)
@@ -77,6 +78,7 @@ local function check(player: Player, quiet: boolean)
 			data.achievements[achievement.id] = tier
 			if not quiet then
 				Remotes.Achievement:FireClient(player, achievement.id, tier)
+				Analytics.event(player, "Achievement", 1, achievement.id, tostring(tier))
 			end
 			award(player, achievement.id, tier)
 		end
@@ -112,6 +114,15 @@ local function claim(player: Player, which: unknown)
 	if herbs == 0 and potions == 0 then
 		return
 	end
+	Analytics.economy(
+		player,
+		true,
+		"Herbs",
+		herbs,
+		data.herbs,
+		Enum.AnalyticsEconomyTransactionType.Gameplay,
+		"Achievement"
+	)
 	if potions > 0 then
 		State.notify(player, "AchievementClaimedPotions", herbs, potions)
 	else

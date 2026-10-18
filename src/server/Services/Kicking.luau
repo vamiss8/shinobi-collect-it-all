@@ -23,6 +23,7 @@ local Workspace = game:GetService("Workspace")
 local Animations = require(ReplicatedStorage.Shared.Config.Animations)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Chase = require(ReplicatedStorage.Shared.Logic.Chase)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local EnemyMoves = require("./EnemyMoves")
@@ -146,6 +147,15 @@ local function endRun(player: Player, escaped: boolean)
 		Inventory.hold(player, Inventory.add(player, data, unit))
 		herbs = run.herbs
 		data.herbs += herbs
+		Analytics.economy(
+			player,
+			true,
+			"Herbs",
+			herbs,
+			data.herbs,
+			Enum.AnalyticsEconomyTransactionType.Gameplay,
+			"Catch"
+		)
 		-- Whether a twin of it stands on a pad: then the arrival says it is ready to merge.
 		twin = #Economy.twinPads(unit, data.units, data.pads) > 0
 		isNew = Index.record(data.found, unit.character, unit.mutation)
@@ -161,6 +171,16 @@ local function endRun(player: Player, escaped: boolean)
 		end
 	end
 	data.ryo += reward
+	Analytics.economy(
+		player,
+		true,
+		"Ryo",
+		reward,
+		data.ryo,
+		Enum.AnalyticsEconomyTransactionType.Gameplay,
+		if escaped then "Discovery" else "Consolation"
+	)
+	Analytics.event(player, "Run", 1, if escaped then "Home" else "Caught", run.zone.id)
 
 	local payload: Net.RunEnd = {
 		escaped = escaped,
@@ -331,6 +351,14 @@ local function press(player: Player, claimed: unknown)
 		multipliers.mutationLuck * spinLuck,
 		Events.current(),
 		roll
+	)
+	Analytics.event(
+		player,
+		"Throw",
+		1,
+		result.grade,
+		drop.zone,
+		if result.sage then "Sage" else nil
 	)
 	-- What the throw will pay in Herbs, by the zone it lands in and the press (Tuning.Herbs):
 	-- paid when the catch is brought home (endRun), not now.

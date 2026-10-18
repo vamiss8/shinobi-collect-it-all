@@ -14,6 +14,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Dojo = require("./Dojo")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -41,6 +42,7 @@ local function rebirth(player: Player)
 	end
 
 	Rebirths.apply(data)
+	Analytics.event(player, "Rebirth", 1, tostring(data.rebirths))
 
 	-- The shinobi are gone: out of the hands, off the pads, out of the inventory's window.
 	Inventory.hold(player, nil)

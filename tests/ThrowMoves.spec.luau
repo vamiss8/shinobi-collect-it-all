@@ -107,7 +107,10 @@ local function fixture(): any
 			onLeaving = function(callback: (any) -> ())
 				leaving = callback
 			end,
+			count = function() end,
 		},
+		-- What is told to Roblox's analytics is not this test's.
+		["./Analytics"] = { event = function() end, economy = function() end },
 		["./Events"] = {
 			current = function(): any
 				return nil

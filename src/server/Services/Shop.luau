@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Inventory = require("./Inventory")
@@ -88,12 +89,28 @@ local function buy(player: Player, item: unknown)
 		local nextKunai = Catalog.kunai[data.kunai + 1]
 		if nextKunai and pay(player, data, nextKunai.price) then
 			data.kunai += 1
+			Analytics.economy(
+				player,
+				false,
+				"Ryo",
+				nextKunai.price,
+				data.ryo,
+				Enum.AnalyticsEconomyTransactionType.Shop,
+				"Kunai"
+			)
 		end
 	elseif item == "speed" then
-		if
-			data.speedLevel < Tuning.Speed.maxLevel
-			and pay(player, data, Economy.speedPrice(data.speedLevel))
-		then
+		local price = Economy.speedPrice(data.speedLevel)
+		if data.speedLevel < Tuning.Speed.maxLevel and pay(player, data, price) then
+			Analytics.economy(
+				player,
+				false,
+				"Ryo",
+				price,
+				data.ryo,
+				Enum.AnalyticsEconomyTransactionType.Shop,
+				"Speed"
+			)
 			local before = SpeedStages.at(data.speedLevel)
 			local was = runLevel(data)
 			data.speedLevel += 1
@@ -170,6 +187,15 @@ local function sell(player: Player, unitIds: unknown)
 
 	data.ryo += earned
 	Data.count(data, "sent", sold)
+	Analytics.economy(
+		player,
+		true,
+		"Ryo",
+		earned,
+		data.ryo,
+		Enum.AnalyticsEconomyTransactionType.Shop,
+		"MissionDesk"
+	)
 	Inventory.sync(player)
 	if sold == 1 then
 		State.notify(player, "Sold", lastTitle, earned)
@@ -187,6 +213,15 @@ local function buyPotion(player: Player, potionId: unknown)
 		return
 	end
 	if Pouch.buy(data, potion.id) then
+		Analytics.economy(
+			player,
+			false,
+			"Herbs",
+			potion.herbs,
+			data.herbs,
+			Enum.AnalyticsEconomyTransactionType.Shop,
+			potion.id
+		)
 		State.notify(player, "PotionStocked", potion.name)
 	else
 		State.notify(player, "NotEnoughHerbs")

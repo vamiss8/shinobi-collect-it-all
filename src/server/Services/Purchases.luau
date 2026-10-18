@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local Dojo = require("./Dojo")
 local Gifts = require("../Gifts")
@@ -102,6 +103,15 @@ local function grant(player: Player, data: Data.Data, product: Catalog.Product):
 			return false
 		end
 		data.ryo += amount
+		Analytics.economy(
+			player,
+			true,
+			"Ryo",
+			amount,
+			data.ryo,
+			Enum.AnalyticsEconomyTransactionType.IAP,
+			product.key
+		)
 		State.notify(player, "RyoPackBought", amount)
 	elseif product.kind == "offline" then
 		local session = Session.of(player)
@@ -110,6 +120,15 @@ local function grant(player: Player, data: Data.Data, product: Catalog.Product):
 			return false
 		end
 		data.ryo += amount
+		Analytics.economy(
+			player,
+			true,
+			"Ryo",
+			amount,
+			data.ryo,
+			Enum.AnalyticsEconomyTransactionType.IAP,
+			product.key
+		)
 		local doubled: Net.Offline = { earned = amount * 2, away = 0, doubled = true }
 		Remotes.Offline:FireClient(player, doubled)
 		State.notify(player, "OfflineDoubled", amount)
@@ -158,6 +177,7 @@ local function drink(player: Player, potionId: unknown, premium: unknown)
 	local isPremium = premium == true
 	if Pouch.drink(data, potion.id, os.time(), isPremium) then
 		Data.count(data, "potions")
+		Analytics.event(player, "Potion", 1, potion.id, if isPremium then "Premium" else "Herbs")
 		State.notify(player, "PotionDrunk", potion.name, Pouch.minutes(potion, isPremium))
 		State.push(player)
 	end
