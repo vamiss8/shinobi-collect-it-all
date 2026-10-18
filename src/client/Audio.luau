@@ -630,6 +630,7 @@ local NOTIFY: { [string]: string } = {
 	Merged = "merge",
 	GroupGiftClaimed = "pass",
 	AchievementClaimed = "herbs",
+	DailyClaimed = "pass",
 	AchievementClaimedPotions = "herbs",
 	FloorBuilt = "floor",
 }
