@@ -417,6 +417,18 @@ function Hud.start()
 		TextColor3 = Color3.fromRGB(165, 214, 167),
 		LayoutOrder = 2,
 	})
+	-- What each readout is, under the pointer (Ui.tip): the Herbs' chip covers the Ryo
+	-- readout it stands in.
+	Ui.tip(ryoPlaque, function()
+		return Strings.get("TipRyo")
+	end)
+	Ui.tip(chakraPlaque, function()
+		return Strings.get("TipChakra")
+	end)
+	Ui.tip(herbsPlaque, function()
+		return Strings.get("TipHerbs")
+	end)
+
 	-- The income line ends where the chip begins, however wide the chip has grown. The chip's
 	-- width on the screen is the layer's scale times its width as laid out.
 	local function giveWay()

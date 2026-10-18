@@ -894,4 +894,114 @@ function Ui.window(name: string, size: Vector2): Window
 	return window
 end
 
+-- A TIP: a slip of parchment with ink that comes up beside a thing while the pointer is on it,
+-- as the bar of slots' tips do (owner, 2026-10-18: "hints on hover, as with Meditate and Chakra
+-- Control, on Herbs, Ryo and Chakra too, and on the player's buttons"). `describe` is asked each
+-- time it comes up, since what a thing says can change. A thing inside another that has a tip
+-- of its own (the Herbs' chip in the Ryo readout) covers the outer one while the pointer is on
+-- it. It stands over the thing, or under it near the top of the screen, and opens from the
+-- thing's side nearer the screen's edge. The pointer only: a touch screen has none.
+local TIP_WIDEST = 440
+type Tipped = { target: GuiObject, describe: () -> string }
+local tipLabel: TextLabel? = nil
+local tipped: { Tipped } = {}
+
+-- Whether a thing is on the screen: it and every frame it stands in shown, its layer on.
+local function shown(target: GuiObject): boolean
+	local at: Instance? = target
+	while at do
+		if at:IsA("LayerCollector") then
+			return (at :: LayerCollector).Enabled
+		elseif at:IsA("GuiObject") and not (at :: GuiObject).Visible then
+			return false
+		end
+		at = at.Parent
+	end
+	return false
+end
+
+local function placeTip()
+	local label = tipLabel
+	if not label then
+		return
+	end
+	local top = tipped[#tipped]
+	if not top then
+		label.Visible = false
+		return
+	end
+	local scale = Ui.scale()
+	local at = top.target.AbsolutePosition / scale
+	local size = top.target.AbsoluteSize / scale
+	local above = at.Y > 80
+	local fromLeft = at.X + size.X / 2 < Ui.room().X / 2
+	label.AnchorPoint = Vector2.new(if fromLeft then 0 else 1, if above then 1 else 0)
+	label.Position = UDim2.fromOffset(
+		if fromLeft then at.X else at.X + size.X,
+		if above then at.Y - 8 else at.Y + size.Y + 8
+	)
+	label.Text = top.describe()
+	label.Visible = true
+end
+
+function Ui.tip(target: GuiObject, describe: () -> string)
+	if not tipLabel then
+		local layer = Ui.screen("Tips", 60)
+		local label = Ui.text(layer, {
+			Size = UDim2.new(),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			BackgroundColor3 = Ui.PARCHMENT,
+			BackgroundTransparency = 0,
+			TextColor3 = Ui.INK,
+			TextSize = 20,
+			TextWrapped = true,
+			Visible = false,
+		})
+		Ui.make("UISizeConstraint", { MaxSize = Vector2.new(TIP_WIDEST, math.huge) }, label)
+		Ui.corner(label, 6)
+		Ui.stroke(label, Ui.EDGE, 2)
+		Ui.make("UIPadding", {
+			PaddingLeft = UDim.new(0, 14),
+			PaddingRight = UDim.new(0, 14),
+			PaddingTop = UDim.new(0, 6),
+			PaddingBottom = UDim.new(0, 6),
+		}, label)
+		tipLabel = label
+		-- A tip goes when its thing leaves the screen under the pointer (a window shut).
+		RunService.Heartbeat:Connect(function()
+			if label.Visible then
+				local top = tipped[#tipped]
+				if top and not shown(top.target) then
+					table.remove(tipped)
+					placeTip()
+				end
+			end
+		end)
+	end
+	local entry: Tipped = { target = target, describe = describe }
+	local function drop()
+		local index = table.find(tipped, entry)
+		if index then
+			table.remove(tipped, index)
+		end
+	end
+	target.MouseEnter:Connect(function()
+		drop()
+		table.insert(tipped, entry)
+		placeTip()
+	end)
+	target.MouseLeave:Connect(function()
+		drop()
+		placeTip()
+	end)
+end
+
+-- Writes the tip under the pointer anew, for a thing whose words changed while it is pointed at
+-- (a switch just pressed).
+function Ui.retip()
+	if tipLabel and tipLabel.Visible then
+		placeTip()
+	end
+end
+
 return Ui
