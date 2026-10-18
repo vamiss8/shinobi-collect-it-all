@@ -320,6 +320,125 @@ function Ui.lines(text: string, size: number, room: number): string
 	return table.concat(cut(text, size, room * NOTE_FILL), "\n")
 end
 
+-- Parts of the interface the guide points at (client Guide, Config/Guide `point`), by name:
+-- whoever builds one names it here.
+local targets: { [string]: GuiObject } = {}
+
+function Ui.target(name: string, object: GuiObject)
+	targets[name] = object
+end
+
+function Ui.targetOf(name: string): GuiObject?
+	return targets[name]
+end
+
+-- WHAT MATTERS IS WRITTEN IN COLOR (owner, 2026-10-18: "in How to play and Chances let the main
+-- things stand out in other colors"). The words mark it themselves, `{r|...}` and the like
+-- (the FAQ and Iruka's words in the language packs), and the chances mark what they work out: red for what to
+-- do and what matters, blue for where it is in the game, green for how much, gold for Chakra,
+-- Ryo and Herbs, and a mutation in its own color. All are dark enough to read on parchment.
+Ui.MARKS = {
+	r = Color3.fromRGB(176, 32, 32),
+	b = Color3.fromRGB(28, 88, 160),
+	g = Color3.fromRGB(36, 118, 48),
+	y = Color3.fromRGB(168, 108, 0),
+} :: { [string]: Color3 }
+
+-- A piece of a word and the color it is written in; a word is the pieces between two spaces.
+type Piece = { text: string, color: Color3? }
+
+local function escape(text: string): string
+	return (string.gsub(text, "[&<>]", { ["&"] = "&amp;", ["<"] = "&lt;", [">"] = "&gt;" }))
+end
+
+-- Words with marks in them cut into lines at `size` to fit `room`, as rich text: the marks are
+-- left out of what is measured, and their words colored once the lines are cut.
+function Ui.paint(text: string, size: number, room: number): string
+	local pieces: { Piece } = {}
+	local at = 1
+	while at <= #text do
+		local open = string.find(text, "{", at, true)
+		if not open then
+			table.insert(pieces, { text = string.sub(text, at) })
+			break
+		end
+		if open > at then
+			table.insert(pieces, { text = string.sub(text, at, open - 1) })
+		end
+		local key, inside, after = string.match(text, "^{([^|{}]+)|([^{}]*)}()", open)
+		if key and inside and after then
+			local color: Color3? = Ui.MARKS[key]
+			if not color and string.sub(key, 1, 1) == "#" then
+				local ok, read = pcall(Color3.fromHex, key)
+				color = if ok then read else nil
+			end
+			table.insert(pieces, { text = inside, color = color })
+			at = tonumber(after) or open + 1
+		else
+			table.insert(pieces, { text = "{" })
+			at = open + 1
+		end
+	end
+
+	-- The words, each the pieces between spaces: a mark that ends inside a word ("PERFEKT}-Band")
+	-- keeps the rest of the word to it.
+	local words: { { Piece } } = {}
+	local word: { Piece } = {}
+	for _, piece in pieces do
+		local index = 1
+		while index <= #piece.text do
+			local gapStart, gapEnd = string.find(piece.text, "%s+", index)
+			if gapStart == index and gapEnd then
+				if #word > 0 then
+					table.insert(words, word)
+					word = {}
+				end
+				index = gapEnd + 1
+			else
+				local stop = (gapStart or #piece.text + 1) - 1
+				table.insert(
+					word,
+					{ text = string.sub(piece.text, index, stop), color = piece.color }
+				)
+				index = stop + 1
+			end
+		end
+	end
+	if #word > 0 then
+		table.insert(words, word)
+	end
+
+	local plain: { string } = {}
+	for _, each in words do
+		local whole = ""
+		for _, piece in each do
+			whole ..= piece.text
+		end
+		table.insert(plain, whole)
+	end
+	local out: { string } = {}
+	local count = 0
+	for _, line in string.split(Ui.lines(table.concat(plain, " "), size, room), "\n") do
+		local said: { string } = {}
+		for _ in string.gmatch(line, "%S+") do
+			count += 1
+			local each = words[count]
+			if each then
+				local written = ""
+				for _, piece in each do
+					local color = piece.color
+					written ..= if color
+						then `<font color="#{color:ToHex()}">{escape(piece.text)}</font>`
+						else escape(piece.text)
+				end
+				table.insert(said, written)
+			end
+		end
+		table.insert(out, table.concat(said, " "))
+	end
+	return table.concat(out, "\n")
+end
+
 -- How a button answers the pointer: it swells a little under it, dips when pressed and springs
 -- back when let go. A button that a list or a grid lays out would pull its neighbors along as
 -- it dipped, so it is given a place of its own in the list and dips inside that.
@@ -704,6 +823,12 @@ export type Window = {
 }
 
 local windows: { Window } = {}
+local windowsByName: { [string]: Window } = {}
+
+-- A window by the name it was made with (client Guide waits on one being opened and shut).
+function Ui.windowNamed(name: string): Window?
+	return windowsByName[name]
+end
 -- What takes each window off the screen at once, for when another opens over it.
 local hiders: { [Window]: () -> () } = {}
 local openedListeners: { () -> () } = {}
@@ -891,6 +1016,7 @@ function Ui.window(name: string, size: Vector2): Window
 	end
 	closeButton.Activated:Connect(window.close)
 	table.insert(windows, window)
+	windowsByName[name] = window
 	return window
 end
 

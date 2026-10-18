@@ -4,20 +4,30 @@
 -- mentioned in passing in the base one, and when a player first catches a shinobi with a
 -- mutation Iruka explains it in more detail; so with every mechanic"). He speaks on a scroll
 -- at the top of the screen, his face in a red frame beside his words (the keepers' way,
--- client Speech), with words in color as the FAQ has them (Ui.paint), and arrows point at what
--- he speaks of: a red arrow and a ring at a part of the interface, a red arrow over a place in
--- the world.
+-- client Speech), with words in color as the FAQ has them (Ui.paint).
+--
+-- WHAT HE SPEAKS OF IS SHOWN, one thing at a time (the owner, after going through the first
+-- tutorial: "three arrows on the screen at once say nothing"; "when one has to go somewhere,
+-- leave only the arrow under the feet, but long, all the way to the object"; "the arrows at
+-- Ryo, Chakra and so on are hard to see: zoom in, or make them plainer, or light the buttons
+-- up, or tell the player to press them, in as much detail as can be"):
+--   a place in the world: a trail of blinking chevrons on the ground from the player's feet
+--     all the way to it, along the way a character walks (PathfindingService, laid anew as the
+--     player moves; a straight line if no way is found); and where the player is to stand, a
+--     glowing ring on the ground, or the thing itself lit (a pad, the strip);
+--   a part of the interface: the rest of the screen dimmed round it, a ring about it and a
+--     large arrow at it.
 --
 -- THE BASE TUTORIAL runs at the first visit and cannot be skipped then; a step either waits
--- for the player to do something (gather Chakra, step onto the strip, throw, bring a catch
--- home, set it on a pad) or has a button. The steps done are saved (Services/Guide), so one who
--- leaves half way goes on where they stopped. Replayed from the settings it can be skipped
--- and saves nothing. A TIP is said once, the first time what it is about is met, and waits
--- for its turn: never during the base tutorial, a throw (Cinematic.staging) or with a window
--- open. Everything waits so; nothing Iruka says stops the game.
+-- for the player to do something (Config/Guide lists what) or has a button. The steps done are
+-- saved (Services/Guide), so one who leaves half way goes on where they stopped. Replayed from
+-- the settings it can be skipped and saves nothing. A TIP is said once, the first time what it
+-- is about is met, and waits for its turn: never during the base tutorial, a throw
+-- (Cinematic.staging) or with a window open. Nothing Iruka says stops the game: while the
+-- game is busy (a throw, a window) the scroll steps aside and comes back after.
 
 local CollectionService = game:GetService("CollectionService")
-local GuiService = game:GetService("GuiService")
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,6 +44,7 @@ local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("./Remotes")
 local Store = require("./Store")
 local Strings = require("./Strings")
+local ThrowPower = require("./ThrowPower")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
 
@@ -54,26 +65,31 @@ local BUTTON = Vector2.new(190, 48)
 local MOST_LINES = 4
 -- Chakra a "gather Chakra" step asks for.
 local CHAKRA_TO_GATHER = 10
--- The arrows: their size, how far off what they point at, how far they bob.
-local ARROW = Vector2.new(46, 56)
-local ARROW_OFF = 38
--- The arrow at the screen's edge for a place out of sight: how much larger, how far in.
-local EDGE_GROW = 1.4
-local EDGE_MARGIN = 70
--- The trail on the ground from the player towards a place: chevrons, how many, how far apart,
--- where the first is, an arm's length and thickness, how far an arm leans back, how fast the
--- light runs along them, and how near the place they stop being laid.
-local TRAIL_COUNT = 6
-local TRAIL_STEP = 3.6
-local TRAIL_FIRST = 3
+-- The arrow at a part of the interface: its size, how far off what it points at, how far it
+-- bobs; the ring round the part, how far out; how dark the dimmed screen is.
+local ARROW = Vector2.new(70, 86)
+local ARROW_OFF = 56
+local BOB = 10
+local RING_OUT = 9
+local DIM = 0.5
+-- The trail on the ground: how far apart the chevrons are, where the first is, an arm's length
+-- and thickness, how far an arm leans back, how fast the light runs along them, the most there
+-- are, and how often the way is looked for again (seconds) and after how far a move.
+local TRAIL_STEP = 3.2
+local TRAIL_FIRST = 2.6
 local TRAIL_ARM = 2.4
 local TRAIL_THICK = 0.5
 local TRAIL_LEAN = math.rad(38)
-local TRAIL_RUN = 7
-local TRAIL_NEAR = 7
-local BOB = 7
+local TRAIL_RUN = 6
+local TRAIL_MOST = 90
+local TRAIL_AGAIN = 0.8
+local TRAIL_MOVED = 3
+-- The ring where a player is to stand: how wide for a place, and for a shop (its prompt
+-- reaches 8 studs from the counter, World/ShopHouse REACH).
+local ZONE_REACH: { [string]: number } = { board = 10, gift = 9 }
+local SHOP_REACH = 7.5
 
-type Arrow = { frame: Frame, ring: Frame?, target: GuiObject?, cleanup: () -> () }
+type Shown = { cleanup: () -> () }
 
 local state = {
 	-- The base tutorial: running, and whether it is a replay (skippable, saves nothing).
@@ -82,12 +98,15 @@ local state = {
 	step = 0, -- the step being said
 	waiting = nil :: string?,
 	chakraFrom = 0,
+	opened = false, -- for a step that waits on a window: seen open
 	-- The tip being said, and those waiting their turn.
 	tip = nil :: string?,
 	queue = {} :: { string },
 	said = {} :: { [string]: boolean },
-	-- Whether the scroll is meant to be up (it hides while the game is busy).
+	-- Whether the scroll is meant to be up (it hides while the game is busy), and whether it
+	-- is up now: what has been asked of it, not what its frame says while it rolls.
 	speaking = false,
+	up = false,
 }
 
 local paper: Ui.Parchment
@@ -95,8 +114,11 @@ local words: TextLabel
 local button: TextButton
 local skip: TextButton
 local onButton: (() -> ())? = nil
-local arrows: { Arrow } = {}
+local shown: { Shown } = {}
 local arrowLayer: Frame
+local dimLayer: Frame
+-- The place the current step waits for the player to stand at, and how near.
+local goal: { at: Vector3, reach: number }? = nil
 
 -- A red arrow pointing down, drawn of frames in `holder`: a shaft and a head of stacked bars
 -- on an ink shadow. Turned by the holder's Rotation.
@@ -109,7 +131,7 @@ local function drawArrow(holder: Frame)
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
 		}, holder)
-		local steps = 12
+		local steps = 14
 		for step = 0, steps - 1 do
 			local share = 1 - step / steps
 			Ui.make("Frame", {
@@ -121,15 +143,54 @@ local function drawArrow(holder: Frame)
 			}, holder)
 		end
 	end
-	paint(Ui.INK, 4, 2)
+	paint(Ui.INK, 5, 3)
 	paint(Ui.SEAL, 0, 0)
 end
 
-local function clearArrows()
-	for _, arrow in arrows do
-		arrow.cleanup()
+local function clearShown()
+	for _, thing in shown do
+		thing.cleanup()
 	end
-	table.clear(arrows)
+	table.clear(shown)
+	goal = nil
+end
+
+-- The player's own dojo, a Model its client can find by its owner.
+local function myDojo(): Model?
+	local userId = Players.LocalPlayer.UserId
+	for _, model in Workspace:GetDescendants() do
+		if model:IsA("Model") and model:GetAttribute(Net.DOJO_OWNER_ATTRIBUTE) == userId then
+			return model
+		end
+	end
+	return nil
+end
+
+-- The pad to set a catch on: the free pad of the lowest number (on the first floor, which a
+-- new player has alone), else, all being taken, the first pad (to swap with). The second
+-- answer says whether it is free.
+local function padToUse(): (BasePart?, boolean)
+	local dojo = myDojo()
+	if not dojo then
+		return nil, false
+	end
+	local free: BasePart?, freeAt = nil, math.huge
+	local first: BasePart?, firstAt = nil, math.huge
+	for _, part in dojo:GetDescendants() do
+		if part:IsA("BasePart") then
+			local number = tonumber(string.match(part.Name, "^Pad(%d+)$"))
+			local padState = part:GetAttribute(Net.PAD_STATE_ATTRIBUTE)
+			if number and padState == "empty" and number < freeAt then
+				free, freeAt = part, number
+			elseif number and padState == "taken" and number < firstAt then
+				first, firstAt = part, number
+			end
+		end
+	end
+	if free then
+		return free, true
+	end
+	return first, false
 end
 
 -- The part of the world a name stands for (Config/Guide `point`), or nil.
@@ -148,15 +209,8 @@ local function placeOf(name: string): BasePart?
 			end
 		end
 		return nil
-	elseif name == "dojo" then
-		local userId = Players.LocalPlayer.UserId
-		for _, model in Workspace:GetDescendants() do
-			if model:IsA("Model") and model:GetAttribute(Net.DOJO_OWNER_ATTRIBUTE) == userId then
-				local home = model:FindFirstChild(Net.HOME_PART)
-				return if home and home:IsA("BasePart") then home else nil
-			end
-		end
-		return nil
+	elseif name == "pad" then
+		return (padToUse())
 	end
 	-- A shop, by its id.
 	local market = Workspace:FindFirstChild(Net.MARKET_FOLDER)
@@ -174,155 +228,224 @@ local function placeOf(name: string): BasePart?
 	return nil
 end
 
--- An arrow over a place in the world, for this player alone, the same size on the screen near
--- and far; and, while that place is out of sight (behind the camera, or off the screen's
--- edges), a larger arrow at the edge of the screen turned towards it, so that "follow the
--- arrow" can be followed from anywhere (owner, 2026-10-19: "Iruka told me to follow the arrow,
--- but there are no arrows": the arrow over the strip was there, out of sight behind him).
-local function pointAtPlace(part: BasePart, above: number, withTrail: boolean)
-	local board: BillboardGui = Ui.make("BillboardGui", {
-		Name = "GuideArrow",
-		Adornee = part,
-		AlwaysOnTop = true,
-		LightInfluence = 0,
-		Size = UDim2.fromOffset(ARROW.X * Ui.scale(), (ARROW.Y + BOB * 2) * Ui.scale()),
-		StudsOffsetWorldSpace = Vector3.new(0, part.Size.Y / 2 + above, 0),
-	})
-	local holder: Frame = Ui.make("Frame", {
-		Size = UDim2.new(1, 0, 1, -BOB * 2 * Ui.scale()),
-		BackgroundTransparency = 1,
-	}, board)
-	drawArrow(holder)
-	board.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-
-	-- A trail of chevrons on the ground, out of the player towards the place, the light running
-	-- along it away from them (owner, 2026-10-19: "a blinking arrow coming out of the character
-	-- to the object"). Parts of this client alone, touched by nothing.
-	local trail = Instance.new("Folder")
-	trail.Name = "GuideTrail"
-	local arms: { { Part } } = {}
-	for _ = 1, TRAIL_COUNT do
-		local pair: { Part } = {}
-		for _ = 1, 2 do
-			local arm = Instance.new("Part")
-			arm.Anchored = true
-			arm.CanCollide = false
-			arm.CanQuery = false
-			arm.CanTouch = false
-			arm.CastShadow = false
-			arm.Material = Enum.Material.Neon
-			arm.Color = Ui.SEAL
-			arm.Size = Vector3.new(TRAIL_THICK, 0.12, TRAIL_ARM)
-			arm.Parent = trail
-			table.insert(pair, arm)
-		end
-		table.insert(arms, pair)
+-- The ground under a point, found by a ray straight down past `ignore`.
+local function groundUnder(at: Vector3, ignore: { Instance }): number
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local character = Players.LocalPlayer.Character
+	local skipped = table.clone(ignore)
+	if character then
+		table.insert(skipped, character)
 	end
-	trail.Parent = Workspace
+	params.FilterDescendantsInstances = skipped
+	params.RespectCanCollide = true
+	local hit = Workspace:Raycast(at + Vector3.new(0, 3, 0), Vector3.new(0, -60, 0), params)
+	return if hit then hit.Position.Y else at.Y
+end
 
-	local edge: Frame = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(ARROW.X * EDGE_GROW, ARROW.Y * EDGE_GROW),
-		BackgroundTransparency = 1,
-		ZIndex = 20,
-		Visible = false,
-	}, arrowLayer)
-	drawArrow(edge)
+-- A part of this client alone that nothing touches, for the trail and the rings.
+local function lonePart(parent: Instance, color: Color3): Part
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Transparency = 1
+	part.Parent = parent
+	return part
+end
+
+-- A trail of blinking chevrons on the ground from the player's feet to `target`, along the way
+-- a character walks there, the light running along it away from them (owner, 2026-10-19:
+-- "a blinking arrow coming out of the character to the object"; then "long, all the way").
+local function trailTo(target: BasePart)
+	local folder = Instance.new("Folder")
+	folder.Name = "GuideTrail"
+	folder.Parent = Workspace
+	local chevrons: { { Part } } = {}
+	local function chevron(index: number): { Part }
+		local pair = chevrons[index]
+		if pair then
+			return pair
+		end
+		local made: { Part } = {}
+		for _ = 1, 2 do
+			local arm = lonePart(folder, Ui.SEAL)
+			arm.Size = Vector3.new(TRAIL_THICK, 0.12, TRAIL_ARM)
+			table.insert(made, arm)
+		end
+		chevrons[index] = made
+		return made
+	end
+
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		WaypointSpacing = 4,
+	})
+	local way: { Vector3 } = {}
+	local from: Vector3? = nil
+	local lastLooked = -math.huge
+	local looking = false
+	local alive = true
+	local function look(start: Vector3, finish: Vector3)
+		looking = true
+		task.spawn(function()
+			local ok = pcall(function()
+				path:ComputeAsync(start, finish)
+			end)
+			if alive then
+				local found: { Vector3 } = {}
+				if ok and path.Status == Enum.PathStatus.Success then
+					for _, point in path:GetWaypoints() do
+						table.insert(found, point.Position)
+					end
+				else
+					found = { start, finish }
+				end
+				way = found
+			end
+			looking = false
+		end)
+	end
 
 	local beat = RunService.RenderStepped:Connect(function()
-		local scale = Ui.scale()
-		local bob = (math.sin(os.clock() * 5) + 1) * BOB
-		holder.Position = UDim2.fromOffset(0, bob * scale)
-
-		-- The trail: laid from the player's feet along the ground towards the place.
 		local character = Players.LocalPlayer.Character
 		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
 		local humanoid = if character then character:FindFirstChildOfClass("Humanoid") else nil
-		local towards = if root and root:IsA("BasePart")
-			then (part.Position - root.Position) * Vector3.new(1, 0, 1)
-			else Vector3.zero
-		local laid = withTrail
-			and root ~= nil
-			and root:IsA("BasePart")
-			and holder.Visible
-			and towards.Magnitude > TRAIL_NEAR
-		for index, pair in arms do
-			local reach = TRAIL_FIRST + (index - 1) * TRAIL_STEP
-			local shown = laid and reach < towards.Magnitude - TRAIL_NEAR / 2
-			for _, arm in pair do
+		local laid = 0
+		if state.up and root and root:IsA("BasePart") then
+			local lift = root.Size.Y / 2 + (if humanoid then humanoid.HipHeight else 2)
+			local feet = root.Position - Vector3.new(0, lift, 0)
+			local finish = target.Position
+			-- The way is looked for again now and then, once the player has moved on.
+			local last = from
+			local moved = last == nil or (feet - last).Magnitude > TRAIL_MOVED
+			if not looking and moved and os.clock() - lastLooked > TRAIL_AGAIN then
+				from = feet
+				lastLooked = os.clock()
+				look(feet, finish)
+			end
+			-- The line to lay: from the feet along the way's points after its first.
+			local line: { Vector3 } = { feet }
+			for index = 2, #way do
+				table.insert(line, way[index])
+			end
+			if #line < 2 then
+				table.insert(line, Vector3.new(finish.X, feet.Y, finish.Z))
+			end
+			local walked, along = 0, TRAIL_FIRST
+			for index = 1, #line - 1 do
+				local a, b = line[index], line[index + 1]
+				local span = (b - a).Magnitude
+				local flat = (b - a) * Vector3.new(1, 0, 1)
+				while along <= walked + span and laid < TRAIL_MOST do
+					if flat.Magnitude > 0.05 then
+						local tip = a:Lerp(b, (along - walked) / span) + Vector3.new(0, 0.14, 0)
+						local frame = CFrame.lookAt(tip, tip + flat.Unit)
+						laid += 1
+						local wave = (math.sin(os.clock() * TRAIL_RUN - laid * 0.55) + 1) / 2
+						for side, arm in chevron(laid) do
+							local lean = if side == 1 then TRAIL_LEAN else -TRAIL_LEAN
+							arm.CFrame = frame
+								* CFrame.Angles(0, lean, 0)
+								* CFrame.new(0, 0, TRAIL_ARM / 2)
+							arm.Transparency = 0.1 + 0.7 * (1 - wave)
+						end
+					end
+					along += TRAIL_STEP
+				end
+				walked += span
+			end
+		end
+		for index = laid + 1, #chevrons do
+			for _, arm in chevrons[index] do
 				arm.Transparency = 1
 			end
-			if shown and root and root:IsA("BasePart") then
-				local way = towards.Unit
-				local feet = root.Position.Y
-					- root.Size.Y / 2
-					- (if humanoid then humanoid.HipHeight else 2)
-					+ 0.12
-				local tip = Vector3.new(root.Position.X, feet, root.Position.Z) + way * reach
-				local frame = CFrame.lookAt(tip, tip + way)
-				-- Light runs out along the chevrons, from the player towards the place.
-				local wave = (math.sin(os.clock() * TRAIL_RUN - index * 0.9) + 1) / 2
-				for side, arm in pair do
-					local lean = if side == 1 then TRAIL_LEAN else -TRAIL_LEAN
-					arm.CFrame = frame * CFrame.Angles(0, lean, 0) * CFrame.new(0, 0, TRAIL_ARM / 2)
-					arm.Transparency = 0.1 + 0.75 * (1 - wave)
-				end
-			end
 		end
-
-		local camera = Workspace.CurrentCamera
-		if not camera then
-			return
-		end
-		local over = part.Position + Vector3.new(0, part.Size.Y / 2 + above, 0)
-		local seen = camera:WorldToViewportPoint(over)
-		local inset = GuiService:GetGuiInset()
-		local room = Ui.room()
-		-- Where the place is on the screen, in layout pixels, as the layers count them.
-		local x = seen.X / scale
-		local y = (seen.Y - inset.Y) / scale
-		local inSight = seen.Z > 0
-			and x > EDGE_MARGIN
-			and x < room.X - EDGE_MARGIN
-			and y > EDGE_MARGIN
-			and y < room.Y - EDGE_MARGIN
-		edge.Visible = not inSight and holder.Visible
-		if inSight then
-			return
-		end
-		local middleX, middleY = room.X / 2, room.Y / 2
-		local dx, dy = x - middleX, y - middleY
-		-- Behind the camera the point comes out mirrored through the middle of the screen.
-		if seen.Z <= 0 then
-			dx, dy = -dx, -dy
-		end
-		if math.abs(dx) < 1e-3 and math.abs(dy) < 1e-3 then
-			dy = 1
-		end
-		local reach = math.min(
-			(middleX - EDGE_MARGIN) / math.max(math.abs(dx), 1e-3),
-			(middleY - EDGE_MARGIN) / math.max(math.abs(dy), 1e-3)
-		)
-		local length = math.sqrt(dx * dx + dy * dy)
-		local back = bob / length
-		edge.Position =
-			UDim2.fromOffset(middleX + dx * reach - dx * back, middleY + dy * reach - dy * back)
-		-- The arrow is drawn pointing down, which is 90 degrees on the screen.
-		edge.Rotation = math.deg(math.atan2(dy, dx)) - 90
 	end)
-	table.insert(arrows, {
-		frame = holder,
+	table.insert(shown, {
 		cleanup = function()
+			alive = false
 			beat:Disconnect()
-			board:Destroy()
-			edge:Destroy()
-			trail:Destroy()
+			folder:Destroy()
 		end,
 	})
 end
 
--- An arrow and a ring at a part of the interface, following it wherever it goes.
-local function pointAtGui(target: GuiObject)
+-- A glowing ring on the ground where the player is to stand, breathing; the step waits until
+-- they are in it.
+local function ringAt(center: Vector3, reach: number, ignore: { Instance })
+	local ground = groundUnder(center, ignore)
+	local folder = Instance.new("Folder")
+	folder.Name = "GuideRing"
+	folder.Parent = Workspace
+	local disc = lonePart(folder, Ui.GOLD)
+	disc.Shape = Enum.PartType.Cylinder
+	disc.Size = Vector3.new(0.1, reach * 2, reach * 2)
+	disc.CFrame = CFrame.new(center.X, ground + 0.08, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	local rim = lonePart(folder, Ui.SEAL)
+	rim.Shape = Enum.PartType.Cylinder
+	rim.Size = Vector3.new(0.08, reach * 2 + 0.8, reach * 2 + 0.8)
+	rim.CFrame = CFrame.new(center.X, ground + 0.06, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	goal = { at = Vector3.new(center.X, ground, center.Z), reach = reach }
+	local beat = RunService.RenderStepped:Connect(function()
+		local breath = (math.sin(os.clock() * 4) + 1) / 2
+		disc.Transparency = if state.up then 0.78 - 0.2 * breath else 1
+		rim.Transparency = if state.up then 0.35 - 0.25 * breath else 1
+	end)
+	table.insert(shown, {
+		cleanup = function()
+			beat:Disconnect()
+			folder:Destroy()
+		end,
+	})
+end
+
+-- A part lit through walls, its outline breathing: the pad to set a catch on, the strip.
+local function light(part: BasePart)
+	local glow: Highlight = Ui.make("Highlight", {
+		Adornee = part,
+		FillColor = Ui.GOLD,
+		OutlineColor = Ui.SEAL,
+		DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+	}, Players.LocalPlayer:WaitForChild("PlayerGui"))
+	local beat = RunService.RenderStepped:Connect(function()
+		local breath = (math.sin(os.clock() * 4) + 1) / 2
+		glow.Enabled = state.up
+		glow.FillTransparency = 0.75 - 0.35 * breath
+		glow.OutlineTransparency = 0.1 * breath
+	end)
+	table.insert(shown, {
+		cleanup = function()
+			beat:Disconnect()
+			glow:Destroy()
+		end,
+	})
+end
+
+-- Leads the player to a place: a trail to it, and where they are to stand.
+local function showPlace(name: string, part: BasePart)
+	trailTo(part)
+	if name == "pad" or name == "strip" then
+		light(part)
+	elseif ZONE_REACH[name] then
+		ringAt(part.Position, ZONE_REACH[name], { part })
+	else
+		ringAt(part.Position, SHOP_REACH, { part })
+	end
+end
+
+-- The interface's parts being shown: the screen is dimmed round all of them together, and each
+-- has a ring and an arrow.
+local spotlit: { GuiObject } = {}
+local dimFrames: { Frame } = {}
+
+local function showGui(target: GuiObject, dim: boolean)
 	local holder: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Size = UDim2.fromOffset(ARROW.X, ARROW.Y),
@@ -334,24 +457,39 @@ local function pointAtGui(target: GuiObject)
 		BackgroundTransparency = 1,
 		ZIndex = 19,
 	}, arrowLayer)
-	Ui.corner(ring, 12)
-	local stroke = Ui.stroke(ring, Ui.SEAL, 3)
+	Ui.corner(ring, 14)
+	local gold = Ui.stroke(ring, Ui.GOLD, 5)
+	local outer: Frame = Ui.make("Frame", {
+		BackgroundTransparency = 1,
+		ZIndex = 19,
+	}, arrowLayer)
+	Ui.corner(outer, 18)
+	local red = Ui.stroke(outer, Ui.SEAL, 4)
+	if dim then
+		table.insert(spotlit, target)
+	end
 	local beat = RunService.RenderStepped:Connect(function()
 		local scale = Ui.scale()
 		local at = target.AbsolutePosition / scale
 		local size = target.AbsoluteSize / scale
-		local shown = target.Visible and size.X > 1
-		holder.Visible = shown
-		ring.Visible = shown
-		if not shown then
+		local visible = target.Visible and size.X > 1
+		holder.Visible = visible
+		ring.Visible = visible
+		outer.Visible = visible
+		if not visible then
 			return
 		end
 		local room = Ui.room()
 		local middle = at + size / 2
-		local bob = (math.sin(os.clock() * 5) + 1) * BOB
-		ring.Position = UDim2.fromOffset(at.X - 6, at.Y - 6)
-		ring.Size = UDim2.fromOffset(size.X + 12, size.Y + 12)
-		stroke.Transparency = 0.25 + 0.35 * (math.sin(os.clock() * 4) + 1) / 2
+		local pulse = (math.sin(os.clock() * 5) + 1) / 2
+		local bob = pulse * BOB
+		local swell = RING_OUT + pulse * 4
+		ring.Position = UDim2.fromOffset(at.X - swell, at.Y - swell)
+		ring.Size = UDim2.fromOffset(size.X + swell * 2, size.Y + swell * 2)
+		outer.Position = UDim2.fromOffset(at.X - swell - 6, at.Y - swell - 6)
+		outer.Size = UDim2.fromOffset(size.X + swell * 2 + 12, size.Y + swell * 2 + 12)
+		gold.Transparency = 0.1 * pulse
+		red.Transparency = 0.2 + 0.4 * (1 - pulse)
 		if middle.Y > room.Y * 0.62 then
 			holder.Rotation = 0
 			holder.Position = UDim2.fromOffset(middle.X, at.Y - ARROW_OFF - bob)
@@ -366,35 +504,73 @@ local function pointAtGui(target: GuiObject)
 			holder.Position = UDim2.fromOffset(middle.X, at.Y + size.Y + ARROW_OFF + bob)
 		end
 	end)
-	table.insert(arrows, {
-		frame = holder,
-		ring = ring,
-		target = target,
+	table.insert(shown, {
 		cleanup = function()
 			beat:Disconnect()
 			holder:Destroy()
 			ring:Destroy()
+			outer:Destroy()
+			local place = table.find(spotlit, target)
+			if place then
+				table.remove(spotlit, place)
+			end
 		end,
 	})
 end
 
--- Points at everything a step or a tip names: the interface first, else the world.
-local function point(names: { string }?)
-	clearArrows()
+-- The dimmed screen round what is spotlit: four dark sheets about the one hole that takes in
+-- every part shown. They catch no press.
+local function dimRound()
+	local left, top, right, bottom = math.huge, math.huge, -math.huge, -math.huge
+	local scale = Ui.scale()
+	for _, target in spotlit do
+		if target.Visible and target.AbsoluteSize.X > 1 then
+			local at = target.AbsolutePosition / scale
+			local size = target.AbsoluteSize / scale
+			left = math.min(left, at.X - RING_OUT - 10)
+			top = math.min(top, at.Y - RING_OUT - 10)
+			right = math.max(right, at.X + size.X + RING_OUT + 10)
+			bottom = math.max(bottom, at.Y + size.Y + RING_OUT + 10)
+		end
+	end
+	local any = state.up and left < right
+	for _, sheet in dimFrames do
+		sheet.Visible = any
+	end
+	if not any then
+		return
+	end
+	local room = Ui.room()
+	local sheets = {
+		{ 0, 0, room.X, top },
+		{ 0, bottom, room.X, room.Y - bottom },
+		{ 0, top, left, bottom - top },
+		{ right, top, room.X - right, bottom - top },
+	}
+	for index, sheet in sheets do
+		local frame = dimFrames[index]
+		frame.Position = UDim2.fromOffset(sheet[1], sheet[2])
+		frame.Size = UDim2.fromOffset(math.max(sheet[3], 0), math.max(sheet[4], 0))
+	end
+end
+
+-- Shows what a step or a tip names: the interface (dimmed round, in the base tutorial), else
+-- the world; only the first place gets a trail, one way to walk at a time.
+local function point(names: { string }?, dim: boolean)
+	clearShown()
 	if not names then
 		return
 	end
-	-- A trail on the ground goes to the first place named only: one way to walk at a time.
-	local trailed = false
+	local walked = false
 	for _, name in names do
 		local gui = Ui.targetOf(name)
 		if gui then
-			pointAtGui(gui)
-		else
+			showGui(gui, dim)
+		elseif not walked then
 			local part = placeOf(name)
 			if part then
-				pointAtPlace(part, if name == "dojo" then 18 else 5, not trailed)
-				trailed = true
+				showPlace(name, part)
+				walked = true
 			end
 		end
 	end
@@ -405,8 +581,24 @@ local function quiet(): boolean
 	return not Cinematic.staging() and not Ui.windowOpen()
 end
 
+local function bringUp()
+	if not state.up then
+		state.up = true
+		Ui.unroll(paper)
+		arrowLayer.Visible = true
+	end
+end
+
+local function putDown()
+	if state.up then
+		state.up = false
+		Ui.rollUp(paper)
+		arrowLayer.Visible = false
+	end
+end
+
 -- Puts Iruka's words on the scroll, with the button saying `label` (none: the step waits for
--- the player), and brings it up.
+-- the player), and brings it up when the game leaves room.
 local function say(text: string, label: string?, pressed: (() -> ())?)
 	local size, painted = WORD_SIZES[#WORD_SIZES], ""
 	for _, try in WORD_SIZES do
@@ -431,18 +623,21 @@ local function say(text: string, label: string?, pressed: (() -> ())?)
 	end
 	onButton = pressed
 	state.speaking = true
-	if quiet() then
+	if state.up then
 		Ui.rewrite(paper, write)
 	else
 		write()
+		if quiet() then
+			bringUp()
+		end
 	end
 end
 
 local function hush()
 	state.speaking = false
 	onButton = nil
-	clearArrows()
-	Ui.rollUp(paper)
+	clearShown()
+	putDown()
 end
 
 -- Iruka's words for a step: the group's line names the community server once there is one.
@@ -466,7 +661,7 @@ end
 local function finishStep()
 	local index = state.step
 	state.waiting = nil
-	clearArrows()
+	clearShown()
 	if not state.replay then
 		Remotes.Guide:FireServer("step", index)
 	end
@@ -481,16 +676,42 @@ beginStep = function(index: number)
 	local step = GuideConfig.steps[index]
 	state.step = index
 	state.waiting = step.wait
+	state.opened = false
 	if step.wait == "chakra" then
 		local snapshot = Store.get()
 		state.chakraFrom = if snapshot then snapshot.chakra else 0
 	end
-	local label = if step.wait
+	-- The run home says nothing: the game tells it, and the scroll would only flash between
+	-- the throw's pictures.
+	if step.silent then
+		state.speaking = false
+		onButton = nil
+		clearShown()
+		putDown()
+		return
+	end
+	local text = stepWords(step.id)
+	-- A pad to set the catch on: a free one, else (all taken, in a replay) one to swap with.
+	if step.id == "place" then
+		local _, free = padToUse()
+		if not free then
+			text = Strings.get("Guide_placeFull")
+		end
+	end
+	-- A place that is not there (the gift, once taken): then the step has a button.
+	local first = if step.point then step.point[1] else nil
+	if step.wait == "near" and not (first and placeOf(first)) then
+		state.waiting = nil
+	end
+	local waits = state.waiting
+	local label = if waits
 		then nil
 		elseif index == #GuideConfig.steps then "GuideFinish"
 		else "GuideNext"
-	say(stepWords(step.id), label, finishStep)
-	point(step.point)
+	say(text, label, finishStep)
+	if waits or step.wait ~= "near" then
+		point(step.point, true)
+	end
 end
 
 -- The step of the base tutorial a player who comes back starts at: one that waits on a throw
@@ -512,6 +733,44 @@ end
 local function happened(what: string)
 	if state.running and state.waiting == what then
 		finishStep()
+	end
+end
+
+-- What some steps wait on, looked at in the guide's round.
+local function checkWaits()
+	if not state.running then
+		return
+	end
+	local step = GuideConfig.steps[state.step]
+	local waiting = state.waiting
+	if not step or not waiting then
+		return
+	end
+	if waiting == "slider" then
+		if ThrowPower.isOpen() then
+			happened("slider")
+		end
+	elseif waiting == "sliderShut" then
+		if not ThrowPower.isOpen() then
+			happened("sliderShut")
+		end
+	elseif waiting == "window" then
+		local window = if step.window then Ui.windowNamed(step.window) else nil
+		if window and window.isOpen() then
+			state.opened = true
+		elseif state.opened then
+			happened("window")
+		end
+	elseif waiting == "near" then
+		local character = Players.LocalPlayer.Character
+		local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+		local target = goal
+		if target and root and root:IsA("BasePart") then
+			local away = (root.Position - target.at) * Vector3.new(1, 0, 1)
+			if away.Magnitude <= target.reach then
+				happened("near")
+			end
+		end
 	end
 end
 
@@ -544,7 +803,7 @@ local function sayTip(id: string)
 		state.tip = nil
 		hush()
 	end)
-	point(tip.point)
+	point(tip.point, false)
 end
 
 -- Asks for a tip from outside (client DailyPanel).
@@ -571,9 +830,70 @@ function Guide.replay()
 	beginStep(1)
 end
 
+-- Whether the player stands within `reach` of any part `find` gives.
+local function near(find: () -> { BasePart }, reach: number): boolean
+	local character = Players.LocalPlayer.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	for _, part in find() do
+		if (part.Position - root.Position).Magnitude <= reach then
+			return true
+		end
+	end
+	return false
+end
+
+-- The top stones of the legendary shinobi's pedestals, which carry their buy prompts.
+local function legendStones(): { BasePart }
+	local found: { BasePart } = {}
+	local folder = Workspace:FindFirstChild(Net.LEGENDS_FOLDER)
+	if folder then
+		for _, item in folder:GetDescendants() do
+			if item:IsA("BasePart") and item:GetAttribute(Net.LEGEND_ATTRIBUTE) ~= nil then
+				table.insert(found, item)
+			end
+		end
+	end
+	return found
+end
+
+-- The leaderboards' sheets (World/Plaza `leaderboard`), found once.
+local sheets: { BasePart }? = nil
+local function leaderSheets(): { BasePart }
+	local known = sheets
+	if known then
+		return known
+	end
+	local found: { BasePart } = {}
+	for _, item in Workspace:GetDescendants() do
+		if item.Name == "LeaderSheet" and item:IsA("BasePart") then
+			table.insert(found, item)
+		end
+	end
+	if #found > 0 then
+		sheets = found
+	end
+	return found
+end
+
 function Guide.start()
 	local layer = Ui.screen("Guide", 22)
 	arrowLayer = Ui.screen("GuideArrows", 23)
+	dimLayer = Ui.screen("GuideDim", 21)
+	for _ = 1, 4 do
+		local sheet: Frame = Ui.make("Frame", {
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = DIM,
+			BorderSizePixel = 0,
+			Active = false,
+			Visible = false,
+		}, dimLayer)
+		table.insert(dimFrames, sheet)
+	end
+	RunService.RenderStepped:Connect(dimRound)
+
 	paper = Ui.parchment(layer, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, CARD_TOP),
@@ -651,30 +971,30 @@ function Guide.start()
 	})
 	skip.Activated:Connect(finishTutorial)
 
-	-- The scroll and the arrows step aside while the game is busy, and come back.
+	-- The guide's round: the scroll steps aside while the game is busy and comes back after,
+	-- once each way (it used to be rolled up again every round while it was rolling, slowly
+	-- and in jerks: the owner saw "Run home" close like that); what some steps wait on; a tip
+	-- in its turn; the places a tip is said at.
 	task.spawn(function()
 		while true do
-			task.wait(0.25)
-			local up = paper.frame.Visible
-			if state.speaking and not quiet() and up then
-				Ui.rollUp(paper)
-				arrowLayer.Visible = false
-				for _, arrow in arrows do
-					arrow.frame.Visible = false
-				end
-			elseif state.speaking and quiet() and not up then
-				Ui.unroll(paper)
-				arrowLayer.Visible = true
-				for _, arrow in arrows do
-					arrow.frame.Visible = true
-				end
+			task.wait(0.2)
+			if state.speaking and quiet() then
+				bringUp()
+			elseif state.up and not quiet() then
+				putDown()
 			end
-			-- A tip in its turn.
+			checkWaits()
 			if not state.running and not state.tip and quiet() and #state.queue > 0 then
 				local id = table.remove(state.queue, 1)
 				if id then
 					sayTip(id)
 				end
+			end
+			if near(legendStones, 26) then
+				want("legend")
+			end
+			if near(leaderSheets, 30) then
+				want("leaders")
 			end
 		end
 	end)
@@ -704,10 +1024,10 @@ function Guide.start()
 			if not state.replay then
 				Remotes.Guide:FireServer("tip", "caught")
 			end
+			state.waiting = nil
 			say(Strings.get("Guide_caught"), "GuideNext", function()
 				beginStep(resumeAt(state.step - 1))
 			end)
-			state.waiting = nil
 			return
 		end
 		if result.escaped then
@@ -733,6 +1053,12 @@ function Guide.start()
 	-- What a tip is about, met for the first time.
 	Remotes.Bubble.OnClientEvent:Connect(function()
 		want("seal")
+	end)
+	Remotes.Ring.OnClientEvent:Connect(function()
+		want("ring")
+	end)
+	Remotes.Offline.OnClientEvent:Connect(function()
+		want("offline")
 	end)
 	Remotes.Reveal.OnClientEvent:Connect(function(reveal: Net.Reveal)
 		if reveal.mutation ~= Catalog.NONE then
@@ -766,11 +1092,16 @@ function Guide.start()
 		end
 	end)
 	local herbsBefore: number? = nil
+	local rebirthsBefore: number? = nil
 	Store.onChange(function(snapshot: Net.Snapshot)
 		if herbsBefore and snapshot.herbs > herbsBefore then
 			want("herbs")
 		end
 		herbsBefore = snapshot.herbs
+		if rebirthsBefore and snapshot.rebirths > rebirthsBefore then
+			want("reborn")
+		end
+		rebirthsBefore = snapshot.rebirths
 		local nextKunai = Catalog.kunai[snapshot.kunai + 1]
 		if nextKunai and snapshot.ryo >= nextKunai.price then
 			want("kunai")

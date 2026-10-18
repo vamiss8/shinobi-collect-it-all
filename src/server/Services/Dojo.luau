@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local Analytics = require("./Analytics")
 local Data = require("../Data")
 local DojoPlan = require(ReplicatedStorage.Shared.Logic.DojoPlan)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
@@ -178,6 +179,16 @@ local function drawPad(plot: Plots.Plot, pad: Plots.Pad, data: Data.Data?)
 	local unit = if data and unitId then data.units[unitId] else nil
 
 	pad.prompt.Enabled = isOpen or forSale or passSign
+	-- What state the pad is in, for the owner's client: the guide shows a free one.
+	pad.part:SetAttribute(
+		Net.PAD_STATE_ATTRIBUTE,
+		if forSale
+			then "sale"
+			elseif forPass then "pass"
+			elseif not isOpen then "locked"
+			elseif unit then "taken"
+			else "empty"
+	)
 	pad.part.Transparency = if isOpen or forSale then 0 elseif forPass then 0.35 else 0.6
 	pad.part.Material = if forSale then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	pad.part.Color = if forSale
@@ -244,6 +255,15 @@ local function unlockPad(player: Player, data: Data.Data)
 	local floors = floorsOf(data)
 	data.ryo -= price
 	data.padsBought += 1
+	Analytics.economy(
+		player,
+		false,
+		"Ryo",
+		price,
+		data.ryo,
+		Enum.AnalyticsEconomyTransactionType.Shop,
+		"Pad"
+	)
 	drawPads(player)
 	if floorsOf(data) > floors then
 		State.notify(player, "FloorBuilt", floorsOf(data))
@@ -305,6 +325,7 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 			data.units[held] = nil
 			Inventory.hold(player, nil)
 			Data.count(data, "merges")
+			Analytics.event(player, "Merge", 1, tostring(merged.level))
 			State.notify(player, "Merged", Figure.title(merged))
 		else
 			-- Swap: the held unit goes on the pad, the pad's unit into the inventory.
@@ -368,6 +389,16 @@ local function upgradePad(player: Player, plot: Plots.Plot, pad: Plots.Pad, leve
 
 	data.ryo -= price
 	Data.count(data, "upgrades", bought)
+	Analytics.economy(
+		player,
+		false,
+		"Ryo",
+		price,
+		data.ryo,
+		Enum.AnalyticsEconomyTransactionType.Shop,
+		"Upgrade",
+		true
+	)
 	local upgraded = Economy.upgraded(unit, bought)
 	data.units[unitId] = upgraded
 	-- The shinobi stays where it stands and only its tag is rewritten: built anew, as the
@@ -409,6 +440,15 @@ local function collectOffline(player: Player, data: Data.Data)
 	local session = Session.of(player)
 	if session.offline > 0 then
 		data.ryo += session.offline
+		Analytics.economy(
+			player,
+			true,
+			"Ryo",
+			session.offline,
+			data.ryo,
+			Enum.AnalyticsEconomyTransactionType.TimedReward,
+			"Offline"
+		)
 		session.offline = 0
 	end
 end
@@ -474,6 +514,15 @@ function Dojo.start()
 				Remotes.Offline:FireClient(player, offline)
 			else
 				data.ryo += earned
+				Analytics.economy(
+					player,
+					true,
+					"Ryo",
+					earned,
+					data.ryo,
+					Enum.AnalyticsEconomyTransactionType.TimedReward,
+					"Offline"
+				)
 			end
 		end
 		data.lastSeen = os.time()
@@ -500,7 +549,18 @@ function Dojo.start()
 			for _, player in Players:GetPlayers() do
 				local data = Data.get(player)
 				if data then
-					data.ryo += Stats.income(data)
+					local income = Stats.income(data)
+					data.ryo += income
+					Analytics.economy(
+						player,
+						true,
+						"Ryo",
+						income,
+						data.ryo,
+						Enum.AnalyticsEconomyTransactionType.Gameplay,
+						"Income",
+						true
+					)
 					data.lastSeen = os.time()
 					drawConsoles(player, data)
 					State.push(player)

@@ -121,7 +121,8 @@ function Hud.sideButton(
 	text: string,
 	color: Color3,
 	drawIcon: (holder: Instance) -> (),
-	left: boolean?
+	left: boolean?,
+	name: string?
 ): (TextButton, TextLabel)
 	local column = if left then leftColumn else sideColumn
 	assert(column, "Hud.start() has not run yet")
@@ -164,6 +165,9 @@ function Hud.sideButton(
 		Visible = false,
 	})
 	Ui.corner(counter, 12)
+	if name then
+		Ui.target(name, tile)
+	end
 	return tile, counter
 end
 
@@ -256,6 +260,7 @@ function Hud.start()
 	})
 	-- On a touch screen the slider opens downwards, there being no room over the readouts.
 	local slider = ThrowPower.attach(chakraPlaque, touch)
+	Ui.target("slider", slider)
 
 	-- Ryo, right above Chakra. When the throw power slider opens over the Chakra readout, Ryo
 	-- moves up to sit above the slider.
@@ -264,6 +269,8 @@ function Hud.start()
 		Size = UDim2.fromOffset(READOUT_WIDTH, RYO_HEIGHT),
 	})
 	ryoDetail.TextColor3 = Ui.GREEN
+	Ui.target("ryo", ryoPlaque)
+	Ui.target("chakra", chakraPlaque)
 	local function stack()
 		local lift = CHAKRA_HEIGHT + READOUT_GAP
 		if slider.Visible and not touch then
@@ -390,6 +397,7 @@ function Hud.start()
 		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
 	}, ryoPlaque)
+	Ui.target("herbsChip", herbsPlaque)
 	Ui.corner(herbsPlaque, 15)
 	Ui.stroke(herbsPlaque, Ui.GREEN, 1.5).Transparency = 0.35
 	Ui.make("UIListLayout", {

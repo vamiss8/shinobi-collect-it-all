@@ -39,6 +39,11 @@ Net.Events = {
 	-- The gift for joining the group: server -> client "join" (not in the group: show Roblox's
 	-- prompt), client -> server "claim" (joined from it: look again).
 	GroupGift = "GroupGift",
+	-- client -> server: the guide's progress (client Guide): ("step", the steps done), ("tip",
+	-- a tip's id) or ("done")
+	Guide = "Guide",
+	-- client -> server: claim today's daily reward (no payload)
+	Daily = "Daily",
 	-- server -> client: an achievement's id and the tier of it just reached (Config/Achievements)
 	Achievement = "Achievement",
 	-- client -> server: claim the rewards of an achievement's tiers reached, by its id, or of
@@ -177,6 +182,9 @@ Net.TEST_SPEED_ATTRIBUTE = "Speed"
 -- (Services/Dojo). A client finds its own dojo and pads by them (client MergeGlow).
 Net.DOJO_OWNER_ATTRIBUTE = "DojoOwner"
 Net.PAD_ATTRIBUTE = "Pad"
+-- On a pad's seal (World/Plots `Pad<N>`): "empty", "taken", "locked", "sale" or "pass"
+-- (Services/Dojo), for the guide to find a free pad (client Guide).
+Net.PAD_STATE_ATTRIBUTE = "PadState"
 -- An unseen part in every dojo's folder as large as the dojo's floor (World/Plots): its
 -- owner's client measures from it how near they are to their dojo (client HomeMark).
 Net.HOME_PART = "HomeMark"
@@ -217,6 +225,12 @@ export type Snapshot = {
 	premium: { [string]: number }, -- premium potions in the pouch (bought for Robux), the same way
 	bought: { string }, -- keys of the products sold once that the player has had
 	groupGift: boolean, -- whether the gift for joining the group has been had
+	-- The base tutorial's steps done (Config/Guide; Guide.DONE once all are) and the tips said.
+	guide: number,
+	tips: { [string]: boolean },
+	-- The daily reward (Config/Daily, Logic/Daily): whether one can be claimed, its place in the
+	-- week (or that of the one claimed today), the days in a row, and seconds until the next.
+	daily: { ready: boolean, day: number, streak: number, wait: number },
 	-- The achievements' tiers reached and the tiers claimed, by achievement id, and the numbers
 	-- they are measured by, by name (Config/Achievements, Logic/Achievements.stats).
 	achievements: { [string]: number },

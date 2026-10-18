@@ -3,12 +3,13 @@
 -- under, and one written under older rules is brought up to today's when it is loaded, a step
 -- at a time. (Characters that leave the roster are Logic/Roster's business.)
 
+local Guide = require("../Config/Guide")
 local Rebirth = require("./Rebirth")
 
 local Saves = {}
 
 -- The rules a save is written under today.
-Saves.VERSION = 4
+Saves.VERSION = 6
 
 -- The fields of a save that the steps below touch.
 export type Save = {
@@ -17,6 +18,9 @@ export type Save = {
 	rebirths: number?,
 	stock: { [string]: number }?,
 	premium: { [string]: number }?,
+	spins: number?,
+	guide: number?,
+	tips: { [string]: boolean }?,
 }
 
 -- Brings a save up to today's rules, in place, and says whether anything had to be done.
@@ -54,6 +58,42 @@ function Saves.bring(save: Save): boolean
 			table.clear(stock)
 		end
 		save.version = 4
+	end
+	-- 5: the base tutorial (Config/Guide) is for those who have not played; a save that has
+	-- thrown before it existed has it done, and has heard the tips about what it knows: all
+	-- but those about what is new to everyone (Config/Guide `everyone`), lest a tester be met
+	-- by a string of them on coming in.
+	if save.version < 5 then
+		if (save.spins or 0) > 0 then
+			save.guide = Guide.DONE
+			local tips = save.tips or {}
+			for _, tip in Guide.tips do
+				if not tip.everyone then
+					tips[tip.id] = true
+				end
+			end
+			save.tips = tips
+		end
+		save.version = 5
+	end
+	-- 6: the base tutorial was rebuilt (21 steps where there were 14): one who had played,
+	-- or had done the first, has the new one done and the tips about what they know heard
+	-- (some tips are new); one half way through the first starts the new one from its first
+	-- step, the places of the steps having changed.
+	if save.version < 6 then
+		if (save.spins or 0) > 0 or (save.guide or 0) >= Guide.FIRST_DONE then
+			save.guide = Guide.DONE
+			local tips = save.tips or {}
+			for _, tip in Guide.tips do
+				if not tip.everyone then
+					tips[tip.id] = true
+				end
+			end
+			save.tips = tips
+		else
+			save.guide = 0
+		end
+		save.version = 6
 	end
 	return save.version ~= from
 end
