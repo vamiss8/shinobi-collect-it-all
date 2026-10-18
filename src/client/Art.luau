@@ -20,6 +20,7 @@ Art.icons = {
 	focus = 74944362570117, -- slot 2, Chakra Control; assets/icons/focus.png
 	rebirth = 78996990936807, -- the Rebirth tile; assets/icons/rebirth.png
 	herb = 73875003368571, -- Herbs, the potions' currency (Icons.herb); assets/icons/herb.png
+	award = 0, -- the achievements' tile (Icons.award); assets/icons/award.png
 }
 
 -- The emblems of the ranks players hold for their rebirths, by how many rebirths the rank
@@ -118,5 +119,10 @@ Art.events = {
 	akatsuki_raid = 124305656124397,
 	crimson_moon = 140158958609522,
 } :: { [string]: number }
+
+-- The achievements' pictures (Config/Achievements), by the achievement's id, each a whole
+-- round badge that takes the drawn seal's place (Icons.achievement), the same pictures as the
+-- Roblox badges: assets/icons/ach_<id>.png. 0 or none: drawn.
+Art.achievements = {} :: { [string]: number }
 
 return Art

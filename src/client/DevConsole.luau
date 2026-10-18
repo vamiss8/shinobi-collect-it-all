@@ -72,6 +72,8 @@ local function build()
 	local body = window.body
 
 	local tile = Hud.sideButton("Dev", Ui.MUTED, drawIcon, true)
+	-- Last in the left column, under Rebirth and the achievements.
+	tile.LayoutOrder = 9
 	tile.Activated:Connect(window.toggle)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.F2 then

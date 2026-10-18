@@ -9,6 +9,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Art = require("./Art")
+local Progress = require(ReplicatedStorage.Shared.Logic.Achievements)
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Portrait = require("./Portrait")
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
@@ -769,6 +770,39 @@ end
 
 -- The seal of an event (Config/Events), by what the event hangs in the sky: a red moon, red
 -- clouds, a leaf of gold; its picture (Art.events, by the event's id) takes the seal's place.
+-- The achievements' tile: a gilt medal on a red ribbon.
+function Icons.award(holder: Instance)
+	bar(holder, 0.4, 0.74, 0.16, 0.44, 16, SEAL_RED, 0.2)
+	bar(holder, 0.6, 0.74, 0.16, 0.44, -16, SEAL_RED, 0.2)
+	shape(holder, 0.17, 0.02, 0.66, 0.66, OUTLINE, 0.5)
+	shape(holder, 0.21, 0.06, 0.58, 0.58, DARK_GOLD, 0.5)
+	shape(holder, 0.27, 0.12, 0.46, 0.46, GOLD, 0.5)
+	shape(holder, 0.35, 0.2, 0.3, 0.3, PALE_GOLD, 0.5)
+	overlay(holder, Art.icons.award)
+end
+
+-- An achievement (Config/Achievements): its picture (Art.achievements) over a drawn seal of its
+-- color with its mark on it, in ink on a light seal and in white on a dark one.
+function Icons.achievement(holder: Instance, id: string)
+	local achievement = Progress.byId[id]
+	if not achievement then
+		return
+	end
+	local face = Color3.fromHex(achievement.color)
+	seal(holder, face, true)
+	local light = face.R * 0.3 + face.G * 0.59 + face.B * 0.11 > 0.6
+	Ui.text(holder, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.56, 0.56),
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = if light then INK else WHITE,
+		Text = achievement.mark,
+	})
+	overlay(holder, Art.achievements[id])
+end
+
 function Icons.event(holder: Instance, shows: string, id: string?)
 	if shows == "moon" then
 		seal(holder, Color3.fromRGB(40, 8, 16))
