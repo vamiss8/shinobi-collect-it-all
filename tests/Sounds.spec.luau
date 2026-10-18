@@ -26,6 +26,13 @@ return {
 			T.ok(lead >= 0 and lead < 2, `{cue} is started at a strange time before its moment`)
 			local vary = effect.vary or 0
 			T.ok(vary >= 0 and vary <= 0.3, `{cue} is varied out of tune`)
+			local cut = effect.cut
+			T.ok(cut == nil or (cut > 0.05 and cut < 10), `{cue} is cut at a strange time`)
+			T.ok(effect.choke == nil or effect.choke ~= "", `{cue} has an empty choke`)
+			T.ok(
+				not (effect.choke and effect.overlap),
+				`{cue} both overlaps itself and is choked by its kind`
+			)
 		end
 		T.ok(count >= 20, "the effects are missing")
 	end,
@@ -62,11 +69,18 @@ return {
 				if fs.isDir(full) then
 					look(full)
 				elseif string.match(name, "%.luau$") then
-					for cue in string.gmatch(fs.readFile(full), 'Audio%.play%(%s*"(%w+)"') do
+					local source = fs.readFile(full)
+					for cue in string.gmatch(source, 'Audio%.play%(%s*"(%w+)"') do
 						count += 1
 						T.ok(
 							(Sounds.effects :: any)[cue] ~= nil,
 							`{full} plays "{cue}", no such cue`
+						)
+					end
+					for cue in string.gmatch(source, 'Audio%.sustain%(%s*"(%w+)"') do
+						T.ok(
+							(Sounds.effects :: any)[cue] ~= nil,
+							`{full} sustains "{cue}", no such cue`
 						)
 					end
 				end

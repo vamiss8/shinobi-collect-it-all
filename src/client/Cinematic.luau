@@ -50,9 +50,12 @@ local RENDER_STEP = "CinematicCamera"
 -- The roulette starts this fast and slows by this factor with every shinobi shown.
 local ROLL_FIRST_INTERVAL = 0.07
 local ROLL_SLOWDOWN = 1.15
--- How high the roulette's clack is at its first turn and at its last: it climbs as it slows.
-local ROLL_PITCH_FROM = 0.9
-local ROLL_PITCH_TO = 1.45
+-- How high the roulette's puff is at its first turn and at its last: it climbs as it slows.
+-- The first turns come 0.07 s apart, faster than a puff can be told from the next, so one is
+-- heard at most every ROLL_PUFF_GAP seconds.
+local ROLL_PITCH_FROM = 0.95
+local ROLL_PITCH_TO = 1.3
+local ROLL_PUFF_GAP = 0.12
 -- The roulette stands this far past the kunai, studs: the kunai is then seen in front of the
 -- shinobi's feet. On the very spot, the shinobi stood over the kunai and hid it.
 local ROLL_BEYOND = 5
@@ -462,13 +465,16 @@ local function roulette(mine: Stage)
 	end
 
 	local elapsed, interval = 0, ROLL_FIRST_INTERVAL
-	Audio.play("spin")
+	local puffedAt = -math.huge
 	while stage == mine and elapsed + interval < reveal.roll do
 		local decoy = pool[rng:NextInteger(1, #pool)]
 		show({ character = decoy, mutation = Catalog.NONE, level = 1 }, false)
 		beat(Hud.rankColor(decoy), math.min(interval, 0.3), 7.4)
-		local through = math.clamp(elapsed / math.max(reveal.roll, 0.1), 0, 1)
-		Audio.play("tick", ROLL_PITCH_FROM + (ROLL_PITCH_TO - ROLL_PITCH_FROM) * through)
+		if elapsed - puffedAt >= ROLL_PUFF_GAP then
+			puffedAt = elapsed
+			local through = math.clamp(elapsed / math.max(reveal.roll, 0.1), 0, 1)
+			Audio.play("tick", ROLL_PITCH_FROM + (ROLL_PITCH_TO - ROLL_PITCH_FROM) * through)
+		end
 		task.wait(interval)
 		elapsed += interval
 		interval *= ROLL_SLOWDOWN
@@ -576,12 +582,18 @@ local function fly(flight: Net.Flight)
 	end
 
 	local own = flight.thrower == localPlayer.UserId
+	local whistle: (() -> ())? = nil
 	if own then
 		myKunai = kunai
 		Audio.play("throw")
+		-- A faint whistle while it flies, gone as the landing's arrow comes in.
+		whistle = Audio.sustain("flight")
 		-- The landing's sound has its hit some way in: started that much before the kunai
 		-- comes down, the hit falls on the landing.
 		task.delay(math.max(flight.duration - Audio.lead("land"), 0), function()
+			if whistle then
+				whistle()
+			end
 			Audio.play("land")
 		end)
 	end
@@ -611,6 +623,9 @@ local function fly(flight: Net.Flight)
 	end)
 
 	task.delay(flight.duration + flight.linger, function()
+		if whistle then
+			whistle()
+		end
 		connection:Disconnect()
 		if myKunai == kunai then
 			myKunai = nil

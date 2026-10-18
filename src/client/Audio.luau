@@ -59,6 +59,57 @@ end
 -- How an effect's pitch is varied (Config/Sounds `vary`).
 local pitcher = Random.new()
 
+-- How fast a sound cut short (Config/Sounds `cut`, `choke`) fades away, seconds.
+local CUT_FADE = 0.12
+-- How many times each sound has been started, so that a fade meant for one play leaves the
+-- next alone, and the fade under way on each.
+local plays: { [Sound]: number } = setmetatable({}, { __mode = "k" }) :: any
+local cutting: { [Sound]: Tween } = setmetatable({}, { __mode = "k" }) :: any
+-- The sounds of each choke (Config/Sounds `choke`) that have played.
+local chokes: { [string]: { Sound } } = {}
+
+-- Fades a sound away and stops it, then does `after` (a copy destroys itself), unless it has
+-- been started again meanwhile.
+local function hush(sound: Sound, after: (() -> ())?)
+	local token = plays[sound]
+	local tween = TweenService:Create(sound, TweenInfo.new(CUT_FADE), { Volume = 0 })
+	cutting[sound] = tween
+	tween.Completed:Once(function()
+		if plays[sound] == token then
+			cutting[sound] = nil
+			sound:Stop()
+			if after then
+				after()
+			end
+		end
+	end)
+	tween:Play()
+end
+
+-- Starts a sound from its beginning at its effect's volume and at a pitch, and cuts it short
+-- after the effect's `cut` if it has one.
+local function launch(sound: Sound, effect: Sounds.Effect, pitch: number, after: (() -> ())?)
+	local token = (plays[sound] or 0) + 1
+	plays[sound] = token
+	local tween = cutting[sound]
+	if tween then
+		cutting[sound] = nil
+		tween:Cancel()
+	end
+	sound.Volume = effect.volume or 0.5
+	sound.PlaybackSpeed = pitch
+	sound.TimePosition = 0
+	sound:Play()
+	local cut = effect.cut
+	if cut then
+		task.delay(cut, function()
+			if plays[sound] == token and sound.IsPlaying then
+				hush(sound, after)
+			end
+		end)
+	end
+end
+
 -- One Sound for each cue, made the first time it is played.
 local made: { [string]: Sound } = {}
 
@@ -82,6 +133,43 @@ local function effectSound(cue: string): Sound?
 	return sound
 end
 
+-- How fast a sustained sound (Audio.sustain) comes in and goes, seconds, and how long one
+-- forgotten may ring at the most.
+local SUSTAIN_FADE = 0.2
+local SUSTAIN_LIFE = 30
+
+-- Plays a cue looped until the function it hands back is called, which fades it away: the
+-- kunai's whistle in flight.
+function Audio.sustain(cue: string): () -> ()
+	local base = effectSound(cue)
+	if not base then
+		return function() end
+	end
+	local effect = EFFECTS[cue]
+	local sound = base:Clone()
+	sound.Looped = true
+	sound.Volume = 0
+	sound.PlaybackSpeed = effect.speed or 1
+	sound.Parent = SoundService
+	sound:Play()
+	TweenService:Create(sound, TweenInfo.new(SUSTAIN_FADE), { Volume = effect.volume or 0.5 })
+		:Play()
+	local stopped = false
+	local function stop()
+		if stopped then
+			return
+		end
+		stopped = true
+		local tween = TweenService:Create(sound, TweenInfo.new(SUSTAIN_FADE), { Volume = 0 })
+		tween.Completed:Once(function()
+			sound:Destroy()
+		end)
+		tween:Play()
+	end
+	task.delay(SUSTAIN_LIFE, stop)
+	return stop
+end
+
 -- How long before its moment a cue's sound is to be started (Config/Sounds `lead`): the
 -- moment comes that far into it.
 function Audio.lead(cue: string): number
@@ -91,7 +179,7 @@ end
 
 -- Makes the sound of a moment, `speed` times as high as it is set to be if given (the roulette's
 -- ticks climb). One that may overlap itself (ticks, presses) is played as a copy while the
--- last is still sounding; any other starts again.
+-- last is still sounding; any other starts again. One of a choke fades the others away.
 function Audio.play(cue: string, speed: number?)
 	local sound = effectSound(cue)
 	if not sound then
@@ -103,24 +191,36 @@ function Audio.play(cue: string, speed: number?)
 	if vary and vary > 0 then
 		pitch *= 1 + pitcher:NextNumber(-vary, vary)
 	end
+	local choke = effect.choke
+	if choke then
+		local list = chokes[choke]
+		if not list then
+			list = {}
+			chokes[choke] = list
+		end
+		for _, other in list do
+			if other ~= sound and other.IsPlaying then
+				hush(other)
+			end
+		end
+		if not table.find(list, sound) then
+			table.insert(list, sound)
+		end
+	end
 	if sound.IsPlaying and effect.overlap then
 		local copy = sound:Clone()
-		copy.PlaybackSpeed = pitch
 		copy.Parent = SoundService
-		copy.Ended:Once(function()
-			copy:Destroy()
-		end)
-		task.delay(COPY_LIFE, function()
+		local function gone()
 			if copy.Parent then
 				copy:Destroy()
 			end
-		end)
-		copy:Play()
+		end
+		copy.Ended:Once(gone)
+		task.delay(COPY_LIFE, gone)
+		launch(copy, effect, pitch, gone)
 		return
 	end
-	sound.PlaybackSpeed = pitch
-	sound.TimePosition = 0
-	sound:Play()
+	launch(sound, effect, pitch)
 end
 
 -- The music (Config/Sounds `music`). Every track is a Sound of its own, made the first time it
@@ -591,6 +691,16 @@ function Audio.start()
 	Remotes.Announce.OnClientEvent:Connect(function()
 		Audio.play("announce")
 	end)
+	-- Set on a pad (or swapped onto one), or taken off one into the inventory (owner,
+	-- 2026-10-18: "setting a shinobi down makes no sound"; it was told from the snapshot by
+	-- the hands emptying as the income rose, and was not heard).
+	Remotes.Placed.OnClientEvent:Connect(function(kind: string)
+		if kind == "place" then
+			Audio.play("place")
+		elseif kind == "take" then
+			Audio.play("pickup")
+		end
+	end)
 
 	-- What the snapshot shows has changed since the last one. The first one only sets the mark.
 	local last: Net.Snapshot? = nil
@@ -618,14 +728,12 @@ function Audio.start()
 		if state.herbs > before.herbs then
 			Audio.play("herbs")
 		end
-		-- A shinobi taken into the hands, or set down on a pad: the hands are empty and the
-		-- dojo earns more. Put away at a throw, the hands empty and nothing else changes.
+		-- A shinobi taken into the hands. Setting one on a pad, which the snapshot does not tell
+		-- for sure, the server says (Placed below).
 		if state.held and state.held ~= before.held then
 			if os.clock() - homeAt > HOME_HANDS then
 				Audio.play("pickup")
 			end
-		elseif before.held and not state.held and state.income > before.income then
-			Audio.play("place")
 		end
 		local had = total(before.stock) + total(before.premium)
 		local has = total(state.stock) + total(state.premium)

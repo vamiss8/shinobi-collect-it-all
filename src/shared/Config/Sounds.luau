@@ -21,6 +21,12 @@ export type Effect = {
 	-- How much its pitch is varied at random each time it plays, as a share (0.08 is up to 8%
 	-- higher or lower), so that a sound heard over and over does not grate.
 	vary: number?,
+	-- How long it rings before it is faded away, seconds, for a long sound heard often: it is
+	-- not let run out under the next.
+	cut: number?,
+	-- Cues of one choke (a word) cut one another: one that starts fades away any other of the
+	-- same choke still ringing, so that they never sound on top of one another.
+	choke: string?,
 	-- How far into the sound its moment comes (the hit of an arrow that first flies in),
 	-- seconds: it is started that much before the moment, where its caller can (Audio.lead).
 	lead: number?,
@@ -36,8 +42,8 @@ export type Cue =
 	| "press" -- the power bar pressed, not a Perfect
 	| "perfect" -- the power bar pressed in the Perfect band
 	| "throw" -- the kunai leaves the hand
+	| "flight" -- the kunai's whistle while it flies, looped (Audio.sustain)
 	| "land" -- the kunai strikes the ground
-	| "spin" -- the roulette begins to turn
 	| "tick" -- the roulette turns to the next shinobi
 	| "stop" -- the blow as the roulette stops, under "reveal"
 	| "reveal" -- the roulette stops on what was caught
@@ -84,15 +90,20 @@ Sounds.effects = {
 	press = { id = 9120704978, volume = 0.55 }, -- Whooshes Fast Wipes Quick Airy Slices 3
 	perfect = { id = 9126073001, volume = 0.6 }, -- Synth Sparkle Tone High Pitch Bell Tone Ding
 	throw = { id = 9120972444, volume = 0.65 }, -- Wood Whoosh Slicing Air Quick Swings 1
+	-- A faint whistle while the kunai flies (owner, 2026-10-18: "a barely heard whistle of the
+	-- flight"), from the library of its hit, faded out as the hit's arrow comes in.
+	flight = { id = 9113166565, volume = 0.22 }, -- Arrow Out Whooshing Pass By 6
 	-- The arrow flies in for about half a second before it hits (owner, 2026-10-17: "the
 	-- kunai's sound comes about half a second after it lands"), so it is started so early.
 	land = { id = 9113161857, volume = 0.6, lead = 0.5 }, -- Arrow In And Hit 19
-	-- THE ROULETTE IS HEARD (owner, the same day: "the spin is not so noticeable and epic"):
-	-- an airy whirl as it sets off, a temple block's clack for every shinobi it turns to,
-	-- higher and higher as it slows (client Cinematic), and as it stops a deep blow under the
-	-- chime, a greater one under the burst for a rare catch. It was small clicks at 0.35.
-	spin = { id = 9119226670, volume = 0.6 }, -- Slow Whoosh Airy Rumble Slicing Spinning 1
-	tick = { id = 9120917861, volume = 0.6, overlap = true }, -- ... Soft Impacts On Temple Blocks 7
+	-- THE ROULETTE IS HEARD (owner, the same day: "the spin is not so noticeable and epic"): a
+	-- shinobi of it comes up in a short puff of smoke, higher and higher as it slows (client
+	-- Cinematic), and as it stops a deep blow under the chime, a greater one under the burst
+	-- for a rare catch. The stop he liked ("the sound at the end, when the shinobi itself comes
+	-- down, is cool"); the airy whirl at the start and the temple block's clack for each turn
+	-- he did not ("rubbish, change the spin"): the whirl is gone and the clack is a puff.
+	-- Magic Poofs Short Breathy Bursts Punchy 2
+	tick = { id = 9116405618, volume = 0.5, overlap = true, vary = 0.05, cut = 0.22 },
 	stop = { id = 9126009571, volume = 0.65 }, -- Subwoofer Impact Deep Rumbling Pops Booming
 	reveal = { id = 9116394545, volume = 0.65 }, -- Magic Glows Soft Clusters Of Chiming Hits 1
 	rareHit = { id = 9125404320, volume = 0.75 }, -- Boom Impact Deep Distant Thumping Hits
@@ -105,12 +116,16 @@ Sounds.effects = {
 	-- CHAKRA CONTROL IS SOFT (owner, the same day: "choose less biting ones, these begin to
 	-- annoy after a while"): they were high synth sparkles, heard every second or two. Now a
 	-- drop of water for a hit, a small temple bell for a Perfect and a muted pat for a miss,
-	-- each a little higher or lower every time.
+	-- each a little higher or lower every time. AND THEY NEVER RING ON TOP OF ONE ANOTHER
+	-- (owner, next: "they glitch, they pile up, too long for chakra control perhaps"): the bell
+	-- rings six seconds and a round is a second or so, and each was let overlap itself. Now
+	-- the three are one choke, so the next one fades the last away, and each is cut short.
 	-- Water Drip Cu Single Drips Constant 9 (Roblox's own)
-	ring = { id = 9120510269, volume = 0.55, overlap = true, vary = 0.1 },
+	ring = { id = 9120510269, volume = 0.55, vary = 0.1, cut = 0.6, choke = "ring" },
 	-- Hand Bell Small Cast Iron Buddhist Temple Bell
-	ringPerfect = { id = 9125597331, volume = 0.4, overlap = true, vary = 0.04 },
-	ringMiss = { id = 9113531800, volume = 0.45, vary = 0.08 }, -- Body Pat Muted 1
+	ringPerfect = { id = 9125597331, volume = 0.4, vary = 0.04, cut = 0.9, choke = "ring" },
+	-- Body Pat Muted 1
+	ringMiss = { id = 9113531800, volume = 0.45, vary = 0.08, cut = 0.45, choke = "ring" },
 	bubble = { id = 17208204604, volume = 0.65, overlap = true }, -- Roblox GUI - Bubble
 
 	coins = { id = 9113849651, volume = 0.6, overlap = true }, -- Coin Throws 3
@@ -154,20 +169,21 @@ Sounds.steps = {
 	-- The surface of any material not named below.
 	fallback = "stone",
 	surfaces = {
+		-- A fifth softer than first put in (owner, the same day: "a tiny bit quieter").
 		-- Tip Toe Of Object Onto Grass 1, 7, 14, 22
-		grass = { ids = { 9120062559, 9120062862, 9120063311, 9120063929 }, volume = 0.85 },
+		grass = { ids = { 9120062559, 9120062862, 9120063311, 9120063929 }, volume = 0.68 },
 		-- Rock Hit Dirt Impact 14, 15, 16, 20
-		earth = { ids = { 9118598279, 9118598469, 9118598470, 9118598729 }, volume = 0.6 },
+		earth = { ids = { 9118598279, 9118598469, 9118598470, 9118598729 }, volume = 0.48 },
 		-- Sand Impacts 4, 5, 7, 8
-		sand = { ids = { 9118768256, 9118768193, 9118768545, 9118768535 }, volume = 0.7 },
+		sand = { ids = { 9118768256, 9118768193, 9118768545, 9118768535 }, volume = 0.56 },
 		-- Wood Grab Muted Thuds 14, 15, 17, 23
-		wood = { ids = { 9120880063, 9120880067, 9120880314, 9120880755 }, volume = 0.7 },
+		wood = { ids = { 9120880063, 9120880067, 9120880314, 9120880755 }, volume = 0.56 },
 		-- Foot Stomp 1, 2, 3, 5
-		stone = { ids = { 9114523161, 9114523351, 9114523345, 9114523636 }, volume = 0.5 },
+		stone = { ids = { 9114523161, 9114523351, 9114523345, 9114523636 }, volume = 0.4 },
 		-- Snowball Hits Lands Semi-Deep Snow 3, 6, 8, 9
-		snow = { ids = { 9119310368, 9119310649, 9119310905, 9119310903 }, volume = 0.6 },
+		snow = { ids = { 9119310368, 9119310649, 9119310905, 9119310903 }, volume = 0.48 },
 		-- Puddle Impact Small Footsteps 1, 2, 3, 7
-		water = { ids = { 9117942768, 9117943121, 9117943083, 9117943465 }, volume = 0.55 },
+		water = { ids = { 9117942768, 9117943121, 9117943083, 9117943465 }, volume = 0.44 },
 	} :: { [string]: Surface },
 	-- The surface of a material, by the name of its Enum.Material.
 	materials = {
