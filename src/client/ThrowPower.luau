@@ -83,17 +83,18 @@ function ThrowPower.attach(pill: Frame, below: boolean?): Frame
 		Text = Strings.get("ThrowTitle"),
 	})
 	-- How it is shut was anyone's guess (the row it opened from shuts it): so it has a cross
-	-- in its corner like a window, and the row says "Close" while it is open.
+	-- in its corner like a window, and the row says "Close" while it is open. It keeps 8 clear
+	-- of the amount under it: at 30 it touched the box's outline (owner, 2026-10-18).
 	local shut = Ui.button(popup, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(30, 30),
+		Size = UDim2.fromOffset(26, 26),
 		BackgroundColor3 = Ui.SEAL,
 		Text = "X",
 	})
 	-- The amount is a box to type in: clicking it clears it for a number.
 	local amountBox: TextBox = Ui.make("TextBox", {
-		Position = UDim2.fromOffset(0, 32),
+		Position = UDim2.fromOffset(0, 36),
 		Size = UDim2.new(1, 0, 0, 40),
 		BackgroundColor3 = Ui.CARD,
 		BorderSizePixel = 0,
@@ -122,7 +123,7 @@ function ThrowPower.attach(pill: Frame, below: boolean?): Frame
 	})
 	-- Two lines: the zone and what the next one takes do not fit in one.
 	local reachLabel = Ui.text(popup, {
-		Position = UDim2.fromOffset(0, 78),
+		Position = UDim2.fromOffset(0, 82),
 		Size = UDim2.new(1, 0, 0, 52),
 		TextSize = 21,
 		TextColor3 = Ui.MUTED,
@@ -132,7 +133,7 @@ function ThrowPower.attach(pill: Frame, below: boolean?): Frame
 
 	-- The track is taller than it looks, so it is easy to grab; the bar and knob are drawn in it.
 	local track = Ui.make("TextButton", {
-		Position = UDim2.fromOffset(10, 134),
+		Position = UDim2.fromOffset(10, 138),
 		Size = UDim2.new(1, -20, 0, 34),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
