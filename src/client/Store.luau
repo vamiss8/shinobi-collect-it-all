@@ -4,6 +4,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 
@@ -16,6 +17,10 @@ type IndexListener = (found: Net.Found) -> ()
 local state: Net.Snapshot? = nil
 local inventory: Net.Inventory = {}
 local twins: Net.Twins = {}
+local onPads: Net.OnPads = {}
+local merges: { Economy.MergeOption } = {}
+local mergeable: { [string]: boolean } = {}
+local paired: { [string]: boolean } = {}
 local found: Net.Found = {}
 
 local stateListeners: { StateListener } = {}
@@ -35,6 +40,47 @@ end
 -- are ready to merge. Changes with the inventory, so read it in an onInventory listener.
 function Store.twins(): Net.Twins
 	return twins
+end
+
+-- The units standing on the player's pads, by pad number (a string). Changes with the
+-- inventory.
+function Store.onPads(): Net.OnPads
+	return onPads
+end
+
+-- The merges the inventory offers (Economy.mergeOptions), the best first. Changes with the
+-- inventory, so read it in an onInventory listener.
+function Store.merges(): { Economy.MergeOption }
+	return merges
+end
+
+-- The units of the inventory that some merge could take: with a twin in the inventory or on a
+-- pad. They are marked "ready to merge" on their cards and in the bar.
+function Store.mergeable(): { [string]: boolean }
+	return mergeable
+end
+
+-- The units of an inventory that have a twin in it.
+local function pairsUp(list: Net.Inventory): { [string]: boolean }
+	local counts: { [string]: number } = {}
+	local function key(unit: Economy.Unit): string
+		return `{unit.character}|{unit.mutation}|{unit.level}`
+	end
+	for _, unit in list do
+		counts[key(unit)] = (counts[key(unit)] or 0) + 1
+	end
+	local twinned: { [string]: boolean } = {}
+	for unitId, unit in list do
+		if counts[key(unit)] >= 2 then
+			twinned[unitId] = true
+		end
+	end
+	return twinned
+end
+
+-- The units of the inventory that have a twin in it, not only on a pad: a card says which.
+function Store.paired(): { [string]: boolean }
+	return paired
 end
 
 -- Which character + mutation pairs the player has found.
@@ -70,13 +116,24 @@ function Store.start()
 		end
 	end)
 
-	Remotes.Inventory.OnClientEvent:Connect(function(list: Net.Inventory, pairs: Net.Twins?)
-		inventory = list
-		twins = pairs or {}
-		for _, fn in inventoryListeners do
-			fn(list)
+	Remotes.Inventory.OnClientEvent:Connect(
+		function(list: Net.Inventory, pairs: Net.Twins?, standing: Net.OnPads?)
+			inventory = list
+			twins = pairs or {}
+			onPads = standing or {}
+			merges = Economy.mergeOptions(inventory, onPads)
+			paired = pairsUp(inventory)
+			mergeable = {}
+			for unitId in inventory do
+				if paired[unitId] or twins[unitId] then
+					mergeable[unitId] = true
+				end
+			end
+			for _, fn in inventoryListeners do
+				fn(list)
+			end
 		end
-	end)
+	)
 
 	Remotes.Index.OnClientEvent:Connect(function(book: Net.Found)
 		found = book

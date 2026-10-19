@@ -77,7 +77,7 @@ Guide.tips = {
 	{ id = "nextRank" },
 	{ id = "caught", point = { "speed" } },
 	{ id = "herbs", point = { "herbsChip" } },
-	{ id = "twin", point = { "pad" } },
+	{ id = "twin", point = { "inventory" } },
 	{ id = "merged" },
 	{ id = "upgrade" },
 	{ id = "kunai", point = { "tenten" } },

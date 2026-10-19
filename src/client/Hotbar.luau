@@ -100,7 +100,7 @@ local function makeSlot(parent: Instance, number: number, x: number): Slot
 		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = 3,
 	})
-	-- A shinobi whose twin stands on a pad (Store.twins): ready to merge.
+	-- A shinobi with a twin on a pad or in the inventory (Store.mergeable): ready to merge.
 	local mark = Ui.text(button, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -3, 0, 3),
@@ -289,7 +289,7 @@ function Hotbar.start()
 				Strings.upper(title),
 				Strings.get("CardIncome", Economy.unitIncome(unit))
 			)
-			if Store.twins()[quickUnits[index]] then
+			if Store.mergeable()[quickUnits[index]] then
 				text ..= Strings.get("MergeSuffix")
 			end
 			return text
@@ -331,7 +331,7 @@ function Hotbar.start()
 				slot.stars.Text = ""
 				slot.button.BackgroundTransparency = 0.55
 			end
-			slot.mark.Visible = unit ~= nil and Store.twins()[quickUnits[index]] ~= nil
+			slot.mark.Visible = unit ~= nil and Store.mergeable()[quickUnits[index]] ~= nil
 			outline(index)
 		end
 	end)

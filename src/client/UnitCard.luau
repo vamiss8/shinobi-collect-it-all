@@ -23,16 +23,17 @@ local BLACK = Color3.new(0, 0, 0)
 local MARK = 30
 
 -- Builds a card. It is a button, so the caller can make it clickable. The bottom-right corner
--- shows the unit's income unless a `footer` is given to show there instead. A unit `ready` to
--- merge, whose twin stands on a pad, has a red seal stamped "!" in the top right corner, and
--- under the pointer a slip of parchment that says so (owner, 2026-10-17: "an exclamation mark,
--- and on hovering, ready to merge").
+-- shows the unit's income unless a `footer` is given to show there instead. A unit ready to
+-- merge, whose twin stands on a pad or is in the inventory too, has a red seal stamped "!" in
+-- the top right corner, and under the pointer a slip of parchment that says so (owner,
+-- 2026-10-17: "an exclamation mark, and on hovering, ready to merge"): `ready` is its second
+-- line, where the twin is.
 function UnitCard.build(
 	parent: Instance,
 	unit: Economy.Unit,
 	known: boolean,
 	footer: string?,
-	ready: boolean?
+	ready: string?
 ): TextButton
 	local character = Catalog.characterById[unit.character]
 	local rank = Catalog.rankOf(unit.character)
@@ -173,7 +174,7 @@ function UnitCard.build(
 			TextTransparency = 0.15,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			ZIndex = 9,
-			Text = Strings.get("MergeReadyWhy"),
+			Text = ready,
 		})
 		Ui.make("UITextSizeConstraint", { MaxTextSize = 17 }, why)
 
