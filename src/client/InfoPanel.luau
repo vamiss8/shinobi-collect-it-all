@@ -45,8 +45,15 @@ local BODY_SIZE = 20
 -- one (Tuning.Social).
 local QUESTIONS = 22
 
--- Iruka's face at the head of his tips, layout pixels.
+-- Iruka's face at the head of his tips, layout pixels. And his tips (owner, 2026-10-19: "his
+-- face on every tip, as it first comes before the player, and the tips opened by their names,
+-- a list that drops down"): a bar a tip with its name, and under it, when pressed, his scroll
+-- unrolling as it does in the game (client Guide), his face in its red frame and his words.
 local FACE = 112
+local TIP_BAR = 58
+local TIP_FACE = 104
+local TIP_SIZE = 24
+local TIP_SCROLL = CARD - 40
 
 -- A page: "faq", "news", "chances" or "tips".
 export type Page = string
@@ -245,8 +252,81 @@ local function chances(page: ScrollingFrame)
 	card(page, 4, Strings.get("ChancesEvents"), Ui.SEAL, coming)
 end
 
+-- Iruka's face in a red frame, as on his card (client Guide), with `properties` of its place.
+local function irukaFace(parent: Instance, properties: { [string]: any }): Frame
+	local frame: Frame = Ui.make("Frame", {
+		BackgroundColor3 = Ui.SEAL,
+		BorderSizePixel = 0,
+	}, parent)
+	for key, value in properties do
+		(frame :: any)[key] = value
+	end
+	Ui.corner(frame, 12)
+	local window: Frame = Ui.make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -8, 1, -8),
+		BackgroundColor3 = Ui.PANEL,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+	}, frame)
+	Ui.corner(window, 9)
+	if not Portrait.show(window, "iruka", false, true) then
+		Ui.text(window, {
+			Size = UDim2.fromScale(1, 1),
+			TextScaled = true,
+			TextColor3 = Ui.PARCHMENT,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = "I",
+		})
+	end
+	return frame
+end
+
+-- What a tip opens to: Iruka's scroll, his face and his words, as he said them in the game;
+-- for a tip not heard yet, the scroll grayed and saying it is still to come. Made when the tip
+-- is first opened (each face is a copy of a model), at `order` in the page's list.
+local function tipScroll(page: ScrollingFrame, order: number, heard: boolean, words: string)
+	local left = if heard then 30 + TIP_FACE + 22 else 36
+	local room = TIP_SCROLL - left - 36
+	local painted = Ui.paint(words, TIP_SIZE, room)
+	local lines = #string.split(painted, "\n")
+	local tall =
+		math.max(if heard then TIP_FACE + 36 else 0, 40 + lines * math.ceil(TIP_SIZE * 1.3))
+	local holder: Frame = Ui.make("Frame", {
+		Size = UDim2.fromOffset(CARD, tall + 26),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+	}, page)
+	local paper = Ui.parchment(holder, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(TIP_SCROLL, tall),
+		Visible = false,
+	}, 0)
+	paper.seal.Visible = false
+	paper.edge.Color = if heard then Ui.SEAL else Ui.EDGE
+	if heard then
+		irukaFace(paper.page, {
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 30, 0.5, 0),
+			Size = UDim2.fromOffset(TIP_FACE, TIP_FACE),
+		})
+	end
+	Ui.text(paper.page, {
+		Position = UDim2.fromOffset(left, 0),
+		Size = UDim2.new(0, room, 1, 0),
+		TextSize = TIP_SIZE,
+		TextColor3 = if heard then Ui.INK else FADED,
+		RichText = true,
+		Text = painted,
+	})
+	return holder, paper
+end
+
 -- Iruka's tips: his face and a word at the head, then every tip in the order they would most
--- likely come; one he has said in full under its name, one still to come named and grayed.
+-- likely come, a bar with its name each (one still to come grayed); a press on a bar unrolls
+-- his scroll under it, another rolls it away.
 local function tips(page: ScrollingFrame)
 	local heard = 0
 	for _, tip in GuideConfig.tips do
@@ -274,32 +354,7 @@ local function tips(page: ScrollingFrame)
 		PaddingLeft = UDim.new(0, 20),
 		PaddingRight = UDim.new(0, 20),
 	}, head)
-	-- His face in a red frame, as on his card (client Guide).
-	local frame: Frame = Ui.make("Frame", {
-		Size = UDim2.fromOffset(FACE, FACE),
-		BackgroundColor3 = Ui.SEAL,
-		BorderSizePixel = 0,
-		LayoutOrder = 1,
-	}, head)
-	Ui.corner(frame, 12)
-	local window: Frame = Ui.make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -8, 1, -8),
-		BackgroundColor3 = Ui.PANEL,
-		BorderSizePixel = 0,
-		ClipsDescendants = true,
-	}, frame)
-	Ui.corner(window, 9)
-	if not Portrait.show(window, "iruka", false, true) then
-		Ui.text(window, {
-			Size = UDim2.fromScale(1, 1),
-			TextScaled = true,
-			TextColor3 = Ui.PARCHMENT,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Text = "I",
-		})
-	end
+	irukaFace(head, { Size = UDim2.fromOffset(FACE, FACE), LayoutOrder = 1 })
 	local room = CARD - 40 - FACE - 20
 	Ui.text(head, {
 		Size = UDim2.fromOffset(room, 0),
@@ -310,13 +365,55 @@ local function tips(page: ScrollingFrame)
 		LayoutOrder = 2,
 		Text = Ui.paint(Strings.get("TipsIntro", heard, #GuideConfig.tips), 22, room),
 	})
+
 	for index, tip in GuideConfig.tips do
-		local name = Strings.get(`TipName_{tip.id}`)
-		if Guide.heard(tip.id) then
-			card(page, index, name, Ui.SEAL, { Strings.get(`Tip_{tip.id}`) })
-		else
-			card(page, index, name, FADED, { Strings.get("TipsLocked") }, true)
-		end
+		local known = Guide.heard(tip.id)
+		local bar = Ui.button(page, {
+			Size = UDim2.fromOffset(CARD, TIP_BAR),
+			BackgroundColor3 = if known then Ui.PARCHMENT else Ui.CARD,
+			LayoutOrder = index * 2,
+			Text = "",
+		})
+		Ui.stroke(bar, if known then Ui.SEAL else Ui.EDGE, 2)
+		Ui.text(bar, {
+			Position = UDim2.fromOffset(22, 0),
+			Size = UDim2.new(1, -90, 1, 0),
+			TextSize = 26,
+			TextColor3 = if known then Ui.INK else Ui.MUTED,
+			Text = Strings.get(`TipName_{tip.id}`),
+		})
+		local arrow = Ui.text(bar, {
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -20, 0.5, 0),
+			Size = UDim2.fromOffset(40, 40),
+			TextSize = 24,
+			TextColor3 = if known then Ui.SEAL else Ui.MUTED,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = "▼",
+		})
+		local opened = false
+		local holder: Frame? = nil
+		local scroll: Ui.Parchment? = nil
+		bar.Activated:Connect(function()
+			opened = not opened
+			arrow.Text = if opened then "▲" else "▼"
+			if opened and not holder then
+				holder, scroll = tipScroll(
+					page,
+					index * 2 + 1,
+					known,
+					if known then Strings.get(`Tip_{tip.id}`) else Strings.get("TipsLocked")
+				)
+			end
+			local frame, paper = holder, scroll
+			if frame and paper then
+				frame.Visible = opened
+				if opened then
+					paper.frame.Visible = false
+					Ui.unroll(paper)
+				end
+			end
+		end)
 	end
 end
 
