@@ -23,6 +23,7 @@ local Hud = require("./Hud")
 local Icons = require("./Icons")
 local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
+local Stars = require(ReplicatedStorage.Shared.View.Stars)
 local Store = require("./Store")
 local Strings = require("./Strings")
 local Ui = require("./Ui")
@@ -64,7 +65,7 @@ type Slot = {
 	button: TextButton,
 	edge: UIStroke,
 	content: Frame, -- where the icon is drawn
-	stars: TextLabel, -- merge stars of the shinobi in the slot
+	stars: Frame, -- merge stars of the shinobi in the slot, drawn (View/Stars)
 	mark: TextLabel, -- a red seal stamped "!" when the shinobi is ready to merge
 }
 
@@ -90,16 +91,13 @@ local function makeSlot(parent: Instance, number: number, x: number): Slot
 		ZIndex = 3,
 		Text = tostring(number),
 	})
-	local stars = Ui.text(button, {
+	local stars = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -1),
-		Size = UDim2.new(1, 0, 0, 16),
-		TextSize = 13,
-		TextColor3 = Ui.GOLD,
-		TextStrokeTransparency = 0.3,
-		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, -4, 0, 16),
+		BackgroundTransparency = 1,
 		ZIndex = 3,
-	})
+	}, button)
 	-- A shinobi with a twin on a pad or in the inventory (Store.mergeable): ready to merge.
 	local mark = Ui.text(button, {
 		AnchorPoint = Vector2.new(1, 0),
@@ -325,10 +323,10 @@ function Hotbar.start()
 			local unit = inventory[quickUnits[index]]
 			if unit then
 				Icons.shinobi(slot.content, unit.character, Hud.rankColor(unit.character))
-				slot.stars.Text = Catalog.stars(unit.level)
+				Stars.fill(slot.stars, unit.level, Enum.HorizontalAlignment.Center, 6)
 				slot.button.BackgroundTransparency = 0.12
 			else
-				slot.stars.Text = ""
+				Stars.fill(slot.stars, 1)
 				slot.button.BackgroundTransparency = 0.55
 			end
 			slot.mark.Visible = unit ~= nil and Store.mergeable()[quickUnits[index]] ~= nil

@@ -10,6 +10,7 @@ local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Icons = require("./Icons")
 local Lettering = require("./Lettering")
+local Stars = require(ReplicatedStorage.Shared.View.Stars)
 local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Strings = require("./Strings")
 local Ui = require("./Ui")
@@ -120,10 +121,18 @@ function UnitCard.build(
 		})
 	end
 
-	-- Bottom line: level and merge stars on the left, income on the right.
+	-- Bottom line: the level on the left, income on the right. The merge stars are drawn over
+	-- the foot of the portrait (View/Stars: from the third, platinum and Six Paths ones).
 	local level = Strings.get("CardLevel", upgrades + 1)
-	if unit.level > 1 then
-		level ..= " " .. Catalog.stars(unit.level)
+	if known and unit.level > 1 then
+		local stars = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -1),
+			Size = UDim2.new(1, -2, 0, 20),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, portrait)
+		Stars.fill(stars, unit.level, Enum.HorizontalAlignment.Center, 6)
 	end
 	-- Both shrink to fit: a long price or a row of stars must not run under the other.
 	local levelLabel = Ui.text(card, {

@@ -33,6 +33,7 @@ local Footing = require("../Logic/Footing")
 local Format = require("../Logic/Format")
 local Lettering = require("../Config/Lettering")
 local Net = require("../Net")
+local Stars = require("./Stars")
 
 local Figure = {}
 
@@ -74,10 +75,12 @@ end
 
 -- One line of a figure's tag: what it says, the color it is written in (white when left out),
 -- and the key of its lettering when a plain color is not enough for it (Config/Lettering).
-type Line = { text: string, color: string?, lettering: string? }
+-- A line of a figure's tag: words, or (`stars`, a merge level) the drawn merge stars.
+type Line = { text: string, color: string?, lettering: string?, stars: number? }
 
--- The tag above a figure, top to bottom: mutation (if any), rank, name with merge stars, level
--- with income, and for an upgraded unit its base income: what it earned at level 1, which is
+-- The tag above a figure, top to bottom: mutation (if any), rank, name, its merge stars drawn
+-- (View/Stars: gold, platinum, Six Paths), level with income, and for an upgraded unit its base
+-- income: what it earned at level 1, which is
 -- what tells a strong unit from a weak one that was merely leveled up.
 local function tag(unit: Economy.Unit): { Line }
 	local character = Catalog.characterById[unit.character]
@@ -100,10 +103,10 @@ local function tag(unit: Economy.Unit): { Line }
 		})
 	end
 	local name = if character then character.name else unit.character
-	if unit.level > 1 then
-		name ..= ` <font color="#FFD54F">{Catalog.stars(unit.level)}</font>`
-	end
 	table.insert(lines, { text = name })
+	if unit.level > 1 then
+		table.insert(lines, { text = "", stars = unit.level })
+	end
 	-- The level in gold and what it earns in green: all in white, the line had to be read
 	-- to be told from the name over it.
 	local upgrades = unit.upgrade or 0
@@ -147,6 +150,17 @@ local function write(board: BillboardGui, lines: { Line }, tall: number, shown: 
 	board:SetAttribute(TAG_TALL, each * #lines)
 	lay(board)
 	for index, line in lines do
+		local level = line.stars
+		if level then
+			local row = Instance.new("Frame")
+			row.Name = "Line" .. index
+			row.Position = UDim2.fromScale(0, (index - 1) / #lines)
+			row.Size = UDim2.fromScale(1, 1 / #lines)
+			row.BackgroundTransparency = 1
+			Stars.fill(row, level, Enum.HorizontalAlignment.Center)
+			row.Parent = board
+			continue
+		end
 		local label = Instance.new("TextLabel")
 		label.Name = "Line" .. index
 		label.Position = UDim2.fromScale(0, (index - 1) / #lines)

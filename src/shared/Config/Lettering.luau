@@ -205,20 +205,43 @@ local BADGES: { [string]: Style } = {
 	},
 }
 
+-- The merge stars past the gold ones (View/Stars): platinum, a pale silver a glint passes over,
+-- worth three gold; and Six Paths, worth three platinum, gold and violet with a dark flame
+-- rising off it (the rank Sage of Six Paths' aura, in the star's own colors).
+local STARS: { [string]: Style } = {
+	platinum = {
+		fill = { "#ECEFF1", "#B0BEC5", "#FFFFFF", "#CFD8DC", "#90A4AE" },
+		edge = "#1C262B",
+		flare = "#FFFFFF",
+		motion = "sheen",
+		period = 2.6,
+	},
+	sixpaths = {
+		fill = { "#FFF3C4", "#FFD54F", "#B388FF", "#FFFFFF", "#FFB300" },
+		edge = "#12001F",
+		flare = "#FFFFFF",
+		shade = "#1B0033",
+		motion = "aura",
+		period = 2.2,
+	},
+}
+
 Lettering.mutations = MUTATIONS
 Lettering.ranks = RANKS
 Lettering.titles = TITLES
 Lettering.badges = BADGES
+Lettering.stars = STARS
 
 local SEPARATOR = ":"
 
 -- The key of the lettering a mutation's or a rank's name is written in, or nil when it is
 -- written in its plain color. The key is what a label is marked with for the client to find.
-function Lettering.key(kind: "mutation" | "rank" | "title" | "badge", id: string): string?
+function Lettering.key(kind: "mutation" | "rank" | "title" | "badge" | "star", id: string): string?
 	local styles = if kind == "mutation"
 		then MUTATIONS
 		elseif kind == "rank" then RANKS
 		elseif kind == "badge" then BADGES
+		elseif kind == "star" then STARS
 		else TITLES
 	return if styles[id] then kind .. SEPARATOR .. id else nil
 end
@@ -234,6 +257,8 @@ function Lettering.style(key: string): Style?
 		return TITLES[id :: string]
 	elseif kind == "badge" then
 		return BADGES[id :: string]
+	elseif kind == "star" then
+		return STARS[id :: string]
 	end
 	return nil
 end

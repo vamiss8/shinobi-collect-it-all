@@ -21,6 +21,7 @@ local Icons = require("./Icons")
 local Lettering = require("./Lettering")
 local Looks = require(ReplicatedStorage.Shared.Config.Lettering)
 local Remotes = require("./Remotes")
+local Stars = require(ReplicatedStorage.Shared.View.Stars)
 local Store = require("./Store")
 local Strings = require("./Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
@@ -130,8 +131,16 @@ local function chip(
 	end
 
 	local level = Strings.get("CardLevel", (unit.upgrade or 0) + 1)
+	-- The merge stars over the foot of the photograph (View/Stars).
 	if unit.level > 1 then
-		level ..= " " .. Catalog.stars(unit.level)
+		local stars = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -1),
+			Size = UDim2.new(1, -2, 0, 18),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, portrait)
+		Stars.fill(stars, unit.level, Enum.HorizontalAlignment.Center, 6)
 	end
 	local line = Ui.text(frame, {
 		Position = UDim2.new(0, 6, 1, -30),

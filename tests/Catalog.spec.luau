@@ -9,6 +9,21 @@ return {
 		T.ok(#problems == 0, table.concat(problems, "; "))
 	end,
 
+	["merge stars are counted in threes: gold, platinum, Six Paths"] = function()
+		local function parts(level: number): string
+			local p = Catalog.starParts(level)
+			return `{p.gold} {p.platinum} {p.sixPaths}`
+		end
+		T.eq(parts(1), "0 0 0", "never merged")
+		T.eq(parts(3), "2 0 0", "two gold")
+		T.eq(parts(4), "0 1 0", "three gold are a platinum")
+		T.eq(parts(9), "2 2 0")
+		T.eq(parts(10), "0 0 1", "three platinum are a Six Paths")
+		T.eq(parts(15), "2 1 1")
+		T.eq(Catalog.stars(3), "★★")
+		T.eq(Catalog.stars(6), "★5", "plain text counts them past two")
+	end,
+
 	["unit titles show mutation, merge stars and level only when present"] = function()
 		T.eq(Catalog.unitTitle("kakashi", Catalog.NONE, 1), "Kakashi")
 		T.eq(Catalog.unitTitle("kakashi", "ice", 1), "Kakashi [Ice]")

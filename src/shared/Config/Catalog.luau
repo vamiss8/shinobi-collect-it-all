@@ -207,8 +207,24 @@ function Catalog.mutationMultiplier(mutationId: string): number
 end
 
 -- One star per merge, e.g. "★★" for a unit merged twice (merge level 3).
+-- A unit's merge stars counted in threes (owner, 2026-10-19: "merges can be so many that the
+-- stars do not fit: from the third star make a beautiful animated platinum star, and three
+-- platinum ones the last, a super cool Six Paths star"): `gold` stars, `platinum` ones worth
+-- three gold, and `sixPaths` ones worth three platinum. View/Stars draws them.
+export type StarParts = { gold: number, platinum: number, sixPaths: number }
+function Catalog.starParts(level: number): StarParts
+	local stars = math.max(level - 1, 0)
+	return { gold = stars % 3, platinum = (stars // 3) % 3, sixPaths = stars // 9 }
+end
+
+-- A unit's merge stars in a line of plain text (a message, a prompt), which cannot draw them:
+-- a star for each up to two, and from three on one star and their number, "★5".
 function Catalog.stars(level: number): string
-	return string.rep("★", math.max(level - 1, 0))
+	local stars = math.max(level - 1, 0)
+	if stars <= 2 then
+		return string.rep("★", stars)
+	end
+	return "★" .. stars
 end
 
 -- One-line name of a unit for the hotbar and messages, e.g. "Kakashi [Ice] ★★ Lvl 3".
