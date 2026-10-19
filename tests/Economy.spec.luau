@@ -113,11 +113,12 @@ return {
 			end
 		end
 		assert(pair and pad, "both kinds offered")
-		T.eq(pair.unit, "a", "the most levelled one is kept")
-		T.eq(pair.other, "b", "merged with the least levelled")
+		T.eq(pair.unit, "b", "the least levelled")
+		T.eq(pair.other, "c", "with the next least, not the most levelled")
 		T.eq(pair.count, 1, "three alike make one pair")
 		T.eq(pair.result.level, 2)
-		T.eq(pair.result.upgrade, 5)
+		T.eq(pair.result.upgrade, 2, "the better of the two")
+		T.eq(table.concat(pair.choices, ","), "b,c,a", "every one of the kind, least first")
 		T.eq(pad.unit, "d")
 		T.eq(pad.pad, 3)
 		T.eq(pad.result.upgrade, 7, "the pad's levels kept")
@@ -126,6 +127,24 @@ return {
 			"the best first"
 		)
 		T.eq(#Economy.mergeOptions({ x = unit("iruka", "lava", 1) }, {}), 0, "nothing alone")
+	end,
+
+	["a player may merge any two twins of the inventory, or one into its twin on a pad"] = function()
+		local inventory = {
+			a = unit("iruka", "lava", 1),
+			b = unit("iruka", "lava", 1),
+			c = unit("iruka", "ice", 1),
+		}
+		inventory.b.upgrade = 39
+		local onPads = { ["2"] = unit("iruka", "ice", 1) }
+		local pair = Economy.mergeOf(inventory, onPads, "a", "b")
+		assert(pair, "twins merge")
+		T.eq(pair.result.upgrade, 39, "the better level kept")
+		T.ok(Economy.mergeOf(inventory, onPads, "a", "c") == nil, "not twins")
+		T.ok(Economy.mergeOf(inventory, onPads, "a", "a") == nil, "not with itself")
+		T.ok(Economy.mergeOf(inventory, onPads, "c", 2) ~= nil, "into its twin on a pad")
+		T.ok(Economy.mergeOf(inventory, onPads, "a", 2) == nil, "not into another's pad")
+		T.ok(Economy.mergeOf(inventory, onPads, "gone", "b") == nil, "not of the inventory")
 	end,
 
 	["a save is split into the inventory and what stands on pads"] = function()

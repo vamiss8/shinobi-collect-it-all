@@ -133,13 +133,16 @@ end
 -- One merge to be made from the inventory (owner, 2026-10-19: "merge right in the inventory,
 -- and show the choices: Madara + Madara = Madara with a star"): two of its units, `unit` and
 -- `other`, or `unit` into its twin standing on `pad`. `result` is what they become; `count`
--- how many such merges there are to make (pairs of alike units in the inventory; 1 for a pad).
+-- how many such merges there are to make (pairs of alike units in the inventory; 1 for a pad);
+-- `choices` every unit of the inventory of that kind, the least levelled first, any of which
+-- the player may merge in place of `unit` or `other` (client MergeView).
 export type MergeOption = {
 	unit: string,
 	other: string?,
 	pad: number?,
 	result: Unit,
 	count: number,
+	choices: { string },
 }
 
 -- A save's units split for Economy.mergeOptions: those in the inventory by id, and those
@@ -167,11 +170,12 @@ function Economy.sides(
 end
 
 -- Every merge the inventory offers. For each kind of unit (shinobi, mutation, stars) it holds
--- two of: one merge of the most levelled with the least, which loses the fewest bought levels
--- (the merged unit keeps the better of the two). And for each pad whose unit is the twin of
--- one in the inventory: the inventory's most levelled one merged into it. The best first, by
--- what the merged unit earns; the same save always gives the same list, on the server and on
--- the client alike.
+-- two of: one merge of the two least levelled (owner, 2026-10-19: "take the lowest levels
+-- there are: with Minato at Lvl 1, 5 and 40, show 1 + 5 = 5, and let the player change it to
+-- 1 + 40 = 40 if they want"; the merged unit keeps the better level of the two). And for each
+-- pad whose unit is the twin of one in the inventory: the inventory's least levelled one merged
+-- into it. The best first, by what the merged unit earns; the same save always gives the same
+-- list, on the server and on the client alike. "Merge all" takes them in this order.
 function Economy.mergeOptions(
 	inventory: { [string]: Unit },
 	onPads: { [string]: Unit }
@@ -192,29 +196,31 @@ function Economy.mergeOptions(
 		table.sort(ids, function(a, b)
 			local levelsA, levelsB = inventory[a].upgrade or 0, inventory[b].upgrade or 0
 			if levelsA ~= levelsB then
-				return levelsA > levelsB
+				return levelsA < levelsB
 			end
 			return a < b
 		end)
-		local best = ids[1]
-		local unit = inventory[best]
+		local least = ids[1]
+		local unit = inventory[least]
 		if #ids >= 2 then
-			local least = ids[#ids]
+			local second = ids[2]
 			table.insert(options, {
-				unit = best,
-				other = least,
-				result = Economy.merged(unit, inventory[least]),
+				unit = least,
+				other = second,
+				result = Economy.merged(unit, inventory[second]),
 				count = #ids // 2,
+				choices = ids,
 			})
 		end
 		for key, padUnit in onPads do
 			local pad = tonumber(key)
 			if pad and Economy.canMerge(padUnit, unit) then
 				table.insert(options, {
-					unit = best,
+					unit = least,
 					pad = pad,
 					result = Economy.merged(padUnit, unit),
 					count = 1,
+					choices = ids,
 				})
 			end
 		end
@@ -232,6 +238,45 @@ function Economy.mergeOptions(
 		return a.unit < b.unit
 	end)
 	return options
+end
+
+-- The merge a player asked for by name: `unit` of the inventory with `target`, another unit of
+-- it (by id) or the unit standing on a pad (by number). Any two twins may be named, not only
+-- the pair Economy.mergeOptions offers first. Nil when they are not twins or not there.
+function Economy.mergeOf(
+	inventory: { [string]: Unit },
+	onPads: { [string]: Unit },
+	unitId: string,
+	target: unknown
+): MergeOption?
+	local unit = inventory[unitId]
+	if not unit then
+		return nil
+	end
+	if typeof(target) == "string" then
+		local other = inventory[target]
+		if target ~= unitId and other and Economy.canMerge(unit, other) then
+			return {
+				unit = unitId,
+				other = target,
+				result = Economy.merged(unit, other),
+				count = 1,
+				choices = { unitId, target },
+			}
+		end
+	elseif typeof(target) == "number" then
+		local padUnit = onPads[tostring(target)]
+		if padUnit and Economy.canMerge(padUnit, unit) then
+			return {
+				unit = unitId,
+				pad = target,
+				result = Economy.merged(padUnit, unit),
+				count = 1,
+				choices = { unitId },
+			}
+		end
+	end
+	return nil
 end
 
 -- Ryo paid for selling a unit.

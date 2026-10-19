@@ -382,10 +382,11 @@ local function applyMerge(
 	return held
 end
 
--- A merge asked for from the inventory window (client InventoryPanel): one of the merges the
--- inventory offers, named by its unit and the other unit or the pad, or "*" for all of them,
--- made again and again while there are any (two pairs merged may make a pair of the next
--- star). Not in the middle of a throw: the catch on the run home is already in the save.
+-- A merge asked for from the inventory window (client MergeView): a unit of the inventory and
+-- its twin, another unit of it or the one on a pad (Economy.mergeOf: any two twins, the player
+-- may pick others than those offered), or "*" for all the merges the inventory offers, made
+-- again and again while there are any (two pairs merged may make a pair of the next star).
+-- Not in the middle of a throw: the catch on the run home is already in the save.
 local function onMerge(player: Player, unitId: unknown, target: unknown)
 	local data = Data.get(player)
 	if not data then
@@ -410,14 +411,12 @@ local function onMerge(player: Player, unitId: unknown, target: unknown)
 			last = option.result
 		end
 	elseif typeof(unitId) == "string" then
-		for _, option in Economy.mergeOptions(Economy.sides(data.units, data.pads)) do
-			local other = if option.other then option.other == target else option.pad == target
-			if option.unit == unitId and other then
-				held = applyMerge(player, data, option, held)
-				done = 1
-				last = option.result
-				break
-			end
+		local inventory, onPads = Economy.sides(data.units, data.pads)
+		local option = Economy.mergeOf(inventory, onPads, unitId, target)
+		if option then
+			held = applyMerge(player, data, option, held)
+			done = 1
+			last = option.result
 		end
 	end
 
