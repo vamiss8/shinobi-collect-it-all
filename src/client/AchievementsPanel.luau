@@ -60,6 +60,7 @@ local METALS = {
 local NUMERALS = { "I", "II", "III", "IV", "V", "VI" }
 
 type Row = {
+	frame: Frame,
 	edge: UIStroke,
 	ring: UIStroke,
 	shade: Frame,
@@ -351,6 +352,7 @@ function AchievementsPanel.start()
 			Visible = false,
 		})
 		rows[achievement.id] = {
+			frame = frame,
 			edge = edge,
 			ring = ring,
 			shade = shade,
@@ -365,10 +367,29 @@ function AchievementsPanel.start()
 		}
 	end
 
+	-- The rows' order (owner, 2026-10-19: "let fully done achievements move down in Awards:
+	-- the higher the tier done, the lower it stands when the window is refreshed"): a reward
+	-- waiting to be claimed first, so that its Claim is not lost at the foot (my call); then
+	-- those still going, the fewest tiers reached first; the finished ones last, the most tiers
+	-- lowest; the config's order among equals. Set only while the window is shut, so that rows
+	-- never jump under the pointer: it comes into force when the window is opened again.
+	local function arrange(state: Net.Snapshot)
+		for order, achievement in Progress.list do
+			local tiers = #achievement.tiers
+			local reached = math.min(tierIn(state.achievements, achievement.id), tiers)
+			local claimed = math.min(tierIn(state.claimed, achievement.id), reached)
+			local group = if reached > claimed then 0 elseif reached < tiers then 1 else 2
+			rows[achievement.id].frame.LayoutOrder = group * 100000 + reached * 1000 + order
+		end
+	end
+
 	local function draw()
 		local state: Net.Snapshot? = Store.get()
 		if not state then
 			return
+		end
+		if not window.isOpen() then
+			arrange(state)
 		end
 		local progress = state.progress or {}
 		local reachedAll, tiersAll, waiting = 0, 0, false
