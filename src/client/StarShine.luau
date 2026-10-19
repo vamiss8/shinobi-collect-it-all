@@ -1,10 +1,12 @@
 --!strict
 -- Sets the greater merge stars moving, wherever they are drawn (View/Stars: the tags over the
 -- figures, cards, merge chips, slots): a platinum star's sparkle twinkles now and again; a Six
--- Paths star's rays flare and fade, its dark shadow breathes, a ring of light spreads from it
--- and is gone, and its sparkle twinkles. (Its orbs that went round it are gone: "its orbit
--- sometimes does not turn", owner, 2026-10-19.) Each star keeps its own time, so that a row of
--- them does not twinkle at once. The letters' own colors are client Lettering's.
+-- Paths star's rays turn slowly and flare on the beat, its dark shadow breathes, its sparkle
+-- twinkles on the beat and three small ones glitter round it after it, one by one.
+--
+-- EVERY STAR OF A KIND KEEPS ONE TIME, the clock's: stars that each kept their own pulsed at
+-- odd moments, which looked strange (owner, 2026-10-19), and so did the ring that spread from
+-- a Six Paths star, which is gone. The letters' own colors are client Lettering's.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,25 +19,35 @@ local StarShine = {}
 
 -- How often the stars are moved, seconds: as smooth as the eye asks of something this small.
 local STEP = 1 / 30
--- A sparkle's twinkle: how long it shows, and how often it comes, by kind.
-local TWINKLE = 0.55
-local EVERY: { [string]: number } = { platinum = 2.8, sixpaths = 1.9 }
--- A Six Paths star's beat: its rays flare and its ring spreads once in this many seconds.
-local BEAT = 1.6
+-- A sparkle's twinkle, seconds.
+local TWINKLE = 0.5
+-- How often a platinum star's sparkle twinkles; a Six Paths star's beat.
+local PLATINUM_EVERY = 2.6
+local BEAT = 1.4
+-- How fast a Six Paths star's rays turn, degrees a second.
+local RAYS_TURN = 16
 
 type Record = {
 	kind: string,
-	seed: number,
-	z: number,
 	glint: Frame?,
 	twinkle: UIScale?,
 	flare: UIScale?,
+	rays: Frame?,
 	breath: UIScale?,
-	spread: UIScale?,
-	ring: UIStroke?,
+	glitter: { { frame: Frame, scale: UIScale } },
 }
 
 local tracked: { [Frame]: Record } = {}
+
+-- A sparkle and its twinkle, if a frame by that name has them.
+local function sparkleOf(core: Instance, name: string): (Frame?, UIScale?)
+	local frame = core:FindFirstChild(name)
+	if not frame or not frame:IsA("Frame") then
+		return nil, nil
+	end
+	local scale = frame:FindFirstChild("Twinkle")
+	return frame, if scale and scale:IsA("UIScale") then scale else nil
+end
 
 local function adopt(instance: Instance)
 	if not instance:IsA("Frame") or tracked[instance] then
@@ -45,51 +57,73 @@ local function adopt(instance: Instance)
 	if typeof(kind) ~= "string" then
 		return
 	end
-	local glint = instance:FindFirstChild("Glint")
+	local glint, twinkle = sparkleOf(instance, "Glint")
 	local rays = instance:FindFirstChild("Rays")
 	local shadow = instance:FindFirstChild("Shadow")
-	local halo = instance:FindFirstChild("Halo")
-	local twinkle = if glint then glint:FindFirstChild("Twinkle") else nil
 	local flare = if rays then rays:FindFirstChild("Flare") else nil
 	local breath = if shadow then shadow:FindFirstChild("Breath") else nil
-	local spread = if halo then halo:FindFirstChild("Spread") else nil
-	local ring = if halo then halo:FindFirstChild("Ring") else nil
+	local glitter = {}
+	for index = 1, 3 do
+		local frame, scale = sparkleOf(instance, `Glitter{index}`)
+		if frame and scale then
+			table.insert(glitter, { frame = frame, scale = scale })
+		end
+	end
 	tracked[instance] = {
 		kind = kind,
-		seed = math.random() * 10,
-		z = instance.ZIndex,
-		glint = if glint and glint:IsA("Frame") then glint else nil,
-		twinkle = if twinkle and twinkle:IsA("UIScale") then twinkle else nil,
+		glint = glint,
+		twinkle = twinkle,
 		flare = if flare and flare:IsA("UIScale") then flare else nil,
+		rays = if rays and rays:IsA("Frame") then rays else nil,
 		breath = if breath and breath:IsA("UIScale") then breath else nil,
-		spread = if spread and spread:IsA("UIScale") then spread else nil,
-		ring = if ring and ring:IsA("UIStroke") then ring else nil,
+		glitter = glitter,
 	}
 end
 
-local function move(record: Record, now: number)
-	local twinkle, glint = record.twinkle, record.glint
-	if twinkle and glint then
-		local every = EVERY[record.kind] or 2.5
-		local into = (now + record.seed) % every
-		twinkle.Scale = if into < TWINKLE then math.sin(into / TWINKLE * math.pi) else 0
-		glint.Rotation = into / TWINKLE * 90
+-- How bright a sparkle whose twinkle began `since` seconds ago is: 0 when it is not showing,
+-- up to 1 at its brightest.
+local function twinkleAt(since: number): number
+	if since < 0 or since >= TWINKLE then
+		return 0
 	end
-	-- The beat: at its start the rays flare out and the ring leaves the star; through it the
-	-- rays sink back and the ring spreads and fades.
-	local beat = ((now + record.seed) % BEAT) / BEAT
+	return math.sin(since / TWINKLE * math.pi)
+end
+
+local function move(record: Record, now: number)
+	if record.kind == "platinum" then
+		local into = now % PLATINUM_EVERY
+		if record.twinkle and record.glint then
+			record.twinkle.Scale = twinkleAt(into)
+			record.glint.Rotation = into / TWINKLE * 90
+		end
+		return
+	end
+
+	-- A Six Paths star: everything on one beat.
+	local into = now % BEAT
+	local beat = into / BEAT
+	local rays = record.rays
+	if rays then
+		rays.Rotation = (now * RAYS_TURN) % 360
+	end
 	local flare = record.flare
 	if flare then
-		flare.Scale = 0.8 + 0.4 * (1 - beat) ^ 2
+		-- Flung out at the beat's start, sinking back through it.
+		flare.Scale = 0.85 + 0.35 * (1 - beat) ^ 3
 	end
 	local breath = record.breath
 	if breath then
-		breath.Scale = 1 + 0.1 * math.sin(beat * 2 * math.pi)
+		breath.Scale = 1 + 0.12 * (1 - beat) ^ 2
 	end
-	local spread, ring = record.spread, record.ring
-	if spread and ring then
-		spread.Scale = 1 + 1.1 * beat
-		ring.Transparency = 0.15 + 0.85 * beat
+	if record.twinkle and record.glint then
+		record.twinkle.Scale = twinkleAt(into)
+		record.glint.Rotation = into / TWINKLE * 90
+	end
+	-- The small ones, one after another through the rest of the beat.
+	for index, spark in record.glitter do
+		local since = into - index * (BEAT / 4)
+		spark.scale.Scale = twinkleAt(since)
+		spark.frame.Rotation = since / TWINKLE * 90
 	end
 end
 

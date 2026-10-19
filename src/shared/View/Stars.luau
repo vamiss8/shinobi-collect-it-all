@@ -8,10 +8,12 @@
 --             dark engraved rim a size larger, and a four-pointed sparkle that twinkles at its
 --             shoulder
 --   Six Paths gold and violet with a dark flame rising off it (lettered), on a shadow of
---             deep violet that breathes, before six rays of gold and violet that flare and
---             fade, with a ring of light that spreads from it and is gone, and a gold sparkle
---             (no orbs going round it any more: "its orbit sometimes does not turn; drop the
---             orbit, keep it moving in the same colors, a blink or a pulse", owner, 2026-10-19)
+--             deep violet that breathes, before six rays of gold and violet that turn slowly
+--             and flare, with a gold sparkle and three small ones glittering round it in turn
+--             (it had orbs going round it, which sometimes stood still, and then a ring that
+--             spread from it, "yellow pulses at odd times that look strange": owner,
+--             2026-10-19). Every star of a kind keeps one time (client StarShine). What makes
+--             a great merge felt is the aura its shinobi wears (View/Aura `merge`).
 --
 -- What is built here is the same on the server (the tag over a figure, View/Figure) and on the
 -- client (cards, slots); what moves is moved by every client: the lettering by client
@@ -108,7 +110,7 @@ end
 
 -- A four-pointed sparkle at `at` of its parent, `size` of it across, of `color`. It is drawn
 -- at nothing; client StarShine makes it twinkle (its UIScale "Twinkle").
-local function sparkle(parent: Instance, at: Vector2, size: number, color: Color3, z: number)
+local function sparkle(parent: Instance, at: Vector2, size: number, color: Color3, z: number): Frame
 	local holder = piece(parent, "Glint", at, size, color, z)
 	holder.BackgroundTransparency = 1
 	local twinkle = Instance.new("UIScale")
@@ -119,12 +121,7 @@ local function sparkle(parent: Instance, at: Vector2, size: number, color: Color
 	for _, turn in { 0, 90 } do
 		ray(holder, 0.16, colors, turn, z)
 	end
-end
-
-local function round(frame: GuiObject)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = frame
+	return holder
 end
 
 -- What goes round a platinum star.
@@ -140,20 +137,6 @@ end
 
 -- What goes round a Six Paths star.
 local function sixPaths(core: Frame, z: number)
-	-- A ring of light that spreads from the star and fades (its UIScale "Spread"; client
-	-- StarShine sends it out again and again).
-	local halo = piece(core, "Halo", Vector2.new(0.5, 0.5), 1, BLACK, z)
-	halo.BackgroundTransparency = 1
-	round(halo)
-	local ring = Instance.new("UIStroke")
-	ring.Name = "Ring"
-	ring.Color = Color3.fromRGB(255, 213, 79)
-	ring.Thickness = 2
-	ring.Transparency = 1
-	ring.Parent = halo
-	local spread = Instance.new("UIScale")
-	spread.Name = "Spread"
-	spread.Parent = halo
 	-- Six rays, three bars through the middle, before which the star stands; they flare and
 	-- fade (its UIScale "Flare").
 	local rays = piece(core, "Rays", Vector2.new(0.5, 0.5), 2.1, BLACK, z)
@@ -179,6 +162,15 @@ local function sixPaths(core: Frame, z: number)
 	breath.Name = "Breath"
 	breath.Parent = shadow
 	sparkle(core, Vector2.new(0.86, 0.12), 0.7, Color3.fromRGB(255, 243, 196), z + 2)
+	-- Three small sparkles round it, violet and gold, glittering one after another.
+	local glitter = {
+		{ at = Vector2.new(0.08, 0.3), color = Color3.fromRGB(179, 136, 255) },
+		{ at = Vector2.new(0.92, 0.78), color = Color3.fromRGB(255, 213, 79) },
+		{ at = Vector2.new(0.2, 0.9), color = Color3.fromRGB(255, 243, 196) },
+	}
+	for index, spot in glitter do
+		sparkle(core, spot.at, 0.38, spot.color, z + 2).Name = `Glitter{index}`
+	end
 end
 
 -- Fills `row` (a GuiObject sized by its caller) with the stars of a unit at merge `level`,
