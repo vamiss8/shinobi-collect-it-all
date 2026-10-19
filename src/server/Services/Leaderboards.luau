@@ -1,12 +1,14 @@
 --!strict
 -- The leaderboards on the plaza (owner, 2026-10-18: "leaderboards by Ryo and by Chakra on the
 -- spawn, in a fitting place; me, of course, not on them"): two boards at the back of the plaza,
--- facing the fountain and the lane (World/Plaza, Logic/PlazaPlan `leaderboards`). Each names the ten players with the most Ryo,
--- or the most Chakra, they hold now, of everyone who has played, not only those on this
--- server: the numbers are kept in a Roblox OrderedDataStore, so every server shows the same
--- boards. What a rebirth takes off a player, it takes off their place too.
+-- facing the fountain and the lane (World/Plaza, Logic/PlazaPlan `leaderboards`). Each names
+-- the ten players whose dojos earn the most Ryo a second (owner, 2026-10-19: "the ladder not by
+-- Ryo but by Ryo/s"; it was the Ryo held), or who hold the most Chakra, now, of everyone who
+-- has played, not only those on this server: the numbers are kept in a Roblox
+-- OrderedDataStore, so every server shows the same boards. What a rebirth takes off a player,
+-- it takes off their place too.
 --
--- Every minute each player's Ryo and Chakra are written (and once more as they leave), and
+-- Every minute each player's income and Chakra are written (and once more as they leave), and
 -- the boards are read and drawn anew. The game's developers (server/Developers) are written
 -- nowhere and shown nowhere. The stores are named by the save store (Data.STORE), so the
 -- testers' boards stay behind with their saves when the release starts afresh.
@@ -26,24 +28,37 @@ local Format = require(ReplicatedStorage.Shared.Logic.Format)
 local Leaders = require(ReplicatedStorage.Shared.Logic.Leaders)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Plaza = require("../World/Plaza")
+local Stats = require("./Stats")
 
 local Leaderboards = {}
 
 -- How often the players' numbers are written and the boards read, seconds.
 local EVERY = 60
--- The boards, by the board's id in Logic/PlazaPlan: what each counts and is called.
-type Board = { title: string, seal: string, of: (data: Data.Data) -> number }
+-- The boards, by the board's id in Logic/PlazaPlan: what each counts and is called, the
+-- store it is kept in (a store's numbers are of one kind: the board of Ryo held had one of its
+-- own, left behind when it began to count income), and what follows a number on it.
+type Board = {
+	title: string,
+	seal: string,
+	store: string,
+	unit: string,
+	of: (data: Data.Data) -> number,
+}
 local BOARDS: { [string]: Board } = {
 	ryo = {
-		title = "TOP RYO",
+		title = "TOP RYO/S",
 		seal = "両",
+		store = "income",
+		unit = "/s",
 		of = function(data)
-			return data.ryo
+			return Stats.income(data)
 		end,
 	},
 	chakra = {
 		title = "TOP CHAKRA",
 		seal = "気",
+		store = "chakra",
+		unit = "",
 		of = function(data)
 			return data.chakra
 		end,
@@ -80,16 +95,17 @@ local function store(id: string): OrderedDataStore?
 	if studio then
 		return nil
 	end
-	local found = stores[id]
+	local name = BOARDS[id].store
+	local found = stores[name]
 	if not found then
 		local ok, made = pcall(function()
-			return DataStoreService:GetOrderedDataStore(`{Data.STORE}_Top_{id}`)
+			return DataStoreService:GetOrderedDataStore(`{Data.STORE}_Top_{name}`)
 		end)
 		if not ok then
 			return nil
 		end
 		found = made
-		stores[id] = made
+		stores[name] = made
 	end
 	return found
 end
@@ -252,7 +268,8 @@ local function draw(id: string, shown: { Leaders.Entry })
 			-- A player's name is theirs, not a word for a client to translate.
 			row.name:SetAttribute(Net.VERBATIM_ATTRIBUTE, true)
 			row.name.Text = names[entry.userId] or `#{entry.userId}`
-			row.value.Text = Format.short(entry.value)
+			-- "1.2K/s" is said in the language by World_PerSecond (client WorldWords).
+			row.value.Text = Format.short(entry.value) .. BOARDS[id].unit
 		elseif index == 1 then
 			-- An empty board says so, in the player's language.
 			row.name:SetAttribute(Net.VERBATIM_ATTRIBUTE, nil)
