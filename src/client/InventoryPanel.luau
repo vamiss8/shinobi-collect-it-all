@@ -31,7 +31,7 @@ local VIOLET = MergeView.VIOLET
 local BANNER = 78
 
 function InventoryPanel.start()
-	local window = Ui.window("Inventory", Vector2.new(770, 600))
+	local window = Ui.window("Inventory", Vector2.new(770, 600), true)
 	window.title.Text = Strings.get("InventoryTitle")
 
 	local opener, counter =

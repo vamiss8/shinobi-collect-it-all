@@ -297,7 +297,7 @@ function ShopPanel.open(page: string)
 end
 
 function ShopPanel.start()
-	local window = Ui.window("Shop", SIZE)
+	local window = Ui.window("Shop", SIZE, true)
 	window.title.Text = Strings.get("ShopTitle")
 	local body = window.body
 

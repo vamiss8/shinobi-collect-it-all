@@ -32,7 +32,7 @@ local function pageLook(page: string): (string, Color3)
 end
 
 function IndexPanel.start()
-	local window = Ui.window("Index", Vector2.new(1010, 640))
+	local window = Ui.window("Index", Vector2.new(1010, 640), true)
 	window.title.Text = Strings.get("IndexTitle")
 
 	local opener = Hud.sideButton(Strings.get("IndexButton"), Ui.BLUE, Icons.book, false, "book")

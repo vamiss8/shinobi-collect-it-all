@@ -329,7 +329,7 @@ function InfoPanel.open(page: Page?)
 end
 
 function InfoPanel.start()
-	local window = Ui.window("Info", SIZE)
+	local window = Ui.window("Info", SIZE, true)
 	window.title.Text = Strings.get("InfoTitle")
 	local body = window.body
 

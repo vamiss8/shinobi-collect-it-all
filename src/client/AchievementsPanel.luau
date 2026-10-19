@@ -108,7 +108,7 @@ local function tierIn(map: { [string]: number }?, id: string): number
 end
 
 function AchievementsPanel.start()
-	local window = Ui.window("Achievements", SIZE)
+	local window = Ui.window("Achievements", SIZE, true)
 	window.title.Text = Strings.get("AchievementsButton")
 	local whole = window.body
 

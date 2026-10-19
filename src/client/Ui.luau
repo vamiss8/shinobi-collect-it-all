@@ -893,10 +893,24 @@ function Ui.windowOpen(): boolean
 	return false
 end
 
+-- ON A PHONE A WINDOW IS DRAWN LARGER THAN IT FITS, AND SCROLLS (owner, 2026-10-19: "let us
+-- start on the phone"). Fitted whole to a phone's screen, a window was drawn at less than half
+-- its size, and its words could not be read. On a touch screen it is drawn at least
+-- TOUCH_LOOK times its layout size on the screen (as wide as the screen lets it), and as tall
+-- as the screen is; what does not fit under that scrolls. A window `flexible` in its height
+-- (its lists are laid by the body's height: the inventory, the Bingo Book, the notice board,
+-- Awards, the shop, the Mission Desk) is laid out in the height there is, no less than
+-- SHORTEST, so that its list is shorter and the window itself does not scroll.
+local TOUCH_LOOK = 0.75
+local SHORTEST = 300
+-- The title bar over a window's body, and the margin under it, layout pixels.
+local BODY_TOP = 52
+local BODY_FOOT = 14
+
 -- A centered window with a title bar and a close button, hidden until opened. Opening one
 -- closes the others. It grows with its layer (see Ui.screen) and shrinks again if it would not
--- fit the screen.
-function Ui.window(name: string, size: Vector2): Window
+-- fit the screen; on a phone, see TOUCH_LOOK.
+function Ui.window(name: string, size: Vector2, flexible: boolean?): Window
 	local screen = Ui.screen(name, 30)
 	local frame = Ui.panel(screen, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -911,9 +925,36 @@ function Ui.window(name: string, size: Vector2): Window
 	-- play on top of it.
 	local scale: UIScale = Ui.make("UIScale", {}, frame)
 	local fit = 1
+	-- The body stands in a frame that scrolls: on a phone a window may be taller than the
+	-- screen (see TOUCH_LOOK); elsewhere the body fits it exactly and nothing scrolls.
+	local inner = size.Y - BODY_TOP - BODY_FOOT
+	local scroller: ScrollingFrame = Ui.make("ScrollingFrame", {
+		Position = UDim2.fromOffset(16, BODY_TOP),
+		Size = UDim2.new(1, -32, 1, -(BODY_TOP + BODY_FOOT)),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarThickness = 0,
+		ScrollBarImageColor3 = Ui.EDGE,
+		CanvasSize = UDim2.new(1, 0, 0, inner),
+		ScrollingEnabled = false,
+	}, frame)
 	Ui.onResize(function()
 		local room = Ui.room()
-		fit = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
+		local tall = size.Y
+		if Ui.touch() then
+			fit = math.min(math.max(1, TOUCH_LOOK / Ui.scale()), (room.X - 16) / size.X)
+			tall = math.min(size.Y, (room.Y - 16) / fit)
+		else
+			fit = math.min(1, (room.X - 24) / size.X, (room.Y - 24) / size.Y)
+		end
+		frame.Size = UDim2.fromOffset(size.X, tall)
+		local seen = tall - BODY_TOP - BODY_FOOT
+		local laid = if flexible then math.max(seen, math.min(SHORTEST, inner)) else inner
+		local scrolls = laid > seen + 0.5
+		scroller.CanvasSize = UDim2.new(1, 0, 0, laid)
+		scroller.ScrollingEnabled = scrolls
+		scroller.ScrollBarThickness = if scrolls then 6 else 0
 		scale.Scale = if frame.Visible then fit else fit * POP_FROM
 	end)
 	-- Whether the window is open, as whoever asks should hear it: one that is shutting is
@@ -936,18 +977,21 @@ function Ui.window(name: string, size: Vector2): Window
 		BackgroundColor3 = Ui.SEAL,
 		BorderSizePixel = 0,
 	}, frame)
+	-- Larger under a finger.
+	local cross = if Ui.touch() then 42 else 32
 	local closeButton = Ui.button(frame, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 10),
-		Size = UDim2.fromOffset(32, 32),
+		Position = UDim2.new(1, -8, 0, if Ui.touch() then 4 else 10),
+		Size = UDim2.fromOffset(cross, cross),
 		BackgroundColor3 = Color3.fromRGB(198, 40, 40),
+		TextSize = if Ui.touch() then 24 else 18,
 		Text = "X",
 	})
+	-- The body is as tall as the canvas it stands on (see `scroller`).
 	local body = Ui.make("Frame", {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(16, 52),
-		Size = UDim2.new(1, -32, 1, -66),
-	}, frame)
+		Size = UDim2.fromScale(1, 1),
+	}, scroller)
 
 	local window: Window
 	window = {

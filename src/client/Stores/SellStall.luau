@@ -23,7 +23,7 @@ local SellStall = {}
 local CONFIRM_SECONDS = 3
 
 function SellStall.build(): Ui.Window
-	local window = Ui.window("SellStall", Vector2.new(770, 620))
+	local window = Ui.window("SellStall", Vector2.new(770, 620), true)
 	window.title.Text = Strings.get("SellTitle")
 
 	Ui.note(window.body, {}, 770 - 32, Strings.get("SellHint"))
