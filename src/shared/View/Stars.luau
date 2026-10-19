@@ -8,9 +8,10 @@
 --             dark engraved rim a size larger, and a four-pointed sparkle that twinkles at its
 --             shoulder
 --   Six Paths gold and violet with a dark flame rising off it (lettered), on a shadow of
---             deep violet that breathes, before six rays of gold and violet that turn slowly,
---             with six black orbs going round it (the Sage's Truth-Seeking Orbs) and a gold
---             sparkle
+--             deep violet that breathes, before six rays of gold and violet that flare and
+--             fade, with a ring of light that spreads from it and is gone, and a gold sparkle
+--             (no orbs going round it any more: "its orbit sometimes does not turn; drop the
+--             orbit, keep it moving in the same colors, a blink or a pulse", owner, 2026-10-19)
 --
 -- What is built here is the same on the server (the tag over a figure, View/Figure) and on the
 -- client (cards, slots); what moves is moved by every client: the lettering by client
@@ -139,9 +140,27 @@ end
 
 -- What goes round a Six Paths star.
 local function sixPaths(core: Frame, z: number)
-	-- Six rays, three bars through the middle, before which the star stands.
+	-- A ring of light that spreads from the star and fades (its UIScale "Spread"; client
+	-- StarShine sends it out again and again).
+	local halo = piece(core, "Halo", Vector2.new(0.5, 0.5), 1, BLACK, z)
+	halo.BackgroundTransparency = 1
+	round(halo)
+	local ring = Instance.new("UIStroke")
+	ring.Name = "Ring"
+	ring.Color = Color3.fromRGB(255, 213, 79)
+	ring.Thickness = 2
+	ring.Transparency = 1
+	ring.Parent = halo
+	local spread = Instance.new("UIScale")
+	spread.Name = "Spread"
+	spread.Parent = halo
+	-- Six rays, three bars through the middle, before which the star stands; they flare and
+	-- fade (its UIScale "Flare").
 	local rays = piece(core, "Rays", Vector2.new(0.5, 0.5), 2.1, BLACK, z)
 	rays.BackgroundTransparency = 1
+	local flare = Instance.new("UIScale")
+	flare.Name = "Flare"
+	flare.Parent = rays
 	local colors = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, Color3.fromRGB(179, 136, 255)),
 		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 213, 79)),
@@ -159,23 +178,6 @@ local function sixPaths(core: Frame, z: number)
 	local breath = Instance.new("UIScale")
 	breath.Name = "Breath"
 	breath.Parent = shadow
-	-- The six Truth-Seeking Orbs, laid round it; client StarShine sends them round.
-	for index = 1, 6 do
-		local angle = (index - 1) * math.pi / 3
-		local orb = piece(
-			core,
-			"Orb",
-			Vector2.new(0.5 + 0.6 * math.cos(angle), 0.5 + 0.25 * math.sin(angle)),
-			0.2,
-			Color3.fromRGB(14, 10, 20),
-			z
-		)
-		round(orb)
-		local edge = Instance.new("UIStroke")
-		edge.Color = Color3.fromRGB(179, 136, 255)
-		edge.Thickness = 1
-		edge.Parent = orb
-	end
 	sparkle(core, Vector2.new(0.86, 0.12), 0.7, Color3.fromRGB(255, 243, 196), z + 2)
 end
 

@@ -1,8 +1,9 @@
 --!strict
 -- Sets the greater merge stars moving, wherever they are drawn (View/Stars: the tags over the
 -- figures, cards, merge chips, slots): a platinum star's sparkle twinkles now and again; a Six
--- Paths star's rays turn, its dark shadow breathes, its six orbs go round it, passing in front
--- of it and behind, and its sparkle twinkles. Each star keeps its own time, so that a row of
+-- Paths star's rays flare and fade, its dark shadow breathes, a ring of light spreads from it
+-- and is gone, and its sparkle twinkles. (Its orbs that went round it are gone: "its orbit
+-- sometimes does not turn", owner, 2026-10-19.) Each star keeps its own time, so that a row of
 -- them does not twinkle at once. The letters' own colors are client Lettering's.
 
 local CollectionService = game:GetService("CollectionService")
@@ -19,9 +20,8 @@ local STEP = 1 / 30
 -- A sparkle's twinkle: how long it shows, and how often it comes, by kind.
 local TWINKLE = 0.55
 local EVERY: { [string]: number } = { platinum = 2.8, sixpaths = 1.9 }
--- How fast a Six Paths star's rays turn (degrees a second) and its orbs go round (radians).
-local RAYS_TURN = 24
-local ORBITS = 1.2
+-- A Six Paths star's beat: its rays flare and its ring spreads once in this many seconds.
+local BEAT = 1.6
 
 type Record = {
 	kind: string,
@@ -29,9 +29,10 @@ type Record = {
 	z: number,
 	glint: Frame?,
 	twinkle: UIScale?,
-	rays: Frame?,
+	flare: UIScale?,
 	breath: UIScale?,
-	orbs: { Frame },
+	spread: UIScale?,
+	ring: UIStroke?,
 }
 
 local tracked: { [Frame]: Record } = {}
@@ -47,23 +48,22 @@ local function adopt(instance: Instance)
 	local glint = instance:FindFirstChild("Glint")
 	local rays = instance:FindFirstChild("Rays")
 	local shadow = instance:FindFirstChild("Shadow")
-	local orbs: { Frame } = {}
-	for _, child in instance:GetChildren() do
-		if child.Name == "Orb" and child:IsA("Frame") then
-			table.insert(orbs, child)
-		end
-	end
+	local halo = instance:FindFirstChild("Halo")
 	local twinkle = if glint then glint:FindFirstChild("Twinkle") else nil
+	local flare = if rays then rays:FindFirstChild("Flare") else nil
 	local breath = if shadow then shadow:FindFirstChild("Breath") else nil
+	local spread = if halo then halo:FindFirstChild("Spread") else nil
+	local ring = if halo then halo:FindFirstChild("Ring") else nil
 	tracked[instance] = {
 		kind = kind,
 		seed = math.random() * 10,
 		z = instance.ZIndex,
 		glint = if glint and glint:IsA("Frame") then glint else nil,
 		twinkle = if twinkle and twinkle:IsA("UIScale") then twinkle else nil,
-		rays = if rays and rays:IsA("Frame") then rays else nil,
+		flare = if flare and flare:IsA("UIScale") then flare else nil,
 		breath = if breath and breath:IsA("UIScale") then breath else nil,
-		orbs = orbs,
+		spread = if spread and spread:IsA("UIScale") then spread else nil,
+		ring = if ring and ring:IsA("UIStroke") then ring else nil,
 	}
 end
 
@@ -75,20 +75,21 @@ local function move(record: Record, now: number)
 		twinkle.Scale = if into < TWINKLE then math.sin(into / TWINKLE * math.pi) else 0
 		glint.Rotation = into / TWINKLE * 90
 	end
-	local rays = record.rays
-	if rays then
-		rays.Rotation = ((now + record.seed) * RAYS_TURN) % 360
+	-- The beat: at its start the rays flare out and the ring leaves the star; through it the
+	-- rays sink back and the ring spreads and fades.
+	local beat = ((now + record.seed) % BEAT) / BEAT
+	local flare = record.flare
+	if flare then
+		flare.Scale = 0.8 + 0.4 * (1 - beat) ^ 2
 	end
 	local breath = record.breath
 	if breath then
-		breath.Scale = 1 + 0.09 * math.sin(now * 2.6 + record.seed)
+		breath.Scale = 1 + 0.1 * math.sin(beat * 2 * math.pi)
 	end
-	for index, orb in record.orbs do
-		local angle = now * ORBITS + record.seed + (index - 1) * math.pi / 3
-		local front = math.sin(angle)
-		orb.Position = UDim2.fromScale(0.5 + 0.62 * math.cos(angle), 0.5 + 0.26 * front)
-		-- On the near side of its round it passes before the star, on the far side behind it.
-		orb.ZIndex = if front > 0 then record.z + 2 else record.z
+	local spread, ring = record.spread, record.ring
+	if spread and ring then
+		spread.Scale = 1 + 1.1 * beat
+		ring.Transparency = 0.15 + 0.85 * beat
 	end
 end
 
