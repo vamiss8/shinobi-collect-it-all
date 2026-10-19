@@ -7,6 +7,10 @@
 -- with its income, and a Merge button; at the head Back and Merge all. A press draws the two
 -- into what they become, and then asks the server (Services/Dojo onMerge); the page is drawn
 -- anew from the inventory it sends back.
+--
+-- A row offers the two least levelled of its kind (Economy.mergeOptions), and a round ⇄ on a
+-- chip of the inventory picks another of the kind in its place (owner, 2026-10-19: "with
+-- Minato at Lvl 1, 5 and 40 show 1 + 5 = 5, and let the player change it to 1 + 40 = 40").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -24,6 +28,9 @@ local Ui = require("./Ui")
 
 local MergeView = {}
 
+-- Gold for a shinobi standing on a pad: its outline, the plate under it and the words over it.
+local ON_PAD = Color3.fromRGB(214, 168, 40)
+
 -- The color of a merge, as the glow of a twin on its pad (client MergeGlow) and the notice on
 -- the run home (client TwinNotice).
 MergeView.VIOLET = Color3.fromRGB(178, 112, 255)
@@ -31,7 +38,7 @@ local VIOLET = MergeView.VIOLET
 
 -- A row, layout pixels: its height, where the chips stand in it and how large they are, and
 -- where each part of it begins along it.
-local ROW = 134
+local ROW = 142
 local CHIP = Vector2.new(160, 96)
 local CAPTION_TOP = 6
 local CHIP_TOP = 30
@@ -62,7 +69,9 @@ local function chip(
 	unit: Economy.Unit,
 	x: number,
 	width: number,
-	outline: Color3?
+	outline: Color3?,
+	badged: boolean?,
+	onPad: boolean?
 ): Chip
 	local rank = Catalog.rankOf(unit.character)
 	local rankColor = if rank then Color3.fromHex(rank.color) else Ui.WHITE
@@ -76,7 +85,19 @@ local function chip(
 		BorderSizePixel = 0,
 	}, parent)
 	Ui.corner(frame, 8)
-	Ui.stroke(frame, outline or rankColor, if outline then 4 else 3)
+	Ui.stroke(frame, outline or (if onPad then ON_PAD else rankColor), if outline then 4 else 3)
+	-- One standing on a pad is drawn standing on one: a plate of gold under it (owner,
+	-- 2026-10-19: "mark the one on the pad as currently on pad").
+	if onPad then
+		local plate = Ui.make("Frame", {
+			Position = UDim2.new(0, -4, 1, 3),
+			Size = UDim2.new(1, 8, 0, 8),
+			BackgroundColor3 = ON_PAD,
+			BorderSizePixel = 0,
+		}, frame)
+		Ui.corner(plate, 4)
+		Ui.stroke(plate, Ui.INK, 1)
+	end
 	local scale: UIScale = Ui.make("UIScale", {}, frame)
 
 	local portrait = Ui.make("Frame", {
@@ -91,7 +112,7 @@ local function chip(
 
 	local name = Ui.text(frame, {
 		Position = UDim2.fromOffset(66, 4),
-		Size = UDim2.new(1, -72, 0, 36),
+		Size = UDim2.new(1, if badged then -88 else -72, 0, 36),
 		TextScaled = true,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		Text = if character then Strings.name(character.name) else unit.character,
@@ -144,6 +165,19 @@ local function sign(parent: Instance, x: number, width: number, text: string)
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Text = text,
 	})
+end
+
+-- The next of `choices` after `current`, round the end, that is neither it nor `avoid`; itself
+-- when there is no other.
+local function another(choices: { string }, current: string, avoid: string?): string
+	local at = table.find(choices, current) or 0
+	for step = 1, #choices do
+		local candidate = choices[(at + step - 1) % #choices + 1]
+		if candidate ~= current and candidate ~= avoid then
+			return candidate
+		end
+	end
+	return current
 end
 
 -- Builds the page in `page` (the inventory window's body, under its other page). `back` shows
@@ -228,12 +262,15 @@ function MergeView.build(page: Frame, back: () -> ()): View
 		local inventory = Store.inventory()
 		local onPads = Store.onPads()
 		for order, option in options do
-			local unit = inventory[option.unit]
-			local other = if option.other
-				then inventory[option.other]
-				elseif option.pad then onPads[tostring(option.pad)]
-				else nil
-			if not unit or not other then
+			local padUnit = if option.pad then onPads[tostring(option.pad)] else nil
+			-- Which of the kind are merged: those offered, the two least levelled, until the
+			-- player picks others.
+			local pickA: string = option.unit
+			local pickB: string? = option.other
+			if not inventory[pickA] or (pickB and not inventory[pickB]) then
+				continue
+			end
+			if option.pad and not padUnit then
 				continue
 			end
 
@@ -247,17 +284,19 @@ function MergeView.build(page: Frame, back: () -> ()): View
 			Ui.stroke(sheet, VIOLET, 2)
 
 			caption(sheet, A_X, CHIP.X, Strings.get("MergeInInventory"))
-			caption(
-				sheet,
-				B_X,
-				CHIP.X,
-				if option.pad
-					then Strings.get("MergeOnPad", option.pad)
-					else Strings.get("MergeInInventory")
-			)
-			local a = chip(sheet, unit, A_X, CHIP.X)
+			if option.pad then
+				-- Said in gold, and over the equals sign's room as well: the words are longer.
+				caption(
+					sheet,
+					B_X,
+					RESULT_X - B_X - 6,
+					Strings.get("MergeOnPad", option.pad),
+					Ui.MARKS.y
+				)
+			else
+				caption(sheet, B_X, CHIP.X, Strings.get("MergeInInventory"))
+			end
 			sign(sheet, PLUS_X, PLUS_WIDE, "+")
-			local b = chip(sheet, other, B_X, CHIP.X)
 			sign(sheet, EQUALS_X, EQUALS_WIDE, "=")
 			-- What a merge multiplies the income by, under the equals sign.
 			Ui.text(sheet, {
@@ -270,16 +309,13 @@ function MergeView.build(page: Frame, back: () -> ()): View
 			})
 			caption(sheet, RESULT_X, RESULT_WIDE, Strings.get("MergeBecomes"), VIOLET)
 			-- And what it will earn, at the right of the same line.
-			Ui.text(sheet, {
+			local earns = Ui.text(sheet, {
 				Position = UDim2.fromOffset(RESULT_X + 2, CAPTION_TOP),
 				Size = UDim2.fromOffset(RESULT_WIDE - 4, 22),
 				TextSize = 19,
 				TextColor3 = Ui.MARKS.g,
 				TextXAlignment = Enum.TextXAlignment.Right,
-				Text = Strings.get("CardIncome", Economy.unitIncome(option.result)),
 			})
-			-- Made after the two, so that they fly in under it.
-			local result = chip(sheet, option.result, RESULT_X, RESULT_WIDE, VIOLET)
 
 			local button = Ui.button(sheet, {
 				AnchorPoint = Vector2.new(0, 0.5),
@@ -289,12 +325,12 @@ function MergeView.build(page: Frame, back: () -> ()): View
 				TextSize = 24,
 				Text = Strings.get("MergeButton"),
 			})
-			-- More than one pair of the kind: how many, in the result's corner.
+			-- More than one pair of the kind: how many, over the Merge button, clear of the
+			-- income (owner, 2026-10-19: "x2 covers the numbers, a little right and up").
 			if option.count > 1 then
 				local times = Ui.text(sheet, {
-					AnchorPoint = Vector2.new(1, 0),
-					Position = UDim2.fromOffset(RESULT_X + RESULT_WIDE + 6, CHIP_TOP - 12),
-					Size = UDim2.fromOffset(40, 26),
+					Position = UDim2.fromOffset(RESULT_X + RESULT_WIDE + 10, 8),
+					Size = UDim2.fromOffset(44, 28),
 					BackgroundColor3 = VIOLET,
 					BackgroundTransparency = 0,
 					TextSize = 18,
@@ -307,14 +343,99 @@ function MergeView.build(page: Frame, back: () -> ()): View
 				Ui.stroke(times, Ui.INK, 2)
 			end
 
+			-- How many others of the kind a chip could take in its place: all but those
+			-- picked.
+			local function spare(): number
+				return #option.choices - (if pickB then 2 else 1)
+			end
+			local refill: () -> ()
+			-- A round ⇄ in a chip's top right corner that picks another of the kind for it.
+			local function swapper(part: Chip, isA: boolean)
+				local badge = Ui.button(part.frame, {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.new(1, -16, 0, 8),
+					Size = UDim2.fromOffset(30, 30),
+					BackgroundColor3 = VIOLET,
+					TextSize = 20,
+					ZIndex = 4,
+					Text = "⇄",
+				})
+				local round = badge:FindFirstChildOfClass("UICorner")
+				if round then
+					round.CornerRadius = UDim.new(0.5, 0)
+				end
+				Ui.stroke(badge, Ui.INK, 2)
+				Ui.tip(badge, function()
+					return Strings.get("MergeSwap")
+				end)
+				badge.Activated:Connect(function()
+					if waiting then
+						return
+					end
+					if isA then
+						pickA = another(option.choices, pickA, pickB)
+					else
+						local current = pickB
+						if current then
+							pickB = another(option.choices, current, pickA)
+						end
+					end
+					refill()
+				end)
+			end
+			-- The row's three chips for what is picked now.
+			local function chips(): (Chip, Chip, Chip)
+				local unitA = inventory[pickA]
+				local pickedB = pickB
+				local unitB = if pickedB then inventory[pickedB] else padUnit :: Economy.Unit
+				local result = Economy.merged(unitB, unitA)
+				local swappable = spare() > 0
+				local a = chip(sheet, unitA, A_X, CHIP.X, nil, swappable)
+				local b = chip(
+					sheet,
+					unitB,
+					B_X,
+					CHIP.X,
+					nil,
+					swappable and pickedB ~= nil,
+					pickedB == nil
+				)
+				earns.Text = Strings.get("CardIncome", Economy.unitIncome(result))
+				-- Made after the two, so that they fly in under it.
+				local made = chip(sheet, result, RESULT_X, RESULT_WIDE, VIOLET)
+				if swappable then
+					swapper(a, true)
+					if pickedB then
+						swapper(b, false)
+					end
+				end
+				return a, b, made
+			end
+
+			local a, b, result = chips()
 			local row: Row = { sheet = sheet, a = a, b = b, result = result }
 			table.insert(rows, row)
+			refill = function()
+				row.a.frame:Destroy()
+				row.b.frame:Destroy()
+				row.result.frame:Destroy()
+				row.a, row.b, row.result = chips()
+				-- What changed springs up.
+				for _, part in { row.a, row.b, row.result } do
+					part.scale.Scale = 0.85
+					TweenService:Create(
+						part.scale,
+						TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+						{ Scale = 1 }
+					):Play()
+				end
+			end
 			button.Activated:Connect(function()
 				if waiting then
 					return
 				end
 				fly(row)
-				ask(option.unit, option.other or option.pad)
+				ask(pickA, pickB or option.pad)
 			end)
 
 			-- A page opened anew comes in as a wave, row after row.
