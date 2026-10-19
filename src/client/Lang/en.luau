@@ -593,7 +593,7 @@ return {
 		MergeButton = "Merge",
 		MergeSwap = "Pick another of this kind",
 		MergeInInventory = "Inventory",
-		MergeOnPad = "Currently on pad %s",
+		MergeOnPad = "Currently on a pad",
 		MergeBecomes = "Becomes",
 		MergeGain = "x%s",
 		MergeLater = "Merge once you are back home.",

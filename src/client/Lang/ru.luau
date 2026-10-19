@@ -575,7 +575,7 @@ return {
 		MergeButton = "Слить",
 		MergeSwap = "Выбрать другого такого же",
 		MergeInInventory = "Инвентарь",
-		MergeOnPad = "Сейчас на платформе %s",
+		MergeOnPad = "Сейчас на платформе",
 		MergeBecomes = "Получится",
 		MergeGain = "x%s",
 		MergeLater = "Сливать можно, когда вернёшься домой.",

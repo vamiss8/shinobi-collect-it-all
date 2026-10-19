@@ -286,13 +286,7 @@ function MergeView.build(page: Frame, back: () -> ()): View
 			caption(sheet, A_X, CHIP.X, Strings.get("MergeInInventory"))
 			if option.pad then
 				-- Said in gold, and over the equals sign's room as well: the words are longer.
-				caption(
-					sheet,
-					B_X,
-					RESULT_X - B_X - 6,
-					Strings.get("MergeOnPad", option.pad),
-					Ui.MARKS.y
-				)
+				caption(sheet, B_X, RESULT_X - B_X - 6, Strings.get("MergeOnPad"), Ui.MARKS.y)
 			else
 				caption(sheet, B_X, CHIP.X, Strings.get("MergeInInventory"))
 			end

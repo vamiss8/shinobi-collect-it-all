@@ -575,7 +575,7 @@ return {
 		MergeButton = "Fusionner",
 		MergeSwap = "En choisir un autre pareil",
 		MergeInInventory = "Inventaire",
-		MergeOnPad = "Sur la plateforme %s",
+		MergeOnPad = "Sur une plateforme",
 		MergeBecomes = "Résultat",
 		MergeGain = "x%s",
 		MergeLater = "Fusionne une fois de retour chez toi.",
