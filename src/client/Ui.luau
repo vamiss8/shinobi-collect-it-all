@@ -925,20 +925,29 @@ function Ui.window(name: string, size: Vector2, flexible: boolean?): Window
 	-- play on top of it.
 	local scale: UIScale = Ui.make("UIScale", {}, frame)
 	local fit = 1
-	-- The body stands in a frame that scrolls: on a phone a window may be taller than the
-	-- screen (see TOUCH_LOOK); elsewhere the body fits it exactly and nothing scrolls.
+	-- On a phone the body stands in a frame that scrolls, a window being taller than the
+	-- screen there (see TOUCH_LOOK). Elsewhere it is a plain frame, as it always was: a
+	-- scrolling frame clips whatever stands out of it, and windows have things that do.
+	-- (Its canvas is given in pixels: a ScrollingFrame's CanvasSize reckons its scale from
+	-- the frame's PARENT, here the whole window, so a canvas "1 wide" made every body 32
+	-- wider than its frame, and the settings' mute buttons, hung from the body's right edge,
+	-- were cut in two: owner, 2026-10-19, a screenshot.)
 	local inner = size.Y - BODY_TOP - BODY_FOOT
-	local scroller: ScrollingFrame = Ui.make("ScrollingFrame", {
-		Position = UDim2.fromOffset(16, BODY_TOP),
-		Size = UDim2.new(1, -32, 1, -(BODY_TOP + BODY_FOOT)),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		ScrollBarThickness = 0,
-		ScrollBarImageColor3 = Ui.EDGE,
-		CanvasSize = UDim2.new(1, 0, 0, inner),
-		ScrollingEnabled = false,
-	}, frame)
+	local wide = size.X - 32
+	local scroller: ScrollingFrame? = nil
+	if Ui.touch() then
+		scroller = Ui.make("ScrollingFrame", {
+			Position = UDim2.fromOffset(16, BODY_TOP),
+			Size = UDim2.new(1, -32, 1, -(BODY_TOP + BODY_FOOT)),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ScrollBarThickness = 0,
+			ScrollBarImageColor3 = Ui.EDGE,
+			CanvasSize = UDim2.fromOffset(wide, inner),
+			ScrollingEnabled = false,
+		}, frame)
+	end
 	Ui.onResize(function()
 		local room = Ui.room()
 		local tall = size.Y
@@ -952,9 +961,11 @@ function Ui.window(name: string, size: Vector2, flexible: boolean?): Window
 		local seen = tall - BODY_TOP - BODY_FOOT
 		local laid = if flexible then math.max(seen, math.min(SHORTEST, inner)) else inner
 		local scrolls = laid > seen + 0.5
-		scroller.CanvasSize = UDim2.new(1, 0, 0, laid)
-		scroller.ScrollingEnabled = scrolls
-		scroller.ScrollBarThickness = if scrolls then 6 else 0
+		if scroller then
+			scroller.CanvasSize = UDim2.fromOffset(wide, laid)
+			scroller.ScrollingEnabled = scrolls
+			scroller.ScrollBarThickness = if scrolls then 6 else 0
+		end
 		scale.Scale = if frame.Visible then fit else fit * POP_FROM
 	end)
 	-- Whether the window is open, as whoever asks should hear it: one that is shutting is
@@ -987,11 +998,17 @@ function Ui.window(name: string, size: Vector2, flexible: boolean?): Window
 		TextSize = if Ui.touch() then 24 else 18,
 		Text = "X",
 	})
-	-- The body is as tall as the canvas it stands on (see `scroller`).
-	local body = Ui.make("Frame", {
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-	}, scroller)
+	-- On a phone the body is the canvas it stands on (see `scroller`).
+	local body = if scroller
+		then Ui.make("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+		}, scroller)
+		else Ui.make("Frame", {
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(16, BODY_TOP),
+			Size = UDim2.new(1, -32, 1, -(BODY_TOP + BODY_FOOT)),
+		}, frame)
 
 	local window: Window
 	window = {
