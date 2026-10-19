@@ -1072,9 +1072,13 @@ function Guide.start()
 				putDown()
 			end
 			checkWaits()
-			if not state.running and not state.tip and quiet() and #state.queue > 0 then
+			-- A tip asked for before the first snapshot came could not be looked up then (the
+			-- welcome back after a time away comes before it, and the offline tip was said at
+			-- every return: owner, 2026-10-19). It is looked up again when its turn comes.
+			local known = Store.get()
+			if known and not state.running and not state.tip and quiet() and #state.queue > 0 then
 				local id = table.remove(state.queue, 1)
-				if id then
+				if id and not known.tips[id] then
 					sayTip(id)
 				end
 			end
