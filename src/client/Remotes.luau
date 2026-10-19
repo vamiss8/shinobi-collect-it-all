@@ -16,6 +16,7 @@ return {
 	Inventory = event(Net.Events.Inventory),
 	Index = event(Net.Events.Index),
 	Hold = event(Net.Events.Hold),
+	Merge = event(Net.Events.Merge),
 	ThrowChakra = event(Net.Events.ThrowChakra),
 	KickStart = event(Net.Events.KickStart),
 	KickPress = event(Net.Events.KickPress),

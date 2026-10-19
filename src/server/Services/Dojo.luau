@@ -340,6 +340,103 @@ local function usePad(player: Player, plot: Plots.Plot, pad: Plots.Pad)
 	State.push(player)
 end
 
+-- The most merges "Merge all" makes in one press: each takes two units into one, so a save
+-- runs out of them long before; this only bounds the loop.
+local MERGE_MOST = 500
+
+-- Makes one merge the inventory offers (Economy.mergeOptions): the save is changed, and a pad
+-- it touches is drawn anew. Returns the id the carried unit goes by after it: the kept one's
+-- if it was the other of a pair, none if it went into a pad.
+local function applyMerge(
+	player: Player,
+	data: Data.Data,
+	option: Economy.MergeOption,
+	held: string?
+): string?
+	local pad = option.pad
+	if pad then
+		local padUnitId = data.pads[tostring(pad)]
+		if not padUnitId then
+			return held
+		end
+		data.units[padUnitId] = option.result
+		data.units[option.unit] = nil
+		if held == option.unit then
+			held = nil
+		end
+		local plot = Plots.of(player)
+		local padObject = if plot then plot.pads[pad] else nil
+		if plot and padObject then
+			drawPad(plot, padObject, data)
+		end
+	else
+		local other = option.other :: string
+		data.units[option.unit] = option.result
+		data.units[other] = nil
+		if held == other then
+			held = option.unit
+		end
+	end
+	Data.count(data, "merges")
+	Analytics.event(player, "Merge", 1, tostring(option.result.level))
+	return held
+end
+
+-- A merge asked for from the inventory window (client InventoryPanel): one of the merges the
+-- inventory offers, named by its unit and the other unit or the pad, or "*" for all of them,
+-- made again and again while there are any (two pairs merged may make a pair of the next
+-- star). Not in the middle of a throw: the catch on the run home is already in the save.
+local function onMerge(player: Player, unitId: unknown, target: unknown)
+	local data = Data.get(player)
+	if not data then
+		return
+	end
+	if Inventory.busy(player) then
+		State.notify(player, "MergeLater")
+		return
+	end
+	local before = Inventory.held(player)
+	local held = before
+	local done = 0
+	local last: Economy.Unit? = nil
+	if unitId == "*" then
+		for _ = 1, MERGE_MOST do
+			local option = Economy.mergeOptions(Economy.sides(data.units, data.pads))[1]
+			if not option then
+				break
+			end
+			held = applyMerge(player, data, option, held)
+			done += 1
+			last = option.result
+		end
+	elseif typeof(unitId) == "string" then
+		for _, option in Economy.mergeOptions(Economy.sides(data.units, data.pads)) do
+			local other = if option.other then option.other == target else option.pad == target
+			if option.unit == unitId and other then
+				held = applyMerge(player, data, option, held)
+				done = 1
+				last = option.result
+				break
+			end
+		end
+	end
+
+	if done > 0 then
+		if before then
+			-- The carried one may have become another unit, or gone into a pad.
+			Inventory.hold(player, held)
+		end
+		if done == 1 and last then
+			State.notify(player, "Merged", Figure.title(last))
+		else
+			State.notify(player, "MergedAll", done)
+		end
+	end
+	-- Sent even when nothing was merged: the client asked from a picture that is out of date.
+	Inventory.sync(player)
+	State.push(player)
+end
+
 -- Redraws every console of the player's dojo, and the price of the pad for sale: what they
 -- can afford has changed.
 local function drawConsoles(player: Player, data: Data.Data)
@@ -487,6 +584,7 @@ function Dojo.start()
 		end
 	end)
 	Remotes.Upgrade.OnServerEvent:Connect(pressButton)
+	Remotes.Merge.OnServerEvent:Connect(onMerge)
 	Remotes.Collect.OnServerEvent:Connect(function(player)
 		local data = Data.get(player)
 		if data then

@@ -16,6 +16,10 @@ Net.Events = {
 	Inventory = "Inventory", -- server -> client: Inventory
 	Index = "Index", -- server -> client: Index.Found, the Bingo Book
 	Hold = "Hold", -- client -> server: id of the unit to carry, or nil to put it away
+	-- client -> server: a merge out of the inventory (Economy.mergeOptions): a unit's id and the
+	-- id of the inventory unit it merges with or the number of the pad it merges into; or "*"
+	-- for every merge there is
+	Merge = "Merge",
 	ThrowChakra = "ThrowChakra", -- client -> server: Chakra to throw with, 0 for all of it
 	KickStart = "KickStart", -- server -> client: bar period in seconds
 	KickPress = "KickPress", -- client -> server: seconds the client watched the bar
@@ -244,6 +248,10 @@ export type Inventory = { [string]: Economy.Unit }
 -- Sent with the inventory: the units of it with a twin standing on a pad, each with the
 -- numbers of every pad that holds one (Economy.twinPads). Carried to one, it merges into it.
 export type Twins = { [string]: { number } }
+
+-- Sent with the inventory too: the units standing on the player's pads, by pad number (a
+-- string). The client works out the merges the inventory offers from both (client Store).
+export type OnPads = { [string]: Economy.Unit }
 
 export type Found = Index.Found
 

@@ -67,27 +67,30 @@ function Inventory.tieHandsWhile(check: (player: Player) -> boolean)
 	handsTied = check
 end
 
+-- Whether the player's hands are tied just now (see tieHandsWhile): in the middle of a throw,
+-- when nothing of the inventory is to be carried or merged.
+function Inventory.busy(player: Player): boolean
+	return handsTied ~= nil and handsTied(player)
+end
+
 -- Sends the client the current inventory. Call after units are added, placed, taken or sold.
 function Inventory.sync(player: Player)
 	local data = Data.get(player)
 	if not data then
 		return
 	end
-	local onPad = placed(data)
-	local list: Net.Inventory = {}
+	local list: Net.Inventory, onPads: Net.OnPads = Economy.sides(data.units, data.pads)
 	-- And which of them could be merged into a twin on a pad, and on which pads: the client
 	-- marks them in the inventory and the bar, and has every twin glow while one is carried.
+	-- What stands on the pads goes too, for the inventory's own merges (client Store).
 	local twins: Net.Twins = {}
-	for unitId, unit in data.units do
-		if not onPad[unitId] then
-			list[unitId] = unit
-			local pads = Economy.twinPads(unit, data.units, data.pads)
-			if #pads > 0 then
-				twins[unitId] = pads
-			end
+	for unitId, unit in list do
+		local pads = Economy.twinPads(unit, data.units, data.pads)
+		if #pads > 0 then
+			twins[unitId] = pads
 		end
 	end
-	Remotes.Inventory:FireClient(player, list, twins)
+	Remotes.Inventory:FireClient(player, list, twins, onPads)
 end
 
 -- Adds a brand new unit to the save and the inventory. Returns its id.
