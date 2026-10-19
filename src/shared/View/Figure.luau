@@ -356,6 +356,8 @@ function Figure.build(unit: Economy.Unit, show: number?): Model
 	if Catalog.isLegend(unit.character) then
 		Aura.legend(model, unit.character, UNIT_HEIGHT)
 	end
+	-- And one of platinum or Six Paths stars, the aura of a great merge.
+	Aura.merge(model, unit.level, UNIT_HEIGHT)
 
 	local anchor = topAnchor(model, UNIT_HEIGHT)
 	untouchable(model)

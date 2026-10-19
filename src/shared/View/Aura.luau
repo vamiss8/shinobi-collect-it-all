@@ -1081,12 +1081,12 @@ local GROUND_HEIGHT = 0.35
 -- Wraps a figure standing at the world origin, `height` studs tall, in an aura whose light and
 -- unnamed colors are `color`. The particles come out of unseen parts round the body, which
 -- belong to the model and move with it.
-local function wrap(model: Model, look: Look, color: Color3, height: number)
+local function wrap(model: Model, look: Look, color: Color3, height: number, prefix: string?)
 	local function host(name: string, size: Vector3, middle: Vector3, layers: { Layer }?): Part?
 		if not layers then
 			return nil
 		end
-		local part = Build.part(model, name, size, middle, color)
+		local part = Build.part(model, (prefix or "") .. name, size, middle, color)
 		part.Transparency = 1
 		part.CanCollide = false
 		part.CanQuery = false
@@ -1123,6 +1123,177 @@ function Aura.legend(model: Model, legendId: string, height: number)
 	local legend = LEGENDS[legendId]
 	if legend then
 		wrap(model, legend.look, Color3.fromHex(legend.color), height)
+	end
+end
+
+-- THE AURA OF A GREAT MERGE (owner, 2026-10-19: "more of a feeling that it is a very cool
+-- merge: an aura, all that, the further, the cooler"). A shinobi merged into platinum or Six
+-- Paths stars (Catalog.starParts) wears one of its own, over whatever its mutation gives it,
+-- a step more with every star:
+--   3  platinum glitter rising round it
+--   4  and a silver light spreading on the ground under it
+--   5  gold motes rising and violet wisps round it, a gold glow underfoot
+--   6  and gold flame at the feet
+--   7  and a black flame under the gold, and gold sparks thrown up from it
+-- The same plain round particles the mutations use (no darts), and few: a figure in a dojo
+-- of thirty may wear a mutation's aura too.
+local MERGE_GLITTER: Layer = {
+	texture = SPARKLE,
+	rate = 6,
+	life = { 1.2, 2 },
+	speed = { 0.4, 1 },
+	spread = 180,
+	size = { 0.7, 0.15 },
+	lift = 0.5,
+	spin = 140,
+	glow = 1,
+	bright = 2,
+	fade = 0.1,
+	color = "#F5F7FA",
+}
+local MERGE_SILVER_FLOOR: Layer = {
+	texture = SMOKE,
+	rate = 2,
+	life = { 1.6, 2.2 },
+	speed = { 0.2, 0.4 },
+	spread = 88,
+	size = { 2.2, 3.8 },
+	lift = 0,
+	spin = 15,
+	glow = 0.7,
+	bright = 2,
+	fade = 0.6,
+	color = "#CFD8DC",
+}
+local MERGE_GOLD_MOTES: Layer = {
+	texture = SPARKLE,
+	rate = 8,
+	life = { 1.4, 2.2 },
+	speed = { 0.8, 1.8 },
+	spread = 30,
+	size = { 0.8, 0.2 },
+	lift = 0.6,
+	spin = 90,
+	glow = 1,
+	bright = 2.5,
+	fade = 0.1,
+	color = "#FFD54F",
+}
+local MERGE_VIOLET_WISPS: Layer = {
+	texture = SMOKE,
+	rate = 2.5,
+	life = { 1.6, 2.4 },
+	speed = { 0.3, 0.8 },
+	spread = 40,
+	size = { 1.2, 2.4 },
+	lift = 0.3,
+	spin = 30,
+	glow = 0.5,
+	bright = 1.6,
+	fade = 0.55,
+	color = "#7E57C2",
+}
+local MERGE_GOLD_GLOW: Layer = {
+	texture = SMOKE,
+	rate = 2,
+	life = { 1.4, 2 },
+	speed = { 0.2, 0.4 },
+	spread = 88,
+	size = { 2.4, 3.6 },
+	lift = 0,
+	spin = 15,
+	glow = 0.8,
+	bright = 2.2,
+	fade = 0.55,
+	color = "#FFB300",
+}
+local MERGE_GOLD_FLAME: Layer = {
+	texture = FIRE,
+	rate = 9,
+	life = { 0.5, 0.9 },
+	speed = { 1.4, 2.6 },
+	spread = 15,
+	size = { 1.4, 0.3 },
+	lift = 1,
+	spin = 40,
+	glow = 0.9,
+	bright = 2,
+	fade = 0.2,
+	color = "#FFC400",
+}
+local MERGE_BLACK_FLAME: Layer = {
+	texture = FIRE,
+	rate = 7,
+	life = { 0.6, 1 },
+	speed = { 1.2, 2.2 },
+	spread = 20,
+	size = { 1.8, 0.4 },
+	lift = 1,
+	spin = 40,
+	glow = 0,
+	fade = 0.25,
+	color = "#1B0033",
+}
+local MERGE_SPARKS: Layer = {
+	texture = SPARKLE,
+	rate = 5,
+	life = { 0.7, 1.1 },
+	speed = { 5, 8 },
+	spread = 25,
+	size = { 0.6, 0.1 },
+	drag = 2,
+	lift = -2,
+	spin = 200,
+	glow = 1,
+	bright = 3,
+	fade = 0,
+	color = "#FFF3C4",
+}
+
+-- The merge auras by stars, and the color of their light.
+local MERGES: { [number]: Legend } = {
+	[3] = { color = "#E0E6EA", look = { body = { MERGE_GLITTER }, light = 0.6 } },
+	[4] = {
+		color = "#E0E6EA",
+		look = { body = { MERGE_GLITTER }, ground = { MERGE_SILVER_FLOOR }, light = 0.8 },
+	},
+	[5] = {
+		color = "#FFD54F",
+		look = {
+			body = { MERGE_GOLD_MOTES, MERGE_VIOLET_WISPS },
+			ground = { MERGE_GOLD_GLOW },
+			light = 1,
+		},
+	},
+	[6] = {
+		color = "#FFD54F",
+		look = {
+			body = { MERGE_GOLD_MOTES, MERGE_VIOLET_WISPS },
+			ground = { MERGE_GOLD_GLOW, MERGE_GOLD_FLAME },
+			light = 1.2,
+		},
+	},
+	[7] = {
+		color = "#FFD54F",
+		look = {
+			body = { MERGE_GOLD_MOTES, MERGE_VIOLET_WISPS },
+			ground = { MERGE_GOLD_GLOW, MERGE_GOLD_FLAME, MERGE_BLACK_FLAME },
+			around = { MERGE_SPARKS },
+			light = 1.5,
+		},
+	},
+}
+
+-- Every merge aura by its stars, for the tests.
+Aura.merges = MERGES
+
+-- Wraps the figure of a unit at merge `level` in the aura of its stars, if it has one. Its
+-- unseen parts are named "Merge..." beside the mutation's "Aura...".
+function Aura.merge(model: Model, level: number, height: number)
+	local stars = math.min(level - 1, 7)
+	local merge = MERGES[stars]
+	if merge then
+		wrap(model, merge.look, Color3.fromHex(merge.color), height, "Merge")
 	end
 end
 
