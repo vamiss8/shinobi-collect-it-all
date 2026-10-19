@@ -95,9 +95,13 @@ function Economy.upgraded(unit: Unit, count: number?): Unit
 end
 
 -- Two units merge when they are the same character with the same mutation at the same merge
--- level. Bought upgrades do not have to match.
+-- level, short of the most stars (Tuning.Dojo.maxStars: three Six Paths stars). Bought
+-- upgrades do not have to match.
 function Economy.canMerge(a: Unit, b: Unit): boolean
-	return a.character == b.character and a.mutation == b.mutation and a.level == b.level
+	return a.character == b.character
+		and a.mutation == b.mutation
+		and a.level == b.level
+		and a.level - 1 < Tuning.Dojo.maxStars
 end
 
 -- The pads a unit could be merged on: every pad whose unit is its twin (Economy.canMerge), in

@@ -64,6 +64,10 @@ return {
 		T.ok(not Economy.canMerge(a, unit("iruka", "lava", 2)), "different level")
 		T.ok(not Economy.canMerge(a, unit("konohamaru", "lava", 1)), "different character")
 		T.eq(Economy.merged(a, a).level, 2)
+		local top = unit("iruka", "lava", Tuning.Dojo.maxStars + 1)
+		T.ok(not Economy.canMerge(top, top), "three Six Paths stars are the most")
+		local next = unit("iruka", "lava", Tuning.Dojo.maxStars)
+		T.ok(Economy.canMerge(next, next), "the last merge is allowed")
 	end,
 
 	["a unit's twins are found on every pad that holds one"] = function()

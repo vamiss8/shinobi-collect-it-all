@@ -149,6 +149,8 @@ return {
 		padBasePrice = 500,
 		padPriceGrowth = 2.5,
 		mergeMultiplier = 2.5, -- a merged unit earns this many times one of its parts
+		-- The most merges a unit takes: three Six Paths stars (Catalog.starParts).
+		maxStars = 7,
 		-- Away from the game the dojo earns at `offlineRate` of its income, for at most
 		-- `offlineCapHours`: three days off pay like a day and a half of standing in the dojo.
 		offlineRate = 0.5,

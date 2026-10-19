@@ -136,7 +136,7 @@ local function chip(
 		local stars = Ui.make("Frame", {
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -1),
-			Size = UDim2.new(1, -2, 0, 18),
+			Size = UDim2.new(1, -2, 0, 15),
 			BackgroundTransparency = 1,
 			ZIndex = 2,
 		}, portrait)

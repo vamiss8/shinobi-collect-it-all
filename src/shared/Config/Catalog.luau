@@ -207,14 +207,20 @@ function Catalog.mutationMultiplier(mutationId: string): number
 end
 
 -- One star per merge, e.g. "★★" for a unit merged twice (merge level 3).
--- A unit's merge stars counted in threes (owner, 2026-10-19: "merges can be so many that the
--- stars do not fit: from the third star make a beautiful animated platinum star, and three
--- platinum ones the last, a super cool Six Paths star"): `gold` stars, `platinum` ones worth
--- three gold, and `sixPaths` ones worth three platinum. View/Stars draws them.
+-- How a unit's merge stars are drawn (owner, 2026-10-19: "one gold, two gold, a platinum,
+-- more worked and beautiful, two platinum, a Six Paths star, very beautiful, two Six Paths,
+-- three Six Paths, the most"): the first two merges are gold stars, the next two platinum
+-- ones in their place, the next three Six Paths ones; seven merges are the most a unit takes
+-- (Tuning.Dojo.maxStars). View/Stars draws them.
 export type StarParts = { gold: number, platinum: number, sixPaths: number }
 function Catalog.starParts(level: number): StarParts
 	local stars = math.max(level - 1, 0)
-	return { gold = stars % 3, platinum = (stars // 3) % 3, sixPaths = stars // 9 }
+	if stars <= 2 then
+		return { gold = stars, platinum = 0, sixPaths = 0 }
+	elseif stars <= 4 then
+		return { gold = 0, platinum = stars - 2, sixPaths = 0 }
+	end
+	return { gold = 0, platinum = 0, sixPaths = math.min(stars - 4, 3) }
 end
 
 -- A unit's merge stars in a line of plain text (a message, a prompt), which cannot draw them:

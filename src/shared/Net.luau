@@ -152,6 +152,9 @@ Net.PRESS_DISTANCE = 16
 -- on it that holds the lettering's key (Config/Lettering.key). Each client draws the lettering
 -- and keeps it moving (client Lettering).
 Net.LETTERING_TAG = "Lettering"
+-- CollectionService tag on the core of a platinum or Six Paths merge star (View/Stars): every
+-- client sets its sparkle, rays, shadow and orbs moving (client StarShine).
+Net.STAR_TAG = "MergeStar"
 Net.LETTERING_ATTRIBUTE = "Lettering"
 -- Attributes on a shinobi's figure (View/Figure.build): the size it was built at, as
 -- Model:GetScale has it, and how many times that it stands for the levels bought for it. Their
