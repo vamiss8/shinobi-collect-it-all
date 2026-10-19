@@ -172,6 +172,13 @@ function InventoryPanel.start()
 		Size = UDim2.new(1, 0, 1, -52),
 	})
 
+	-- The cards are built only while they are in sight, and anew when they come into sight
+	-- after a change (owner, 2026-10-19: "the game hangs at a merge, from the inventory"):
+	-- every card's portrait is a copy of a model, and a merge rebuilt the whole grid behind
+	-- the page of merges, and then again for the carried unit's change.
+	local dirty = true
+	local rebuildCards: () -> () = function() end
+
 	-- The inventory's page, with the scroll at its head while a merge waits. `fresh` when the
 	-- window has just been opened: then the scroll springs up.
 	local function showList(fresh: boolean)
@@ -184,6 +191,9 @@ function InventoryPanel.start()
 		head.Position = UDim2.fromOffset(0, top)
 		list.Position = UDim2.fromOffset(0, top + 52)
 		list.Size = UDim2.new(1, 0, 1, -(top + 52))
+		if dirty and window.isOpen() then
+			rebuildCards()
+		end
 		if fresh and merges > 0 then
 			bannerScale.Scale = 0.7
 			TweenService:Create(
@@ -251,12 +261,42 @@ function InventoryPanel.start()
 	local cards: { TextButton } = {}
 	local shownHeld: string? = nil
 
-	-- Rebuilds the grid: the carried unit first, then the rest from richest to poorest.
-	local function redraw()
+	-- The cheap part, at every change: the tile's count, the carried strip, Put away, the hint.
+	local function refresh()
 		local inventory: Net.Inventory = Store.inventory()
 		local state = Store.get()
 		local held = if state then state.held else nil
 		shownHeld = held
+		local count = 0
+		for _ in inventory do
+			count += 1
+		end
+		hint.Text = if count == 0
+			then Strings.get("InventoryEmpty")
+			else Strings.get("InventoryHint")
+		putAway.Visible = held ~= nil
+		counter.Text = tostring(count)
+		counter.Visible = count > 0
+
+		local heldUnit = if held then inventory[held] else nil
+		carried.Visible = heldUnit ~= nil
+		if heldUnit then
+			local title = Strings.title(
+				heldUnit.character,
+				heldUnit.mutation,
+				heldUnit.level,
+				heldUnit.upgrade
+			)
+			carriedName.Text = Strings.get("CarriedName", title)
+		end
+	end
+
+	-- Rebuilds the grid: the carried unit first, then the rest from richest to poorest.
+	rebuildCards = function()
+		dirty = false
+		local inventory: Net.Inventory = Store.inventory()
+		local state = Store.get()
+		local held = if state then state.held else nil
 
 		for _, card in cards do
 			card:Destroy()
@@ -306,32 +346,32 @@ function InventoryPanel.start()
 			end)
 			table.insert(cards, card)
 		end
+	end
 
-		hint.Text = if #ids == 0
-			then Strings.get("InventoryEmpty")
-			else Strings.get("InventoryHint")
-		putAway.Visible = held ~= nil
-		counter.Text = tostring(#ids)
-		counter.Visible = #ids > 0
-
-		local heldUnit = if held then inventory[held] else nil
-		carried.Visible = heldUnit ~= nil
-		if heldUnit then
-			local title = Strings.title(
-				heldUnit.character,
-				heldUnit.mutation,
-				heldUnit.level,
-				heldUnit.upgrade
-			)
-			carriedName.Text = Strings.get("CarriedName", title)
+	local function redraw()
+		refresh()
+		if window.isOpen() and listPage.Visible then
+			rebuildCards()
+		else
+			dirty = true
 		end
 	end
+
+	-- However the window comes to be opened, its cards are brought up to date.
+	Ui.onWindowOpened(function()
+		if dirty and window.isOpen() and listPage.Visible then
+			rebuildCards()
+		end
+	end)
 
 	Store.onInventory(function()
 		redraw()
 		glow()
 		if mergePage.Visible then
-			merges.draw(false)
+			-- The page of merges is drawn anew only while it is in sight.
+			if window.isOpen() then
+				merges.draw(false)
+			end
 		else
 			showList(false)
 		end
