@@ -96,8 +96,12 @@ local SHOP_REACH = 3.5
 local SHOP_OUT = 1
 local SHOP_SKY = { 4, 7 }
 local SHOP_FARTHEST = 14
--- The glowing dashes round a ring.
-local RING_DASHES = 28
+-- A ring's rim: how many bars round it, how wide and thick they are, and how far over the
+-- plaza's paving it lies (over the highest pattern laid into it, the fountain's apron).
+local RING_BARS = 40
+local RING_WIDE = 0.42
+local RING_THICK = 0.1
+local RING_OVER = 0.22
 
 type Shown = { cleanup: () -> () }
 
@@ -411,38 +415,42 @@ local function trailTo(target: BasePart)
 	})
 end
 
--- A glowing ring on the ground where the player is to stand, breathing; the step waits until
--- they are in it.
+-- A glowing ring on the ground where the player is to stand; the step waits until they are in
+-- it. A rim of short bars end to end round the circle, a light running round it from gold to
+-- red. It lies over every pattern laid into the plaza's paving: round the fountain, where the
+-- shops' rings fall, the pale apron is 0.18 over the paving and the dark band 0.12 (World/Plaza),
+-- and no ray finds them (they cannot be queried), so a ring laid on the paving was half buried
+-- under the apron (owner, 2026-10-19, a screenshot: "the rings in the tutorial are still
+-- buggy"). It was short dashes, which read as scattered squares.
 local function ringAt(center: Vector3, reach: number)
-	local ground = plazaGround(center.Y)
+	local ground = plazaGround(center.Y) + RING_OVER
 	local folder = Instance.new("Folder")
 	folder.Name = "GuideRing"
 	folder.Parent = Workspace
-	-- A faint gold floor, and round it a rim of short glowing dashes that the light runs
-	-- round: a ring to step into, not a yellow disc.
-	local disc = lonePart(folder, Ui.GOLD)
-	disc.Shape = Enum.PartType.Cylinder
-	disc.Size = Vector3.new(0.06, reach * 2, reach * 2)
-	disc.CFrame = CFrame.new(center.X, ground + 0.06, center.Z) * CFrame.Angles(0, 0, math.rad(90))
-	local dashes: { Part } = {}
-	local around = 2 * math.pi * reach
-	for index = 0, RING_DASHES - 1 do
-		local angle = index / RING_DASHES * 2 * math.pi
-		local at = Vector3.new(center.X, ground + 0.1, center.Z)
-			+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * reach
+	local bars: { Part } = {}
+	local step = 2 * math.pi / RING_BARS
+	-- A bar is as long as the chord it stands on, so that the bars meet end to end; every
+	-- other one stands a little taller, so that where two lap their tops are not one plane.
+	local chord = 2 * reach * math.sin(step / 2)
+	for index = 0, RING_BARS - 1 do
+		local angle = (index + 0.5) * step
+		local tall = if index % 2 == 0 then RING_THICK else RING_THICK + 0.03
+		local at = Vector3.new(center.X, ground + tall / 2, center.Z)
+			+ Vector3.new(math.cos(angle), 0, math.sin(angle)) * (reach * math.cos(step / 2))
 		local along = Vector3.new(-math.sin(angle), 0, math.cos(angle))
-		local dash = lonePart(folder, if index % 2 == 0 then Ui.SEAL else Ui.GOLD)
-		dash.Size = Vector3.new(0.45, 0.1, around / RING_DASHES * 0.62)
-		dash.CFrame = CFrame.lookAt(at, at + along)
-		table.insert(dashes, dash)
+		local bar = lonePart(folder, Ui.GOLD)
+		bar.Size = Vector3.new(RING_WIDE, tall, chord + 0.02)
+		bar.CFrame = CFrame.lookAt(at, at + along)
+		table.insert(bars, bar)
 	end
 	goal = { at = Vector3.new(center.X, ground, center.Z), reach = reach }
 	local beat = RunService.RenderStepped:Connect(function()
-		local breath = (math.sin(os.clock() * 4) + 1) / 2
-		disc.Transparency = if state.up then 0.88 - 0.06 * breath else 1
-		for index, dash in dashes do
-			local wave = (math.sin(os.clock() * 5 - index * 0.5) + 1) / 2
-			dash.Transparency = if state.up then 0.05 + 0.55 * (1 - wave) else 1
+		local now = os.clock()
+		for index, bar in bars do
+			-- The light runs round the rim: a red glow travelling over gold.
+			local wave = (math.cos(now * 3 - index / RING_BARS * 2 * math.pi * 2) + 1) / 2
+			bar.Color = Ui.GOLD:Lerp(Ui.SEAL, wave ^ 3)
+			bar.Transparency = if state.up then 0.1 + 0.25 * (1 - wave) else 1
 		end
 	end)
 	table.insert(shown, {
