@@ -1167,7 +1167,7 @@ function Guide.start()
 		want("awards")
 	end)
 	Store.onInventory(function()
-		if next(Store.twins()) ~= nil then
+		if #Store.merges() > 0 then
 			want("twin")
 		end
 	end)

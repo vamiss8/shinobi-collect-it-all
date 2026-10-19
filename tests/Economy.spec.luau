@@ -86,6 +86,55 @@ return {
 		T.eq(#Economy.twinPads(unit("iruka", "lava", 1), {}, pads), 0, "pads of gone units")
 	end,
 
+	["the inventory offers its pairs and its twins on pads, the best first"] = function()
+		local function levelled(u: Economy.Unit, upgrades: number): Economy.Unit
+			u.upgrade = upgrades
+			return u
+		end
+		local inventory = {
+			a = levelled(unit("iruka", "lava", 1), 5),
+			b = levelled(unit("iruka", "lava", 1), 0),
+			c = levelled(unit("iruka", "lava", 1), 2),
+			d = unit("kakashi", Catalog.NONE, 1),
+			e = unit("kakashi", Catalog.NONE, 2),
+		}
+		local onPads = {
+			["3"] = levelled(unit("kakashi", Catalog.NONE, 1), 7),
+			["5"] = unit("iruka", "ice", 1),
+		}
+		local options = Economy.mergeOptions(inventory, onPads)
+		T.eq(#options, 2, "a pair of Iruka and Kakashi into his twin; no pair of one")
+		local pair, pad
+		for _, option in options do
+			if option.pad then
+				pad = option
+			else
+				pair = option
+			end
+		end
+		assert(pair and pad, "both kinds offered")
+		T.eq(pair.unit, "a", "the most levelled one is kept")
+		T.eq(pair.other, "b", "merged with the least levelled")
+		T.eq(pair.count, 1, "three alike make one pair")
+		T.eq(pair.result.level, 2)
+		T.eq(pair.result.upgrade, 5)
+		T.eq(pad.unit, "d")
+		T.eq(pad.pad, 3)
+		T.eq(pad.result.upgrade, 7, "the pad's levels kept")
+		T.ok(
+			Economy.unitIncome(options[1].result) >= Economy.unitIncome(options[2].result),
+			"the best first"
+		)
+		T.eq(#Economy.mergeOptions({ x = unit("iruka", "lava", 1) }, {}), 0, "nothing alone")
+	end,
+
+	["a save is split into the inventory and what stands on pads"] = function()
+		local units = { a = unit("iruka", "lava", 1), b = unit("iruka", "lava", 2) }
+		local inventory, onPads = Economy.sides(units, { ["4"] = "b", ["6"] = "gone" })
+		T.ok(inventory.a ~= nil and inventory.b == nil, "b stands on a pad")
+		T.ok(onPads["4"] == units.b and onPads["6"] == nil, "a gone unit is no pad's")
+	end,
+
 	["a merged unit out-earns the pair it replaces"] = function()
 		local a = unit("sakura", "kurama", 1)
 		local pair = Economy.unitIncome(a) * 2

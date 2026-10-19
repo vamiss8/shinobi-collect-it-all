@@ -130,6 +130,110 @@ function Economy.merged(a: Unit, b: Unit): Unit
 	}
 end
 
+-- One merge to be made from the inventory (owner, 2026-10-19: "merge right in the inventory,
+-- and show the choices: Madara + Madara = Madara with a star"): two of its units, `unit` and
+-- `other`, or `unit` into its twin standing on `pad`. `result` is what they become; `count`
+-- how many such merges there are to make (pairs of alike units in the inventory; 1 for a pad).
+export type MergeOption = {
+	unit: string,
+	other: string?,
+	pad: number?,
+	result: Unit,
+	count: number,
+}
+
+-- A save's units split for Economy.mergeOptions: those in the inventory by id, and those
+-- standing on pads by pad number (a string, as `pads` keys them).
+function Economy.sides(
+	units: { [string]: Unit },
+	pads: { [string]: string }
+): ({ [string]: Unit }, { [string]: Unit })
+	local placed: { [string]: boolean } = {}
+	local onPads: { [string]: Unit } = {}
+	for key, unitId in pads do
+		local unit = units[unitId]
+		if unit then
+			placed[unitId] = true
+			onPads[key] = unit
+		end
+	end
+	local inventory: { [string]: Unit } = {}
+	for unitId, unit in units do
+		if not placed[unitId] then
+			inventory[unitId] = unit
+		end
+	end
+	return inventory, onPads
+end
+
+-- Every merge the inventory offers. For each kind of unit (shinobi, mutation, stars) it holds
+-- two of: one merge of the most levelled with the least, which loses the fewest bought levels
+-- (the merged unit keeps the better of the two). And for each pad whose unit is the twin of
+-- one in the inventory: the inventory's most levelled one merged into it. The best first, by
+-- what the merged unit earns; the same save always gives the same list, on the server and on
+-- the client alike.
+function Economy.mergeOptions(
+	inventory: { [string]: Unit },
+	onPads: { [string]: Unit }
+): { MergeOption }
+	local kinds: { [string]: { string } } = {}
+	for unitId, unit in inventory do
+		local key = `{unit.character}|{unit.mutation}|{unit.level}`
+		local ids = kinds[key]
+		if not ids then
+			ids = {}
+			kinds[key] = ids
+		end
+		table.insert(ids, unitId)
+	end
+
+	local options: { MergeOption } = {}
+	for _, ids in kinds do
+		table.sort(ids, function(a, b)
+			local levelsA, levelsB = inventory[a].upgrade or 0, inventory[b].upgrade or 0
+			if levelsA ~= levelsB then
+				return levelsA > levelsB
+			end
+			return a < b
+		end)
+		local best = ids[1]
+		local unit = inventory[best]
+		if #ids >= 2 then
+			local least = ids[#ids]
+			table.insert(options, {
+				unit = best,
+				other = least,
+				result = Economy.merged(unit, inventory[least]),
+				count = #ids // 2,
+			})
+		end
+		for key, padUnit in onPads do
+			local pad = tonumber(key)
+			if pad and Economy.canMerge(padUnit, unit) then
+				table.insert(options, {
+					unit = best,
+					pad = pad,
+					result = Economy.merged(padUnit, unit),
+					count = 1,
+				})
+			end
+		end
+	end
+
+	table.sort(options, function(a, b)
+		local earnsA, earnsB = Economy.unitIncome(a.result), Economy.unitIncome(b.result)
+		if earnsA ~= earnsB then
+			return earnsA > earnsB
+		end
+		local padA, padB = a.pad or math.huge, b.pad or math.huge
+		if padA ~= padB then
+			return padA < padB
+		end
+		return a.unit < b.unit
+	end)
+	return options
+end
+
 -- Ryo paid for selling a unit.
 function Economy.sellPrice(unit: Unit): number
 	return math.floor(Economy.unitIncome(unit) * Tuning.Dojo.sellSeconds)
