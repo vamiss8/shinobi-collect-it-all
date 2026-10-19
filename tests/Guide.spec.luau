@@ -124,6 +124,31 @@ return {
 		T.eq(Daily.ryo(10, 100), 60000)
 	end,
 
+	["a streak past the week is rewarded, a little more each week and not without end"] = function()
+		local week = #Days.days
+		T.eq(Daily.multiplier(1), 1, "the first week as it is")
+		T.eq(Daily.multiplier(week), 1)
+		T.near(Daily.multiplier(week + 1), 1 + Days.weekBonus, 1e-9, "the second week richer")
+		T.eq(Daily.multiplier(week * 100), 1 + Days.weekBonusMost, "and no richer than the most")
+		local first, second = Daily.reward(1), Daily.reward(week + 1)
+		T.ok(second.herbs > first.herbs, "a day of the second week gives more than of the first")
+		local bonuses = 0
+		for streak = 1, 400 do
+			local reward = Daily.reward(streak)
+			if reward.bonus then
+				bonuses += 1
+				T.ok(Daily.milestone(streak) ~= nil, `streak {streak}`)
+			end
+			for _, potion in reward.premium do
+				T.ok(Catalog.potionById[potion] ~= nil, `streak {streak}: {potion}`)
+			end
+		end
+		T.eq(bonuses, #Days.milestones + 3, "the last bonus again every hundred days")
+		T.eq(Daily.nextMilestone(1), Days.milestones[1].streak)
+		T.eq(Daily.nextMilestone(100), 200)
+		T.eq(Daily.count({ last = 0, streak = 0 }, DAY * 10), 1, "a first claim is day one")
+	end,
+
 	["a save that has thrown before the tutorial has it done"] = function()
 		local played = { version = 4, speedLevel = 0, spins = 30, guide = 0, tips = {} }
 		Saves.bring(played)

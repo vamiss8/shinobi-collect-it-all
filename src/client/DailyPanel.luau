@@ -8,10 +8,15 @@
 -- AchievementsPanel), beside the achievements, with no tile of its own (owner, 2026-10-19:
 -- "take daily into awards, two sub-menus, achievements and daily; with a '!', show at the top
 -- in which of them something waits"). MY LOOK, told to the owner.
+--
+-- The rows are the week the reward due falls in: what each day gives grows with the weeks in
+-- a row (Logic/Daily.reward), and a day that brings a streak's bonus says so in its head. The
+-- foot says how much the weeks in a row add.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
+local DailyLogic = require(ReplicatedStorage.Shared.Logic.Daily)
 local Days = require(ReplicatedStorage.Shared.Config.Daily)
 local Guide = require("./Guide")
 local GuideConfig = require(ReplicatedStorage.Shared.Config.Guide)
@@ -45,22 +50,24 @@ local function productOf(potionId: string): Catalog.Product?
 	return nil
 end
 
--- What a day gives, in words, a line each.
-local function given(day: Config): { string }
+-- What a claim gives, in words, a piece each.
+local function given(reward: DailyLogic.Reward): { string }
 	local lines: { string } = {}
-	if day.herbs then
-		table.insert(lines, Strings.get("DailyHerbs", tostring(day.herbs)))
+	if reward.herbs > 0 then
+		table.insert(lines, Strings.get("DailyHerbs", tostring(reward.herbs)))
 	end
-	if day.ryoMinutes then
-		table.insert(lines, Strings.get("DailyRyo", tostring(day.ryoMinutes)))
+	if reward.ryoMinutes > 0 then
+		table.insert(lines, Strings.get("DailyRyo", tostring(reward.ryoMinutes)))
 	end
-	local potion = if day.potion then Catalog.potionById[day.potion] else nil
+	local potion = if reward.potion then Catalog.potionById[reward.potion] else nil
 	if potion then
 		table.insert(lines, Strings.name(potion.name))
 	end
-	local premium = if day.premium then Catalog.potionById[day.premium] else nil
-	if premium then
-		table.insert(lines, Strings.get("DailyPremium", Strings.name(premium.name)))
+	for _, id in reward.premium do
+		local premium = Catalog.potionById[id]
+		if premium then
+			table.insert(lines, Strings.get("DailyPremium", Strings.name(premium.name)))
+		end
 	end
 	return lines
 end
@@ -145,7 +152,7 @@ function DailyPanel.build(
 			Size = UDim2.fromOffset(ROW.X - WORDS_LEFT - STAMP.X - 40, 48),
 			TextSize = 27,
 			TextColor3 = Ui.GOLD,
-			Text = table.concat(given(day), "  ·  "),
+			Text = table.concat(given(DailyLogic.reward(index)), "  ·  "),
 		})
 		local stamp = Ui.text(frame, {
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -192,14 +199,22 @@ function DailyPanel.build(
 	})
 	-- When the snapshot said what, so that the wait can be counted down.
 	local heard = os.clock()
-	local daily: { ready: boolean, day: number, streak: number, wait: number }? = nil
+	local daily: { ready: boolean, day: number, streak: number, count: number, wait: number }? = nil
 
 	local function draw()
 		local known = daily
 		if not known then
 			return
 		end
+		-- The week the reward due falls in, and how much the weeks in a row before it add.
+		local count = math.max(known.count or known.streak, 1)
+		local weekStart = (count - 1) // #Days.days * #Days.days
 		for index, card in cards do
+			local reward = DailyLogic.reward(weekStart + index)
+			card.gift.Text = table.concat(given(reward), "  ·  ")
+			card.head.Text = if reward.bonus
+				then Strings.get("DailyDayBonus", tostring(index))
+				else Strings.get("DailyDay", tostring(index))
 			local today = index == known.day
 			-- Claimed this week: the days before today's, and today's once it is claimed.
 			local claimed = index < known.day or (today and not known.ready)
@@ -210,7 +225,14 @@ function DailyPanel.build(
 			card.head.TextColor3 = if today then Ui.GOLD else Ui.PARCHMENT
 			card.gift.TextTransparency = if claimed and not today then 0.35 else 0
 		end
-		streak.Text = Strings.get("DailyStreak", tostring(math.max(known.streak, 0)))
+		local grown = DailyLogic.multiplier(count)
+		streak.Text = if grown > 1
+			then Strings.get(
+				"DailyStreakBonus",
+				tostring(math.max(known.streak, 0)),
+				tostring(math.floor((grown - 1) * 100 + 0.5))
+			)
+			else Strings.get("DailyStreak", tostring(math.max(known.streak, 0)))
 		claim.Visible = known.ready
 		waitLabel.Visible = not known.ready
 		if not known.ready then

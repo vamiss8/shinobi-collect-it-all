@@ -100,6 +100,7 @@ function State.push(player: Player)
 			ready = DailyLogic.ready(data.daily, os.time()),
 			day = DailyLogic.due(data.daily, os.time()),
 			streak = data.daily.streak,
+			count = DailyLogic.count(data.daily, os.time()),
 			wait = DailyLogic.wait(data.daily, os.time()),
 		},
 	}

@@ -57,6 +57,80 @@ function Daily.ryo(minutes: number, income: number): number
 	return math.floor(math.max(income * 60, Days.ryoFloor) * minutes)
 end
 
+-- How many times its day's Herbs and Ryo a claim at `streak` days in a row pays: a little more
+-- for every whole week claimed before it (Config/Daily `weekBonus`), and no more than
+-- `weekBonusMost` more.
+function Daily.multiplier(streak: number): number
+	local weeks = (math.max(streak, 1) - 1) // #Days.days
+	return 1 + math.min(weeks * Days.weekBonus, Days.weekBonusMost)
+end
+
+-- The bonus a claim at `streak` days in a row brings on top of its day's reward, if any.
+function Daily.milestone(streak: number): Days.Milestone?
+	for _, milestone in Days.milestones do
+		if milestone.streak == streak then
+			return milestone
+		end
+	end
+	local last = Days.milestones[#Days.milestones]
+	if last and streak > last.streak and (streak - last.streak) % Days.milestoneEvery == 0 then
+		return last
+	end
+	return nil
+end
+
+-- The day of a streak after `streak` that brings the next bonus.
+function Daily.nextMilestone(streak: number): number
+	for _, milestone in Days.milestones do
+		if milestone.streak > streak then
+			return milestone.streak
+		end
+	end
+	local last = Days.milestones[#Days.milestones].streak
+	return last + (((streak - last) // Days.milestoneEvery) + 1) * Days.milestoneEvery
+end
+
+-- What a claim at `streak` days in a row pays: its day of the week's reward, Herbs and Ryo
+-- grown by the weeks in a row, and a streak's bonus on top. `bonus` says whether one came.
+export type Reward = {
+	herbs: number,
+	ryoMinutes: number,
+	potion: string?,
+	premium: { string },
+	bonus: boolean,
+}
+function Daily.reward(streak: number): Reward
+	local day = Days.days[Daily.dayOf(streak)]
+	local grown = Daily.multiplier(streak)
+	local reward: Reward = {
+		herbs = math.floor((day.herbs or 0) * grown + 0.5),
+		ryoMinutes = math.floor((day.ryoMinutes or 0) * grown + 0.5),
+		potion = day.potion,
+		premium = {},
+		bonus = false,
+	}
+	if day.premium then
+		table.insert(reward.premium, day.premium)
+	end
+	local extra = Daily.milestone(streak)
+	if extra then
+		reward.herbs += extra.herbs
+		for _, potion in extra.premium do
+			table.insert(reward.premium, potion)
+		end
+		reward.bonus = true
+	end
+	return reward
+end
+
+-- The days in a row the reward due now belongs to (the next claim's, or today's if claimed).
+function Daily.count(kept: Kept, now: number): number
+	if Daily.ready(kept, now) then
+		return Daily.nextStreak(kept, now)
+	end
+	return math.max(kept.streak, 1)
+end
+
 -- Marks today's reward as claimed; returns the place in the week of what was claimed, or nil
 -- if today's was claimed already.
 function Daily.claim(kept: Kept, now: number): number?
