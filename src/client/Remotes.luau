@@ -20,6 +20,7 @@ return {
 	ThrowChakra = event(Net.Events.ThrowChakra),
 	KickStart = event(Net.Events.KickStart),
 	KickPress = event(Net.Events.KickPress),
+	KickSeen = event(Net.Events.KickSeen),
 	KickResult = event(Net.Events.KickResult),
 	Flight = event(Net.Events.Flight),
 	Reveal = event(Net.Events.Reveal),

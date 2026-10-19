@@ -76,17 +76,18 @@ end
 -- Picks the elapsed time to grade a press by.
 --
 -- The client reports how long it had been watching the bar when the player pressed. The server
--- estimates the same thing as its own elapsed time minus the round trip: the start message took
--- half of it to arrive and the press took the other half to come back. An honest claim lands
--- close to the estimate and is used as-is, so the player gets exactly the grade they saw. A claim
--- further off than the tolerance is replaced with the estimate, so a cheater can shift the result
--- by at most the tolerance.
+-- estimates the same thing: from the moment the client said the bar had come up to the moment
+-- the press arrived (both sent the same way, so the network's delay all but cancels out;
+-- `roundTrip` is 0 then), or, when that word did not come, its own elapsed time less the round
+-- trip. An honest claim lands close to the estimate and is used as it is, so the player gets
+-- exactly the grade they saw. A claim further off is pulled back to the edge of the tolerance,
+-- so a cheater can shift the result by no more than the tolerance, and a press on a connection
+-- that stuttered is off by as little as can be. (It was replaced by the estimate itself: a
+-- tester on a shaky connection pressed in the Perfect and was given a Good, owner, 2026-10-19.)
 function Kick.reconcileElapsed(claimed: number, serverElapsed: number, roundTrip: number): number
 	local estimate = math.max(serverElapsed - roundTrip, 0)
-	if math.abs(claimed - estimate) <= Tuning.Kick.timingTolerance then
-		return claimed
-	end
-	return estimate
+	local tolerance = Tuning.Kick.timingTolerance
+	return math.clamp(claimed, math.max(estimate - tolerance, 0), estimate + tolerance)
 end
 
 -- Resolves one kick. The marker's position sets the share of the Chakra that goes into it. A

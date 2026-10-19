@@ -53,7 +53,9 @@ local MIN_LANDING = 8
 -- that stands past it, and for the shinobi it stops on, which leaps to more than its size.
 local END_ROOM = 16
 
-type Aim = { startedAt: number }
+-- A power bar under way: when the server put it up, and when the client said it had come up
+-- there (the press is timed from that, if it came).
+type Aim = { startedAt: number, seenAt: number? }
 
 type Run = {
 	character: Model,
@@ -320,8 +322,14 @@ local function press(player: Player, claimed: unknown)
 
 	-- A malformed claim is treated as one that is far off, which falls back to the server's clock.
 	local claimedElapsed = if typeof(claimed) == "number" then claimed else math.huge
-	local serverElapsed = os.clock() - aim.startedAt
-	local elapsed = Kick.reconcileElapsed(claimedElapsed, serverElapsed, player:GetNetworkPing())
+	local seenAt = aim.seenAt
+	local elapsed = if seenAt
+		then Kick.reconcileElapsed(claimedElapsed, os.clock() - seenAt, 0)
+		else Kick.reconcileElapsed(
+			claimedElapsed,
+			os.clock() - aim.startedAt,
+			player:GetNetworkPing()
+		)
 	-- A player may throw with less Chakra than they have, to reach a zone they have outgrown.
 	local chakra = data.chakra
 	local chosen = Session.of(player).throwChakra
@@ -474,6 +482,12 @@ end
 function Kicking.start()
 	Inventory.tieHandsWhile(Kicking.away)
 	Remotes.KickPress.OnServerEvent:Connect(press)
+	Remotes.KickSeen.OnServerEvent:Connect(function(player)
+		local aim = aims[player]
+		if aim and not aim.seenAt then
+			aim.seenAt = os.clock()
+		end
+	end)
 	Remotes.ThrowChakra.OnServerEvent:Connect(setThrowChakra)
 
 	local sinceCheck = 0

@@ -159,9 +159,11 @@ return {
 		T.near(Kick.reconcileElapsed(0.60, 0.80, 0.10), 0.60, EPS)
 	end,
 
-	["a timing claim too far off falls back to the server estimate"] = function()
-		T.near(Kick.reconcileElapsed(0.20, 0.80, 0.10), 0.70, EPS)
-		T.near(Kick.reconcileElapsed(5.00, 0.80, 0.10), 0.70, EPS)
+	["a timing claim too far off is pulled back to the edge of the tolerance"] = function()
+		local tolerance = Tuning.Kick.timingTolerance
+		T.near(Kick.reconcileElapsed(0.20, 0.80, 0.10), 0.70 - tolerance, EPS)
+		T.near(Kick.reconcileElapsed(5.00, 0.80, 0.10), 0.70 + tolerance, EPS)
+		T.near(Kick.reconcileElapsed(-3, 0.05, 0), 0, EPS)
 	end,
 
 	["five Perfects in a row charge a Sage kick"] = function()

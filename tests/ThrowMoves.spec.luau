@@ -83,6 +83,7 @@ local function fixture(): any
 			"RunStart",
 			"RunEnd",
 			"KickPress",
+			"KickSeen",
 			"ThrowChakra",
 		}
 	do

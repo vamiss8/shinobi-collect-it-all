@@ -23,6 +23,9 @@ Net.Events = {
 	ThrowChakra = "ThrowChakra", -- client -> server: Chakra to throw with, 0 for all of it
 	KickStart = "KickStart", -- server -> client: bar period in seconds
 	KickPress = "KickPress", -- client -> server: seconds the client watched the bar
+	-- client -> server: the power bar has just come up on the client (no payload); the server
+	-- times the press from this word (Logic/Kick.reconcileElapsed)
+	KickSeen = "KickSeen",
 	KickResult = "KickResult", -- server -> client: KickResult, or nil if the bar was cancelled
 	Flight = "Flight", -- server -> all clients: Flight
 	Reveal = "Reveal", -- server -> thrower: Reveal
@@ -234,7 +237,8 @@ export type Snapshot = {
 	tips: { [string]: boolean },
 	-- The daily reward (Config/Daily, Logic/Daily): whether one can be claimed, its place in the
 	-- week (or that of the one claimed today), the days in a row, and seconds until the next.
-	daily: { ready: boolean, day: number, streak: number, wait: number },
+	-- `count` is the days in a row the reward due belongs to: what grows it (Logic/Daily).
+	daily: { ready: boolean, day: number, streak: number, count: number, wait: number },
 	-- The achievements' tiers reached and the tiers claimed, by achievement id, and the numbers
 	-- they are measured by, by name (Config/Achievements, Logic/Achievements.stats).
 	achievements: { [string]: number },

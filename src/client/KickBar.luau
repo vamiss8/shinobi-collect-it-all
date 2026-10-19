@@ -416,6 +416,9 @@ function KickBar.start()
 	Remotes.KickStart.OnClientEvent:Connect(function(barPeriod: number)
 		period = barPeriod
 		startedAt = os.clock()
+		-- Said at once, in the same frame as the clock starts: the server times the press from
+		-- this word, so that the network's delay cancels out (Logic/Kick.reconcileElapsed).
+		Remotes.KickSeen:FireServer()
 		active = true
 		pressed = false
 		title.Text = Strings.get("KickHint")
