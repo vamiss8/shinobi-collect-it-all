@@ -51,7 +51,7 @@ local Achievements: { Achievement } = {
 		color = "#4FC3F7",
 		mark = "投",
 		tiers = {
-			{ goal = 1, herbs = 20, badge = 0 },
+			{ goal = 1, herbs = 20, badge = 2259520049685889 },
 			{ goal = 100, herbs = 50, badge = 0 },
 			{ goal = 1000, herbs = 150, badge = 0 },
 			{ goal = 10000, herbs = 400, potion = "soldier_pill", badge = 0 },
@@ -63,7 +63,7 @@ local Achievements: { Achievement } = {
 		color = "#81C784",
 		mark = "帰",
 		tiers = {
-			{ goal = 10, herbs = 25, badge = 0 },
+			{ goal = 10, herbs = 25, badge = 605915299069720 },
 			{ goal = 100, herbs = 75, badge = 0 },
 			{ goal = 1000, herbs = 200, badge = 0 },
 			{ goal = 5000, herbs = 400, potion = "ichiraku_ramen", badge = 0 },
@@ -75,7 +75,7 @@ local Achievements: { Achievement } = {
 		color = "#A1887F",
 		mark = "捕",
 		tiers = {
-			{ goal = 1, herbs = 15, badge = 0 },
+			{ goal = 1, herbs = 15, badge = 1451615730080915 },
 			{ goal = 25, herbs = 50, badge = 0 },
 			{ goal = 100, herbs = 120, badge = 0 },
 		},
@@ -86,7 +86,7 @@ local Achievements: { Achievement } = {
 		color = "#E57373",
 		mark = "的",
 		tiers = {
-			{ goal = 10, herbs = 30, badge = 0 },
+			{ goal = 10, herbs = 30, badge = 4031126799922882 },
 			{ goal = 100, herbs = 100, badge = 0 },
 			{ goal = 1000, herbs = 300, potion = "gama_charm", badge = 0 },
 		},
@@ -97,7 +97,7 @@ local Achievements: { Achievement } = {
 		color = "#FFB74D",
 		mark = "仙",
 		tiers = {
-			{ goal = 1, herbs = 40, badge = 0 },
+			{ goal = 1, herbs = 40, badge = 2339066422148129 },
 			{ goal = 25, herbs = 120, badge = 0 },
 			{ goal = 250, herbs = 300, potion = "sage_oil", badge = 0 },
 		},

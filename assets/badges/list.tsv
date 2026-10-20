@@ -7,13 +7,13 @@ home_1.png	Safe Return I	Bring 10 catches home.
 home_2.png	Safe Return II	Bring 100 catches home.
 home_3.png	Safe Return III	Bring 1K catches home.
 home_4.png	Safe Return IV	Bring 5K catches home.
-caught_1.png	Close Call I	Get caught by a zone's enemy 1 times.
+caught_1.png	Close Call I	Get caught by a zone's enemy once.
 caught_2.png	Close Call II	Get caught by a zone's enemy 25 times.
 caught_3.png	Close Call III	Get caught by a zone's enemy 100 times.
 perfect_1.png	Perfect Aim I	Make 10 PERFECT throws.
 perfect_2.png	Perfect Aim II	Make 100 PERFECT throws.
 perfect_3.png	Perfect Aim III	Make 1K PERFECT throws.
-sage_1.png	Sage Throw I	Make 1 Sage throws.
+sage_1.png	Sage Throw I	Make a Sage throw.
 sage_2.png	Sage Throw II	Make 25 Sage throws.
 sage_3.png	Sage Throw III	Make 250 Sage throws.
 zone_1.png	The Long Road I	Catch a shinobi in Forest of Death.
@@ -24,7 +24,7 @@ found_1.png	Bingo Book I	Fill 10 entries of the Bingo Book.
 found_2.png	Bingo Book II	Fill 50 entries of the Bingo Book.
 found_3.png	Bingo Book III	Fill 150 entries of the Bingo Book.
 found_4.png	Bingo Book IV	Fill 300 entries of the Bingo Book.
-pages_1.png	Full Pages I	Complete 1 pages of the Bingo Book.
+pages_1.png	Full Pages I	Complete 1 page of the Bingo Book.
 pages_2.png	Full Pages II	Complete 3 pages of the Bingo Book.
 pages_3.png	Full Pages III	Complete 6 pages of the Bingo Book.
 mutations_1.png	Mutated I	Catch 1 shinobi with a mutation.
@@ -34,10 +34,10 @@ events_1.png	Festival Catch I	Catch 1 shinobi with an event's mutation.
 events_2.png	Festival Catch II	Catch 10 shinobi with an event's mutation.
 events_3.png	Festival Catch III	Catch 30 shinobi with an event's mutation.
 six_paths_1.png	Six Paths	Catch a shinobi with the Six Paths mutation.
-merges_1.png	Fusion I	Merge shinobi 1 times.
+merges_1.png	Fusion I	Merge shinobi once.
 merges_2.png	Fusion II	Merge shinobi 25 times.
 merges_3.png	Fusion III	Merge shinobi 250 times.
-stars_1.png	Rising Stars I	Raise a shinobi to 1 stars by merging.
+stars_1.png	Rising Stars I	Raise a shinobi to 1 star by merging.
 stars_2.png	Rising Stars II	Raise a shinobi to 2 stars by merging.
 stars_3.png	Rising Stars III	Raise a shinobi to 4 stars by merging.
 upgrades_1.png	Investor I	Buy 10 levels for your shinobi.
@@ -64,7 +64,7 @@ income_1.png	Rich Dojo I	Earn 1K Ryo a second.
 income_2.png	Rich Dojo II	Earn 1M Ryo a second.
 income_3.png	Rich Dojo III	Earn 1B Ryo a second.
 income_4.png	Rich Dojo IV	Earn 1T Ryo a second.
-rebirths_1.png	Reborn I	Be reborn 1 times.
+rebirths_1.png	Reborn I	Be reborn once.
 rebirths_2.png	Reborn II	Be reborn 3 times.
 rebirths_3.png	Reborn III	Be reborn 6 times.
 rebirths_4.png	Reborn IV	Be reborn 10 times.
@@ -74,7 +74,7 @@ ring_3.png	Chakra Control III	Press PERFECT 1K times in Chakra Control.
 seals_1.png	Seal Breaker I	Break 10 bonus seals.
 seals_2.png	Seal Breaker II	Break 100 bonus seals.
 seals_3.png	Seal Breaker III	Break 500 bonus seals.
-potions_1.png	Alchemist I	Drink 1 potions.
+potions_1.png	Alchemist I	Drink 1 potion.
 potions_2.png	Alchemist II	Drink 10 potions.
 potions_3.png	Alchemist III	Drink 50 potions.
 sent_1.png	Last Missions I	Send 10 shinobi on their last mission.
