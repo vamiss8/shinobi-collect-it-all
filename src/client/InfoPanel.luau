@@ -402,7 +402,9 @@ local function tips(page: ScrollingFrame)
 					page,
 					index * 2 + 1,
 					known,
-					if known then Strings.get(`Tip_{tip.id}`) else Strings.get("TipsLocked")
+					if known
+						then Strings.get(Strings.pick(`Tip_{tip.id}`, Ui.touch()))
+						else Strings.get("TipsLocked")
 				)
 			end
 			local frame, paper = holder, scroll

@@ -64,7 +64,28 @@ local WORD_SIZES = { 28, 27, 26, 25, 24 }
 local LINE_SHARE = 1.22
 local BUTTON = Vector2.new(190, 48)
 local MOST_LINES = 4
--- Chakra a "gather Chakra" step asks for.
+-- On a touch screen the scroll stands in the gap at the top between the readouts (upper left)
+-- and the window tiles (upper right), over neither: at 880 wide it lay over both on a phone,
+-- and the readouts over Iruka's own words (owner, 2026-10-20: "too bulky"). Its face is
+-- smaller there and its words may take more lines: how far down it stands, how far it keeps
+-- from the two, how wide it may be, the face, the room left of the words, the sizes and the
+-- most lines.
+local TOUCH_TOP = 8
+local TOUCH_CLEAR = 14
+local TOUCH_WIDEST = 760
+local TOUCH_NARROWEST = 470
+local TOUCH_FACE = 84
+local TOUCH_FACE_X = 18
+local TOUCH_SIZES = { 24, 23, 22, 21, 20 }
+local TOUCH_LINES = 6
+-- The window tiles on a touch screen, by the names they are pointed at by: the scroll stands
+-- left of the leftmost.
+local TOUCH_TILES = { "shop", "inventory", "book", "awards", "rebirth", "settings", "players" }
+-- A "gather Chakra" step is done when the Chakra has gone up this many times (three ticks of
+-- meditation, three hits on the ring) or by this much, whichever comes first. It asked for
+-- +10 alone, which meditation, at half a rep a second, takes twenty seconds to give: the owner
+-- meditated, was "not let go", and moved on only after the ring (2026-10-20).
+local CHAKRA_RISES = 3
 local CHAKRA_TO_GATHER = 10
 -- The arrow at a part of the interface: its size, how far off what it points at, how far it
 -- bobs; the ring round the part, how far out; how dark the dimmed screen is.
@@ -112,6 +133,8 @@ local state = {
 	step = 0, -- the step being said
 	waiting = nil :: string?,
 	chakraFrom = 0,
+	chakraLast = 0,
+	chakraRises = 0,
 	opened = false, -- for a step that waits on a window: seen open
 	-- The tip being said, and those waiting their turn.
 	tip = nil :: string?,
@@ -125,6 +148,8 @@ local state = {
 
 local paper: Ui.Parchment
 local words: TextLabel
+local face: Frame
+local nameLine: TextLabel
 local button: TextButton
 local skip: TextButton
 local onButton: (() -> ())? = nil
@@ -500,6 +525,79 @@ end
 local spotlit: { GuiObject } = {}
 local dimHole: Frame
 
+-- A side an arrow may point from: how it is turned, where its middle is, which way it bobs.
+type Side = { turn: number, at: Vector2, way: Vector2 }
+
+-- Whether a box of the arrow layer (layout pixels, its corners) lies on Iruka's scroll while it
+-- is up, the rollers that stand out of its ends counted.
+local function onScroll(low: Vector2, high: Vector2): boolean
+	if not state.up or not paper or not paper.frame.Visible then
+		return false
+	end
+	local scale = Ui.scale()
+	local reach = Vector2.new(14, 14)
+	local from = paper.frame.AbsolutePosition / scale - reach
+	local to = (paper.frame.AbsolutePosition + paper.frame.AbsoluteSize) / scale + reach
+	return low.X < to.X and high.X > from.X and low.Y < to.Y and high.Y > from.Y
+end
+
+-- Where the scroll stands and how its inside is laid out: on a computer as it always was, at
+-- the top in the middle; on a touch screen in the gap between the readouts and the tiles.
+type Shape = {
+	wide: number,
+	x: number?, -- its middle, layout pixels; none: the screen's middle
+	top: number,
+	face: number,
+	faceX: number,
+	left: number, -- where the words begin
+	words: number, -- how wide they may be
+	sizes: { number },
+	lines: number,
+}
+
+local function shape(): Shape
+	if not Ui.touch() then
+		return {
+			wide = CARD_WIDE,
+			top = CARD_TOP,
+			face = FACE,
+			faceX = 30,
+			left = WORDS_LEFT,
+			words = WORDS_WIDE,
+			sizes = WORD_SIZES,
+			lines = MOST_LINES,
+		}
+	end
+	local scale = Ui.scale()
+	local room = Ui.room()
+	local from, to = 0, room.X
+	for _, name in { "ryo", "chakra" } do
+		local gui = Ui.targetOf(name)
+		if gui and gui.AbsoluteSize.X > 1 then
+			from = math.max(from, (gui.AbsolutePosition.X + gui.AbsoluteSize.X) / scale)
+		end
+	end
+	for _, name in TOUCH_TILES do
+		local gui = Ui.targetOf(name)
+		if gui and gui.AbsoluteSize.X > 1 then
+			to = math.min(to, gui.AbsolutePosition.X / scale)
+		end
+	end
+	local wide = math.clamp(to - from - 2 * TOUCH_CLEAR, TOUCH_NARROWEST, TOUCH_WIDEST)
+	local left = TOUCH_FACE_X + TOUCH_FACE + 16
+	return {
+		wide = wide,
+		x = math.clamp((from + to) / 2, wide / 2 + 12, room.X - wide / 2 - 12),
+		top = TOUCH_TOP,
+		face = TOUCH_FACE,
+		faceX = TOUCH_FACE_X,
+		left = left,
+		words = wide - left - 24,
+		sizes = TOUCH_SIZES,
+		lines = TOUCH_LINES,
+	}
+end
+
 -- Everything of the interface a step names is shown together: one ring round all of it and one
 -- arrow, larger for more than one (owner, 2026-10-19, a screenshot of the two training slots
 -- with an arrow and a ring each, the rings running into each other: "better one larger arrow,
@@ -563,18 +661,46 @@ local function showGui(targets: { GuiObject }, dim: boolean)
 		outer.Size = UDim2.fromOffset(size.X + swell * 2 + 12, size.Y + swell * 2 + 12)
 		gold.Transparency = 0.1 * pulse
 		red.Transparency = 0.2 + 0.4 * (1 - pulse)
+		-- The arrow points from the side that suits where the thing is, unless it would lie
+		-- on Iruka's scroll or off the screen there: then from the next side that is clear
+		-- (on a phone the scroll stands right beside the readouts and the tiles). Chosen
+		-- without the bob, so that it does not jump from side to side.
+		local fromAbove =
+			{ turn = 0, at = Vector2.new(middle.X, at.Y - off), way = Vector2.new(0, -1) }
+		local fromBelow =
+			{ turn = 180, at = Vector2.new(middle.X, at.Y + size.Y + off), way = Vector2.new(0, 1) }
+		local fromRight =
+			{ turn = 90, at = Vector2.new(at.X + size.X + off, middle.Y), way = Vector2.new(1, 0) }
+		local fromLeft =
+			{ turn = -90, at = Vector2.new(at.X - off, middle.Y), way = Vector2.new(-1, 0) }
+		local order: { Side }
 		if middle.Y > room.Y * 0.62 then
-			holder.Rotation = 0
-			holder.Position = UDim2.fromOffset(middle.X, at.Y - off - bob)
+			order = { fromAbove, fromLeft, fromRight, fromBelow }
 		elseif middle.X < room.X * 0.35 then
-			holder.Rotation = 90
-			holder.Position = UDim2.fromOffset(at.X + size.X + off + bob, middle.Y)
+			order = { fromRight, fromBelow, fromAbove, fromLeft }
 		elseif middle.X > room.X * 0.65 then
-			holder.Rotation = -90
-			holder.Position = UDim2.fromOffset(at.X - off - bob, middle.Y)
+			order = { fromLeft, fromBelow, fromAbove, fromRight }
 		else
-			holder.Rotation = 180
-			holder.Position = UDim2.fromOffset(middle.X, at.Y + size.Y + off + bob)
+			order = { fromBelow, fromAbove, fromRight, fromLeft }
+		end
+		local chosen: Side? = nil
+		for _, side in order do
+			local upright = side.turn == 0 or side.turn == 180
+			local foot = if upright
+				then Vector2.new(ARROW.X, ARROW.Y) * grow
+				else Vector2.new(ARROW.Y, ARROW.X) * grow
+			local low, high = side.at - foot / 2, side.at + foot / 2
+			local onScreen = low.X >= 0 and low.Y >= 0 and high.X <= room.X and high.Y <= room.Y
+			if onScreen and not onScroll(low, high) then
+				chosen = side
+				break
+			end
+		end
+		holder.Visible = chosen ~= nil
+		if chosen then
+			holder.Rotation = chosen.turn
+			local spot = chosen.at + chosen.way * bob
+			holder.Position = UDim2.fromOffset(spot.X, spot.Y)
 		end
 	end)
 	table.insert(shown, {
@@ -671,21 +797,31 @@ end
 -- Puts Iruka's words on the scroll, with the button saying `label` (none: the step waits for
 -- the player), and brings it up when the game leaves room.
 local function say(text: string, label: string?, pressed: (() -> ())?)
-	local size, painted = WORD_SIZES[#WORD_SIZES], ""
-	for _, try in WORD_SIZES do
-		painted = Ui.paint(text, try, WORDS_WIDE)
+	local fit = shape()
+	local size, painted = fit.sizes[#fit.sizes], ""
+	for _, try in fit.sizes do
+		painted = Ui.paint(text, try, fit.words)
 		size = try
-		if #string.split(painted, "\n") <= MOST_LINES then
+		if #string.split(painted, "\n") <= fit.lines then
 			break
 		end
 	end
 	local lines = #string.split(painted, "\n")
 	local tall = math.max(
-		FACE + 36,
+		fit.face + 36,
 		50 + lines * math.ceil(size * LINE_SHARE) + (if label then BUTTON.Y + 22 else 16)
 	)
 	local function write()
-		paper.frame.Size = UDim2.fromOffset(CARD_WIDE, tall)
+		paper.frame.Size = UDim2.fromOffset(fit.wide, tall)
+		paper.frame.Position = if fit.x
+			then UDim2.fromOffset(fit.x, fit.top)
+			else UDim2.new(0.5, 0, 0, fit.top)
+		face.Size = UDim2.fromOffset(fit.face, fit.face)
+		face.Position = UDim2.new(0, fit.faceX, 0.5, 0)
+		nameLine.Position = UDim2.fromOffset(fit.left, 10)
+		nameLine.Size = UDim2.fromOffset(fit.words, 28)
+		words.Position = UDim2.fromOffset(fit.left, 44)
+		words.Size = UDim2.new(0, fit.words, 1, -50)
 		words.TextSize = size
 		words.Text = painted
 		button.Visible = label ~= nil
@@ -713,7 +849,7 @@ end
 
 -- Iruka's words for a step: the group's line names the community server once there is one.
 local function stepWords(id: string): string
-	local text = Strings.get(`Guide_{id}`)
+	local text = Strings.get(Strings.pick(`Guide_{id}`, Ui.touch()))
 	if id == "group" and Tuning.Social.server then
 		text ..= " " .. Strings.get("Guide_groupServer")
 	end
@@ -751,6 +887,8 @@ beginStep = function(index: number)
 	if step.wait == "chakra" then
 		local snapshot = Store.get()
 		state.chakraFrom = if snapshot then snapshot.chakra else 0
+		state.chakraLast = state.chakraFrom
+		state.chakraRises = 0
 	end
 	-- The run home says nothing: the game tells it, and the scroll would only flash between
 	-- the throw's pictures.
@@ -870,7 +1008,7 @@ local function sayTip(id: string)
 	state.tip = id
 	state.said[id] = true
 	Remotes.Guide:FireServer("tip", id)
-	say(Strings.get(`Tip_{id}`), "GuideOk", function()
+	say(Strings.get(Strings.pick(`Tip_{id}`, Ui.touch())), "GuideOk", function()
 		state.tip = nil
 		hush()
 	end)
@@ -1000,6 +1138,7 @@ function Guide.start()
 		BorderSizePixel = 0,
 	}, paper.page)
 	Ui.corner(frame, 12)
+	face = frame
 	local window: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -1018,7 +1157,7 @@ function Guide.start()
 			Text = "I",
 		})
 	end
-	Ui.text(paper.page, {
+	nameLine = Ui.text(paper.page, {
 		Position = UDim2.fromOffset(WORDS_LEFT, 10),
 		Size = UDim2.fromOffset(WORDS_WIDE, 28),
 		TextSize = 24,
@@ -1093,8 +1232,17 @@ function Guide.start()
 
 	-- What a step waits on.
 	Store.onChange(function(snapshot: Net.Snapshot)
-		if state.waiting == "chakra" and snapshot.chakra >= state.chakraFrom + CHAKRA_TO_GATHER then
-			happened("chakra")
+		if state.waiting == "chakra" then
+			if snapshot.chakra > state.chakraLast then
+				state.chakraRises += 1
+			end
+			state.chakraLast = snapshot.chakra
+			if
+				state.chakraRises >= CHAKRA_RISES
+				or snapshot.chakra >= state.chakraFrom + CHAKRA_TO_GATHER
+			then
+				happened("chakra")
+			end
 		end
 	end)
 	Remotes.KickStart.OnClientEvent:Connect(function()

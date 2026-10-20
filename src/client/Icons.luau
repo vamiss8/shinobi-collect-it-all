@@ -640,6 +640,22 @@ function Icons.gear(holder: Instance)
 	overlay(holder, Art.goods.gear)
 end
 
+-- The players on the server, for the list's tile on a touch screen: three heads and shoulders
+-- on a parchment seal, the middle one in front, and a green light for "online".
+function Icons.players(holder: Instance)
+	dot(holder, 0.5, 0.5, 0.96, OUTLINE)
+	dot(holder, 0.5, 0.5, 0.88, PARCHMENT)
+	for _, x in { 0.31, 0.69 } do
+		dot(holder, x, 0.4, 0.17, DARK_WOOD)
+		shape(holder, x - 0.14, 0.5, 0.28, 0.22, DARK_WOOD, 0.45)
+	end
+	dot(holder, 0.5, 0.42, 0.25, OUTLINE)
+	dot(holder, 0.5, 0.42, 0.2, INK)
+	shape(holder, 0.3, 0.57, 0.4, 0.26, INK, 0.45)
+	dot(holder, 0.8, 0.2, 0.22, OUTLINE)
+	dot(holder, 0.8, 0.2, 0.16, Color3.fromRGB(102, 187, 106))
+end
+
 -- The tile of the shop where things are bought for Robux: a purse with a coin before it.
 function Icons.shop(holder: Instance)
 	purse(holder, 0.08)

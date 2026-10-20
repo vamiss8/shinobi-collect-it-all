@@ -63,6 +63,16 @@ function Strings.get(key: string, ...: any): string
 	return Words.get(book, key, ...)
 end
 
+-- The key of words said another way on a touch screen, where a pack has them (the key with
+-- "_touch" after it: "tap" for "click", where the readouts stand on a phone); else the key.
+function Strings.pick(key: string, touch: boolean): string
+	local other = key .. "_touch"
+	if touch and ENGLISH.text[other] ~= nil then
+		return other
+	end
+	return key
+end
+
 -- One line naming a shinobi, as Catalog.unitTitle does, in the language: "Kakashi [Ice] **
 -- Lvl 3".
 function Strings.title(

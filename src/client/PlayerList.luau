@@ -19,6 +19,11 @@
 -- lets it be, and its lines are turned through with the wheel. (It first hung left of the
 -- buttons when it grew; the owner would rather have it stay where it is and scroll. The
 -- buttons stood at the middle of the edge until they were moved down to give it more room.)
+--
+-- ON A TOUCH SCREEN its corner is the tiles', and there is no Tab: a tile of its own among
+-- them, Online, opens it just left of them and shuts it again (owner, 2026-10-20: "on the
+-- phone the list of who is online cannot be seen; perhaps an icon of its own that opens like
+-- the shop and can be closed"). It springs open as the windows do.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -283,11 +288,16 @@ function PlayerList.start()
 	end)
 
 	local screen = Ui.screen("Players", 9)
-	-- A phone has no room for it beside the buttons, and no Tab to bring it back with.
-	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	-- A phone has no room for it in the corner, and no Tab: it opens from a tile, left of the
+	-- tiles, and starts shut.
+	local touch = Ui.touch()
+	local top = if touch then Hud.TOUCH_TOP else TOP
+	local hungAt = if touch
+		then UDim2.new(1, -(Hud.touchGridReach() + 10), 0, top)
+		else UDim2.new(1, HUNG, 0, top)
 	local sheet: Frame = Ui.make("Frame", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, HUNG, 0, TOP),
+		Position = hungAt,
 		Size = UDim2.fromOffset(WIDTH, HEADER + FOOT),
 		BackgroundColor3 = Ui.PARCHMENT,
 		BorderSizePixel = 0,
@@ -419,8 +429,11 @@ function PlayerList.start()
 			y += ROW + GAP
 		end
 
-		-- As much of the lines as fits between the title and the window buttons.
-		local room = Hud.rightTop() - CLEAR_OF_BUTTONS - TOP - HEADER - FOOT
+		-- As much of the lines as fits between the title and the window buttons; on a touch
+		-- screen, as the screen's height lets it be.
+		local room = if touch
+			then Ui.room().Y - top - HEADER - FOOT - 16
+			else Hud.rightTop() - CLEAR_OF_BUTTONS - TOP - HEADER - FOOT
 		local shown = math.min(y, math.max(room, SHOWN_LEAST))
 		lines.CanvasSize = UDim2.fromOffset(0, y)
 		lines.Size = UDim2.new(1, 0, 0, shown)
@@ -448,6 +461,48 @@ function PlayerList.start()
 	end)
 	for _, player in Players:GetPlayers() do
 		adopt(player)
+	end
+
+	-- On a touch screen its tile opens it and shuts it: it springs open from a little smaller,
+	-- and shrinks away.
+	if touch then
+		local pop: UIScale = Ui.make("UIScale", {}, sheet)
+		local turns = 0
+		local tile = Hud.sideButton(
+			Strings.get("PlayersTile"),
+			Ui.PARCHMENT,
+			Icons.players,
+			false,
+			"players"
+		)
+		tile.LayoutOrder = 15
+		tile.Activated:Connect(function()
+			hung = not hung
+			turns += 1
+			local mine = turns
+			if hung then
+				draw()
+				pop.Scale = 0.86
+				sheet.Visible = true
+				TweenService:Create(
+					pop,
+					TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = 1 }
+				):Play()
+			else
+				TweenService:Create(
+					pop,
+					TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+					{ Scale = 0.92 }
+				):Play()
+				task.delay(0.11, function()
+					if turns == mine then
+						sheet.Visible = false
+					end
+				end)
+			end
+		end)
+		return
 	end
 
 	-- Tab slides it off the edge and back. Counted, so that a list on its way out that is
