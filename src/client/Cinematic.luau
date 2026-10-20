@@ -24,7 +24,6 @@
 -- A kunai is a real model when one has been supplied (see View/KunaiModel), and a plain blade
 -- otherwise.
 
-local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -40,6 +39,7 @@ local KunaiEffects = require(ReplicatedStorage.Shared.View.KunaiEffects)
 local KunaiModel = require(ReplicatedStorage.Shared.View.KunaiModel)
 local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
+local Preload = require("./Preload")
 local Remotes = require("./Remotes")
 local Strings = require("./Strings")
 local Ui = require("./Ui")
@@ -387,6 +387,34 @@ end
 -- ever slower, and stops on the one the server rolled. Each springs up as it appears, over a
 -- disc of light in its rank's color that beats with the roulette. The decoys are picked here;
 -- they are only for show.
+-- The supplied models a throw into a zone shows: the shinobi of its rank and of the next one
+-- up (the roulette), and its enemy.
+local function zoneModels(zoneId: string): { Instance }
+	local found: { Instance } = {}
+	local zone = Catalog.zoneById[zoneId]
+	if not zone then
+		return found
+	end
+	local ranks = { zone.rank }
+	local nextRank = Catalog.nextRank(zone.rank)
+	if nextRank then
+		table.insert(ranks, nextRank)
+	end
+	for _, rankId in ranks do
+		for _, character in Catalog.charactersByRank[rankId] do
+			local model = Preload.model(character.id)
+			if model then
+				table.insert(found, model)
+			end
+		end
+	end
+	local enemy = Preload.model(`enemy_{zone.id}`)
+	if enemy then
+		table.insert(found, enemy)
+	end
+	return found
+end
+
 local function roulette(mine: Stage)
 	local reveal = mine.reveal
 	task.wait(reveal.flight)
@@ -696,12 +724,40 @@ function Cinematic.start()
 
 	-- The supplied models are fetched ahead of time, in the background: the roulette swaps
 	-- figures many times a second, and one whose mesh is still on its way shows as nothing.
+	-- A little at a time once the game has loaded (client Preload): the kunai first, then
+	-- zone by zone, its shinobi and its enemy, then the rest; and a zone's at the press of a
+	-- throw into it, ahead of all that.
 	task.spawn(function()
-		local folder = ReplicatedStorage:FindFirstChild(Net.MODELS_FOLDER)
-		if folder then
-			pcall(function()
-				ContentProvider:PreloadAsync(folder:GetChildren())
-			end)
+		local folder = ReplicatedStorage:WaitForChild(Net.MODELS_FOLDER, 60)
+		if not folder then
+			return
+		end
+		local order: { Instance } = {}
+		local seen: { [Instance]: boolean } = {}
+		local function add(item: Instance?)
+			if item and not seen[item] then
+				seen[item] = true
+				table.insert(order, item)
+			end
+		end
+		for _, child in folder:GetChildren() do
+			if string.sub(string.lower(child.Name), 1, 6) == "kunai_" then
+				add(child)
+			end
+		end
+		for _, zone in Catalog.zones do
+			for _, item in zoneModels(zone.id) do
+				add(item)
+			end
+		end
+		for _, child in folder:GetChildren() do
+			add(child)
+		end
+		Preload.later(order)
+	end)
+	Remotes.KickResult.OnClientEvent:Connect(function(result: Net.KickResult?)
+		if result then
+			Preload.now(zoneModels(result.zone))
 		end
 	end)
 

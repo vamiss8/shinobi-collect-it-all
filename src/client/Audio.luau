@@ -21,6 +21,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Net = require(ReplicatedStorage.Shared.Net)
+local Preload = require("./Preload")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local SpeedStages = require(ReplicatedStorage.Shared.Config.SpeedStages)
 
@@ -777,6 +778,8 @@ function Audio.start()
 		pcall(function()
 			ContentProvider:PreloadAsync(first)
 		end)
+		-- The rest in its turn, a little at a time (client Preload): a zone's track is also
+		-- fetched at the press of a throw into it, long before the chase it plays under.
 		local rest: { Instance } = {}
 		for zoneId, track in MUSIC.bosses do
 			if track.id > 0 then
@@ -788,9 +791,13 @@ function Audio.start()
 				table.insert(rest, trackSound(`event:{eventId}`, track))
 			end
 		end
-		pcall(function()
-			ContentProvider:PreloadAsync(rest)
-		end)
+		Preload.later(rest)
+	end)
+	Remotes.KickResult.OnClientEvent:Connect(function(result: Net.KickResult?)
+		local track = if result then MUSIC.bosses[result.zone] else nil
+		if result and track and track.id > 0 then
+			Preload.now({ trackSound(`boss:{result.zone}`, track) })
+		end
 	end)
 
 	-- The music: the village's from the start, an event's while one runs.
