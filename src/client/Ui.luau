@@ -67,8 +67,21 @@ end
 -- Whether this is a touch screen with no keyboard: a phone or a tablet. Its interface is drawn
 -- to a scale of its own and some of it stands elsewhere, out of the way of Roblox's stick in
 -- the lower left corner and its jump button in the lower right.
+--
+-- DECIDED ONCE, at the first asking, and kept: the interface is laid out by it when it is
+-- built and does not change its mind later. Asked anew every time, it changed under Studio's
+-- device emulator as soon as a key was pressed to walk, and whatever was placed by it each
+-- frame (the guide's ring and arrow round a part of the interface) slid off what it pointed at
+-- (owner, 2026-10-20). A keyboard put to a tablet mid-game would have done the same.
+local touchScreen: boolean? = nil
 function Ui.touch(): boolean
-	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local known = touchScreen
+	if known ~= nil then
+		return known
+	end
+	local now = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	touchScreen = now
+	return now
 end
 
 -- How many times larger than laid out the interface is drawn on this screen.
@@ -661,6 +674,8 @@ export type Parchment = {
 	rollers: { Frame },
 	opened: NumberValue, -- how far it is unrolled, ROLLED..1
 	turn: number, -- counts its rollings, so that an old one does not finish a newer one's work
+	-- The words a scroll that is shutting for a change will open on (Ui.rewrite).
+	pending: (() -> ())?,
 }
 
 -- How far open a rolled-up scroll is, as a share of its width: its two rollers side by side.
@@ -708,6 +723,7 @@ end
 
 -- Brings a scroll up: it appears rolled, its rollers together, and unrolls from its middle.
 function Ui.unroll(paper: Parchment)
+	paper.pending = nil
 	if not paper.frame.Visible then
 		paper.opened.Value = ROLLED
 		paper.frame.Visible = true
@@ -717,6 +733,7 @@ end
 
 -- Takes a scroll away: it rolls up to its middle and is gone.
 function Ui.rollUp(paper: Parchment)
+	paper.pending = nil
 	if not paper.frame.Visible then
 		return
 	end
@@ -727,14 +744,27 @@ end
 
 -- Has a scroll say something new: `write` puts the words on it. One that is up shuts first,
 -- so that the words change out of sight, and opens again; one that is away just unrolls.
+-- Words that come while it is already shutting for a change take the place of those it was
+-- to open on, and the shutting goes on as it was: begun anew at every one, a scroll told
+-- something many times a second (a slot pressed again and again on the run home) crept
+-- shut for as long as it went on and seemed to hang (owner, 2026-10-20).
 function Ui.rewrite(paper: Parchment, write: () -> ())
 	if not paper.frame.Visible then
 		write()
 		Ui.unroll(paper)
 		return
 	end
+	local shutting = paper.pending ~= nil
+	paper.pending = write
+	if shutting then
+		return
+	end
 	roll(paper, ROLLED, SHUT_SECONDS, Enum.EasingDirection.In, function()
-		write()
+		local words = paper.pending
+		paper.pending = nil
+		if words then
+			words()
+		end
 		roll(paper, 1, UNROLL_SECONDS, Enum.EasingDirection.Out)
 	end)
 end

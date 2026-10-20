@@ -94,11 +94,24 @@ function Hud.toast(text: string, color: Color3?)
 	end
 	messageToken += 1
 	local token = messageToken
-	Ui.rewrite(shown.paper, function()
-		shown.words.Text = text
-		shown.paper.edge.Color = color or Ui.EDGE
-		shown.paper.seal.BackgroundColor3 = color or Ui.SEAL
-	end)
+	local paper = shown.paper
+	local edge = color or Ui.EDGE
+	if
+		paper.frame.Visible
+		and paper.pending == nil
+		and shown.words.Text == text
+		and paper.edge.Color == edge
+	then
+		-- Said again while it is up: it stays (and opens again if it was rolling up), and
+		-- is not shut and opened for the same words.
+		Ui.unroll(paper)
+	else
+		Ui.rewrite(paper, function()
+			shown.words.Text = text
+			paper.edge.Color = edge
+			paper.seal.BackgroundColor3 = color or Ui.SEAL
+		end)
+	end
 	task.delay(MESSAGE_SECONDS, function()
 		if messageToken == token then
 			Ui.rollUp(shown.paper)
@@ -170,6 +183,13 @@ function Hud.sideButton(
 	end
 	return tile, counter
 end
+
+-- On a touch screen: how far from the screen's right edge the grid of tiles reaches, layout
+-- pixels, and where it begins from the top; the list of players opens just left of it there.
+function Hud.touchGridReach(): number
+	return 12 + (TOUCH_ROW * TILE.X + (TOUCH_ROW - 1) * TILE_GAP) * TOUCH_TILES
+end
+Hud.TOUCH_TOP = TOUCH_TOP
 
 -- Where the column of window tiles on the right edge begins, from the top of the screen in
 -- layout pixels: the list of players hangs over it (client PlayerList).

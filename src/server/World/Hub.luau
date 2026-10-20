@@ -49,7 +49,6 @@ local GROUND_MARGIN = 40
 local FAR_END_MARGIN = 200
 
 local WOOD = Color3.fromRGB(121, 85, 61)
-local STONE = Color3.fromRGB(99, 95, 98)
 local GRASS = Color3.fromRGB(104, 159, 56)
 -- The throwing strip.
 local PLANKS = Color3.fromRGB(96, 68, 52)
@@ -372,14 +371,9 @@ function Hub.start()
 		buildSign(folder, zone)
 	end
 
-	Build.part(
-		folder,
-		"LaneEnd",
-		Vector3.new(2, 24, LANE_WIDTH),
-		Hub.at(length + 1, 11, 0),
-		STONE,
-		Enum.Material.Slate
-	)
+	-- No wall of stone closes the lane's end: the last zone's ground goes on past it to the God
+	-- Tree, and the unseen wall is enough (owner, 2026-10-20: "remove the wall at the end of
+	-- Great Ninja War").
 
 	-- Invisible walls along both sides of the lane and past its end, so nobody runs off it or
 	-- around it, and the one-way gate behind the strip. A wall is built in stretches that meet
