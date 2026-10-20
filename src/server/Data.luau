@@ -62,6 +62,8 @@ export type Data = {
 	tips: { [string]: boolean },
 	-- The daily rewards (Logic/Daily): the day of the last claim and the days in a row.
 	daily: { last: number, streak: number },
+	-- The promo codes the player has redeemed, by name (server/Codes, Services/Codes).
+	codes: { [string]: boolean },
 	-- Ids of the newest purchases granted (Services/Purchases), so none is granted twice.
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
@@ -99,6 +101,7 @@ local TEMPLATE: Data = {
 	guide = 0,
 	tips = {},
 	daily = { last = 0, streak = 0 },
+	codes = {},
 	receipts = {},
 	settings = Settings.defaults(),
 }

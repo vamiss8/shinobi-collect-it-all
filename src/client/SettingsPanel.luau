@@ -26,6 +26,7 @@ local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 
 local Audio = require("./Audio")
+local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
 local Fonts = require("./Fonts")
 local Guide = require("./Guide")
 local Hud = require("./Hud")
@@ -37,11 +38,12 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Remotes = require("./Remotes")
 local SettingsLogic = require(ReplicatedStorage.Shared.Logic.Settings)
 local Strings = require("./Strings")
+local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 790)
+local SIZE = Vector2.new(760, 860)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
@@ -57,6 +59,12 @@ local SEND_AFTER = 0.4
 -- The gear's tile, the size of the window tiles on the edges (Hud.sideButton). On a touch
 -- screen, where Roblox's jump button has the corner, it is one of those tiles.
 local TILE = Vector2.new(112, 116)
+-- The promo code's row: the box, the Redeem button, and how long a code sent is waited for
+-- before another may be sent.
+local CODE_BOX = 300
+local CODE_BUTTON = 160
+local CODE_WAIT = 4
+local CODE_GAP = 1.2
 -- A volume's row: the bar of ten, and the mute button at the row's end.
 local BAR = 220
 local MUTE = 52
@@ -488,6 +496,114 @@ function SettingsPanel.start()
 			end
 		end)
 	end
+
+	-- Promo codes (server/Codes, Services/Codes; owner, 2026-10-20: put up in the community
+	-- server): a box to type one in, Redeem, and what came of it written under them.
+	local codesTop = helpTop + helpTall + 4 + ROW_GAP
+	Ui.text(body, {
+		Position = UDim2.fromOffset(0, codesTop),
+		Size = UDim2.fromOffset(LABEL, 46),
+		TextSize = 28,
+		TextColor3 = Ui.PARCHMENT,
+		Text = Strings.get("SettingsCodes"),
+	})
+	local codeBox: TextBox = Ui.make("TextBox", {
+		Position = UDim2.fromOffset(CONTROL, codesTop),
+		Size = UDim2.fromOffset(CODE_BOX, 46),
+		BackgroundColor3 = Ui.PARCHMENT,
+		BorderSizePixel = 0,
+		Font = Ui.FONT,
+		TextSize = 24,
+		TextColor3 = Ui.INK,
+		PlaceholderText = Strings.get("CodesPlaceholder"),
+		PlaceholderColor3 = Color3.fromRGB(150, 128, 104),
+		ClearTextOnFocus = false,
+		Text = "",
+	}, body)
+	Ui.corner(codeBox, 8)
+	Ui.stroke(codeBox, Ui.EDGE, 2)
+	local redeem = Ui.button(body, {
+		Position = UDim2.fromOffset(CONTROL + CODE_BOX + 12, codesTop),
+		Size = UDim2.fromOffset(CODE_BUTTON, 46),
+		BackgroundColor3 = Ui.GREEN,
+		TextSize = 24,
+		Text = Strings.get("CodesRedeem"),
+	})
+	local hint = Strings.get(if Tuning.Social.server then "CodesHintServer" else "CodesHint")
+	local codeSaid = Ui.text(body, {
+		Position = UDim2.fromOffset(CONTROL, codesTop + 50),
+		Size = UDim2.fromOffset(CODE_BOX + 12 + CODE_BUTTON, 24),
+		TextSize = 19,
+		TextColor3 = Ui.MUTED,
+		Text = hint,
+	})
+	-- A code sent and not answered yet: no other until it is, or for a few seconds; and none
+	-- sooner than the server takes one (Services/Codes: once a second).
+	local sentAt = -math.huge
+	local answered = true
+	local function sendCode()
+		local since = os.clock() - sentAt
+		if since < CODE_GAP or (not answered and since < CODE_WAIT) then
+			return
+		end
+		sentAt = os.clock()
+		answered = false
+		codeSaid.TextColor3 = Ui.MUTED
+		codeSaid.Text = Strings.get("CodesChecking")
+		Remotes.Code:FireServer(codeBox.Text)
+	end
+	redeem.Activated:Connect(sendCode)
+	codeBox.FocusLost:Connect(function(entered)
+		if entered then
+			sendCode()
+		end
+	end)
+	Remotes.Code.OnClientEvent:Connect(function(outcome: string, reward: Net.CodeReward?)
+		answered = true
+		if outcome == "ok" and reward then
+			local gave: { string } = {}
+			if reward.herbs > 0 then
+				table.insert(gave, Strings.get("CodesHerbs", reward.herbs))
+			end
+			if reward.ryo > 0 then
+				table.insert(gave, Strings.get("CodesRyo", reward.ryo))
+			end
+			for _, list in
+				{
+					{ ids = reward.potions, premium = false },
+					{ ids = reward.premium, premium = true },
+				}
+			do
+				for _, id in list.ids do
+					local potion = Catalog.potionById[id]
+					if potion then
+						local minutes = if list.premium
+							then potion.premiumMinutes
+							else potion.minutes
+						table.insert(
+							gave,
+							Strings.get("CodesPotion", Strings.name(potion.name), minutes)
+						)
+					end
+				end
+			end
+			codeSaid.TextColor3 = Ui.GREEN
+			codeSaid.Text = Strings.get("CodesDone", table.concat(gave, ", "))
+			codeBox.Text = ""
+			Audio.play("pass")
+			return
+		end
+		local words = {
+			unknown = "CodesUnknown",
+			used = "CodesUsed",
+			ended = "CodesEnded",
+			empty = "CodesEmpty",
+			wait = "CodesWait",
+		}
+		codeSaid.TextColor3 = Ui.SEAL
+		codeSaid.Text = Strings.get(words[outcome] or "CodesUnknown")
+		Audio.play("refuse")
+	end)
 
 	local playerTop = row(6, "MusicTitle")
 	local player = Ui.make("Frame", {

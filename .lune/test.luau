@@ -12,6 +12,7 @@ local specs: { [string]: Spec } = {
 	Aura = require("../tests/Aura.spec"),
 	Boosts = require("../tests/Boosts.spec"),
 	Catalog = require("../tests/Catalog.spec"),
+	Codes = require("../tests/Codes.spec"),
 	Chase = require("../tests/Chase.spec"),
 	Corridor = require("../tests/Corridor.spec"),
 	Crossing = require("../tests/Crossing.spec"),

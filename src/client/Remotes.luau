@@ -21,6 +21,7 @@ return {
 	KickStart = event(Net.Events.KickStart),
 	KickPress = event(Net.Events.KickPress),
 	KickSeen = event(Net.Events.KickSeen),
+	Code = event(Net.Events.Code),
 	KickResult = event(Net.Events.KickResult),
 	Flight = event(Net.Events.Flight),
 	Reveal = event(Net.Events.Reveal),

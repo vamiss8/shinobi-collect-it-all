@@ -26,6 +26,9 @@ Net.Events = {
 	-- client -> server: the power bar has just come up on the client (no payload); the server
 	-- times the press from this word (Logic/Kick.reconcileElapsed)
 	KickSeen = "KickSeen",
+	-- client -> server: a promo code as typed; server -> client: what came of it ("ok",
+	-- "unknown", "used", "ended", "empty", "wait") and, when it worked, a CodeReward
+	Code = "Code",
 	KickResult = "KickResult", -- server -> client: KickResult, or nil if the bar was cancelled
 	Flight = "Flight", -- server -> all clients: Flight
 	Reveal = "Reveal", -- server -> thrower: Reveal
@@ -210,6 +213,15 @@ Net.TEST_AURAS_ATTRIBUTE = "Auras"
 
 -- The numbers the HUD and the store windows are drawn from. Sent on every change and once a
 -- second with the income tick.
+-- What a promo code gave (Services/Codes): Herbs, Ryo, and the potions put into the pouch, of
+-- the Herbs kind and premium, by potion id.
+export type CodeReward = {
+	herbs: number,
+	ryo: number,
+	potions: { string },
+	premium: { string },
+}
+
 export type Snapshot = {
 	ryo: number,
 	income: number, -- Ryo per second with all multipliers applied
