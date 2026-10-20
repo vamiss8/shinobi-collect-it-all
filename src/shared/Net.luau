@@ -99,6 +99,11 @@ Net.VERBATIM_ATTRIBUTE = "Verbatim"
 -- On the prompt of the notice board: it opens the notice board's window (client InfoPanel).
 Net.INFO_TAG = "InfoBoard"
 Net.SETTING_LANGUAGE = "SettingLanguage"
+-- What the client tells the loading screen (ReplicatedFirst LoadingScreen) on its own Player:
+-- how far it has got (1 the interface is built, 2 the save has come) and the language it chose.
+-- The screen writes these two names out itself, since it runs before Net has come.
+Net.LOADING_ATTRIBUTE = "ShinobiLoading"
+Net.LOADING_LANGUAGE_ATTRIBUTE = "ShinobiLanguage"
 Net.SETTING_FONT = "SettingFont"
 Net.SETTING_MUSIC = "SettingMusic"
 Net.SETTING_EFFECTS = "SettingEffects"

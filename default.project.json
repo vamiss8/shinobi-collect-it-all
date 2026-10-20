@@ -2,6 +2,11 @@
   "name": "naruto-collect-it-all",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "LoadingScreen": {
+        "$path": "src/first"
+      }
+    },
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"

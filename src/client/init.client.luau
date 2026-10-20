@@ -58,7 +58,9 @@ local WorldWords = require(script.WorldWords)
 
 -- The language first, and the face it is written in: every word is written as the interface
 -- is built.
-Fonts.start(Language.start(), Players.LocalPlayer:GetAttribute(Net.SETTING_FONT) :: string?)
+local language = Language.start()
+Players.LocalPlayer:SetAttribute(Net.LOADING_LANGUAGE_ATTRIBUTE, language)
+Fonts.start(language, Players.LocalPlayer:GetAttribute(Net.SETTING_FONT) :: string?)
 WorldWords.start()
 Prompts.start()
 Hud.start()
@@ -105,3 +107,13 @@ Footsteps.start()
 GroupGift.start()
 Community.start()
 Store.start()
+
+-- The loading screen (ReplicatedFirst) stands until the interface is built and the save has come.
+Players.LocalPlayer:SetAttribute(Net.LOADING_ATTRIBUTE, 1)
+local saveCame = false
+Store.onChange(function()
+	if not saveCame then
+		saveCame = true
+		Players.LocalPlayer:SetAttribute(Net.LOADING_ATTRIBUTE, 2)
+	end
+end)
