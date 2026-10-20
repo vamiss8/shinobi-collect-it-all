@@ -510,6 +510,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "O Iruka ensina o jogo e explica cada coisa nova na primeira vez. Recompensas diárias. Um botão de Tutorial na Ajuda das configurações. Um Como jogar mais completo.",
 		Change_InventoryMerge = "Funda direto no Inventário: ele brilha em violeta quando há gêmeos, Ver mostra cada fusão e o resultado, e Fundir tudo faz todas.",
+		Change_Loading = "Nova tela de carregamento: a vila surge atrás de pétalas caindo, com dicas enquanto você espera.",
 		Change_Codes = "Códigos promocionais: digite um nas Configurações, em Códigos, e ganhe a recompensa. Cada código funciona uma vez.",
 		Change_Phone = "Celulares: o bloco Online mostra quem está no servidor, e o pergaminho do Iruka não cobre mais seu Ryo, seu chakra e os blocos.",
 		World_GroupGiftRejoin = "Entrou e não contou? Entre de novo no jogo",
