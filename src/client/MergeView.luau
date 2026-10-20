@@ -4,9 +4,13 @@
 -- like Madara + Madara = Madara with a star and the level"). A row of parchment for every merge
 -- the inventory offers (Store.merges, Economy.mergeOptions): the two shinobi, an ink plus
 -- between them, an equals sign over what the merge multiplies the income by, what they become
--- with its income, and a Merge button; at the head Back and Merge all. A press draws the two
--- into what they become, and then asks the server (Services/Dojo onMerge); the page is drawn
--- anew from the inventory it sends back.
+-- with its income, and a Merge button; at the head Back and Merge all. A press asks the server
+-- (Services/Dojo onMerge) and plays the merge out on the row: the two fly into what they
+-- become while the rest of the row fades, it bursts in violet and settles, and the row folds
+-- away, those under it sliding up. Only then is the page drawn anew from the inventory the
+-- server sent back. (The two used to fly in and the server was asked after; the row then
+-- stood still with its plus and equals signs until the answer came: "everything stops for a
+-- second, it looks ugly", owner, 2026-10-20.)
 --
 -- A row offers the two least levelled of its kind (Economy.mergeOptions), and a round ⇄ on a
 -- chip of the inventory picks another of the kind in its place (owner, 2026-10-19: "with
@@ -49,8 +53,18 @@ local B_X = 204
 local EQUALS_X, EQUALS_WIDE = 366, 50
 local RESULT_X, RESULT_WIDE = 418, 172
 local BUTTON_X = 600
--- How long the two shinobi take to fly into what they become, seconds.
-local FLY_SECONDS = 0.28
+-- The merge played out on a row, seconds: the two fly into what they become, it bursts, and
+-- after a moment the row folds away.
+local FLY_SECONDS = 0.26
+local BURST_SECONDS = 0.45
+local SETTLE_SECONDS = 0.42
+local FOLD_SECONDS = 0.24
+-- How long the page waits for the server's answer once a merge has been played out, before it
+-- is drawn from what it has (a merge turned down sends nothing back).
+local ANSWER_WAIT = 2.5
+-- The sparks of the burst: how many, how far they fly, layout pixels.
+local SPARKS = 12
+local SPARK_REACH = Vector2.new(120, 80)
 -- The head of the page: its height and where the rows begin.
 local HEAD = 46
 local ROWS_TOP = 56
@@ -232,31 +246,189 @@ function MergeView.build(page: Frame, back: () -> ()): View
 	local rows: { Row } = {}
 	-- A merge asked for and not answered yet: no other press until the inventory comes back.
 	local waiting = false
+	-- Merges being played out on their rows, a redraw asked for meanwhile, and how many times
+	-- the page has been drawn (so that a late fallback does not draw over a newer page).
+	local playing = 0
+	local owed = false
+	local drawn = 0
+	local drawNow: (pop: boolean) -> ()
 
-	-- The two of a row fly into what they become, and it swells to meet them.
-	local function fly(row: Row)
-		local into = UDim2.fromOffset(RESULT_X + (RESULT_WIDE - CHIP.X) / 2, CHIP_TOP)
-		local info = TweenInfo.new(FLY_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-		for _, part in { row.a, row.b } do
-			TweenService:Create(part.frame, info, { Position = into }):Play()
-			TweenService:Create(part.scale, info, { Scale = 0.25 }):Play()
+	local function tween(
+		target: Instance,
+		seconds: number,
+		style: Enum.EasingStyle,
+		direction: Enum.EasingDirection,
+		goal: { [string]: any }
+	)
+		TweenService:Create(target, TweenInfo.new(seconds, style, direction), goal):Play()
+	end
+
+	-- Everything of a row but its three chips goes: the signs, the captions, the button.
+	local function fadeRest(row: Row)
+		local keep = { row.a.frame, row.b.frame, row.result.frame }
+		for _, item in row.sheet:GetDescendants() do
+			local kept = false
+			for _, chipFrame in keep do
+				if item == chipFrame or item:IsDescendantOf(chipFrame) then
+					kept = true
+					break
+				end
+			end
+			if kept then
+				continue
+			end
+			local goal: { [string]: any }? = nil
+			if item:IsA("TextLabel") or item:IsA("TextButton") then
+				goal = {
+					TextTransparency = 1,
+					TextStrokeTransparency = 1,
+					BackgroundTransparency = 1,
+				}
+			elseif item:IsA("UIStroke") and item.Parent ~= row.sheet then
+				goal = { Transparency = 1 }
+			end
+			if goal then
+				tween(item, FLY_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, goal)
+			end
 		end
-		TweenService:Create(
-			row.result.scale,
-			TweenInfo.new(FLY_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-			{ Scale = 1.12 }
-		):Play()
+	end
+
+	-- What they became bursts in violet: a flash over it, a ring thrown out from it, sparks;
+	-- it swells to meet them and settles back.
+	local function burst(row: Row)
+		local result = row.result.frame
+		local flash: Frame = Ui.make("Frame", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.fromRGB(236, 222, 255),
+			BackgroundTransparency = 0.1,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+		}, result)
+		Ui.corner(flash, 8)
+		local fade = Enum.EasingStyle.Quad
+		local out = Enum.EasingDirection.Out
+		tween(flash, BURST_SECONDS, fade, out, { BackgroundTransparency = 1 })
+		local ring: Frame = Ui.make("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			ZIndex = 8,
+		}, result)
+		Ui.corner(ring, 14)
+		local edge = Ui.stroke(ring, VIOLET, 5)
+		tween(ring, BURST_SECONDS, fade, out, { Size = UDim2.fromScale(1.45, 1.9) })
+		tween(edge, BURST_SECONDS, fade, out, { Transparency = 1 })
+		for index = 1, SPARKS do
+			local angle = (index - 0.5) / SPARKS * 2 * math.pi + (math.random() - 0.5) * 0.4
+			local reach = 0.7 + math.random() * 0.3
+			local spark: Frame = Ui.make("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromOffset(9, 9),
+				Rotation = 45,
+				BackgroundColor3 = if index % 3 == 0 then Ui.GOLD else VIOLET,
+				BorderSizePixel = 0,
+				ZIndex = 9,
+			}, result)
+			tween(spark, BURST_SECONDS + 0.1, fade, out, {
+				Position = UDim2.new(
+					0.5,
+					math.cos(angle) * SPARK_REACH.X * reach,
+					0.5,
+					math.sin(angle) * SPARK_REACH.Y * reach
+				),
+				Size = UDim2.fromOffset(3, 3),
+				BackgroundTransparency = 1,
+			})
+		end
+		tween(row.result.scale, 0.18, Enum.EasingStyle.Back, out, { Scale = 1.16 })
+		task.delay(0.18, function()
+			tween(row.result.scale, 0.24, fade, out, { Scale = 1 })
+		end)
+	end
+
+	-- The row folds away, and those under it slide up into its place.
+	local function fold(row: Row)
+		row.sheet.ClipsDescendants = true
+		local style, direction = Enum.EasingStyle.Quad, Enum.EasingDirection.In
+		tween(row.sheet, FOLD_SECONDS, style, direction, {
+			Size = UDim2.new(1, -10, 0, 0),
+			BackgroundTransparency = 1,
+		})
+		local edge = row.sheet:FindFirstChildOfClass("UIStroke")
+		if edge then
+			tween(edge, FOLD_SECONDS, style, direction, { Transparency = 1 })
+		end
+	end
+
+	-- A merge played out on its rows, all of them at once.
+	local function play(merged: { Row })
+		playing += 1
+		local into = UDim2.fromOffset(RESULT_X + (RESULT_WIDE - CHIP.X) / 2, CHIP_TOP)
+		local style, direction = Enum.EasingStyle.Quad, Enum.EasingDirection.In
+		for _, row in merged do
+			for _, part in { row.a, row.b } do
+				tween(part.frame, FLY_SECONDS, style, direction, { Position = into })
+				tween(part.scale, FLY_SECONDS, style, direction, { Scale = 0.2 })
+			end
+			-- What they become draws back a little as they come.
+			tween(row.result.scale, FLY_SECONDS, style, direction, { Scale = 0.94 })
+			fadeRest(row)
+		end
+		task.delay(FLY_SECONDS, function()
+			for _, row in merged do
+				row.a.frame.Visible = false
+				row.b.frame.Visible = false
+				if row.sheet.Parent then
+					burst(row)
+				end
+			end
+		end)
+		task.delay(FLY_SECONDS + SETTLE_SECONDS, function()
+			for _, row in merged do
+				if row.sheet.Parent then
+					fold(row)
+				end
+			end
+		end)
+		task.delay(FLY_SECONDS + SETTLE_SECONDS + FOLD_SECONDS, function()
+			playing -= 1
+			if playing > 0 then
+				return
+			end
+			if owed then
+				owed = false
+				drawNow(false)
+				return
+			end
+			-- No answer yet: wait for it a while, then draw from what there is.
+			local before = drawn
+			task.delay(ANSWER_WAIT, function()
+				if drawn == before and playing == 0 and waiting then
+					drawNow(false)
+				end
+			end)
+		end)
 	end
 
 	local function ask(...: any)
 		waiting = true
-		local asked = table.pack(...)
-		task.delay(FLY_SECONDS, function()
-			Remotes.Merge:FireServer(table.unpack(asked, 1, asked.n))
-		end)
+		Remotes.Merge:FireServer(...)
 	end
 
+	-- The page is drawn anew whenever the inventory changes; while a merge is being played
+	-- out, once it is over.
 	local function draw(pop: boolean)
+		if playing > 0 then
+			owed = true
+			return
+		end
+		drawNow(pop)
+	end
+
+	drawNow = function(pop: boolean)
+		drawn += 1
 		for _, row in rows do
 			row.sheet:Destroy()
 		end
@@ -437,8 +609,8 @@ function MergeView.build(page: Frame, back: () -> ()): View
 				if waiting then
 					return
 				end
-				fly(row)
 				ask(pickA, pickB or option.pad)
+				play({ row })
 			end)
 
 			-- A page opened anew comes in as a wave, row after row.
@@ -471,10 +643,8 @@ function MergeView.build(page: Frame, back: () -> ()): View
 		if waiting then
 			return
 		end
-		for _, row in rows do
-			fly(row)
-		end
 		ask("*")
+		play(rows)
 	end)
 
 	return { draw = draw }
