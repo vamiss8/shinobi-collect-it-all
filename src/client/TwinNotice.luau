@@ -8,6 +8,12 @@
 -- ink, outlined in violet, the color the twins glow in at home (client MergeGlow). After a few
 -- seconds the words go and the seal alone rides on beside the catch; at the end of the run
 -- it is all gone. Only the runner sees it.
+--
+-- IT IS AS LARGE AS A THING IN THE WORLD, sized in studs, and its left end, where the seal is,
+-- is held against the catch's right side: it was sized in pixels at a set offset in studs, so
+-- that with the camera drawn back it kept its size while the catch grew small, and the seal
+-- hung in the air off to one side (owner, 2026-10-20: "not tied to the shinobi; zoom out and
+-- the exclamation mark floats in the air").
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -24,11 +30,17 @@ local Ui = require("./Ui")
 local TwinNotice = {}
 
 local VIOLET = Color3.fromRGB(178, 112, 255)
--- The slip at full length and folded to its seal, in layout pixels.
-local SIZE = Vector2.new(250, 56)
-local SEAL = 44
--- Where it stands from the catch's feet: to the right on the screen, at its middle, studs.
-local BESIDE = Vector3.new(4.4, 2.4, 0)
+-- The slip at full length, studs, and the share of its length its seal and words take; folded,
+-- it is its seal's end alone.
+local SLIP = Vector2.new(5.4, 1.2)
+local SEAL_SHARE = 0.82 -- of the slip's height
+local WORDS_FROM = 0.24 -- of its length
+local FOLDED = 0.25 -- of its length
+-- A shinobi as built, studs (View/Figure), and how far beside it the slip begins: a carried
+-- one is as wide as about a third of its height.
+local FIGURE_HEIGHT = 4.8
+local SIDE_SHARE = 0.3
+local SIDE_GAP = 0.35
 -- When it comes up after the run starts (as the camera swings back from the enemy), and how
 -- long its words stay.
 local AFTER = Tuning.Chase.introSeconds * 0.75
@@ -79,7 +91,12 @@ function TwinNotice.start()
 	end
 
 	local function show(handle: BasePart, mine: number)
-		local scale = Ui.scale()
+		-- How tall the catch stands: a shinobi grows with the levels bought for it.
+		local figure = handle.Parent
+		local growth = if figure then figure:GetAttribute(Net.GROWTH_ATTRIBUTE) else nil
+		local tall = FIGURE_HEIGHT * (if typeof(growth) == "number" then growth else 1)
+		local beside = Vector3.new(tall * SIDE_SHARE + SIDE_GAP, tall * 0.5, 0)
+
 		local board = Instance.new("BillboardGui")
 		board.Name = "TwinNotice"
 		board.Adornee = handle
@@ -87,13 +104,16 @@ function TwinNotice.start()
 		board.LightInfluence = 0
 		board.MaxDistance = 150
 		board.ResetOnSpawn = false
-		board.Size = UDim2.fromOffset(SIZE.X * scale, SIZE.Y * scale)
-		board.StudsOffset = BESIDE
+		-- In studs, and shifted by half its length so that its left end, not its middle, is
+		-- where `beside` puts it: against the catch's right side, on the screen.
+		board.Size = UDim2.fromScale(SLIP.X, SLIP.Y)
+		board.SizeOffset = Vector2.new(0.5, 0)
+		board.StudsOffset = beside
 
-		-- Laid out at its size in layout pixels and scaled as the interface is; it springs up.
+		-- Laid out in shares of its size; it springs up.
 		local root = Ui.make("Frame", {
 			Name = "Root",
-			Size = UDim2.fromOffset(SIZE.X, SIZE.Y),
+			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
 		}, board)
 		local fit: UIScale = Ui.make("UIScale", { Scale = 0 }, root)
@@ -105,29 +125,33 @@ function TwinNotice.start()
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 		}, root)
-		Ui.make("UICorner", { CornerRadius = UDim.new(0, SIZE.Y / 2) }, slip)
+		Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, slip)
 		local outline = Ui.stroke(slip, VIOLET, 3)
 		local words = Ui.text(slip, {
-			Position = UDim2.fromOffset(SEAL + 14, 6),
-			Size = UDim2.new(1, -(SEAL + 24), 1, -12),
+			Position = UDim2.fromScale(WORDS_FROM, 0.12),
+			Size = UDim2.fromScale(0.96 - WORDS_FROM, 0.76),
 			TextScaled = true,
 			TextColor3 = Ui.INK,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Text = Strings.get("RunTwin"),
 		})
-		Ui.make("UITextSizeConstraint", { MaxTextSize = 24 }, words)
+		Ui.make("UITextSizeConstraint", { MaxTextSize = 30 }, words)
 		local seal = Ui.text(root, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0, 6 + SEAL / 2, 0.5, 0),
-			Size = UDim2.fromOffset(SEAL, SEAL),
+			Position = UDim2.fromScale(SLIP.Y * SEAL_SHARE / SLIP.X / 2 + 0.03, 0.5),
+			Size = UDim2.fromScale(1, SEAL_SHARE),
 			BackgroundColor3 = VIOLET,
 			BackgroundTransparency = 0,
 			TextColor3 = Ui.PARCHMENT,
-			TextSize = 30,
+			TextScaled = true,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Text = "!",
 			ZIndex = 2,
 		})
+		Ui.make("UIAspectRatioConstraint", {
+			AspectRatio = 1,
+			DominantAxis = Enum.DominantAxis.Height,
+		}, seal)
 		Ui.make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, seal)
 		Ui.stroke(seal, Ui.INK, 2)
 		local beat: UIScale = Ui.make("UIScale", {}, seal)
@@ -159,7 +183,7 @@ function TwinNotice.start()
 			local fold = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 			TweenService:Create(words, fold, { TextTransparency = 1 }):Play()
 			TweenService:Create(slip, fold, {
-				Size = UDim2.fromOffset(SEAL + 12, SIZE.Y),
+				Size = UDim2.fromScale(FOLDED, 1),
 				BackgroundTransparency = 1,
 			}):Play()
 			TweenService:Create(outline, fold, { Transparency = 1 }):Play()
@@ -169,7 +193,7 @@ function TwinNotice.start()
 		task.spawn(function()
 			while token == mine and board.Parent do
 				local rise = BOB * math.sin(os.clock() * 2 * math.pi / BOB_SECONDS)
-				board.StudsOffset = BESIDE + Vector3.new(0, rise, 0)
+				board.StudsOffset = beside + Vector3.new(0, rise, 0)
 				RunService.Heartbeat:Wait()
 			end
 		end)
