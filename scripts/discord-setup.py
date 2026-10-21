@@ -19,9 +19,10 @@ What it does, all of it safe to run again (what is already there is left as it i
   - AutoMod: the three word lists, mention spam, spam, and a list against scam links;
   - the welcome screen and onboarding (who asks to be pinged for codes and updates, which
     language);
-  - the first messages: the rules in English and Russian, the welcome announcement, the first
-    code;
   - a permanent invite, printed at the end.
+
+It posts nothing: what the channels say is the owner's own (owner, 2026-10-21: "let it not
+write any messages of its own; I replaced them with mine").
 
 What it cannot do: give people their roles (Founder, Developer, Designer, White Reaper are given
 by hand, right-click a member > Roles).
@@ -70,48 +71,6 @@ ROLES = [
     ("Codes Ping", 0, False, 0),
     ("Updates Ping", 0, False, 0),
 ]
-
-RULES_EN = """\U0001F4DC **RULES**
-
-1. Be kind. No insults, harassment, hate speech or discrimination.
-2. No spam, flooding or self-promotion. No links to other servers.
-3. No scams: no "free Robux", account trading or selling.
-4. Keep it safe: no NSFW, no personal info (yours or anyone's).
-5. Use the right channels: bugs in #bug-reports, ideas in #suggestions.
-6. English in #general, Russian in #general-ru.
-7. Exploiting or sharing exploits in the game = ban here and in the game.
-8. Follow Discord's Terms of Service and Roblox's Community Standards.
-
-Staff decisions are final. Breaking the rules: warning → timeout → ban."""
-
-RULES_RU = """\U0001F4DC **ПРАВИЛА**
-
-1. Уважайте друг друга. Без оскорблений, травли и дискриминации.
-2. Без спама, флуда и рекламы. Без ссылок на другие серверы.
-3. Без скама: никакого «бесплатного Robux», продажи и обмена аккаунтов.
-4. Без NSFW и личных данных (своих и чужих).
-5. Пишите по адресу: баги в #bug-reports, идеи в #suggestions.
-6. Английский в #general, русский в #general-ru.
-7. Читы в игре и их распространение = бан здесь и в игре.
-8. Соблюдайте правила Discord и Roblox.
-
-Решение модераторов окончательное. Нарушение: предупреждение → таймаут → бан."""
-
-WELCOME = """\U0001F343 Welcome to the official community of **Shinobi: Collect It All!**
-
-Train your Chakra, throw your kunai down the lane, catch shinobi and outrun their enemies, fill your dojo and collect them all.
-
-\U0001F381 Every new code is posted in #codes: pick the **Codes Ping** role to never miss one.
-\U0001F41E Found a bug? #bug-reports. \U0001F4A1 Have an idea? #suggestions.
-
-See you in the village!"""
-
-CODE_POST = """\U0001F381 **NEW CODE: HIDDENLEAF**
-
-200 Herbs + 15 minutes of your dojo's income + a premium Ichiraku Ramen (x2 Ryo, 15 min).
-
-In the game: ⚙️ Settings → Codes → type the code → Redeem.
-One use per player. {ping}"""
 
 BUG_GUIDE = """Please write:
 - What happened, and what you expected
@@ -450,28 +409,6 @@ def main():
         print("  set")
     except RuntimeError as error:
         print(f"  not set ({error}); set it by hand, docs/discord.md part 5")
-
-    # The first messages, each only into a channel that has none.
-    print("First messages")
-
-    def post_once(channel, text, ping_role=None):
-        if args.dry:
-            print(f"  [dry] message into #{channel['name']}")
-            return
-        last = api.get(f"/channels/{channel['id']}/messages?limit=1")
-        if last:
-            print(f"  #{channel['name']}: has messages already, nothing posted")
-            return
-        for part in text if isinstance(text, list) else [text]:
-            api.call("POST", f"/channels/{channel['id']}/messages", {
-                "content": part,
-                "allowed_mentions": {"parse": [], "roles": [ping_role] if ping_role else []},
-            })
-        print(f"  #{channel['name']}: posted")
-
-    post_once(rules, [RULES_EN, RULES_RU])
-    post_once(announcements, WELCOME)
-    post_once(codes, CODE_POST.format(ping=f"<@&{codes_ping}>" if codes_ping else ""), codes_ping)
 
     # A permanent invite.
     if not args.dry:
