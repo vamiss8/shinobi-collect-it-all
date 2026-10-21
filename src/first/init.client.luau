@@ -50,6 +50,12 @@ local LONGEST = 45
 local SKIP_AFTER = 10
 local SETTLE_MOST = 5
 local SETTLED_QUEUE = 8
+-- The picture is what the screen is for: once the rest is ready it is waited for this long more
+-- if it has not come, and stands this long at the least once it has. On a phone over a slow
+-- line it had not come by the time the game was ready, and the screen went by as dark ground
+-- with a tip on it (owner, 2026-10-21; his phone's ping read 2.5 s).
+local PICTURE_WAIT = 7
+local PICTURE_SHOWN = 1.5
 -- How far the bar has come at each step (entering, the world, the interface, the save, ready).
 local STEPS = { 0.08, 0.32, 0.58, 0.82, 1 }
 -- A tip's turn, seconds; how many petals drift down.
@@ -65,6 +71,8 @@ local DEEP_RED = Color3.fromRGB(120, 18, 18)
 local GOLD = Color3.fromRGB(255, 202, 40)
 local ROLLER = Color3.fromRGB(93, 64, 55)
 local ROLLER_END = Color3.fromRGB(141, 98, 72)
+local SUN = Color3.fromRGB(150, 28, 24)
+local SUN_GLOW = Color3.fromRGB(110, 26, 20)
 local PETAL_COLORS = {
 	Color3.fromRGB(255, 192, 213),
 	Color3.fromRGB(255, 170, 200),
@@ -184,6 +192,22 @@ local ground: Frame = make("Frame", {
 	Active = true,
 }, gui)
 
+-- Until the picture comes, and if it never does, the ground is not bare: a red sun rises behind
+-- the title, a glow of three rings round it.
+for index, ring in { { 0.62, 0.86 }, { 0.5, 0.74 }, { 0.4, 0.5 } } do
+	local sun: Frame = make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.42),
+		Size = UDim2.fromScale(ring[1], ring[1]),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundColor3 = if index == 3 then SUN else SUN_GLOW,
+		BackgroundTransparency = ring[2],
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, ground)
+	corner(sun, 0.5)
+end
+
 -- The picture, larger than the screen so that it can drift; it comes in once it has loaded.
 local banner: ImageLabel = make("ImageLabel", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
@@ -193,7 +217,7 @@ local banner: ImageLabel = make("ImageLabel", {
 	Image = BANNER,
 	ImageTransparency = 1,
 	ScaleType = Enum.ScaleType.Crop,
-	ZIndex = 1,
+	ZIndex = 2,
 }, ground)
 
 -- The shade: dark at the foot, where the words are, and a little at the top, under Roblox's
@@ -203,7 +227,7 @@ local function shade(stops: { { number } })
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BorderSizePixel = 0,
-		ZIndex = 2,
+		ZIndex = 3,
 	}, ground)
 	local keys = {}
 	for _, stop in stops do
@@ -229,7 +253,7 @@ local petalLayer: Frame = make("Frame", {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundTransparency = 1,
 	ClipsDescendants = true,
-	ZIndex = 3,
+	ZIndex = 4,
 }, ground)
 local petals: { Petal } = {}
 local random = Random.new()
@@ -258,7 +282,7 @@ local narrow = false
 local content: Frame = make("Frame", {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundTransparency = 1,
-	ZIndex = 4,
+	ZIndex = 5,
 }, ground)
 
 -- The title: SHINOBI over its red shadow, with a glint passing over it, and COLLECT IT ALL!
@@ -522,6 +546,7 @@ task.delay(0.6, function()
 end)
 
 -- The pictures are fetched first of all; each comes in once it is here.
+local pictureAt: number? = nil
 task.spawn(function()
 	ContentProvider:PreloadAsync(
 		{ banner, kunai },
@@ -530,6 +555,7 @@ task.spawn(function()
 				return
 			end
 			if asset == BANNER then
+				pictureAt = os.clock()
 				tween(banner, 0.9, { ImageTransparency = 0 })
 			elseif asset == KUNAI then
 				tween(kunai, 0.3, { ImageTransparency = 0 })
@@ -684,6 +710,22 @@ if not leaving then
 	local rest = SHORTEST - (os.clock() - began)
 	if rest > 0 then
 		task.wait(rest)
+	end
+	local asked = os.clock()
+	while
+		pictureAt == nil
+		and os.clock() - asked < PICTURE_WAIT
+		and os.clock() - began < LONGEST
+		and not leaving
+	do
+		task.wait(0.1)
+	end
+	local shownAt = pictureAt
+	if shownAt and not leaving then
+		local seen = os.clock() - shownAt
+		if seen < PICTURE_SHOWN then
+			task.wait(PICTURE_SHOWN - seen)
+		end
 	end
 	leave()
 end

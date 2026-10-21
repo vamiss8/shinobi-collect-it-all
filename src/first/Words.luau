@@ -23,7 +23,7 @@ local Words: { [string]: Pack } = {
 			"Gathering Chakra...",
 			"Ready!",
 		},
-		tip = "TIP",
+		tip = "TIP:",
 		skip = "Skip",
 		tips = {
 			"A {r|PERFECT} press throws your kunai the farthest. {g|Five} in a row make a {r|Sage throw}!",
@@ -46,7 +46,7 @@ local Words: { [string]: Pack } = {
 			"Собираем Чакру...",
 			"Готово!",
 		},
-		tip = "СОВЕТ",
+		tip = "СОВЕТ:",
 		skip = "Пропустить",
 		tips = {
 			"Нажатие {r|ИДЕАЛЬНО} бросает кунай дальше всего. {g|Пять} подряд дают {r|бросок мудреца}!",
@@ -69,7 +69,7 @@ local Words: { [string]: Pack } = {
 			"Reuniendo chakra...",
 			"¡Listo!",
 		},
-		tip = "CONSEJO",
+		tip = "CONSEJO:",
 		skip = "Saltar",
 		tips = {
 			"Un {r|PERFECTO} lanza tu kunai lo más lejos. ¡{g|Cinco} seguidos dan un {r|lanzamiento del sabio}!",
@@ -92,7 +92,7 @@ local Words: { [string]: Pack } = {
 			"Reunindo chakra...",
 			"Pronto!",
 		},
-		tip = "DICA",
+		tip = "DICA:",
 		skip = "Pular",
 		tips = {
 			"Um {r|PERFEITO} lança sua kunai mais longe. {g|Cinco} seguidos dão um {r|arremesso do sábio}!",
@@ -115,7 +115,7 @@ local Words: { [string]: Pack } = {
 			"Rassemblement du chakra...",
 			"Prêt !",
 		},
-		tip = "ASTUCE",
+		tip = "ASTUCE :",
 		skip = "Passer",
 		tips = {
 			"Un {r|PARFAIT} lance ton kunaï le plus loin. {g|Cinq} d'affilée donnent un {r|lancer d'ermite} !",
@@ -138,7 +138,7 @@ local Words: { [string]: Pack } = {
 			"Chakra wird gesammelt...",
 			"Bereit!",
 		},
-		tip = "TIPP",
+		tip = "TIPP:",
 		skip = "Überspringen",
 		tips = {
 			"Ein {r|PERFEKT} wirft dein Kunai am weitesten. {g|Fünf} in Folge ergeben einen {r|Eremiten-Wurf}!",
