@@ -224,8 +224,9 @@ return {
 	-- page (Creator Hub > the game > Engagement > Social Links; that needs someone of the
 	-- group with an age verified as 16 or more, and only players verified as 16 or more see
 	-- the link). The server is a Discord one (owner, 2026-10-19), and is named so: Iruka's last
-	-- line, How to play's last question and a reminder twice a visit (client Community).
+	-- line, How to play's last question and a reminder twice a visit (client Community). The
+	-- link went on the game's page on 2026-10-22.
 	Social = {
-		server = false,
+		server = true,
 	},
 }

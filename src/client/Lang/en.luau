@@ -528,6 +528,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "Iruka teaches the game and explains each new thing the first time you meet it. Daily rewards. A Tutorial button in the settings' Help. A longer How to play.",
 		Change_InventoryMerge = "Merge right in the Inventory: it glows violet when twins are found, Show lists every merge with what it becomes, and Merge all makes them all.",
+		Change_Community = "Our Discord server is open: news, codes and giveaways. Its link is on the game's page.",
 		Change_Loading = "A new loading screen: the village comes in behind falling petals, with tips while you wait.",
 		Change_Codes = "Promo codes: type one in the Settings, under Codes, and get its reward. Each code works once.",
 		Change_Phone = "Phones: the Online tile shows who is on the server, and Iruka's scroll no longer covers your Ryo, Chakra and tiles.",

@@ -511,6 +511,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "Iruka enseigne le jeu et explique chaque nouveauté la première fois. Récompenses quotidiennes. Un bouton Tutoriel dans l'Aide des paramètres. Un Comment jouer plus complet.",
 		Change_InventoryMerge = "Fusionne dans l'Inventaire : il brille en violet quand il y a des jumeaux, Voir montre chaque fusion et son résultat, et Tout fusionner les fait toutes.",
+		Change_Community = "Notre serveur Discord est ouvert : annonces, codes et concours. Le lien est sur la page du jeu.",
 		Change_Loading = "Nouvel écran de chargement : le village apparaît derrière des pétales qui tombent, avec des astuces en attendant.",
 		Change_Codes = "Codes promo : tape-en un dans les Paramètres, à la ligne Codes, et reçois sa récompense. Chaque code marche une fois.",
 		Change_Phone = "Téléphones : la tuile En ligne montre qui est sur le serveur, et le parchemin d'Iruka ne cache plus tes Ryo, ton chakra ni les tuiles.",

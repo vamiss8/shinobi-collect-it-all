@@ -511,6 +511,7 @@ return {
 		CodesPotion = "%s (%s Min.)",
 		Change_Guide = "Iruka bringt dir das Spiel bei und erklärt alles Neue beim ersten Mal. Tägliche Belohnungen. Ein Tutorial-Knopf in der Hilfe der Einstellungen. Eine ausführlichere Spielanleitung.",
 		Change_InventoryMerge = "Verschmelzen direkt im Inventar: es leuchtet violett, wenn es Zwillinge gibt, Zeigen listet jede Verschmelzung mit ihrem Ergebnis, und Alle verschmelzen macht sie alle.",
+		Change_Community = "Unser Discord-Server ist offen: News, Codes und Gewinnspiele. Der Link steht auf der Seite des Spiels.",
 		Change_Loading = "Neuer Ladebildschirm: das Dorf erscheint hinter fallenden Blüten, mit Tipps, während du wartest.",
 		Change_Codes = "Promo-Codes: Gib einen in den Einstellungen unter Codes ein und hol dir die Belohnung. Jeder Code klappt einmal.",
 		Change_Phone = "Handys: Die Kachel Online zeigt, wer auf dem Server ist, und Irukas Schriftrolle verdeckt nicht mehr Ryo, Chakra und Kacheln.",
