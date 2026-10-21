@@ -167,7 +167,7 @@ local Achievements: { Achievement } = {
 		color = "#ECEFF1",
 		mark = "六",
 		tiers = {
-			{ goal = 1, herbs = 300, potion = "sage_oil", badge = 0 },
+			{ goal = 1, herbs = 300, potion = "sage_oil", badge = 1384176942992724 },
 		},
 	},
 	{
@@ -176,7 +176,7 @@ local Achievements: { Achievement } = {
 		color = "#4DB6AC",
 		mark = "合",
 		tiers = {
-			{ goal = 1, herbs = 30, badge = 0 },
+			{ goal = 1, herbs = 30, badge = 4424924598507362 },
 			{ goal = 25, herbs = 100, badge = 0 },
 			{ goal = 250, herbs = 250, badge = 0 },
 		},
@@ -187,7 +187,7 @@ local Achievements: { Achievement } = {
 		color = "#FFD54F",
 		mark = "星",
 		tiers = {
-			{ goal = 1, herbs = 30, badge = 0 },
+			{ goal = 1, herbs = 30, badge = 2090275732979569 },
 			{ goal = 2, herbs = 80, badge = 0 },
 			{ goal = 4, herbs = 250, potion = "ichiraku_ramen", badge = 0 },
 		},
@@ -198,7 +198,7 @@ local Achievements: { Achievement } = {
 		color = "#FFA726",
 		mark = "上",
 		tiers = {
-			{ goal = 10, herbs = 25, badge = 0 },
+			{ goal = 10, herbs = 25, badge = 518877346851904 },
 			{ goal = 100, herbs = 75, badge = 0 },
 			{ goal = 1000, herbs = 200, badge = 0 },
 		},
@@ -209,7 +209,7 @@ local Achievements: { Achievement } = {
 		color = "#FB8C00",
 		mark = "極",
 		tiers = {
-			{ goal = 10, herbs = 40, badge = 0 },
+			{ goal = 10, herbs = 40, badge = 4503406041987847 },
 			{ goal = 50, herbs = 120, badge = 0 },
 			{ goal = 100, herbs = 300, potion = "ichiraku_ramen", badge = 0 },
 		},
