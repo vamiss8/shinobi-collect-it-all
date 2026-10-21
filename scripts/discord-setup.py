@@ -410,6 +410,14 @@ def main():
         if made:
             roles[name] = made
             all_roles.append(made)
+    # A new role comes in at the foot and lifts every other one a step, this bot's too: the
+    # positions read before are stale, so they are read again.
+    if not args.dry:
+        all_roles = api.get(f"/guilds/{gid}/roles")
+        roles = {role["name"]: role for role in all_roles}
+        by_id = {role["id"]: role for role in all_roles}
+        mine = [by_id[r] for r in member["roles"] if r in by_id]
+        top = max((role["position"] for role in mine), default=0)
     ours = [roles[name] for name, *_ in ROLES if name in roles and "id" in roles[name]]
     if ours and not args.dry:
         # Top to bottom under this bot's role: the other bots' roles (so that Bloxlink and the
