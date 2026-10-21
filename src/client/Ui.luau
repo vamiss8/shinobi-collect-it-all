@@ -73,13 +73,27 @@ end
 -- device emulator as soon as a key was pressed to walk, and whatever was placed by it each
 -- frame (the guide's ring and arrow round a part of the interface) slid off what it pointed at
 -- (owner, 2026-10-20). A keyboard put to a tablet mid-game would have done the same.
+--
+-- A touch screen that says it has a keyboard and a mouse too is still laid out as one when the
+-- screen is short: the emulator says so once a key has been pressed, and with the loading
+-- screen in front the first asking came after that, so a phone's screen got the computer's
+-- interface at a computer's size (owner's screenshot, 2026-10-21). A real phone reports no
+-- keyboard; a tablet with both, or a laptop with a touch screen, keeps the computer's layout
+-- unless its window is short.
+local SHORT_SCREEN = 600
 local touchScreen: boolean? = nil
 function Ui.touch(): boolean
 	local known = touchScreen
 	if known ~= nil then
 		return known
 	end
-	local now = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local now = false
+	if UserInputService.TouchEnabled then
+		local tall = viewport().Y
+		now = not UserInputService.KeyboardEnabled
+			or not UserInputService.MouseEnabled
+			or (tall > 50 and tall < SHORT_SCREEN)
+	end
 	touchScreen = now
 	return now
 end
