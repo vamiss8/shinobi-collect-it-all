@@ -176,3 +176,28 @@ Id присылай подряд, без подписей: я сам прочи�
 | # | Файл | Название | Описание |
 |---|------|----------|----------|
 | 81 | `rebirths_4.png` | Reborn IV | Be reborn 10 times. |
+
+## Значки рангов: для ролей в Discord (2 дня, вставь когда удобно)
+
+По ним Bloxlink выдаёт роль ранга на сервере. Игра выдаёт значок каждого ранга при перерождении, а тем, кто дошёл до ранга раньше, при следующем входе (Services/Rebirth). Советую загрузить их сразу после первых тиров, то есть после дня 5. Картинки: те же значки рангов, что в игре.
+
+### Ранги, день 1
+
+| # | Файл | Название | Описание |
+|---|------|----------|----------|
+| R1 | `rank_1.png` | Genin | Reach the rank of Genin (1 rebirth). |
+| R2 | `rank_2.png` | Chunin | Reach the rank of Chunin (2 rebirths). |
+| R3 | `rank_3.png` | Special Jonin | Reach the rank of Special Jonin (3 rebirths). |
+| R4 | `rank_4.png` | Jonin | Reach the rank of Jonin (4 rebirths). |
+| R5 | `rank_5.png` | ANBU | Reach the rank of ANBU (5 rebirths). |
+
+### Ранги, день 2
+
+| # | Файл | Название | Описание |
+|---|------|----------|----------|
+| R6 | `rank_6.png` | ANBU Captain | Reach the rank of ANBU Captain (6 rebirths). |
+| R7 | `rank_7.png` | Sannin | Reach the rank of Sannin (7 rebirths). |
+| R8 | `rank_8.png` | Kage | Reach the rank of Kage (8 rebirths). |
+| R9 | `rank_9.png` | Sage | Reach the rank of Sage (9 rebirths). |
+| R10 | `rank_10.png` | Sage of Six Paths | Reach the rank of Sage of Six Paths (10 rebirths). |
+

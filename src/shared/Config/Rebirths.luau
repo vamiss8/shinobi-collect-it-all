@@ -49,6 +49,10 @@ export type Rebirth = {
 	mutationLuck: number,
 	-- The level of run speed (Tuning.Speed) a player starts this rank with.
 	startSpeed: number,
+	-- The Roblox badge given to whoever reaches this rank (Services/Rebirth), 0 while it is
+	-- not made. The community server's bot (Bloxlink) gives the rank's role by it (owner,
+	-- 2026-10-21: roles by rebirths). Its picture is assets/icons/rank_<n>.png.
+	badge: number,
 }
 
 local Rebirths: { Rebirth } = {
@@ -60,6 +64,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.25,
 		mutationLuck = 1.1,
 		startSpeed = 0,
+		badge = 0,
 	},
 	{
 		chakra = 1e4,
@@ -69,6 +74,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.5,
 		mutationLuck = 1.2,
 		startSpeed = 2,
+		badge = 0,
 	},
 	{
 		chakra = 1e5,
@@ -78,6 +84,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.75,
 		mutationLuck = 1.3,
 		startSpeed = 4,
+		badge = 0,
 	},
 	{
 		chakra = 1e6,
@@ -87,6 +94,7 @@ local Rebirths: { Rebirth } = {
 		power = 2,
 		mutationLuck = 1.4,
 		startSpeed = 8,
+		badge = 0,
 	},
 	{
 		chakra = 1e7,
@@ -96,6 +104,7 @@ local Rebirths: { Rebirth } = {
 		power = 2.25,
 		mutationLuck = 1.5,
 		startSpeed = 12,
+		badge = 0,
 	},
 	{
 		chakra = 1e8,
@@ -105,6 +114,7 @@ local Rebirths: { Rebirth } = {
 		power = 2.5,
 		mutationLuck = 1.6,
 		startSpeed = 16,
+		badge = 0,
 	},
 	{
 		chakra = 5e8,
@@ -114,6 +124,7 @@ local Rebirths: { Rebirth } = {
 		power = 4,
 		mutationLuck = 1.7,
 		startSpeed = 20,
+		badge = 0,
 	},
 	{
 		chakra = 1.5e9,
@@ -123,6 +134,7 @@ local Rebirths: { Rebirth } = {
 		power = 8,
 		mutationLuck = 1.8,
 		startSpeed = 24,
+		badge = 0,
 	},
 	{
 		chakra = 4e9,
@@ -132,6 +144,7 @@ local Rebirths: { Rebirth } = {
 		power = 14,
 		mutationLuck = 1.9,
 		startSpeed = 28,
+		badge = 0,
 	},
 	{
 		chakra = 1e10,
@@ -141,6 +154,7 @@ local Rebirths: { Rebirth } = {
 		power = 25,
 		mutationLuck = 2,
 		startSpeed = 32,
+		badge = 0,
 	},
 }
 

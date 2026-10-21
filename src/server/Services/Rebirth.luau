@@ -10,7 +10,12 @@
 -- up with it: the shinobi come off the pads and out of the player's hands, the runner slows
 -- to the speed their new rank starts with and wears that speed's look, and their rank changes
 -- over their head.
+--
+-- Every rank reached is also a Roblox badge (Config/Rebirths `badge`), given at the rebirth
+-- and, for ranks reached before the badges existed, when the save loads: the community
+-- server's bot gives the rank's role by it.
 
+local BadgeService = game:GetService("BadgeService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -20,6 +25,7 @@ local Dojo = require("./Dojo")
 local Economy = require(ReplicatedStorage.Shared.Logic.Economy)
 local Inventory = require("./Inventory")
 local Kicking = require("./Kicking")
+local Ranks = require(ReplicatedStorage.Shared.Config.Rebirths)
 local Rebirths = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Remotes = require("../Remotes")
 local Session = require("../Session")
@@ -28,6 +34,26 @@ local State = require("./State")
 local Titles = require("./Titles")
 
 local Rebirth = {}
+
+-- Gives the player the badge of every rank up to `count` that has one and that they lack.
+local function badges(player: Player, count: number)
+	for index = 1, math.min(count, #Ranks) do
+		local badge = Ranks[index].badge
+		if badge > 0 then
+			task.spawn(function()
+				local asked, has = pcall(function()
+					return BadgeService:UserHasBadgeAsync(player.UserId, badge)
+				end)
+				if asked and has then
+					return
+				end
+				pcall(function()
+					BadgeService:AwardBadgeAsync(player.UserId, badge)
+				end)
+			end)
+		end
+	end
+end
 
 local function rebirth(player: Player)
 	local data = Data.get(player)
@@ -43,6 +69,7 @@ local function rebirth(player: Player)
 
 	Rebirths.apply(data)
 	Analytics.event(player, "Rebirth", 1, tostring(data.rebirths))
+	badges(player, data.rebirths)
 
 	-- The shinobi are gone: out of the hands, off the pads, out of the inventory's window.
 	Inventory.hold(player, nil)
@@ -73,6 +100,9 @@ end
 
 function Rebirth.start()
 	Remotes.Rebirth.OnServerEvent:Connect(rebirth)
+	Data.onLoaded(function(player, data)
+		badges(player, data.rebirths)
+	end)
 end
 
 return Rebirth
