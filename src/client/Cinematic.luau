@@ -41,6 +41,7 @@ local Net = require(ReplicatedStorage.Shared.Net)
 local Particles = require(ReplicatedStorage.Shared.View.Particles)
 local Preload = require("./Preload")
 local Remotes = require("./Remotes")
+local Store = require("./Store")
 local Strings = require("./Strings")
 local Ui = require("./Ui")
 
@@ -725,35 +726,32 @@ function Cinematic.start()
 	-- The supplied models are fetched ahead of time, in the background: the roulette swaps
 	-- figures many times a second, and one whose mesh is still on its way shows as nothing.
 	-- A little at a time once the game has loaded (client Preload): the kunai first, then
-	-- zone by zone, its shinobi and its enemy, then the rest; and a zone's at the press of a
-	-- throw into it, ahead of all that.
+	-- zone by zone, its shinobi and its enemy, AS FAR AS THE PLAYER CAN THROW (a Sage throw of
+	-- all their Chakra) AND ONE ZONE BEYOND, more as their Chakra grows; and a zone's at the
+	-- press of a throw into it, ahead of all that. Every model of the game used to be fetched in
+	-- the end, so that a phone held in memory the meshes of zones its player had not reached
+	-- (owner's phone, 2026-10-21: 1.1 GB).
 	task.spawn(function()
 		local folder = ReplicatedStorage:WaitForChild(Net.MODELS_FOLDER, 60)
 		if not folder then
 			return
 		end
-		local order: { Instance } = {}
-		local seen: { [Instance]: boolean } = {}
-		local function add(item: Instance?)
-			if item and not seen[item] then
-				seen[item] = true
-				table.insert(order, item)
-			end
-		end
+		local kunai: { Instance } = {}
 		for _, child in folder:GetChildren() do
 			if string.sub(string.lower(child.Name), 1, 6) == "kunai_" then
-				add(child)
+				table.insert(kunai, child)
 			end
 		end
-		for _, zone in Catalog.zones do
-			for _, item in zoneModels(zone.id) do
-				add(item)
+		Preload.later(kunai)
+		local queued = 0
+		Store.onChange(function(snapshot: Net.Snapshot)
+			local farthest = Catalog.zoneFor(snapshot.chakra * 2)
+			local upTo = math.min((Catalog.zoneOrder[farthest.id] or 1) + 1, #Catalog.zones)
+			while queued < upTo do
+				queued += 1
+				Preload.later(zoneModels(Catalog.zones[queued].id))
 			end
-		end
-		for _, child in folder:GetChildren() do
-			add(child)
-		end
-		Preload.later(order)
+		end)
 	end)
 	Remotes.KickResult.OnClientEvent:Connect(function(result: Net.KickResult?)
 		if result then
