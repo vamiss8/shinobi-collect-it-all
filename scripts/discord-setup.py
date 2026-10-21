@@ -386,7 +386,6 @@ def main():
     roles = {role["name"]: role for role in all_roles}
     by_id = {role["id"]: role for role in all_roles}
     mine = [by_id[r] for r in member["roles"] if r in by_id]
-    top = max((role["position"] for role in mine), default=0)
 
     # Safety, and Discord's own join messages off.
     print("Safety settings")
@@ -410,46 +409,54 @@ def main():
         if made:
             roles[name] = made
             all_roles.append(made)
-    # A new role comes in at the foot and lifts every other one a step, this bot's too: the
-    # positions read before are stale, so they are read again.
+    # The positions read before the new roles were made are stale: read them again.
     if not args.dry:
         all_roles = api.get(f"/guilds/{gid}/roles")
         roles = {role["name"]: role for role in all_roles}
         by_id = {role["id"]: role for role in all_roles}
         mine = [by_id[r] for r in member["roles"] if r in by_id]
-        top = max((role["position"] for role in mine), default=0)
     ours = [roles[name] for name, *_ in ROLES if name in roles and "id" in roles[name]]
-    if ours and not args.dry:
-        # Top to bottom under this bot's role: the other bots' roles (so that Bloxlink and the
-        # leveling bot stand above the roles they give), ours, then whatever else there is.
-        ours_ids = {role["id"] for role in ours}
-        mine_ids = {role["id"] for role in mine}
-        rest = sorted(
-            (role for role in all_roles
-             if role["id"] not in ours_ids and role["id"] not in mine_ids and role["id"] != gid
-             and role.get("position", 0) < top),
-            key=lambda role: -role.get("position", 0),
-        )
-        bots = [role for role in rest if role.get("managed") and "premium_subscriber" not in (role.get("tags") or {})]
-        boosters = [role for role in rest if "premium_subscriber" in (role.get("tags") or {})]
-        others = [role for role in rest if role not in bots and role not in boosters]
-        # The boosters' role (Discord's own) stands after the special roles.
-        cut = len(STAFF_ROLES) + len(SPECIAL_ROLES)
-        order = bots + ours[:cut] + boosters + ours[cut:] + others
-        if top <= len(order):
-            above = [role["name"] for role in sorted(all_roles, key=lambda role: -role.get("position", 0))
-                     if role.get("position", 0) > top]
+    if ours and mine and not args.dry:
+        # Where a role stands is not its number alone: roles made through the API all come in at
+        # position 1, and Discord orders roles of one number by id, the newer lower. So the
+        # numbers do not count the roles, and the order is worked out as Discord does it.
+        def rank(role):
+            return (role.get("position", 0), -int(role["id"]))
+
+        highest = max(mine, key=rank)
+        above = [role["name"] for role in all_roles if rank(role) > rank(highest)]
+        if above:
             print("  ! The bot's role is not at the top: drag it above every other role in")
             print("    Server Settings > Roles and run again to put the roles in order.")
-            if above:
-                print(f"    Above it now: {', '.join(above)}")
+            print(f"    Above it now: {', '.join(above)}")
         else:
-            positions = [{"id": role["id"], "position": top - 1 - i} for i, role in enumerate(order)]
+            # Top to bottom under this bot's role: the other bots' roles (so that Bloxlink and the
+            # leveling bot stand above the roles they give), ours, then whatever else there is.
+            ours_ids = {role["id"] for role in ours}
+            mine_ids = {role["id"] for role in mine}
+            rest = sorted(
+                (role for role in all_roles
+                 if role["id"] not in ours_ids and role["id"] not in mine_ids and role["id"] != gid),
+                key=rank, reverse=True,
+            )
+            bots = [role for role in rest if role.get("managed") and "premium_subscriber" not in (role.get("tags") or {})]
+            boosters = [role for role in rest if "premium_subscriber" in (role.get("tags") or {})]
+            others = [role for role in rest if role not in bots and role not in boosters]
+            # The boosters' role (Discord's own) stands after the special roles.
+            cut = len(STAFF_ROLES) + len(SPECIAL_ROLES)
+            order = bots + ours[:cut] + boosters + ours[cut:] + others
+            # Every role gets a number of its own, 1 at the foot; the bot's role goes over them all,
+            # which it is already in the list, if not in number.
+            positions = [{"id": role["id"], "position": len(order) - i} for i, role in enumerate(order)]
+            if highest.get("position", 0) <= len(order):
+                positions.insert(0, {"id": highest["id"], "position": len(order) + 1})
             try:
                 api.call("PATCH", f"/guilds/{gid}/roles", positions)
                 print("  put in order")
             except RuntimeError as error:
-                print(f"  not put in order ({error}); is the bot's role at the very top?")
+                print(f"  not put in order ({error})")
+                print("  Discord may not let a bot number its own role. In Server Settings > Roles drag any")
+                print("  role one place down and back (Discord then numbers every role anew) and run again.")
 
     def role_id(name):
         return roles.get(name, {}).get("id")
