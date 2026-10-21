@@ -2,7 +2,8 @@
 
     python scripts/discord-setup.py --dry --clipboard   # says what it would do, changes nothing
     python scripts/discord-setup.py --clipboard         # does it
-    python scripts/discord-setup.py --clipboard --webhooks   # also prints Iruka's webhooks
+    python scripts/discord-setup.py --clipboard --webhooks --posts   # Iruka's webhooks and posts
+    python scripts/discord-setup.py --clipboard --new-webhooks       # Iruka's webhooks made anew
 
 The bot's token is taken from the clipboard (--clipboard: copy it in the Developer Portal, then
 run the script), from the environment variable DISCORD_TOKEN, or asked for in the terminal (not
@@ -24,7 +25,10 @@ What it does, all of it safe to run again:
   - the custom emoji (assets/discord/emoji) and stickers (assets/discord/stickers) that are not
     there yet;
   - with --webhooks, a webhook "Iruka-sensei" in the channels the owner posts to through
-    Discohook, whose addresses it prints (they are secrets: whoever has one can post there);
+    Discohook. Their addresses are secrets (whoever has one can post there), so they are written
+    to docs/discord-posts/ready/webhooks.txt (local, not in git) and not to the terminal, whose
+    output gets pasted into chats. --new-webhooks deletes Iruka's webhooks and makes new ones,
+    for when an address got out;
   - with --posts, the posts of docs/discord-posts filled with the server's own channels and
     roles, ready to paste into Discohook, in docs/discord-posts/ready;
   - a permanent invite, printed at the end.
@@ -183,8 +187,10 @@ STICKERS = [
 WEBHOOK_NAME = "Iruka-sensei"
 
 
-def hint(code: int, text: str) -> str:
+def hint(code: int, text: str, path: str = "") -> str:
     """What an error most likely means, for whoever runs this."""
+    if code in (403, 404) and "/auto-moderation/" in path:
+        return "\n  Discord does not let a bot change this rule (it may be one Discord made itself): edit it by hand."
     if code == 400 and not text.strip():
         return ("\n  An empty 400 comes before Discord reads the request: the token is garbled."
                 "\n  Run with --clipboard after copying the token, or set DISCORD_TOKEN.")
@@ -232,6 +238,14 @@ def looks_like_token(token: str) -> bool:
     return re.fullmatch(r"[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{4,}\.[A-Za-z0-9_\-]{20,}", token) is not None
 
 
+_flakes = iter(range(1, 1 << 12))
+
+
+def snowflake() -> str:
+    """A new id in Discord's form: milliseconds since 2015 and a counter."""
+    return str(((int(time.time() * 1000) - 1420070400000) << 22) | next(_flakes))
+
+
 def data_uri(path: Path) -> str:
     return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
 
@@ -260,7 +274,7 @@ class Discord:
                         print(f"  (Discord asks to wait {wait:.0f} s: its limit on how fast this may be done)")
                     time.sleep(wait + 0.1)
                     continue
-                raise RuntimeError(f"{method} {path}: {error.code} {text}{hint(error.code, text)}") from None
+                raise RuntimeError(f"{method} {path}: {error.code} {text}{hint(error.code, text, path)}") from None
 
     def call(self, method: str, path: str, body=None, write: bool = True):
         if self.dry and write:
@@ -289,7 +303,7 @@ class Discord:
         return self.call("GET", path, write=False)
 
 
-def write_posts(named: dict, roles: dict):
+def write_posts(named: dict, roles: dict, addresses: dict):
     """Fills every post of docs/discord-posts: {#key} becomes a link to the channel, {@Role} the
     role's mention (an embed never pings). Writes a page a channel to paste from."""
     print("Posts")
@@ -324,6 +338,9 @@ def write_posts(named: dict, roles: dict):
         post = json.loads(template.read_text(encoding="utf-8"))
         where = named.get(post["channel"], {}).get("name", post["channel"])
         lines = [f"{where}: send with this channel's Iruka-sensei webhook, the messages in this order.", ""]
+        url = addresses.get(named.get(post["channel"], {}).get("id"))
+        if url:
+            lines += ["Webhook (SECRET, for Discohook only):", url, ""]
         for number, item in enumerate(post["messages"], 1):
             if "banner" in item:
                 lines += [f"{number}. A message with no text: attach the file "
@@ -342,7 +359,8 @@ def main():
     parser.add_argument("--dry", action="store_true", help="say what would be done, change nothing")
     parser.add_argument("--guild", default=GUILD, help="the server's id")
     parser.add_argument("--clipboard", action="store_true", help="take the token from the clipboard")
-    parser.add_argument("--webhooks", action="store_true", help="make Iruka's webhooks and print their addresses")
+    parser.add_argument("--webhooks", action="store_true", help="make Iruka's webhooks, addresses into a local file")
+    parser.add_argument("--new-webhooks", action="store_true", help="delete Iruka's webhooks and make new ones")
     parser.add_argument("--posts", action="store_true", help="fill the Discohook posts with the server's ids")
     args = parser.parse_args()
 
@@ -411,8 +429,12 @@ def main():
         cut = len(STAFF_ROLES) + len(SPECIAL_ROLES)
         order = bots + ours[:cut] + boosters + ours[cut:] + others
         if top <= len(order):
-            print("  ! The bot's role is not above the others: drag it to the top of")
+            above = [role["name"] for role in sorted(all_roles, key=lambda role: -role.get("position", 0))
+                     if role.get("position", 0) > top]
+            print("  ! The bot's role is not at the top: drag it above every other role in")
             print("    Server Settings > Roles and run again to put the roles in order.")
+            if above:
+                print(f"    Above it now: {', '.join(above)}")
         else:
             positions = [{"id": role["id"], "position": top - 1 - i} for i, role in enumerate(order)]
             try:
@@ -695,10 +717,24 @@ def main():
 
     print("Onboarding")
 
-    def option(title, emoji, role=None, channel=None):
+    # Discord wants an id on every prompt and option: the ones there are kept (by title), so
+    # that what members picked before stays theirs; new ones get new ids.
+    known = {}
+    try:
+        for prompt in (api.get(f"/guilds/{gid}/onboarding") or {}).get("prompts", []):
+            known[prompt["title"]] = prompt["id"]
+            for choice in prompt.get("options", []):
+                known[(prompt["title"], choice["title"])] = choice["id"]
+    except RuntimeError:
+        pass
+
+    def option(title, emoji, role=None, channel=None, prompt=""):
         rid = role_id(role) if role else None
-        return {"title": title, "emoji_name": emoji, "role_ids": [rid] if rid else [],
-                "channel_ids": [channel["id"]] if channel else []}
+        return {"id": known.get((prompt, title)) or snowflake(), "title": title, "emoji_name": emoji,
+                "role_ids": [rid] if rid else [], "channel_ids": [channel["id"]] if channel else []}
+
+    language_title = "Which language do you speak?"
+    ping_title = "What do you want to be pinged for?"
 
     try:
         api.call("PUT", f"/guilds/{gid}/onboarding", {
@@ -710,22 +746,25 @@ def main():
             )],
             "prompts": [
                 {
-                    "type": 0, "title": "Which language do you speak?", "single_select": True,
+                    "id": known.get(language_title) or snowflake(),
+                    "type": 0, "title": language_title, "single_select": True,
                     "required": False, "in_onboarding": True,
-                    "options": [option("English", "🇬🇧", channel=general)] + [
-                        option(title, flag, role=role) for role, _, _, flag, title, _, _ in LANGUAGES
+                    "options": [option("English", "🇬🇧", channel=general, prompt=language_title)] + [
+                        option(title, flag, role=role, prompt=language_title)
+                        for role, _, _, flag, title, _, _ in LANGUAGES
                     ],
                 },
                 {
-                    "type": 0, "title": "What do you want to be pinged for?", "single_select": False,
+                    "id": known.get(ping_title) or snowflake(),
+                    "type": 0, "title": ping_title, "single_select": False,
                     "required": False, "in_onboarding": True,
                     "options": [
-                        option("New codes", "🎁", "Codes Ping", codes),
-                        option("Game updates", "🛠️", "Updates Ping", updates),
-                        option("Events", "🌕", "Events Ping", events),
-                        option("Giveaways", "🎉", "Giveaways Ping"),
-                        option("Question of the day", "❔", "QOTD Ping", qotd),
-                        option("Sneak peeks", "👀", "Sneak Peeks Ping", sneak),
+                        option("New codes", "🎁", "Codes Ping", codes, ping_title),
+                        option("Game updates", "🛠️", "Updates Ping", updates, ping_title),
+                        option("Events", "🌕", "Events Ping", events, ping_title),
+                        option("Giveaways", "🎉", "Giveaways Ping", prompt=ping_title),
+                        option("Question of the day", "❔", "QOTD Ping", qotd, ping_title),
+                        option("Sneak peeks", "👀", "Sneak Peeks Ping", sneak, ping_title),
                     ],
                 },
             ],
@@ -761,10 +800,10 @@ def main():
             if "30039" in str(error):  # no room for more
                 break
 
-    # Iruka's webhooks, for Discohook.
-    if args.webhooks:
-        print("\nIruka's webhooks (SECRET: whoever has one can post in its channel; paste them into")
-        print("Discohook only, never into a chat):")
+    # Iruka's webhooks, for Discohook. Their addresses go into a local file only.
+    addresses = {}
+    if args.webhooks or args.new_webhooks:
+        print("Iruka's webhooks")
         avatar = ASSETS / "iruka_avatar.png"
         targets = [rules, welcome, announcements, updates, codes, events, sneak, tickets] + list(
             language_channels.values()
@@ -772,15 +811,30 @@ def main():
         for channel in targets:
             if str(channel["id"]).startswith("<"):
                 continue
-            hooks = api.get(f"/channels/{channel['id']}/webhooks") or []
-            hook = next((h for h in hooks if h.get("name") == WEBHOOK_NAME and h.get("token")), None)
+            hooks = [h for h in (api.get(f"/channels/{channel['id']}/webhooks") or []) if h.get("name") == WEBHOOK_NAME]
+            if args.new_webhooks:
+                for old in hooks:
+                    api.call("DELETE", f"/webhooks/{old['id']}")
+                hooks = []
+            hook = next((h for h in hooks if h.get("token")), None)
             if not hook:
                 body = {"name": WEBHOOK_NAME}
                 if avatar.exists():
                     body["avatar"] = data_uri(avatar)
                 hook = api.call("POST", f"/channels/{channel['id']}/webhooks", body)
+                print(f"  {channel['name']}: made" + (" anew" if args.new_webhooks else ""))
             if hook:
-                print(f"  {channel['name']}: https://discord.com/api/webhooks/{hook['id']}/{hook['token']}")
+                addresses[channel["id"]] = f"https://discord.com/api/webhooks/{hook['id']}/{hook['token']}"
+        if addresses:
+            ready = POSTS / "ready"
+            ready.mkdir(parents=True, exist_ok=True)
+            by_id = {channel["id"]: channel["name"] for channel in targets}
+            lines = ["SECRET. Whoever has one of these addresses can post in its channel as Iruka.",
+                     "Paste them into Discohook only, never into a chat. If one gets out:",
+                     "    python scripts/discord-setup.py --clipboard --new-webhooks", ""]
+            lines += [f"{by_id[cid]}: {url}" for cid, url in addresses.items()]
+            (ready / "webhooks.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            print(f"  {len(addresses)} addresses written to docs/discord-posts/ready/webhooks.txt (secret)")
 
     # The posts, filled with this server's channels and roles.
     if args.posts:
@@ -793,7 +847,7 @@ def main():
         }
         for role_name, *_, key in LANGUAGES:
             named[key] = language_channels[role_name]
-        write_posts(named, roles)
+        write_posts(named, roles, addresses)
 
     # A permanent invite.
     if not args.dry:
