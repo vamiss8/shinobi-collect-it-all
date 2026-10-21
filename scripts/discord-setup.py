@@ -440,6 +440,10 @@ def main():
     testing = list(hidden)
     if tester:
         testing.append(overwrite(tester, allow=VIEW | SEND))
+    # Read by everyone, written in by content creators and the staff.
+    creators_only = list(read_only)
+    if role_id("Content Creator"):
+        creators_only.append(overwrite(role_id("Content Creator"), allow=SEND))
 
     def language_only(role_name):
         perms = [overwrite(everyone, deny=VIEW)]
@@ -562,6 +566,10 @@ def main():
     help_channel = ensure("❓・help", TEXT, village["id"], ["help"], "Questions about the game.", slow=5)
     qotd = ensure("❔・qotd", TEXT, village["id"], topic="The question of the day. Answer below!", slow=30)
     memes = ensure("😂・memes", TEXT, village["id"], topic="Naruto and game memes. Keep it friendly.", slow=10)
+    creations = ensure("🎬・creations", TEXT, village["id"],
+                       topic="Your videos, edits and screenshots of the game.", slow=30)
+    promotion = ensure("📣・creator-promotion", TEXT, village["id"],
+                       topic="Content creators share their videos about the game here.", perms=creators_only)
 
     nations = ensure("🌐 FIVE NATIONS", CATEGORY)
     language_channels = {}
@@ -698,7 +706,7 @@ def main():
             "mode": 0,
             "default_channel_ids": [c["id"] for c in (
                 rules, welcome, verify, announcements, updates, codes, events, sneak, general, discussion,
-                help_channel, qotd, memes, suggestions, bugs, tickets,
+                help_channel, qotd, memes, creations, promotion, suggestions, bugs, tickets,
             )],
             "prompts": [
                 {
@@ -758,7 +766,9 @@ def main():
         print("\nIruka's webhooks (SECRET: whoever has one can post in its channel; paste them into")
         print("Discohook only, never into a chat):")
         avatar = ASSETS / "iruka_avatar.png"
-        targets = [rules, welcome, codes, events, tickets] + list(language_channels.values())
+        targets = [rules, welcome, announcements, updates, codes, events, sneak, tickets] + list(
+            language_channels.values()
+        )
         for channel in targets:
             if str(channel["id"]).startswith("<"):
                 continue
@@ -778,6 +788,7 @@ def main():
             "rules": rules, "welcome": welcome, "verify": verify, "announcements": announcements,
             "updates": updates, "codes": codes, "events": events, "sneak": sneak, "general": general,
             "discussion": discussion, "help": help_channel, "qotd": qotd, "memes": memes,
+            "creations": creations, "promotion": promotion,
             "suggestions": suggestions, "bugs": bugs, "tickets": tickets,
         }
         for role_name, *_, key in LANGUAGES:
