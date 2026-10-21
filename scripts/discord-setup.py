@@ -3,8 +3,10 @@
     python scripts/discord-setup.py --dry      # says what it would do, changes nothing
     python scripts/discord-setup.py            # does it
 
-The bot's token is asked for in the terminal (it is not shown as it is typed) or read from the
-environment variable DISCORD_TOKEN. It is never written anywhere. The bot must be on the server
+The bot's token is taken from the clipboard (--clipboard: copy it in the Developer Portal, then
+run the script), from the environment variable DISCORD_TOKEN, or asked for in the terminal (not
+shown as it is typed; pasting into a hidden prompt does not always work in a Windows terminal,
+which is what --clipboard is for). It is never written anywhere. The bot must be on the server
 with the Administrator permission, and its role dragged to the top of the server's roles.
 
 What it does, all of it safe to run again (what is already there is left as it is):
@@ -29,6 +31,8 @@ import argparse
 import getpass
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -118,6 +122,55 @@ BUG_GUIDE = """Please write:
 SUGGEST_GUIDE = "One idea per post. Say what you would change and why. Pick a tag."
 
 
+def hint(code: int, text: str) -> str:
+    """What an error most likely means, for whoever runs this."""
+    if code == 400 and not text.strip():
+        return ("\n  An empty 400 comes before Discord reads the request: the token is garbled."
+                "\n  Run with --clipboard after copying the token, or set DISCORD_TOKEN.")
+    if code == 401:
+        return ("\n  Discord does not take this token. Copy the BOT token (Bot tab > Reset Token),"
+                "\n  not the application id or the client secret.")
+    if code in (403, 404):
+        return "\n  Is the bot on the server, with Administrator? Invite it with the OAuth2 link."
+    return ""
+
+
+def clipboard() -> str:
+    """The text on the clipboard, read through PowerShell (Windows) or tkinter."""
+    try:
+        done = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "Get-Clipboard -Raw"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if done.returncode == 0 and done.stdout.strip():
+            return done.stdout
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        import tkinter
+        root = tkinter.Tk()
+        root.withdraw()
+        text = root.clipboard_get()
+        root.destroy()
+        return text
+    except Exception:
+        return ""
+
+
+def clean(token: str) -> str:
+    """The token with what a terminal may have added taken off: spaces, control characters, a
+    "Bot " in front."""
+    token = re.sub(r"[\x00-\x1f\x7f\s]", "", token)
+    if token.lower().startswith("bot"):
+        token = token[3:]
+    return token
+
+
+def looks_like_token(token: str) -> bool:
+    """A bot token is three parts of letters, digits, - and _ joined by dots."""
+    return re.fullmatch(r"[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{4,}\.[A-Za-z0-9_\-]{20,}", token) is not None
+
+
 class Discord:
     def __init__(self, token: str, dry: bool):
         self.token = token
@@ -144,7 +197,7 @@ class Discord:
                     wait = json.loads(text).get("retry_after", 1)
                     time.sleep(float(wait) + 0.1)
                     continue
-                raise RuntimeError(f"{method} {path}: {error.code} {text}") from None
+                raise RuntimeError(f"{method} {path}: {error.code} {text}{hint(error.code, text)}") from None
 
     def get(self, path: str):
         return self.call("GET", path, write=False)
@@ -156,11 +209,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--dry", action="store_true", help="say what would be done, change nothing")
     parser.add_argument("--guild", default=GUILD, help="the server's id")
+    parser.add_argument("--clipboard", action="store_true", help="take the token from the clipboard")
     args = parser.parse_args()
 
-    token = os.environ.get("DISCORD_TOKEN") or getpass.getpass("Bot token (not shown): ").strip()
-    if not token:
-        sys.exit("No token.")
+    if args.clipboard:
+        token = clean(clipboard())
+    else:
+        token = clean(os.environ.get("DISCORD_TOKEN") or getpass.getpass("Bot token (not shown): "))
+    if not looks_like_token(token):
+        sys.exit(
+            "That is not a bot token (it should be three parts joined by dots, about 70 characters).\n"
+            "Copy it in the Developer Portal (Bot > Reset Token > Copy) and run:\n"
+            "    python scripts/discord-setup.py --dry --clipboard"
+        )
+    print(f"Token read: {len(token)} characters")
     api = Discord(token, args.dry)
     gid = args.guild
 
