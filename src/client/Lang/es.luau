@@ -504,6 +504,8 @@ return {
 		CodesEnded = "Este código ha caducado.",
 		CodesEmpty = "Primero escribe un código.",
 		CodesWait = "Demasiados intentos. Espera un minuto.",
+		CodesGone = "Este código se agotó: ya se usaron todos sus canjes.",
+		CodesBusy = "No se pudo comprobar el código. Inténtalo de nuevo en un momento.",
 		CodesHerbs = "+%s Hierbas",
 		CodesRyo = "+%s Ryo",
 		CodesPotion = "%s (%s min)",

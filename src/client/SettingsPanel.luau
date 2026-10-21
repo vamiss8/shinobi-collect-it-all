@@ -599,6 +599,8 @@ function SettingsPanel.start()
 			ended = "CodesEnded",
 			empty = "CodesEmpty",
 			wait = "CodesWait",
+			gone = "CodesGone",
+			busy = "CodesBusy",
 		}
 		codeSaid.TextColor3 = Ui.SEAL
 		codeSaid.Text = Strings.get(words[outcome] or "CodesUnknown")

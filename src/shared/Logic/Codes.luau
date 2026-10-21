@@ -5,7 +5,10 @@
 --
 -- A code is written in capitals. What a player types is put in capitals and stripped of
 -- spaces before it is looked up, so "hidden leaf" finds HIDDENLEAF. Each code is redeemed
--- once a player; one may have a last day ("YYYY-MM-DD", UTC, through the whole of that day).
+-- once a player; one may have a last day ("YYYY-MM-DD", UTC, through the whole of that day),
+-- and one may be for so many players in all, the first to come (owner, 2026-10-21, for the
+-- giveaways on the community server): its uses are counted over every server
+-- (Services/Codes).
 
 local Codes = {}
 
@@ -18,10 +21,13 @@ export type Code = {
 	potions: { string }?,
 	premium: { string }?,
 	ends: string?,
+	uses: number?, -- how many players in all may redeem it; none: no limit
 }
 
 -- What a redemption came to: "ok", "unknown" (no such code), "used" (this player has had
--- it), "ended" (past its last day), "empty" (nothing typed).
+-- it), "ended" (past its last day), "empty" (nothing typed). Services/Codes adds "gone" (a
+-- limited code all of whose uses are taken), "busy" (its count could not be asked) and
+-- "wait" (too many tries).
 export type Outcome = "ok" | "unknown" | "used" | "ended" | "empty"
 
 -- The longest a typed code may be; anything longer is no code.
@@ -60,6 +66,17 @@ function Codes.endsAt(code: Code): number?
 	local dayOfEra = yearOfEra * 365 + yearOfEra // 4 - yearOfEra // 100 + dayOfYear
 	local days = era * 146097 + dayOfEra - 719468
 	return (days + 1) * 86400
+end
+
+-- One more use of a limited code, given how many it has had (`taken`, nil for none yet): the
+-- new count, or nil when every use is taken. A code with no limit always has one more.
+function Codes.take(taken: number?, code: Code): number?
+	local had = taken or 0
+	local most = code.uses
+	if most and had >= most then
+		return nil
+	end
+	return had + 1
 end
 
 -- Whether `typed` redeems a code of `codes` for a player who has had those in `used`, at

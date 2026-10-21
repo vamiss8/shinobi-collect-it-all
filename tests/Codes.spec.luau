@@ -42,6 +42,16 @@ return {
 		T.eq(Codes.endsAt({}), nil)
 	end,
 
+	["a code for so many players gives out as many uses and no more"] = function()
+		local giveaway: Codes.Code = { herbs = 100, uses = 3 }
+		T.eq(Codes.take(nil, giveaway), 1)
+		T.eq(Codes.take(2, giveaway), 3)
+		T.eq(Codes.take(3, giveaway), nil)
+		T.eq(Codes.take(7, giveaway), nil)
+		-- A code with no limit is never used up.
+		T.eq(Codes.take(1e6, { herbs = 1 }), 1e6 + 1)
+	end,
+
 	["every code on the server is written as typed codes are looked up"] = function()
 		local fs = require("@lune/fs")
 		local source = fs.readFile("src/server/Codes.luau")
@@ -54,6 +64,14 @@ return {
 				if not string.match(id, "^%d%d%d%d") then
 					T.ok(Catalog.potionById[id] ~= nil, `{name} gives a potion that is not: {id}`)
 				end
+			end
+			local uses = string.match(gives, "uses = ([^,}%s]+)")
+			if uses then
+				local count = tonumber(uses)
+				T.ok(
+					count ~= nil and count >= 1 and count % 1 == 0,
+					`{name}'s uses are not a whole number`
+				)
 			end
 			local day = string.match(gives, 'ends = "([^"]+)"')
 			if day then

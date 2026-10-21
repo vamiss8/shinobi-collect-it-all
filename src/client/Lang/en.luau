@@ -521,6 +521,8 @@ return {
 		CodesEnded = "This code has ended.",
 		CodesEmpty = "Type a code first.",
 		CodesWait = "Too many tries. Wait a minute.",
+		CodesGone = "This code has run out: every use is taken.",
+		CodesBusy = "Could not check the code. Try again in a moment.",
 		CodesHerbs = "+%s Herbs",
 		CodesRyo = "+%s Ryo",
 		CodesPotion = "%s (%s min)",

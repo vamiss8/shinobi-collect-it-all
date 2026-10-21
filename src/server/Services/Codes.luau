@@ -5,9 +5,16 @@
 --
 -- A player may try a code once a second at most, and after ten wrong ones in a row waits a
 -- minute: the codes are few and short, and are not to be guessed by trying them all.
+--
+-- A code with `uses` is for so many players in all: its uses are counted in a DataStore that
+-- every server shares, and a use is taken there before the player is paid. In Studio they are
+-- counted in the test session alone, so that trying a code there takes nothing from the live
+-- game.
 
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Analytics = require("./Analytics")
 local Catalog = require(ReplicatedStorage.Shared.Config.Catalog)
@@ -29,8 +36,44 @@ local LOCKED_FOR = 60
 
 local GAMEPLAY = Enum.AnalyticsEconomyTransactionType.Gameplay
 
-type Tries = { last: number, wrong: number, lockedUntil: number }
+type Tries = { last: number, wrong: number, lockedUntil: number, pending: boolean }
 local tries: { [Player]: Tries } = {}
+
+-- How many players have redeemed each limited code, by its name.
+local usesStore: DataStore? = if RunService:IsStudio()
+	then nil
+	else DataStoreService:GetDataStore(`{Data.STORE}_CodeUses`)
+local studioUses: { [string]: number } = {}
+
+-- Takes one of a limited code's uses: true when one was left, false when all are taken, nil
+-- when the store could not be asked. A code with no limit is not counted.
+local function takeUse(name: string, code: CodeRules.Code): boolean?
+	if not code.uses then
+		return true
+	end
+	local store = usesStore
+	if not store then
+		local counted = CodeRules.take(studioUses[name], code)
+		if not counted then
+			return false
+		end
+		studioUses[name] = counted
+		return true
+	end
+	local took = false
+	local asked = pcall(function()
+		store:UpdateAsync(name, function(old: any)
+			local counted = CodeRules.take(if typeof(old) == "number" then old else nil, code)
+			-- The function may be run more than once; the last run is what was written.
+			took = counted ~= nil
+			return counted
+		end)
+	end)
+	if not asked then
+		return nil
+	end
+	return took
+end
 
 local function answer(player: Player, outcome: string, reward: Net.CodeReward?)
 	Remotes.Code:FireClient(player, outcome, reward)
@@ -45,13 +88,15 @@ local function redeem(player: Player, typed: unknown)
 		return
 	end
 	local now = os.clock()
-	local mine: Tries = tries[player] or { last = -math.huge, wrong = 0, lockedUntil = 0 }
+	local mine: Tries = tries[player]
+		or { last = -math.huge, wrong = 0, lockedUntil = 0, pending = false }
 	tries[player] = mine
 	if now < mine.lockedUntil then
 		answer(player, "wait")
 		return
 	end
-	if now - mine.last < GAP then
+	-- Not while a use is being taken for this player: the store may take longer than a second.
+	if now - mine.last < GAP or mine.pending then
 		return
 	end
 	mine.last = now
@@ -69,6 +114,24 @@ local function redeem(player: Player, typed: unknown)
 		return
 	end
 	mine.wrong = 0
+
+	if code.uses then
+		mine.pending = true
+		local took = takeUse(name, code)
+		mine.pending = false
+		if took == nil then
+			answer(player, "busy")
+			return
+		end
+		if not took then
+			answer(player, "gone")
+			return
+		end
+		-- The player may have left while the store was asked.
+		if Data.get(player) ~= data then
+			return
+		end
+	end
 
 	data.codes[name] = true
 	local reward: Net.CodeReward = { herbs = 0, ryo = 0, potions = {}, premium = {} }

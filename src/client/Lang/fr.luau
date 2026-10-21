@@ -504,6 +504,8 @@ return {
 		CodesEnded = "Ce code a expiré.",
 		CodesEmpty = "Tape d'abord un code.",
 		CodesWait = "Trop d'essais. Attends une minute.",
+		CodesGone = "Ce code est épuisé : toutes ses utilisations sont prises.",
+		CodesBusy = "Impossible de vérifier le code. Réessaie dans un instant.",
 		CodesHerbs = "+%s Herbes",
 		CodesRyo = "+%s Ryo",
 		CodesPotion = "%s (%s min)",

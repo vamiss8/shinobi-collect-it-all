@@ -504,6 +504,8 @@ return {
 		CodesEnded = "Dieser Code ist abgelaufen.",
 		CodesEmpty = "Gib zuerst einen Code ein.",
 		CodesWait = "Zu viele Versuche. Warte eine Minute.",
+		CodesGone = "Dieser Code ist aufgebraucht: alle Einlösungen sind vergeben.",
+		CodesBusy = "Der Code konnte nicht geprüft werden. Versuch es gleich noch einmal.",
 		CodesHerbs = "+%s Kräuter",
 		CodesRyo = "+%s Ryo",
 		CodesPotion = "%s (%s Min.)",

@@ -11,6 +11,8 @@
 --   potions = { "gama_charm" }       potions of the kind bought for Herbs, 5 minutes each
 --   premium = { "ichiraku_ramen" }   premium potions, 15 minutes each
 --   ends = "2026-12-31"              its last day, UTC; none: it never ends
+--   uses = 50                        how many players in all may redeem it, over every
+--                                    server, the first to come (a giveaway); none: no limit
 -- Potion ids: soldier_pill (x2 Chakra), ichiraku_ramen (x2 Ryo), gama_charm (x2 luck),
 -- sage_oil (x2 mutation luck). A player redeems each code once. A code taken out of here
 -- stops working; one that a player has had stays had (Data.codes), so a name is not to be
