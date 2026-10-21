@@ -45,10 +45,12 @@ local RYO_HEIGHT = 80
 local CHAKRA_HEIGHT = 144
 local READOUT_GAP = 10
 -- On a touch screen: how far down from the top the readouts begin, how much smaller the tiles
--- are drawn, and how many stand in a row.
+-- are drawn, and how many stand in a row. Three to a row: two to a row made four rows of the
+-- eight tiles, and the last row (Online, Settings) lay on Roblox's jump button (owner's phone,
+-- 2026-10-21); three rows end well over it.
 local TOUCH_TOP = 10
 local TOUCH_TILES = 0.85
-local TOUCH_ROW = 2
+local TOUCH_ROW = 3
 local TILE = Vector2.new(112, 116)
 local TILE_GAP = 12
 -- How far over the foot of the screen the column of window tiles on the right ends: the
