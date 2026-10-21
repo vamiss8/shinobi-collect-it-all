@@ -156,9 +156,12 @@ local function paint(text: string): string
 	safe = string.gsub(safe, "<", "&lt;")
 	safe = string.gsub(safe, ">", "&gt;")
 	return (
-		string.gsub(safe, "{(%a)|([^}]*)}", function(mark: string, words: string): string
-			local color = MARKS[mark]
-			return if color then `<font color="{color}">{words}</font>` else words
+		string.gsub(safe, "{%a|[^}]*}", function(whole: string): string
+			local mark, words = string.match(whole, "^{(%a)|(.*)}$")
+			local color = if mark then MARKS[mark] else nil
+			return if color and words
+				then `<font color="{color}">{words}</font>`
+				else words or whole
 		end)
 	)
 end
@@ -469,9 +472,9 @@ local function writeAll()
 	local pack = words()
 	stageWords.Text = pack.stages[step] or ""
 	skip.Text = pack.skip
-	for _, written in { stageWords, tipLine, skip } do
-		written.FontFace = face()
-	end
+	stageWords.FontFace = face()
+	tipLine.FontFace = face()
+	skip.FontFace = face()
 	writeTip()
 end
 writeAll()
