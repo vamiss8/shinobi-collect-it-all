@@ -327,23 +327,32 @@ function Footsteps.start()
 	end)
 
 	-- Every step is fetched ahead, in the background, so that the first ones are heard.
+	-- Fetched ahead as Sounds: a bare "rbxassetid://" string is fetched as a picture, and a
+	-- sound's id then fails with "Asset type does not match requested type" (34 of them in the
+	-- owner's log, 2026-10-21) and is not fetched at all.
 	task.spawn(function()
-		local list: { any } = {}
+		local list: { Instance } = {}
+		local function add(id: number)
+			if id > 0 then
+				local sound = Instance.new("Sound")
+				sound.SoundId = `rbxassetid://{id}`
+				table.insert(list, sound)
+			end
+		end
 		for _, surface in STEPS.surfaces do
 			for _, id in surface.ids do
-				if id > 0 then
-					table.insert(list, `rbxassetid://{id}`)
-				end
+				add(id)
 			end
 		end
 		for _, id in STEPS.jump.ids do
-			if id > 0 then
-				table.insert(list, `rbxassetid://{id}`)
-			end
+			add(id)
 		end
 		pcall(function()
 			ContentProvider:PreloadAsync(list)
 		end)
+		for _, sound in list do
+			sound:Destroy()
+		end
 	end)
 end
 
