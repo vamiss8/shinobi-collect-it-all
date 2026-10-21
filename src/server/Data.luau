@@ -68,6 +68,9 @@ export type Data = {
 	receipts: { string },
 	-- The player's settings (client SettingsPanel): language, font, volumes.
 	settings: Settings.Settings,
+	-- Whether this save has been looked at for progress to carry over from the playtest's store
+	-- (CARRY_FROM): done once, at its first load.
+	carried: boolean,
 }
 
 local TEMPLATE: Data = {
@@ -104,15 +107,19 @@ local TEMPLATE: Data = {
 	codes = {},
 	receipts = {},
 	settings = Settings.defaults(),
+	carried = false,
 }
 
 type Callback = (player: Player, data: Data) -> ()
 
--- The DataStore the saves live in. Closed playtests write to a store of their own, so the real
--- release starts everyone from nothing: it switches the name to "PlayerData". Raising the
--- number wipes the testers' progress, which is also the way out when a change to the config
--- (a removed character, a reordered kunai) leaves old saves meaningless.
-local STORE = "Playtest1"
+-- The DataStore the saves live in: "PlayerData" since the release was prepared (2026-10-21).
+-- The closed playtest wrote to "Playtest1", and its testers keep what they had (owner, that
+-- day: "a new store, but the testers' progress is carried over"): a save opened here for the
+-- first time is filled from the playtest's save of the same player, if there is one, and goes
+-- through Saves.bring like any old save. The playtest's store is only read, never written, so
+-- it stays as it was, a copy to fall back on. The leaderboards start empty with the new name.
+local STORE = "PlayerData"
+local CARRY_FROM = "Playtest1"
 -- The save store's name, for the stores that go with it (Services/Leaderboards).
 Data.STORE = STORE
 
@@ -123,6 +130,8 @@ Data.STORE = STORE
 -- the real one. Typed loosely, like the profiles below.
 local liveStore = ProfileStore.New(STORE, TEMPLATE)
 local store: any = if RunService:IsStudio() then liveStore.Mock else liveStore
+local oldStore = ProfileStore.New(CARRY_FROM, TEMPLATE)
+local carryStore: any = if RunService:IsStudio() then oldStore.Mock else oldStore
 -- Typed loosely: ProfileStore's own Profile<T> type does not survive strict checking against T.
 local profiles: { [Player]: any } = {}
 local loadedCallbacks: { Callback } = {}
@@ -193,6 +202,24 @@ local function load(player: Player)
 	end
 
 	profile:AddUserId(player.UserId)
+	-- A save opened here for the first time takes what the playtest's save of this player held.
+	if profile.Data.carried ~= true then
+		local ok, old = pcall(function()
+			return carryStore:GetAsync(`{player.UserId}`)
+		end)
+		if ok and old and type(old.Data) == "table" then
+			for key, value in old.Data do
+				profile.Data[key] = value
+			end
+			print(`[Data] carried {player.Name}'s progress over from {CARRY_FROM}`)
+		elseif not ok then
+			-- Not marked as looked at: the playtest's store is asked again at the next join.
+			warn(`[Data] could not read {CARRY_FROM} for {player.Name}: {old}`)
+		end
+		if ok then
+			profile.Data.carried = true
+		end
+	end
 	profile:Reconcile()
 	Saves.bring(profile.Data)
 	-- Shinobi that have left the roster since this save was written become their replacements.
