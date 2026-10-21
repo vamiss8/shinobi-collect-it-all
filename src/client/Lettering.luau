@@ -15,6 +15,7 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Net = require(ReplicatedStorage.Shared.Net)
 local Styles = require(ReplicatedStorage.Shared.Config.Lettering)
@@ -23,6 +24,14 @@ local Lettering = {}
 
 -- How often the letters are redrawn, seconds.
 local STEP = 1 / 24
+-- A word in the world is drawn at most this often, and not at all farther from the camera than
+-- REACH studs, behind it, or on a board that is off; a word on the screen not while anything it
+-- stands in is hidden. Every word used to be drawn 24 times a second wherever it was (the tags
+-- of every dojo, behind walls, in shut windows), each time a new gradient of a dozen new colors:
+-- the owner's phone carried hundreds of megabytes of such leftovers in its Lua heap, against
+-- 7 MB that was in use (2026-10-21).
+local WORLD_STEP = 1 / 15
+local REACH = 90
 -- How many colors along a word its gradient is drawn with.
 local SAMPLES = 10
 -- How wide a glint is, as a share of the word, and the share of its period it takes to cross.
@@ -79,6 +88,7 @@ type Record = {
 	strikeAt: number, -- when lightning next strikes, and when the stroke under way began
 	struckAt: number,
 	lit: boolean,
+	due: number, -- when a word in the world is next drawn (WORLD_STEP)
 }
 
 local records: { [TextLabel]: Record } = {}
@@ -356,6 +366,7 @@ function Lettering.dress(label: TextLabel, key: string?, plate: boolean?)
 		},
 		strikeAt = os.clock() + rng:NextNumber(0.2, style.period),
 		struckAt = -1,
+		due = 0,
 		lit = false,
 	}
 
@@ -425,6 +436,49 @@ function Lettering.dress(label: TextLabel, key: string?, plate: boolean?)
 	redraw(label, record, os.clock())
 end
 
+-- Whether a word is to be drawn now: on the screen, when nothing it stands in is hidden; in the
+-- world, when its board is on, near the camera and not behind it, and its turn has come.
+local function inSight(label: TextLabel, record: Record, eye: CFrame?, now: number): boolean
+	local node: Instance? = label.Parent
+	while node and not node:IsA("LayerCollector") do
+		if node:IsA("GuiObject") and not node.Visible then
+			return false
+		end
+		node = node.Parent
+	end
+	if not node then
+		return false
+	end
+	local layer = node :: LayerCollector
+	if not layer.Enabled then
+		return false
+	end
+	if layer:IsA("ScreenGui") then
+		return true
+	end
+	if now < record.due then
+		return false
+	end
+	record.due = now + WORLD_STEP
+	if not eye then
+		return true
+	end
+	local holder: Instance? = (layer :: any).Adornee or layer.Parent
+	local at: Vector3? = nil
+	if holder and holder:IsA("BasePart") then
+		at = holder.Position
+	elseif holder and holder:IsA("Attachment") then
+		at = holder.WorldPosition
+	elseif holder and holder:IsA("Model") then
+		at = holder:GetPivot().Position
+	end
+	if not at then
+		return true
+	end
+	local away = at - eye.Position
+	return away.Magnitude <= REACH and away:Dot(eye.LookVector) > -10
+end
+
 function Lettering.start()
 	local function adopt(instance: Instance)
 		local key = instance:GetAttribute(Net.LETTERING_ATTRIBUTE)
@@ -445,10 +499,14 @@ function Lettering.start()
 		end
 		since = 0
 		local now = os.clock()
+		local camera = Workspace.CurrentCamera
+		local eye = if camera then camera.CFrame else nil
 		for label, record in records do
 			if not label.Parent then
 				-- Whatever held the label is gone, and what was hung beside it with it.
 				undress(label)
+			elseif not inSight(label, record, eye, now) then
+				continue
 			else
 				-- One label that cannot be drawn must not stop the rest, every frame: it
 				-- goes back to the plain color it had and says why.
