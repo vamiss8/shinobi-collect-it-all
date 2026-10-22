@@ -4,6 +4,7 @@
     python scripts/discord-setup.py --clipboard         # does it
     python scripts/discord-setup.py --clipboard --webhooks --posts   # Iruka's webhooks and posts
     python scripts/discord-setup.py --clipboard --new-webhooks       # Iruka's webhooks made anew
+    python scripts/discord-setup.py --clipboard --colors             # the roles painted anew
 
 The bot's token is taken from the clipboard (--clipboard: copy it in the Developer Portal, then
 run the script), from the environment variable DISCORD_TOKEN, or asked for in the terminal (not
@@ -16,7 +17,9 @@ What it does, all of it safe to run again:
     for mentions; Discord's own "X joined" messages off;
   - the roles: staff, special, the game's (VIP, legendary shinobi, the ten ranks, Six Paths,
     given by Bloxlink), the chat levels (given by the leveling bot), languages and pings, in
-    order, with the other bots' roles kept above them;
+    order, with the other bots' roles kept above them. A role there already keeps its color,
+    which is the owner's to change; --colors paints every role of ours (and Bloxlink's
+    Verified) in the colors written here;
   - the categories and channels with their permissions and slow modes, the voice rooms with
     their sizes and the AFK room. CHANNELS THAT ALREADY EXIST ARE RENAMED AND MOVED, NEVER MADE
     AGAIN: what was written in them stays. A channel it does not know is left alone;
@@ -82,29 +85,37 @@ SYSTEM_FLAGS = (1 << 0) | (1 << 2) | (1 << 3)
 
 MOD = MANAGE_MESSAGES | MANAGE_THREADS | TIMEOUT
 
+# A member's name takes the color of their highest colored role, and a role with no color is
+# gray. So every role of ours has one (owner, 2026-10-22: "gray for nobody but the bots"), the
+# more the role means the stronger its color, and nothing is near white, which reads as gray.
+# What only tags a member (language, pings, Bloxlink's Verified) is cherry blossom: it shows
+# only on someone who has no other role yet.
+TAG = 0xF5A3C7
+
 # Roles, top to bottom: name, color, shown apart in the member list, permissions.
 STAFF_ROLES = [
     ("Founder", 0x9D5CFF, True, ADMIN),
     ("Developer", 0xFF3B30, True, MOD | KICK | MENTION_ALL),
     ("Designer", 0xFF6FB5, True, 0),
-    ("Moderator", 0x4FC3F7, True, MOD),
-    ("Helper", 0x80CBC4, True, TIMEOUT),
-    ("Staff", 0, False, MENTION_ALL),
+    ("Moderator", 0x3D8BFF, True, MOD),
+    ("Helper", 0x1FBF9F, True, TIMEOUT),
+    ("Staff", 0x7C93FF, False, MENTION_ALL),
 ]
 SPECIAL_ROLES = [
-    ("White Reaper", 0xFFFFFF, True, 0),
     ("Content Creator", 0xFF8A3D, True, 0),
-    ("Tester", 0x81C784, True, 0),
+    ("Tester", 0x2EC4D6, True, 0),
     # Given by Bloxlink: the Daimyo VIP pass.
     ("Daimyo VIP", 0xFFC83D, True, 0),
 ]
 # Given by Bloxlink, by the passes and the badges (docs/discord.md has the ids).
 GAME_ROLES = [
-    ("Bought Hagoromo", 0xEDE6D3, False, 0),
+    # The dearer the shinobi, the stronger the color: Hagoromo the Rinnegan's violet.
+    ("Bought Hagoromo", 0xC084FC, False, 0),
     ("Bought Tobirama", 0x5BA8E6, False, 0),
     ("Bought Tsunade", 0x7CCB6A, False, 0),
-    # The ten ranks, highest first, in the game's colors (Config/Rebirths).
-    ("Sage of Six Paths", 0xFFF8E1, False, 0),
+    # The ten ranks, highest first, in the game's colors (Config/Rebirths), but for the last,
+    # whose bone white reads as gray here: the gold of its lettering.
+    ("Sage of Six Paths", 0xFFB300, False, 0),
     ("Sage", 0xFFD54F, False, 0),
     ("Kage", 0xFF5252, False, 0),
     ("Sannin", 0xFF7043, False, 0),
@@ -114,7 +125,7 @@ GAME_ROLES = [
     ("Special Jonin", 0x7986CB, False, 0),
     ("Chunin", 0x4FC3F7, False, 0),
     ("Genin", 0x9CCC65, False, 0),
-    ("Six Paths Hunter", 0xECEFF1, False, 0),
+    ("Six Paths Hunter", 0xE9C46A, False, 0),
 ]
 # Chat levels, given by the leveling bot: Naruto's own road, from the first D-rank mission
 # to the Will of Fire, in colors from leaf to fire. Not the game's ranks (owner, 2026-10-21:
@@ -141,13 +152,15 @@ LANGUAGES = [
     ("Deutsch", "🇩🇪・deutsch", [], "🇩🇪", "Deutsch", "Chat auf Deutsch.", "de"),
 ]
 PING_ROLES = [
-    ("Codes Ping", 0, False, 0),
-    ("Updates Ping", 0, False, 0),
-    ("Events Ping", 0, False, 0),
-    ("Giveaways Ping", 0, False, 0),
-    ("QOTD Ping", 0, False, 0),
-    ("Sneak Peeks Ping", 0, False, 0),
+    ("Codes Ping", TAG, False, 0),
+    ("Updates Ping", TAG, False, 0),
+    ("Events Ping", TAG, False, 0),
+    ("Giveaways Ping", TAG, False, 0),
+    ("QOTD Ping", TAG, False, 0),
+    ("Sneak Peeks Ping", TAG, False, 0),
 ]
+# Roles another bot made that --colors paints too.
+OTHER_COLORS = {"Verified": TAG}
 # Names a role of ours had before the owner renamed it on the server (2026-10-22): found under
 # either, so that a run after a rename does not make the role again.
 ROLE_ALIASES = {
@@ -159,7 +172,7 @@ ROLE_ALIASES = {
 
 ROLES = (
     STAFF_ROLES + SPECIAL_ROLES + GAME_ROLES + LEVEL_ROLES
-    + [(name, 0, False, 0) for name, *_ in LANGUAGES] + PING_ROLES
+    + [(name, TAG, False, 0) for name, *_ in LANGUAGES] + PING_ROLES
 )
 
 BUG_GUIDE = """Please write:
@@ -371,6 +384,7 @@ def main():
     parser.add_argument("--webhooks", action="store_true", help="make Iruka's webhooks, addresses into a local file")
     parser.add_argument("--new-webhooks", action="store_true", help="delete Iruka's webhooks and make new ones")
     parser.add_argument("--posts", action="store_true", help="fill the Discohook posts with the server's ids")
+    parser.add_argument("--colors", action="store_true", help="paint the roles in the colors written here")
     args = parser.parse_args()
 
     if args.clipboard:
@@ -435,6 +449,15 @@ def main():
         roles = named(all_roles)
         by_id = {role["id"]: role for role in all_roles}
         mine = [by_id[r] for r in member["roles"] if r in by_id]
+    if args.colors:
+        print("Role colors")
+        paints = {name: color for name, color, *_ in ROLES} | OTHER_COLORS
+        for name, color in paints.items():
+            role = roles.get(name)
+            if not role or str(role.get("id", "<")).startswith("<") or role.get("color") == color:
+                continue
+            api.call("PATCH", f"/guilds/{gid}/roles/{role['id']}", {"color": color})
+            print(f"  {role['name']}: #{color:06X}")
     ours = [roles[name] for name, *_ in ROLES if name in roles and "id" in roles[name]]
     if ours and mine and not args.dry:
         # Where a role stands is not its number alone: roles made through the API all come in at
