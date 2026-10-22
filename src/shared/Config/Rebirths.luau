@@ -64,7 +64,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.25,
 		mutationLuck = 1.1,
 		startSpeed = 0,
-		badge = 0,
+		badge = 2110248816055154,
 	},
 	{
 		chakra = 1e4,
@@ -74,7 +74,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.5,
 		mutationLuck = 1.2,
 		startSpeed = 2,
-		badge = 0,
+		badge = 1681354550256701,
 	},
 	{
 		chakra = 1e5,
@@ -84,7 +84,7 @@ local Rebirths: { Rebirth } = {
 		power = 1.75,
 		mutationLuck = 1.3,
 		startSpeed = 4,
-		badge = 0,
+		badge = 798646705511775,
 	},
 	{
 		chakra = 1e6,
@@ -94,7 +94,7 @@ local Rebirths: { Rebirth } = {
 		power = 2,
 		mutationLuck = 1.4,
 		startSpeed = 8,
-		badge = 0,
+		badge = 3303083990581159,
 	},
 	{
 		chakra = 1e7,
@@ -104,7 +104,7 @@ local Rebirths: { Rebirth } = {
 		power = 2.25,
 		mutationLuck = 1.5,
 		startSpeed = 12,
-		badge = 0,
+		badge = 970437408606454,
 	},
 	{
 		chakra = 1e8,
