@@ -96,13 +96,13 @@ SPECIAL_ROLES = [
     ("Content Creator", 0xFF8A3D, True, 0),
     ("Tester", 0x81C784, True, 0),
     # Given by Bloxlink: the Daimyo VIP pass.
-    ("VIP", 0xFFC83D, True, 0),
+    ("Daimyo VIP", 0xFFC83D, True, 0),
 ]
 # Given by Bloxlink, by the passes and the badges (docs/discord.md has the ids).
 GAME_ROLES = [
-    ("Legendary: Hagoromo", 0xEDE6D3, False, 0),
-    ("Legendary: Tobirama", 0x5BA8E6, False, 0),
-    ("Legendary: Tsunade", 0x7CCB6A, False, 0),
+    ("Bought Hagoromo", 0xEDE6D3, False, 0),
+    ("Bought Tobirama", 0x5BA8E6, False, 0),
+    ("Bought Tsunade", 0x7CCB6A, False, 0),
     # The ten ranks, highest first, in the game's colors (Config/Rebirths).
     ("Sage of Six Paths", 0xFFF8E1, False, 0),
     ("Sage", 0xFFD54F, False, 0),
@@ -148,6 +148,15 @@ PING_ROLES = [
     ("QOTD Ping", 0, False, 0),
     ("Sneak Peeks Ping", 0, False, 0),
 ]
+# Names a role of ours had before the owner renamed it on the server (2026-10-22): found under
+# either, so that a run after a rename does not make the role again.
+ROLE_ALIASES = {
+    "Daimyo VIP": ["VIP"],
+    "Bought Hagoromo": ["Legendary: Hagoromo"],
+    "Bought Tobirama": ["Legendary: Tobirama"],
+    "Bought Tsunade": ["Legendary: Tsunade"],
+}
+
 ROLES = (
     STAFF_ROLES + SPECIAL_ROLES + GAME_ROLES + LEVEL_ROLES
     + [(name, 0, False, 0) for name, *_ in LANGUAGES] + PING_ROLES
@@ -383,7 +392,18 @@ def main():
     me = api.get("/users/@me")
     member = api.get(f"/guilds/{gid}/members/{me['id']}")
     all_roles = api.get(f"/guilds/{gid}/roles")
-    roles = {role["name"]: role for role in all_roles}
+    def named(listing):
+        """The roles by name, a renamed role of ours under its name in ROLES too."""
+        found = {role["name"]: role for role in listing}
+        for name, olds in ROLE_ALIASES.items():
+            if name not in found:
+                for old in olds:
+                    if old in found:
+                        found[name] = found[old]
+                        break
+        return found
+
+    roles = named(all_roles)
     by_id = {role["id"]: role for role in all_roles}
     mine = [by_id[r] for r in member["roles"] if r in by_id]
 
@@ -412,7 +432,7 @@ def main():
     # The positions read before the new roles were made are stale: read them again.
     if not args.dry:
         all_roles = api.get(f"/guilds/{gid}/roles")
-        roles = {role["name"]: role for role in all_roles}
+        roles = named(all_roles)
         by_id = {role["id"]: role for role in all_roles}
         mine = [by_id[r] for r in member["roles"] if r in by_id]
     ours = [roles[name] for name, *_ in ROLES if name in roles and "id" in roles[name]]
