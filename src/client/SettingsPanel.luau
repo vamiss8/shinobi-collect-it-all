@@ -43,7 +43,8 @@ local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 880)
+-- Tall enough that the line at the foot stands under the Discord row, not over it.
+local SIZE = Vector2.new(760, 910)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
