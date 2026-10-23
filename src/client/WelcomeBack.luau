@@ -8,6 +8,15 @@
 -- the Collect button the same Ryo are offered a second time for Robux (Config/Products
 -- "DoubleOffline"): bought, the server pays them once more (Services/Purchases), whether the
 -- window is still open or not, and the window, if it is, shows what comes in all.
+--
+-- THIS IS THE ONE LISTENER OF Remotes.Offline, and has to stay the only one. The server sends
+-- the message the moment the save loads, and the client starts its modules only after that
+-- (client Language waits for the saved language), so the message comes before anyone listens.
+-- Roblox keeps such a message until a handler connects and delivers it to that handler: when
+-- client Guide connected its own handler first, the window never opened (my reading, which
+-- fits what the testers saw and is not seen in Studio), the
+-- Ryo were paid only as the player left, and testers saw them on their next visit (owner,
+-- 2026-10-23). Whoever else wants to know of a return asks WelcomeBack.onReturn.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -22,6 +31,18 @@ local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
 
 local WelcomeBack = {}
+
+-- Who wants to know that the player came back to income waiting (client Guide's tip), and
+-- whether they have this visit: one who asks later is told at once.
+local told: { () -> () } = {}
+local returned = false
+
+function WelcomeBack.onReturn(callback: () -> ())
+	table.insert(told, callback)
+	if returned then
+		task.spawn(callback)
+	end
+end
 
 function WelcomeBack.start()
 	local window = Ui.window("WelcomeBack", Vector2.new(540, 380))
@@ -120,6 +141,12 @@ function WelcomeBack.start()
 		end
 		waiting = true
 		window.open()
+		if not returned then
+			returned = true
+			for _, callback in told do
+				task.spawn(callback)
+			end
+		end
 	end)
 	window.frame:GetPropertyChangedSignal("Visible"):Connect(function()
 		if waiting and not window.frame.Visible then

@@ -48,6 +48,7 @@ local Strings = require("./Strings")
 local ThrowPower = require("./ThrowPower")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
+local WelcomeBack = require("./WelcomeBack")
 
 local Guide = {}
 
@@ -87,6 +88,10 @@ local TOUCH_TILES = { "shop", "inventory", "book", "awards", "rebirth", "setting
 -- meditated, was "not let go", and moved on only after the ring (2026-10-20).
 local CHAKRA_RISES = 3
 local CHAKRA_TO_GATHER = 10
+-- Seconds of a visit with the base tutorial done before Iruka names the Discord server and
+-- its codes, once a player (owner, 2026-10-23: "more mentions of our Discord, and that the
+-- codes are there"; the tutorial's own last words name it already).
+local COMMUNITY_AFTER = 120
 -- The arrow at a part of the interface: its size, how far off what it points at, how far it
 -- bobs; the ring round the part, how far out; how dark the dimmed screen is.
 local ARROW = Vector2.new(70, 86)
@@ -1202,6 +1207,8 @@ function Guide.start()
 	-- once each way (it used to be rolled up again every round while it was rolling, slowly
 	-- and in jerks: the owner saw "Run home" close like that); what some steps wait on; a tip
 	-- in its turn; the places a tip is said at.
+	-- When this visit first found the base tutorial done (for the Discord tip).
+	local done: number? = nil
 	task.spawn(function()
 		while true do
 			task.wait(0.2)
@@ -1226,6 +1233,18 @@ function Guide.start()
 			end
 			if near(leaderSheets, 30) then
 				want("leaders")
+			end
+			if
+				Tuning.Social.server
+				and known
+				and known.guide >= GuideConfig.DONE
+				and not state.running
+			then
+				local since = done or os.clock()
+				done = since
+				if os.clock() - since >= COMMUNITY_AFTER then
+					want("community")
+				end
 			end
 		end
 	end)
@@ -1297,7 +1316,9 @@ function Guide.start()
 	Remotes.Ring.OnClientEvent:Connect(function()
 		want("ring")
 	end)
-	Remotes.Offline.OnClientEvent:Connect(function()
+	-- Not a handler of Remotes.Offline of its own: that message must have one (client
+	-- WelcomeBack says why).
+	WelcomeBack.onReturn(function()
 		want("offline")
 	end)
 	Remotes.Reveal.OnClientEvent:Connect(function(reveal: Net.Reveal)
