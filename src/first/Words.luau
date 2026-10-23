@@ -36,6 +36,7 @@ local Words: { [string]: Pack } = {
 			"Upgrade your shinobi on the {b|console} at the foot of each pad: every level is {g|x1.25} income.",
 			"{y|Herbs} come from catches you bring home. Trade them for potions at {b|Kabuto's Remedies}.",
 			"Lost? The {b|notice board} on the plaza explains everything.",
+			"New {r|codes} come out first in our {r|Discord server}. Its link is on the {b|game's page}.",
 		},
 	},
 	ru = {
@@ -59,6 +60,7 @@ local Words: { [string]: Pack } = {
 			"Улучшай шиноби на {b|пульте} у каждой платформы: каждый уровень даёт доход {g|x1,25}.",
 			"{y|Травы} дают уловы, принесённые домой. Меняй их на зелья в {b|Снадобьях Кабуто}.",
 			"Заблудился? {b|Доска объявлений} на площади всё объяснит.",
+			"{r|Новые коды} первыми выходят в нашем {r|Discord-сервере}. Ссылка — на {b|странице игры}.",
 		},
 	},
 	es = {
@@ -82,6 +84,7 @@ local Words: { [string]: Pack } = {
 			"Mejora a tus shinobi en la {b|consola} al pie de cada plataforma: cada nivel da {g|x1,25} de ingresos.",
 			"Las {y|hierbas} vienen de las capturas que llevas a casa. Cámbialas por pociones en {b|Remedios de Kabuto}.",
 			"¿Perdido? El {b|tablón de anuncios} de la plaza lo explica todo.",
+			"Los {r|códigos nuevos} salen primero en nuestro {r|servidor de Discord}. El enlace está en la {b|página del juego}.",
 		},
 	},
 	pt = {
@@ -105,6 +108,7 @@ local Words: { [string]: Pack } = {
 			"Melhore seus shinobi no {b|console} ao pé de cada plataforma: cada nível dá {g|x1,25} de renda.",
 			"As {y|ervas} vêm das capturas que você leva para casa. Troque por poções nos {b|Remédios do Kabuto}.",
 			"Perdido? O {b|quadro de avisos} da praça explica tudo.",
+			"Os {r|códigos novos} saem primeiro no nosso {r|servidor do Discord}. O link está na {b|página do jogo}.",
 		},
 	},
 	fr = {
@@ -128,6 +132,7 @@ local Words: { [string]: Pack } = {
 			"Améliore tes shinobi sur la {b|console} au pied de chaque plateforme : chaque niveau donne {g|x1,25}.",
 			"Les {y|herbes} viennent des prises ramenées à la maison. Échange-les contre des potions aux {b|Remèdes de Kabuto}.",
 			"Perdu ? Le {b|tableau d'affichage} de la place explique tout.",
+			"Les {r|nouveaux codes} sortent d'abord sur notre {r|serveur Discord}. Le lien est sur la {b|page du jeu}.",
 		},
 	},
 	de = {
@@ -151,6 +156,7 @@ local Words: { [string]: Pack } = {
 			"Verbessere deine Shinobi an der {b|Konsole} am Fuß jeder Plattform: jedes Level bringt {g|x1,25}.",
 			"{y|Kräuter} gibt es für Fänge, die du nach Hause bringst. Tausche sie bei {b|Kabutos Heilmittel} gegen Tränke.",
 			"Verloren? Das {b|Schwarze Brett} auf dem Platz erklärt alles.",
+			"{r|Neue Codes} erscheinen zuerst auf unserem {r|Discord-Server}. Der Link steht auf der {b|Seite des Spiels}.",
 		},
 	},
 }

@@ -115,8 +115,10 @@ Notices.front = pinned({
 	wanted("land_of_waves"),
 	{
 		kind = "note",
-		title = "LOST",
-		body = "A green frog wallet, nearly empty. Return to Naruto.",
+		title = "CODES",
+		body = "New codes come out in our Discord server. Its link is on the game's page.",
+		red = true,
+		stamp = true,
 	},
 	{
 		kind = "note",

@@ -4,7 +4,9 @@
 -- (Tuning.Social): the words name the server and say that its link is on the game's page.
 -- Only once there is one (Tuning.Social.server), at REMIND_AT seconds into a visit, on the
 -- message scroll, never in the middle of a throw, over an open window or while Iruka teaches.
--- Iruka says it too, at the end of his tutorial (client Guide), and so does How to play.
+-- Iruka says it too, at the end of his tutorial and in a tip of its own (client Guide), and so
+-- do How to play, the codes' row in the settings, the notice board and the loading screen's
+-- tips: new codes come out there first (owner, 2026-10-23: "more mentions, about the codes").
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -17,7 +19,7 @@ local Ui = require("./Ui")
 
 local Community = {}
 
-local REMIND_AT = { 600, 2700 }
+local REMIND_AT = { 480, 1800 }
 -- A reminder that finds the player busy looks again this many seconds later.
 local RETRY = 20
 -- Discord's own blue, on the scroll's seal and edge.

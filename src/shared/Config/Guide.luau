@@ -96,6 +96,9 @@ Guide.tips = {
 	{ id = "legend", everyone = true },
 	{ id = "leaders", everyone = true },
 	{ id = "daily", everyone = true },
+	-- The Discord server and its codes, said a while into a visit once the tutorial is done
+	-- (client Guide COMMUNITY_AFTER), only while Tuning.Social.server is on.
+	{ id = "community", point = { "settings" }, everyone = true },
 } :: { Tip }
 
 -- What Data.guide holds once the base tutorial is done.
