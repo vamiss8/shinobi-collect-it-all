@@ -55,6 +55,13 @@ return {
 		T.near(muted.music, 0.3, 1e-9, "muting keeps the volume")
 		local old: any = { language = "fr", font = "plain", music = 0.5, effects = 0.5 }
 		T.eq(Settings.clean({}, old).musicMuted, false)
+		-- The Discord reminders are on until asked off, a save from before included.
+		T.eq(now.quietDiscord, false)
+		T.eq(Settings.clean({}, old).quietDiscord, false)
+		local quiet = Settings.clean({ quietDiscord = true }, kept)
+		T.eq(quiet.quietDiscord, true)
+		T.eq(Settings.clean({ quietDiscord = "please" }, quiet).quietDiscord, true, "kept as was")
+		T.eq(Settings.clean({ quietDiscord = false }, quiet).quietDiscord, false)
 	end,
 
 	["every language has a pack of words, and names itself"] = function()

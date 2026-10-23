@@ -496,6 +496,9 @@ return {
 		DailyClaimed = "Recompensa diária resgatada: dia %s!",
 		SettingsTutorial = "Tutorial",
 		SettingsCodes = "Códigos",
+		SettingsDiscord = "Discord",
+		SettingsDiscordStop = "Já estou lá: parar os lembretes",
+		SettingsDiscordOff = "Lembretes desligados. Ligar de novo",
 		CodesPlaceholder = "Digite um código",
 		CodesRedeem = "Resgatar",
 		CodesHint = "Tem um código? Digite aqui.",
@@ -514,6 +517,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "O Iruka ensina o jogo e explica cada coisa nova na primeira vez. Recompensas diárias. Um botão de Tutorial na Ajuda das configurações. Um Como jogar mais completo.",
 		Change_InventoryMerge = "Funda direto no Inventário: ele brilha em violeta quando há gêmeos, Ver mostra cada fusão e o resultado, e Fundir tudo faz todas.",
+		Change_DiscordQuiet = "Os lembretes do Discord podem ser desligados em Configurações.",
 		Change_OfflineFix = "Corrigido: a janela com seus ganhos offline nem sempre abria.",
 		Change_Community = "Nosso servidor do Discord está aberto: notícias, códigos e sorteios. O link está na página do jogo.",
 		Change_Loading = "Nova tela de carregamento: a vila surge atrás de pétalas caindo, com dicas enquanto você espera.",
@@ -575,7 +579,7 @@ return {
 		GroupGiftUnknown = "O Roblox não disse se você está no grupo: tente de novo daqui a pouco.",
 		GroupGiftRemindJoin = "Entre no grupo sad mansion studios e curta o jogo: um presente te espera atrás da fonte!",
 		GroupGiftRemindClaim = "Um presente para membros da sad mansion studios te espera atrás da fonte!",
-		CommunityRemind = "Códigos novos, sorteios e notícias saem no nosso servidor do Discord. O link está na página do jogo.",
+		CommunityRemind = "Códigos novos, sorteios e notícias saem no nosso servidor do Discord. O link está na página do jogo. Já está lá? Desligue estes lembretes em Configurações.",
 		TipVip = "VIP DO DAIMYO: renda do dojo x%s, renda offline x%s e este selo dourado. Clique para ver na loja.",
 
 		-- The legendary shinobi on their pedestals

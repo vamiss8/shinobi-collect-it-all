@@ -7,12 +7,18 @@
 -- Iruka says it too, at the end of his tutorial and in a tip of its own (client Guide), and so
 -- do How to play, the codes' row in the settings, the notice board and the loading screen's
 -- tips: new codes come out there first (owner, 2026-10-23: "more mentions, about the codes").
+-- A player who is in the server already stops these reminders in the settings (owner,
+-- 2026-10-23: "they will only annoy"; Logic/Settings quietDiscord), and a code redeemed stops
+-- them too (Services/Codes). Joining is not rewarded: it cannot be checked from the game, and
+-- the reward for being there is the codes themselves.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cinematic = require("./Cinematic")
 local Guide = require("./Guide")
 local Hud = require("./Hud")
+local Net = require(ReplicatedStorage.Shared.Net)
 local Strings = require("./Strings")
 local Tuning = require(ReplicatedStorage.Shared.Config.Tuning)
 local Ui = require("./Ui")
@@ -36,7 +42,9 @@ function Community.start()
 			while Cinematic.staging() or Ui.windowOpen() or Guide.running() do
 				task.wait(RETRY)
 			end
-			Hud.toast(Strings.get("CommunityRemind"), DISCORD)
+			if Players.LocalPlayer:GetAttribute(Net.SETTING_QUIET_DISCORD) ~= true then
+				Hud.toast(Strings.get("CommunityRemind"), DISCORD)
+			end
 		end
 	end)
 end

@@ -495,6 +495,9 @@ return {
 		DailyClaimed = "¡Recompensa diaria reclamada: día %s!",
 		SettingsTutorial = "Tutorial",
 		SettingsCodes = "Códigos",
+		SettingsDiscord = "Discord",
+		SettingsDiscordStop = "Ya estoy allí: no recordármelo más",
+		SettingsDiscordOff = "Recordatorios desactivados. Volver a activarlos",
 		CodesPlaceholder = "Escribe un código",
 		CodesRedeem = "Canjear",
 		CodesHint = "¿Tienes un código? Escríbelo aquí.",
@@ -513,6 +516,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "Iruka enseña el juego y explica cada cosa nueva la primera vez. Recompensas diarias. Un botón de Tutorial en la Ayuda de los ajustes. Un Cómo jugar más completo.",
 		Change_InventoryMerge = "Fusiona en el Inventario: brilla en violeta cuando hay gemelos, Ver muestra cada fusión y su resultado, y Fusionar todo las hace todas.",
+		Change_DiscordQuiet = "Los recordatorios de Discord se pueden desactivar en Ajustes.",
 		Change_OfflineFix = "Corregido: la ventana con tus ganancias sin conexión no siempre se abría.",
 		Change_Community = "Abrimos nuestro servidor de Discord: noticias, códigos y sorteos. El enlace está en la página del juego.",
 		Change_Loading = "Nueva pantalla de carga: la aldea aparece tras pétalos que caen, con consejos mientras esperas.",
@@ -574,7 +578,7 @@ return {
 		GroupGiftUnknown = "Roblox no dijo si estás en el grupo: inténtalo de nuevo en un momento.",
 		GroupGiftRemindJoin = "Únete al grupo sad mansion studios y dale like al juego: ¡un regalo te espera detrás de la fuente!",
 		GroupGiftRemindClaim = "¡Un regalo para miembros de sad mansion studios te espera detrás de la fuente!",
-		CommunityRemind = "Los códigos nuevos, sorteos y noticias salen en nuestro servidor de Discord. El enlace está en la página del juego.",
+		CommunityRemind = "Los códigos nuevos, sorteos y noticias salen en nuestro servidor de Discord. El enlace está en la página del juego. ¿Ya estás allí? Desactiva estos recordatorios en Ajustes.",
 		TipVip = "VIP DEL DAIMYO: ingresos del dojo x%s, ingresos sin conexión x%s y este sello dorado. Pulsa para verlo en la tienda.",
 
 		-- The legendary shinobi on their pedestals

@@ -109,6 +109,7 @@ Net.SETTING_MUSIC = "SettingMusic"
 Net.SETTING_EFFECTS = "SettingEffects"
 Net.SETTING_MUSIC_MUTED = "SettingMusicMuted"
 Net.SETTING_EFFECTS_MUTED = "SettingEffectsMuted"
+Net.SETTING_QUIET_DISCORD = "SettingQuietDiscord"
 -- The folder in Workspace with the legendary shinobi on show (Services/Legends): their figures
 -- and, for each, a price tag, a BillboardGui with the attribute below naming the shinobi and a
 -- label named LEGEND_PRICE that each client rewrites for a player who owns it. The same

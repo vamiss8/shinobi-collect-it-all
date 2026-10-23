@@ -512,6 +512,9 @@ return {
 		DailyClaimed = "Daily reward claimed: day %s!",
 		SettingsTutorial = "Tutorial",
 		SettingsCodes = "Codes",
+		SettingsDiscord = "Discord",
+		SettingsDiscordStop = "I'm already there: stop reminding me",
+		SettingsDiscordOff = "Reminders are off. Turn them back on",
 		CodesPlaceholder = "Type a code",
 		CodesRedeem = "Redeem",
 		CodesHint = "Got a code? Type it here.",
@@ -530,6 +533,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "Iruka teaches the game and explains each new thing the first time you meet it. Daily rewards. A Tutorial button in the settings' Help. A longer How to play.",
 		Change_InventoryMerge = "Merge right in the Inventory: it glows violet when twins are found, Show lists every merge with what it becomes, and Merge all makes them all.",
+		Change_DiscordQuiet = "The Discord reminders can be turned off in the Settings.",
 		Change_OfflineFix = "Fixed: the welcome-back window with your offline income did not always open.",
 		Change_Community = "Our Discord server is open: news, codes and giveaways. Its link is on the game's page.",
 		Change_Loading = "A new loading screen: the village comes in behind falling petals, with tips while you wait.",
@@ -591,7 +595,7 @@ return {
 		GroupGiftUnknown = "Roblox did not say whether you are in the group: try again in a moment.",
 		GroupGiftRemindJoin = "Join the sad mansion studios group and like the game: a gift waits for you behind the fountain!",
 		GroupGiftRemindClaim = "A gift for members of sad mansion studios waits for you behind the fountain!",
-		CommunityRemind = "New codes, giveaways and news come out in our Discord server. Its link is on the game's page.",
+		CommunityRemind = "New codes, giveaways and news come out in our Discord server. Its link is on the game's page. Already there? Turn these reminders off in the Settings.",
 		TipVip = "DAIMYO VIP: dojo income x%s, offline income x%s and this gold seal. Click to see it in the shop.",
 
 		-- The legendary shinobi on their pedestals (Services/Legends, client LegendShow).

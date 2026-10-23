@@ -16,6 +16,10 @@ export type Settings = {
 	-- when it is unmuted. A save from before has neither, which is not muted.
 	musicMuted: boolean,
 	effectsMuted: boolean,
+	-- The player has asked the reminders of the Discord server to stop (owner, 2026-10-23:
+	-- "a button 'I am already in the Discord, do not show it again', or they will only annoy";
+	-- client Community). A save from before has none, which is not asked.
+	quietDiscord: boolean,
 }
 
 Settings.FONTS = { "brush", "plain" }
@@ -30,6 +34,7 @@ function Settings.defaults(): Settings
 		effects = 0.8,
 		musicMuted = false,
 		effectsMuted = false,
+		quietDiscord = false,
 	}
 end
 
@@ -86,6 +91,7 @@ function Settings.clean(wanted: unknown, current: Settings): Settings
 		effects = volume(given.effects, current.effects),
 		musicMuted = flag(given.musicMuted, current.musicMuted),
 		effectsMuted = flag(given.effectsMuted, current.effectsMuted),
+		quietDiscord = flag(given.quietDiscord, current.quietDiscord),
 	}
 end
 

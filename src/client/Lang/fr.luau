@@ -495,6 +495,9 @@ return {
 		DailyClaimed = "Récompense du jour récupérée : jour %s !",
 		SettingsTutorial = "Tutoriel",
 		SettingsCodes = "Codes",
+		SettingsDiscord = "Discord",
+		SettingsDiscordStop = "J'y suis déjà : ne plus me le rappeler",
+		SettingsDiscordOff = "Rappels désactivés. Les réactiver",
 		CodesPlaceholder = "Tape un code",
 		CodesRedeem = "Valider",
 		CodesHint = "Tu as un code ? Tape-le ici.",
@@ -513,6 +516,7 @@ return {
 		CodesPotion = "%s (%s min)",
 		Change_Guide = "Iruka enseigne le jeu et explique chaque nouveauté la première fois. Récompenses quotidiennes. Un bouton Tutoriel dans l'Aide des paramètres. Un Comment jouer plus complet.",
 		Change_InventoryMerge = "Fusionne dans l'Inventaire : il brille en violet quand il y a des jumeaux, Voir montre chaque fusion et son résultat, et Tout fusionner les fait toutes.",
+		Change_DiscordQuiet = "Les rappels du Discord peuvent être désactivés dans les Paramètres.",
 		Change_OfflineFix = "Corrigé : la fenêtre de tes gains hors ligne ne s'ouvrait pas toujours.",
 		Change_Community = "Notre serveur Discord est ouvert : annonces, codes et concours. Le lien est sur la page du jeu.",
 		Change_Loading = "Nouvel écran de chargement : le village apparaît derrière des pétales qui tombent, avec des astuces en attendant.",
@@ -574,7 +578,7 @@ return {
 		GroupGiftUnknown = "Roblox n'a pas dit si tu es dans le groupe : réessaie dans un instant.",
 		GroupGiftRemindJoin = "Rejoins le groupe sad mansion studios et aime le jeu : un cadeau t'attend derrière la fontaine !",
 		GroupGiftRemindClaim = "Un cadeau pour les membres de sad mansion studios t'attend derrière la fontaine !",
-		CommunityRemind = "Nouveaux codes, concours et annonces sortent sur notre serveur Discord. Le lien est sur la page du jeu.",
+		CommunityRemind = "Nouveaux codes, concours et annonces sortent sur notre serveur Discord. Le lien est sur la page du jeu. Tu y es déjà ? Désactive ces rappels dans les Paramètres.",
 		TipVip = "VIP DU DAIMYO : revenus du dojo x%s, revenus hors ligne x%s et ce sceau doré. Clique pour le voir dans la boutique.",
 
 		-- The legendary shinobi on their pedestals

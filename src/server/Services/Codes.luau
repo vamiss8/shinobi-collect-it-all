@@ -134,6 +134,10 @@ local function redeem(player: Player, typed: unknown)
 	end
 
 	data.codes[name] = true
+	-- Whoever redeems a code knows where new ones come out: the Discord reminders stop for them
+	-- (client Community), as if they had asked. The settings can turn them on again.
+	data.settings.quietDiscord = true
+	player:SetAttribute(Net.SETTING_QUIET_DISCORD, true)
 	local reward: Net.CodeReward = { herbs = 0, ryo = 0, potions = {}, premium = {} }
 	local herbs = code.herbs or 0
 	if herbs > 0 then

@@ -495,6 +495,9 @@ return {
 		DailyClaimed = "Tägliche Belohnung abgeholt: Tag %s!",
 		SettingsTutorial = "Tutorial",
 		SettingsCodes = "Codes",
+		SettingsDiscord = "Discord",
+		SettingsDiscordStop = "Bin schon dabei: nicht mehr erinnern",
+		SettingsDiscordOff = "Erinnerungen aus. Wieder einschalten",
 		CodesPlaceholder = "Code eingeben",
 		CodesRedeem = "Einlösen",
 		CodesHint = "Hast du einen Code? Gib ihn hier ein.",
@@ -513,6 +516,7 @@ return {
 		CodesPotion = "%s (%s Min.)",
 		Change_Guide = "Iruka bringt dir das Spiel bei und erklärt alles Neue beim ersten Mal. Tägliche Belohnungen. Ein Tutorial-Knopf in der Hilfe der Einstellungen. Eine ausführlichere Spielanleitung.",
 		Change_InventoryMerge = "Verschmelzen direkt im Inventar: es leuchtet violett, wenn es Zwillinge gibt, Zeigen listet jede Verschmelzung mit ihrem Ergebnis, und Alle verschmelzen macht sie alle.",
+		Change_DiscordQuiet = "Die Discord-Erinnerungen lassen sich in den Einstellungen ausschalten.",
 		Change_OfflineFix = "Behoben: Das Fenster mit deinem Offline-Einkommen ging nicht immer auf.",
 		Change_Community = "Unser Discord-Server ist offen: News, Codes und Gewinnspiele. Der Link steht auf der Seite des Spiels.",
 		Change_Loading = "Neuer Ladebildschirm: das Dorf erscheint hinter fallenden Blüten, mit Tipps, während du wartest.",
@@ -574,7 +578,7 @@ return {
 		GroupGiftUnknown = "Roblox hat nicht gesagt, ob du in der Gruppe bist: versuch es gleich noch einmal.",
 		GroupGiftRemindJoin = "Tritt der Gruppe sad mansion studios bei und like das Spiel: hinter dem Brunnen wartet ein Geschenk!",
 		GroupGiftRemindClaim = "Hinter dem Brunnen wartet ein Geschenk für Mitglieder von sad mansion studios!",
-		CommunityRemind = "Neue Codes, Gewinnspiele und News erscheinen auf unserem Discord-Server. Der Link steht auf der Seite des Spiels.",
+		CommunityRemind = "Neue Codes, Gewinnspiele und News erscheinen auf unserem Discord-Server. Der Link steht auf der Seite des Spiels. Schon dabei? Schalte diese Erinnerungen in den Einstellungen aus.",
 		TipVip = "DAIMYO-VIP: Dojo-Einkommen x%s, Offline-Einkommen x%s und dieses goldene Siegel. Klicke, um es im Shop zu sehen.",
 
 		-- The legendary shinobi on their pedestals

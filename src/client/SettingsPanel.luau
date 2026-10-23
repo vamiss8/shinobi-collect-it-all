@@ -43,7 +43,7 @@ local Ui = require("./Ui")
 
 local SettingsPanel = {}
 
-local SIZE = Vector2.new(760, 860)
+local SIZE = Vector2.new(760, 880)
 local ROW = 72
 local ROW_GAP = 14
 local LABEL = 236
@@ -65,6 +65,8 @@ local CODE_BOX = 300
 local CODE_BUTTON = 160
 local CODE_WAIT = 4
 local CODE_GAP = 1.2
+-- Discord's own blue, on the button that stops the reminders of the server (client Community).
+local DISCORD = Color3.fromRGB(88, 101, 242)
 -- A volume's row: the bar of ten, and the mute button at the row's end.
 local BAR = 220
 local MUTE = 52
@@ -115,6 +117,7 @@ local function saved(): SettingsLogic.Settings
 		effects = player:GetAttribute(Net.SETTING_EFFECTS),
 		musicMuted = player:GetAttribute(Net.SETTING_MUSIC_MUTED),
 		effectsMuted = player:GetAttribute(Net.SETTING_EFFECTS_MUTED),
+		quietDiscord = player:GetAttribute(Net.SETTING_QUIET_DISCORD),
 	}, SettingsLogic.defaults())
 end
 
@@ -606,6 +609,48 @@ function SettingsPanel.start()
 		codeSaid.Text = Strings.get(words[outcome] or "CodesUnknown")
 		Audio.play("refuse")
 	end)
+
+	-- The reminders of the Discord server (client Community), for whoever is there already
+	-- (owner, 2026-10-23: "a button 'I am already in the Discord, do not show it again'"): one
+	-- button that stops them, and once stopped turns them on again. A code redeemed stops them
+	-- on the server's side (Services/Codes), which this button follows.
+	if Tuning.Social.server then
+		local discordTop = codesTop + 86
+		Ui.text(body, {
+			Position = UDim2.fromOffset(0, discordTop),
+			Size = UDim2.fromOffset(LABEL, 46),
+			TextSize = 28,
+			TextColor3 = Ui.PARCHMENT,
+			Text = Strings.get("SettingsDiscord"),
+		})
+		local quiet = Ui.button(body, {
+			Position = UDim2.fromOffset(CONTROL, discordTop),
+			Size = UDim2.fromOffset(CODE_BOX + 12 + CODE_BUTTON, 46),
+			BackgroundColor3 = DISCORD,
+			TextColor3 = Ui.PARCHMENT,
+			TextSize = 22,
+		})
+		local function drawQuiet()
+			quiet.BackgroundColor3 = if settings.quietDiscord then Ui.CARD else DISCORD
+			quiet.TextColor3 = if settings.quietDiscord then Ui.MUTED else Ui.PARCHMENT
+			quiet.Text = Strings.get(
+				if settings.quietDiscord then "SettingsDiscordOff" else "SettingsDiscordStop"
+			)
+		end
+		quiet.Activated:Connect(function()
+			settings.quietDiscord = not settings.quietDiscord
+			drawQuiet()
+			send()
+		end)
+		Players.LocalPlayer:GetAttributeChangedSignal(Net.SETTING_QUIET_DISCORD):Connect(function()
+			local now = Players.LocalPlayer:GetAttribute(Net.SETTING_QUIET_DISCORD) == true
+			if now ~= settings.quietDiscord then
+				settings.quietDiscord = now
+				drawQuiet()
+			end
+		end)
+		drawQuiet()
+	end
 
 	local playerTop = row(6, "MusicTitle")
 	local player = Ui.make("Frame", {
