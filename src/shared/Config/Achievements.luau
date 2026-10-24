@@ -110,7 +110,7 @@ local Achievements: { Achievement } = {
 		-- The third zone (Forest of Death), the fifth (Valley of the End), the eighth (Hidden
 		-- Rain) and the last (Great Ninja War), by the rank of what was caught there.
 		tiers = {
-			{ goal = 3, herbs = 40, badge = 0 },
+			{ goal = 3, herbs = 40, badge = 2416599117169388 },
 			{ goal = 5, herbs = 100, badge = 0 },
 			{ goal = 8, herbs = 200, badge = 0 },
 			{ goal = 10, herbs = 400, potion = "soldier_pill", badge = 0 },
@@ -122,7 +122,7 @@ local Achievements: { Achievement } = {
 		color = "#43A047",
 		mark = "書",
 		tiers = {
-			{ goal = 10, herbs = 30, badge = 0 },
+			{ goal = 10, herbs = 30, badge = 2824675544576918 },
 			{ goal = 50, herbs = 100, badge = 0 },
 			{ goal = 150, herbs = 250, badge = 0 },
 			{ goal = 300, herbs = 500, potion = "gama_charm", badge = 0 },
@@ -134,7 +134,7 @@ local Achievements: { Achievement } = {
 		color = "#2E7D32",
 		mark = "頁",
 		tiers = {
-			{ goal = 1, herbs = 150, badge = 0 },
+			{ goal = 1, herbs = 150, badge = 3782921059759855 },
 			{ goal = 3, herbs = 300, badge = 0 },
 			{ goal = 6, herbs = 600, potion = "soldier_pill", badge = 0 },
 		},
@@ -145,7 +145,7 @@ local Achievements: { Achievement } = {
 		color = "#BA68C8",
 		mark = "変",
 		tiers = {
-			{ goal = 1, herbs = 25, badge = 0 },
+			{ goal = 1, herbs = 25, badge = 4256633557761070 },
 			{ goal = 25, herbs = 100, badge = 0 },
 			{ goal = 100, herbs = 250, potion = "sage_oil", badge = 0 },
 		},
@@ -156,7 +156,7 @@ local Achievements: { Achievement } = {
 		color = "#F06292",
 		mark = "祭",
 		tiers = {
-			{ goal = 1, herbs = 50, badge = 0 },
+			{ goal = 1, herbs = 50, badge = 3898760550086242 },
 			{ goal = 10, herbs = 150, badge = 0 },
 			{ goal = 30, herbs = 300, potion = "sage_oil", badge = 0 },
 		},
